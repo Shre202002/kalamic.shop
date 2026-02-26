@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight } from 'lucide-react';
+import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ export function Navbar() {
     { name: 'Home', href: '/' },
     { name: 'Electronics', href: '/products?category=electronics' },
     { name: 'Fashion', href: '/products?category=fashion' },
-    { name: 'Home & Living', href: '/products?category=home' },
+    { name: 'Discovery Quiz', href: '/survey', highlight: true },
   ];
 
   return (
@@ -42,7 +42,10 @@ export function Navbar() {
                     href={link.href}
                     className="flex items-center justify-between p-4 text-lg font-medium border-b last:border-0 hover:text-primary transition-colors"
                   >
-                    {link.name}
+                    <span className="flex items-center gap-2">
+                      {link.highlight && <Sparkles className="h-4 w-4 text-accent fill-accent" />}
+                      {link.name}
+                    </span>
                     <ChevronRight className="h-5 w-5 opacity-50" />
                   </Link>
                 ))}
@@ -62,8 +65,9 @@ export function Navbar() {
             <Link 
               key={link.name} 
               href={link.href} 
-              className="text-sm font-medium hover:text-primary transition-colors"
+              className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${link.highlight ? 'text-accent font-bold hover:text-accent/80' : 'hover:text-primary'}`}
             >
+              {link.highlight && <Sparkles className="h-3.5 w-3.5 fill-accent" />}
               {link.name}
             </Link>
           ))}
