@@ -8,6 +8,7 @@ import { sendEmail } from '@/lib/email';
  * Generates and stores a 6-digit OTP for the given email and sends it via SMTP.
  */
 export async function sendOtp(email: string) {
+  console.log(`[AUTH] Requesting OTP for: ${email}`);
   await dbConnect();
   
   // Generate 6-digit code
@@ -16,13 +17,15 @@ export async function sendOtp(email: string) {
 
   try {
     // Delete existing OTPs for this email to avoid confusion
-    await Otp.deleteMany({ email });
+    const deleted = await Otp.deleteMany({ email });
+    console.log(`[AUTH] Cleaned up ${deleted.deletedCount} old OTPs for ${email}`);
     
-    await Otp.create({
+    const newOtp = await Otp.create({
       email,
       code,
       expiresAt,
     });
+    console.log(`[AUTH] New OTP created in DB for ${email}`);
 
     // Send the OTP via SMTP with an artisan-themed template
     await sendEmail({
@@ -33,7 +36,7 @@ export async function sendOtp(email: string) {
         <div style="font-family: 'Inter', sans-serif; padding: 40px; background-color: #FAF4EB; border-radius: 24px; max-width: 600px; margin: auto;">
           <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="color: #EA781E; font-size: 32px; font-weight: 800; margin: 0;">Kalamic</h1>
-            <p style="color: #666; font-size: 14px; text-transform: uppercase; tracking-widest: 2px;">Handcrafted Heritage</p>
+            <p style="color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">Handcrafted Heritage</p>
           </div>
           <div style="background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center;">
             <h2 style="color: #271E1B; margin-top: 0;">Verify Your Identity</h2>
@@ -50,12 +53,12 @@ export async function sendOtp(email: string) {
       `,
     });
 
-    console.log(`[AUTH] SMTP OTP sent to ${email}`);
-    
+    console.log(`[AUTH] OTP successfully sent to ${email}`);
     return { success: true, message: "A verification code has been sent to your email." };
-  } catch (error) {
-    console.error("Error generating or sending OTP:", error);
-    throw new Error("Failed to send verification code. Please try again.");
+  } catch (error: any) {
+    console.error("[AUTH] Error in sendOtp process:", error.message);
+    // Rethrow with a cleaner message for the UI toast
+    throw new Error(error.message || "Failed to deliver verification code.");
   }
 }
 
@@ -69,24 +72,27 @@ export async function verifyOtp(email: string, code: string) {
     const otpRecord = await Otp.findOne({ email }).sort({ createdAt: -1 });
 
     if (!otpRecord) {
+      console.warn(`[AUTH] Verification failed: No OTP record found for ${email}`);
       return { success: false, message: "No active verification code found." };
     }
 
     if (new Date() > otpRecord.expiresAt) {
+      console.warn(`[AUTH] Verification failed: OTP expired for ${email}`);
       await Otp.deleteOne({ _id: otpRecord._id });
       return { success: false, message: "Verification code has expired." };
     }
 
     if (otpRecord.code !== code) {
       await Otp.updateOne({ _id: otpRecord._id }, { $inc: { attempts: 1 } });
-      console.warn(`[SECURITY] Failed OTP attempt for ${email} at ${new Date().toISOString()}`);
+      console.warn(`[SECURITY] Incorrect OTP attempt for ${email}. Attempts count increased.`);
       return { success: false, message: "Incorrect verification code." };
     }
 
+    console.log(`[AUTH] OTP verified successfully for ${email}`);
     await Otp.deleteOne({ _id: otpRecord._id });
     return { success: true };
-  } catch (error) {
-    console.error("Error verifying OTP:", error);
-    throw new Error("Verification failed.");
+  } catch (error: any) {
+    console.error("[AUTH] Error in verifyOtp process:", error.message);
+    throw new Error("Verification process failed.");
   }
 }
