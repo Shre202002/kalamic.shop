@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -36,13 +35,14 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { getProductById, getProductBySlug, getFeaturedProducts } from '@/lib/actions/products';
 import { getProductReviews, submitReview } from '@/lib/actions/reviews';
-import { addToWishlist } from '@/lib/actions/user-actions';
+import { addToWishlist, getWishlistItems, removeFromWishlist } from '@/lib/actions/user-actions';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { ProductCard } from '@/components/product/ProductCard';
 import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -56,6 +56,7 @@ export default function ProductDetailPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isFavorited, setIsFavorited] = useState(false);
   
   // Review Form State
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
@@ -77,6 +78,13 @@ export default function ProductDetailPage() {
           ]);
           setRelatedProducts(featured.filter((p: any) => (p._id || p.id) !== (data._id || data.id)).slice(0, 4));
           setReviews(reviewData);
+
+          // Check if favorited
+          if (user) {
+            const wishlist = await getWishlistItems(user.uid);
+            const productId = data._id || data.id;
+            setIsFavorited(wishlist.some((item: any) => item.productId === productId));
+          }
         }
       } catch (error) {
         console.error("Error loading product:", error);
@@ -85,7 +93,7 @@ export default function ProductDetailPage() {
       }
     }
     loadData();
-  }, [params.id]);
+  }, [params.id, user]);
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -140,17 +148,28 @@ export default function ProductDetailPage() {
       return;
     }
 
+    const productId = product._id || product.id;
     try {
-      await addToWishlist(user.uid, product);
-      toast({
-        title: "Saved to wishlist",
-        description: `${product.name} is now in your favorites.`,
-      });
+      if (isFavorited) {
+        await removeFromWishlist(user.uid, productId);
+        setIsFavorited(false);
+        toast({
+          title: "Removed from wishlist",
+          description: `${product.name} has been removed from your favorites.`,
+        });
+      } else {
+        await addToWishlist(user.uid, product);
+        setIsFavorited(true);
+        toast({
+          title: "Saved to wishlist",
+          description: `${product.name} is now in your favorites.`,
+        });
+      }
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Wishlist Error",
-        description: "Could not add to favorites. Please try again.",
+        description: "Could not update favorites. Please try again.",
       });
     }
   };
@@ -383,8 +402,16 @@ export default function ProductDetailPage() {
                     <Separator className="opacity-50" />
                     
                     <div className="flex items-center justify-center gap-2 pt-2">
-                      <Button variant="ghost" size="sm" onClick={handleAddToWishlist} className="text-xs font-bold gap-2 rounded-full text-muted-foreground hover:text-primary transition-colors">
-                        <Heart className="h-4 w-4" /> Wishlist
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleAddToWishlist} 
+                        className={cn(
+                          "text-xs font-bold gap-2 rounded-full transition-colors",
+                          isFavorited ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-primary"
+                        )}
+                      >
+                        <Heart className={cn("h-4 w-4", isFavorited && "fill-current")} /> {isFavorited ? 'Favorited' : 'Wishlist'}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={handleShare} className="text-xs font-bold gap-2 rounded-full text-muted-foreground hover:text-primary transition-colors">
                         <Share2 className="h-4 w-4" /> Share

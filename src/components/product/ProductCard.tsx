@@ -1,7 +1,6 @@
-
 "use client"
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Heart, ShoppingBag, Zap } from 'lucide-react';
@@ -10,7 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
   id: string;
@@ -22,13 +22,15 @@ interface ProductCardProps {
   rating: number;
   tag?: string;
   description?: string;
+  isInitiallyFavorited?: boolean;
 }
 
-export function ProductCard({ id, slug, name, price, originalPrice, image, tag, description }: ProductCardProps) {
+export function ProductCard({ id, slug, name, price, originalPrice, image, tag, description, isInitiallyFavorited = false }: ProductCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const [isFavorited, setIsFavorited] = useState(isInitiallyFavorited);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -89,20 +91,33 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
     }
 
     const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
-    await setDoc(wishlistItemRef, {
-      id,
-      productId: id,
-      slug,
-      name,
-      price,
-      imageUrl: image,
-      addedAt: new Date().toISOString()
-    }, { merge: true });
+    
+    if (isFavorited) {
+      // Optimistically remove
+      setIsFavorited(false);
+      await deleteDoc(wishlistItemRef);
+      toast({
+        title: "Removed from wishlist",
+        description: `${name} has been removed from your favorites.`,
+      });
+    } else {
+      // Optimistically add
+      setIsFavorited(true);
+      await setDoc(wishlistItemRef, {
+        id,
+        productId: id,
+        slug,
+        name,
+        price,
+        imageUrl: image,
+        addedAt: new Date().toISOString()
+      }, { merge: true });
 
-    toast({
-      title: "Saved to wishlist",
-      description: `${name} is now in your favorites.`,
-    });
+      toast({
+        title: "Saved to wishlist",
+        description: `${name} is now in your favorites.`,
+      });
+    }
   };
 
   return (
@@ -129,9 +144,12 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
           {/* Wishlist Button */}
           <button 
             onClick={handleAddToWishlist}
-            className="absolute top-3 right-3 p-2.5 rounded-xl bg-white/90 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white text-primary shadow-lg"
+            className={cn(
+              "absolute top-3 right-3 p-2.5 rounded-xl backdrop-blur-md transition-all duration-300 shadow-lg",
+              isFavorited ? "bg-white opacity-100" : "bg-white/90 opacity-0 group-hover:opacity-100 hover:bg-white"
+            )}
           >
-            <Heart className="h-4 w-4" />
+            <Heart className={cn("h-4 w-4 transition-colors", isFavorited ? "fill-red-500 text-red-500" : "text-primary")} />
           </button>
         </div>
       </CardContent>

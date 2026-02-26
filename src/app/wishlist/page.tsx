@@ -75,7 +75,7 @@ export default function WishlistPage() {
             <Heart className="h-10 w-10 text-muted-foreground opacity-20" />
           </div>
           <h1 className="text-3xl font-bold text-primary">Your Wishlist</h1>
-          <p className="text-muted-foreground max-w-sm">Sign in to save and manage your favorite artisan crafts.</p>
+          <p className="text-muted-foreground max-sm">Sign in to save and manage your favorite artisan crafts.</p>
           <Button asChild className="h-12 px-8 rounded-xl"><Link href="/auth/login">Sign In</Link></Button>
         </main>
         <Footer />
@@ -118,14 +118,15 @@ export default function WishlistPage() {
                     image={item.imageUrl || `https://picsum.photos/seed/${item.productId}/600/600`}
                     rating={5}
                     tag="Favorite"
+                    isInitiallyFavorited={true}
                   />
                   <Button 
                     variant="destructive" 
                     size="icon" 
-                    className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-xl rounded-xl"
+                    className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-xl rounded-xl z-10"
                     onClick={() => handleRemove(item.productId)}
                   >
-                    <Heart className="h-4 w-4 fill-current" />
+                    <Heart className="h-4 w-4 fill-current text-white" />
                   </Button>
                 </div>
               ))}
