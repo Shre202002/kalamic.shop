@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   ShoppingCart, 
   Heart, 
@@ -17,7 +18,7 @@ import {
   ShieldCheck, 
   Undo2, 
   Loader2, 
-  ChevronLeft,
+  ChevronLeft, 
   ChevronRight,
   Info,
   CheckCircle2,
@@ -448,4 +449,3 @@ export default function ProductDetailPage() {
     </div>
   );
 }
-
