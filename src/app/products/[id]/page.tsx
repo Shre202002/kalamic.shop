@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -73,9 +74,9 @@ export default function ProductDetailPage() {
           setProduct(data);
           const [featured, reviewData] = await Promise.all([
             getFeaturedProducts(),
-            getProductReviews(data._id)
+            getProductReviews(data._id || data.id)
           ]);
-          setRelatedProducts(featured.filter((p: any) => p._id !== data._id).slice(0, 4));
+          setRelatedProducts(featured.filter((p: any) => (p._id || p.id) !== (data._id || data.id)).slice(0, 4));
           setReviews(reviewData);
         }
       } catch (error) {
@@ -146,7 +147,7 @@ export default function ProductDetailPage() {
     setIsSubmittingReview(true);
     try {
       const review = await submitReview({
-        productId: product._id,
+        productId: product._id || product.id,
         userId: user.uid,
         userName: user.displayName || user.email?.split('@')[0] || 'Anonymous Artisan',
         userAvatar: user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`,
@@ -192,7 +193,7 @@ export default function ProductDetailPage() {
   }
 
   const images = product.images?.length > 0 ? product.images : [`https://picsum.photos/seed/${product.slug}/800/800`];
-  const averageRating = product.averageRating || 4.8;
+  const averageRating = product.averageRating || 0;
   const reviewCount = reviews.length || product.reviewCount || 0;
 
   return (
@@ -239,7 +240,7 @@ export default function ProductDetailPage() {
                 <h1 className="text-2xl md:text-3xl font-extrabold text-primary leading-tight">{product.name}</h1>
                 <div className="flex items-center gap-4 py-1">
                   <div className="flex items-center bg-green-50 px-2 py-0.5 rounded border border-green-100">
-                    <span className="text-sm font-bold text-green-700 mr-1">{averageRating}</span>
+                    <span className="text-sm font-bold text-green-700 mr-1">{averageRating || 'New'}</span>
                     <Star className="h-3 w-3 fill-green-700 text-green-700" />
                   </div>
                   <span className="text-sm text-muted-foreground font-medium underline underline-offset-4 cursor-pointer">
@@ -280,9 +281,9 @@ export default function ProductDetailPage() {
               <div className="space-y-3">
                 <h3 className="font-bold text-primary">Product Highlights</h3>
                 <ul className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
-                  {product.tags?.map((tag: string, i: number) => (
+                  {product.tags && product.tags.length > 0 ? product.tags.map((tag: string, i: number) => (
                     <li key={i} className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary" /> {tag}</li>
-                  )) || (
+                  )) : (
                     <>
                       <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary" /> Genuine Indian Ceramic</li>
                       <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary" /> Kiln-fired for durability</li>
@@ -352,7 +353,7 @@ export default function ProductDetailPage() {
               <section className="space-y-6">
                 <h2 className="text-2xl font-bold text-primary">Technical Details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                  {product.technical_details && Object.entries(product.technical_details).length > 0 ? (
+                  {product.technical_details ? (
                     Object.entries(product.technical_details).map(([key, value]) => (
                       <div key={key} className="flex justify-between border-b py-2">
                         <span className="text-sm font-bold text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
@@ -360,10 +361,7 @@ export default function ProductDetailPage() {
                       </div>
                     ))
                   ) : (
-                    <>
-                      <div className="flex justify-between border-b py-2"><span className="text-sm font-bold text-muted-foreground">Material</span><span className="text-sm text-primary font-medium">Clay/Ceramic</span></div>
-                      <div className="flex justify-between border-b py-2"><span className="text-sm font-bold text-muted-foreground">Firing Method</span><span className="text-sm text-primary font-medium">Kiln-fired (1200°C)</span></div>
-                    </>
+                    <p className="text-sm text-muted-foreground">Artisan specifications are being updated.</p>
                   )}
                 </div>
               </section>
@@ -462,7 +460,7 @@ export default function ProductDetailPage() {
               <h2 className="text-xl font-bold text-primary">Similar Treasures</h2>
               <div className="grid grid-cols-1 gap-6">
                 {relatedProducts.map(related => (
-                  <ProductCard key={related._id} id={related._id} slug={related.slug} name={related.name} price={related.price} image={related.images?.[0] || 'https://placehold.co/200x200'} rating={4.8} category="Recommended" />
+                  <ProductCard key={related._id || related.id} id={related._id || related.id} slug={related.slug} name={related.name} price={related.price} image={related.images?.[0] || 'https://placehold.co/200x200'} rating={related.averageRating || 4.8} category="Recommended" />
                 ))}
               </div>
             </div>
