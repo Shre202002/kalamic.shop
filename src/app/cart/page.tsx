@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -9,6 +8,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Loader2, ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -32,7 +32,7 @@ export default function CartPage() {
   const shipping = cartItems && cartItems.length > 0 ? 150 : 0;
 
   const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
-    if (!user) return;
+    if (!user || !firestore) return;
     if (newQuantity <= 0) {
       handleRemoveItem(itemId);
       return;
@@ -42,14 +42,14 @@ export default function CartPage() {
   };
 
   const handleRemoveItem = (itemId: string) => {
-    if (!user) return;
+    if (!user || !firestore) return;
     const itemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', itemId);
     deleteDocumentNonBlocking(itemRef);
     toast({ title: "Item removed", description: "Your bag has been updated." });
   };
 
   const handleCheckout = async () => {
-    if (!user || !cartItems?.length) return;
+    if (!user || !cartItems?.length || !firestore) return;
     
     const orderId = `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
