@@ -4,11 +4,11 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'NexGenShop | Premium E-commerce Experience',
-  description: 'Your one-stop shop for high-quality electronics, fashion, and more. Mobile-first, secure, and fast.',
+  title: 'Kalamic | Handcrafted Ceramic Artistry',
+  description: 'Discover Kalamic - your home for premium handmade ceramics, from spiritual pillars to modern home decor. Handcrafted with love in India.',
   openGraph: {
-    title: 'NexGenShop | Premium E-commerce Experience',
-    description: 'Modern e-commerce for the next generation.',
+    title: 'Kalamic | Handcrafted Ceramic Artistry',
+    description: 'Modern ceramic art for the next generation.',
     type: 'website',
   }
 };

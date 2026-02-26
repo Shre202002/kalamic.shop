@@ -15,8 +15,8 @@ export function Navbar() {
 
   const navLinks = [
     { name: 'Home', href: '/' },
-    { name: 'Electronics', href: '/products?category=electronics' },
-    { name: 'Fashion', href: '/products?category=fashion' },
+    { name: 'Home Decor', href: '/products?category=home-decor' },
+    { name: 'Spiritual', href: '/products?category=spiritual' },
   ];
 
   return (
@@ -32,7 +32,7 @@ export function Navbar() {
             </SheetTrigger>
             <SheetContent side="left" className="w-[300px] p-0">
               <SheetHeader className="p-6 border-b text-left">
-                <SheetTitle className="text-2xl font-bold text-primary">NexGenShop</SheetTitle>
+                <SheetTitle className="text-2xl font-bold text-primary">Kalamic</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col p-4">
                 {navLinks.map((link) => (
@@ -42,7 +42,6 @@ export function Navbar() {
                     className="flex items-center justify-between p-4 text-lg font-medium border-b last:border-0 hover:text-primary transition-colors"
                   >
                     <span className="flex items-center gap-2">
-                      {link.highlight && <Sparkles className="h-4 w-4 text-accent fill-accent" />}
                       {link.name}
                     </span>
                     <ChevronRight className="h-5 w-5 opacity-50" />
@@ -55,7 +54,7 @@ export function Navbar() {
 
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl md:text-2xl font-bold text-primary tracking-tight">NexGenShop</span>
+          <span className="text-xl md:text-2xl font-bold text-primary tracking-tight">Kalamic</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -64,9 +63,8 @@ export function Navbar() {
             <Link 
               key={link.name} 
               href={link.href} 
-              className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${link.highlight ? 'text-accent font-bold hover:text-accent/80' : 'hover:text-primary'}`}
+              className="text-sm font-medium transition-colors hover:text-primary"
             >
-              {link.highlight && <Sparkles className="h-3.5 w-3.5 fill-accent" />}
               {link.name}
             </Link>
           ))}

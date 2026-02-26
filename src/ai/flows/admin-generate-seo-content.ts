@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent to assist administrators in generating SEO-optimized product descriptions, dynamic metadata, and Open Graph tags.
@@ -41,7 +42,7 @@ const adminGenerateSeoContentPrompt = ai.definePrompt({
   name: 'adminGenerateSeoContentPrompt',
   input: { schema: AdminGenerateSeoContentInputSchema },
   output: { schema: AdminGenerateSeoContentOutputSchema },
-  prompt: `You are an expert e-commerce SEO specialist and content creator for NexGenShop. Your task is to generate highly optimized product content for search engines and social media.
+  prompt: `You are an expert e-commerce SEO specialist and content creator for Kalamic. Your task is to generate highly optimized product content for search engines and social media.
 
 Based on the following product details, create:
 1.  An SEO-optimized product description (max 1000 characters), engaging and keyword-rich.
@@ -67,7 +68,7 @@ Existing Keywords: {{#each keywords}}{{{this}}}{{#unless @last}}, {{/unless}}{{/
 Product Image URLs: {{#each imageUrls}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 {{/if}}
 
-Consider the tone to be professional, trustworthy, and engaging, aligning with the brand identity of NexGenShop.
+Consider the tone to be professional, trustworthy, and engaging, aligning with the brand identity of Kalamic (premium handmade ceramics).
 Ensure the output is in the requested JSON format, strictly adhering to character limits for meta fields.
 For 'ogImageUrl', if multiple image URLs are provided, use the first one from the 'imageUrls' list.
 `,
