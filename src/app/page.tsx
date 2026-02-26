@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -23,7 +24,7 @@ export default function Home() {
         if (products && products.length > 0) {
           setFeaturedProducts(products);
         } else {
-          // Fallback to static data if DB is empty
+          // Fallback to static data if DB is empty or unreachable
           setFeaturedProducts([
             { id: '699026a8ae873e1fa69cb18a', name: 'Mor Stambh Ceramic Customized Pillar', price: 1499, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18a')?.imageUrl || '', rating: 4.9, category: 'Home Decor', badge: 'Artisan Choice' },
             { id: '699026a8ae873e1fa69cb18b', name: 'Handmade Ceramic Mirror', price: 999, originalPrice: 2599, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18b')?.imageUrl || '', rating: 4.8, category: 'Home Decor', badge: 'Featured' },
@@ -48,7 +49,7 @@ export default function Home() {
         <section className="relative h-[600px] flex items-center overflow-hidden bg-primary/5">
           <div className="absolute inset-0 z-0">
             <Image 
-              src={PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18a')?.imageUrl || ''}
+              src={PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18a')?.imageUrl || 'https://picsum.photos/seed/kalamic-hero/1920/1080'}
               alt="Hero"
               fill
               className="object-cover opacity-10"
