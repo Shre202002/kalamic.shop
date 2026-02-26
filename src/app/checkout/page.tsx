@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
+import { getProfile, getUserAddresses } from '@/lib/actions/user-actions';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,8 @@ import {
   Loader2, 
   ShoppingBag,
   MapPin,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -37,9 +39,11 @@ export default function CheckoutPage() {
     fullName: '',
     email: '',
     address: '',
+    landmark: '',
     city: '',
     state: '',
     zip: '',
+    phone: '',
     paymentMethod: 'card'
   });
 
@@ -49,6 +53,55 @@ export default function CheckoutPage() {
   }, [firestore, user]);
 
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
+
+  // Profile and Address fetching for auto-fill
+  useEffect(() => {
+    async function loadUserData() {
+      if (!user) return;
+      try {
+        const [profile, addresses] = await Promise.all([
+          getProfile(user.uid),
+          getUserAddresses(user.uid)
+        ]);
+
+        if (profile && (!profile.firstName || !profile.lastName || !profile.phone)) {
+           toast({
+             variant: "destructive",
+             title: "Profile Incomplete",
+             description: "Please complete your profile to proceed with checkout.",
+           });
+           router.push('/profile');
+           return;
+        }
+
+        if (profile) {
+          setFormData(prev => ({
+            ...prev,
+            fullName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim(),
+            email: user.email || '',
+            phone: profile.phone || ''
+          }));
+        }
+
+        if (addresses && addresses.length > 0) {
+          const defaultAddr = addresses.find((a: any) => a.isDefault) || addresses[0];
+          setFormData(prev => ({
+            ...prev,
+            fullName: defaultAddr.fullName,
+            address: defaultAddr.street,
+            landmark: defaultAddr.landmark || '',
+            city: defaultAddr.city,
+            state: defaultAddr.state,
+            zip: defaultAddr.zipCode,
+            phone: defaultAddr.phone
+          }));
+        }
+      } catch (err) {
+        console.error("Error fetching user data for checkout:", err);
+      }
+    }
+    loadUserData();
+  }, [user, router, toast]);
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
   const shipping = cartItems && cartItems.length > 0 ? 150 : 0;
@@ -61,8 +114,7 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length || !firestore) return;
     
-    // Simple validation
-    if (!formData.fullName || !formData.address || !formData.city) {
+    if (!formData.fullName || !formData.address || !formData.city || !formData.phone) {
       toast({
         variant: "destructive",
         title: "Missing Information",
@@ -88,9 +140,11 @@ export default function CheckoutPage() {
         shippingDetails: {
           fullName: formData.fullName,
           address: formData.address,
+          landmark: formData.landmark,
           city: formData.city,
           state: formData.state,
-          zip: formData.zip
+          zip: formData.zip,
+          phone: formData.phone
         },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -98,7 +152,6 @@ export default function CheckoutPage() {
 
       await setDoc(orderRef, orderData);
 
-      // Add order items and clear cart
       const clearPromises = cartItems.map(async (item) => {
         const orderItemRef = doc(firestore, 'users', user.uid, 'orders', orderId, 'items', item.id);
         await setDoc(orderItemRef, {
@@ -111,7 +164,6 @@ export default function CheckoutPage() {
           imageUrl: item.imageUrl
         });
         
-        // Remove from cart
         const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id);
         await deleteDoc(cartItemRef);
       });
@@ -155,7 +207,7 @@ export default function CheckoutPage() {
           <ShoppingBag className="h-16 w-16 text-muted-foreground opacity-20 mb-4" />
           <h1 className="text-2xl font-bold text-primary">Your bag is empty</h1>
           <p className="text-muted-foreground mb-8">Add some artisan treasures to your bag before checking out.</p>
-          <Button asChild className="rounded-xl"><Link href="/products">Browse Collection</Link></Button>
+          <Button asChild className="rounded-xl h-12 px-8"><Link href="/products">Browse Collection</Link></Button>
         </main>
         <Footer />
       </div>
@@ -178,9 +230,7 @@ export default function CheckoutPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Column: Forms */}
             <div className="lg:col-span-7 space-y-6">
-              {/* Shipping Address */}
               <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
                 <CardHeader className="p-8 pb-4">
                   <div className="flex items-center gap-3 mb-1">
@@ -214,6 +264,17 @@ export default function CheckoutPage() {
                       className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="landmark">Nearest Landmark</Label>
+                    <Input 
+                      id="landmark" 
+                      name="landmark" 
+                      value={formData.landmark} 
+                      onChange={handleInputChange} 
+                      placeholder="e.g. Near Art Center" 
+                      className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="city">City</Label>
@@ -238,10 +299,20 @@ export default function CheckoutPage() {
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Contact Phone</Label>
+                    <Input 
+                      id="phone" 
+                      name="phone" 
+                      value={formData.phone} 
+                      onChange={handleInputChange} 
+                      placeholder="+91 XXXXX XXXXX" 
+                      className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
+                    />
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Payment Method */}
               <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
                 <CardHeader className="p-8 pb-4">
                   <div className="flex items-center gap-3 mb-1">
@@ -302,14 +373,12 @@ export default function CheckoutPage() {
               </Card>
             </div>
 
-            {/* Right Column: Order Summary */}
             <div className="lg:col-span-5 space-y-6 sticky top-24">
               <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white">
                 <CardHeader className="p-8 pb-4">
                   <CardTitle className="text-2xl font-bold">Order Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="p-8 pt-0 space-y-6">
-                  {/* Items list */}
                   <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
                     {cartItems.map((item) => (
                       <div key={item.id} className="flex gap-4 items-center">
@@ -327,7 +396,6 @@ export default function CheckoutPage() {
 
                   <Separator />
 
-                  {/* Calculations */}
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Subtotal</span>
@@ -336,10 +404,6 @@ export default function CheckoutPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Shipping (FragileCare™)</span>
                       <span className="font-medium text-accent">₹{shipping.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-green-600 font-bold">
-                      <span>Artisan Discount</span>
-                      <span>- ₹0.00</span>
                     </div>
                   </div>
 
@@ -361,32 +425,8 @@ export default function CheckoutPage() {
                       <><CheckCircle2 className="mr-2 h-6 w-6" /> Complete Purchase</>
                     )}
                   </Button>
-
-                  <div className="flex items-center justify-center gap-4 pt-4">
-                    <div className="flex flex-col items-center gap-1 opacity-50">
-                      <Truck className="h-4 w-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Insured</span>
-                    </div>
-                    <div className="flex flex-col items-center gap-1 opacity-50">
-                      <ShieldCheck className="h-4 w-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Verified</span>
-                    </div>
-                    <div className="flex flex-col items-center gap-1 opacity-50">
-                      <CreditCard className="h-4 w-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Secure</span>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
-
-              {/* Back to Cart Link */}
-              <div className="text-center">
-                <Button variant="ghost" asChild className="text-muted-foreground hover:text-primary rounded-full">
-                  <Link href="/cart">
-                    <ChevronRight className="rotate-180 mr-2 h-4 w-4" /> Review Cart Items
-                  </Link>
-                </Button>
-              </div>
             </div>
           </div>
         </div>

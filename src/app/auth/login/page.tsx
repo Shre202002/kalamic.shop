@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -24,10 +23,10 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Redirect if already logged in
+  // Redirect if already logged in - now to profile
   React.useEffect(() => {
     if (user) {
-      router.push('/');
+      router.push('/profile');
     }
   }, [user, router]);
 
@@ -42,7 +41,6 @@ export default function LoginPage() {
       } else {
         initiateEmailSignUp(auth, email, password);
       }
-      // Note: non-blocking calls don't return results, the useUser hook handles state
       toast({
         title: isLogin ? "Signing in..." : "Creating account...",
         description: "Please wait while we authenticate you.",

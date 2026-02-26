@@ -1,10 +1,10 @@
-
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IAddress extends Document {
   userId: string;
   fullName: string;
   street: string;
+  landmark?: string;
   city: string;
   state: string;
   zipCode: string;
@@ -16,6 +16,7 @@ const AddressSchema: Schema = new Schema({
   userId: { type: String, required: true, index: true },
   fullName: { type: String, required: true },
   street: { type: String, required: true },
+  landmark: { type: String },
   city: { type: String, required: true },
   state: { type: String, required: true },
   zipCode: { type: String, required: true },
