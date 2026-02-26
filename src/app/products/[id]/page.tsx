@@ -36,6 +36,7 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { getProductById, getProductBySlug, getFeaturedProducts } from '@/lib/actions/products';
 import { getProductReviews, submitReview } from '@/lib/actions/reviews';
+import { addToWishlist } from '@/lib/actions/user-actions';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -139,22 +140,41 @@ export default function ProductDetailPage() {
       return;
     }
 
-    const id = product._id || product.id;
-    const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
-    await setDoc(wishlistItemRef, {
-      id,
-      productId: id,
-      slug: product.slug,
-      name: product.name,
-      price: product.price,
-      imageUrl: product.images?.[0] || `https://picsum.photos/seed/${id}/600/600`,
-      addedAt: new Date().toISOString()
-    }, { merge: true });
+    try {
+      await addToWishlist(user.uid, product);
+      toast({
+        title: "Saved to wishlist",
+        description: `${product.name} is now in your favorites.`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Wishlist Error",
+        description: "Could not add to favorites. Please try again.",
+      });
+    }
+  };
 
-    toast({
-      title: "Saved to wishlist",
-      description: `${product.name} is now in your favorites.`,
-    });
+  const handleShare = async () => {
+    const shareData = {
+      title: `Kalamic | ${product.name}`,
+      text: product.short_description || `Check out this handcrafted ${product.name} from Kalamic!`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: "Link Copied!",
+          description: "Product link copied to clipboard.",
+        });
+      }
+    } catch (err) {
+      console.error("Error sharing:", err);
+    }
   };
 
   const handleSubmitReview = async () => {
@@ -363,10 +383,10 @@ export default function ProductDetailPage() {
                     <Separator className="opacity-50" />
                     
                     <div className="flex items-center justify-center gap-2 pt-2">
-                      <Button variant="ghost" size="sm" onClick={handleAddToWishlist} className="text-xs font-bold gap-2 rounded-full text-muted-foreground hover:text-primary">
+                      <Button variant="ghost" size="sm" onClick={handleAddToWishlist} className="text-xs font-bold gap-2 rounded-full text-muted-foreground hover:text-primary transition-colors">
                         <Heart className="h-4 w-4" /> Wishlist
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-xs font-bold gap-2 rounded-full text-muted-foreground hover:text-primary">
+                      <Button variant="ghost" size="sm" onClick={handleShare} className="text-xs font-bold gap-2 rounded-full text-muted-foreground hover:text-primary transition-colors">
                         <Share2 className="h-4 w-4" /> Share
                       </Button>
                     </div>
