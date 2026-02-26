@@ -1,3 +1,58 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-electronics",
+      "description": "Premium Wireless Headphones",
+      "imageUrl": "https://images.unsplash.com/photo-1745789888337-ffc89563f087?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxlbGVjdHJvbmljcyUyMGhlYWRwaG9uZXN8ZW58MHx8fHwxNzcyMTI2Mjc4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "electronics headphones"
+    },
+    {
+      "id": "hero-fashion",
+      "description": "Minimalist Summer Collection",
+      "imageUrl": "https://images.unsplash.com/photo-1511511450040-677116ff389e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmYXNoaW9uJTIwY2xvdGhpbmd8ZW58MHx8fHwxNzcyMTAwMDgzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fashion clothing"
+    },
+    {
+      "id": "cat-mobile",
+      "description": "Latest Smartphones",
+      "imageUrl": "https://images.unsplash.com/photo-1510270489373-1c3965af25d4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzbWFydHBob25lJTIwbW9iaWxlfGVufDB8fHx8MTc3MjA0NjI1NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "smartphone mobile"
+    },
+    {
+      "id": "cat-watch",
+      "description": "Elegant Timepieces",
+      "imageUrl": "https://images.unsplash.com/photo-1600003014755-ba31aa59c4b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjB3YXRjaHxlbnwwfHx8fDE3NzIwNTA0NzR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "luxury watch"
+    },
+    {
+      "id": "cat-shoe",
+      "description": "Urban Footwear",
+      "imageUrl": "https://images.unsplash.com/photo-1662037132011-1c403fd1705c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzbmVha2VycyUyMHNob2VzfGVufDB8fHx8MTc3MjA5MzcwMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sneakers shoes"
+    },
+    {
+      "id": "prod-1",
+      "description": "Noise Cancelling Headphones",
+      "imageUrl": "https://images.unsplash.com/photo-1635329086694-d02f81549dea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxoZWFkcGhvbmVzJTIwYXVkaW98ZW58MHx8fHwxNzcyMDE1OTY2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "headphones audio"
+    },
+    {
+      "id": "prod-2",
+      "description": "Smart Fitness Watch",
+      "imageUrl": "https://images.unsplash.com/photo-1696688713460-de12ac76ebc6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzbWFydHdhdGNoJTIwZml0bmVzc3xlbnwwfHx8fDE3NzIxMjE3NDl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "smartwatch fitness"
+    },
+    {
+      "id": "prod-3",
+      "description": "Leather Laptop Sleeve",
+      "imageUrl": "https://images.unsplash.com/photo-1701792606084-10fbd4a9eed1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxsYXB0b3AlMjBzbGVldmUlMjBsZWF0aGVyfGVufDB8fHx8MTc3MjEyNjI3OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "laptop sleeve leather"
+    },
+    {
+      "id": "prod-4",
+      "description": "Ergonomic Office Chair",
+      "imageUrl": "https://images.unsplash.com/photo-1762423992203-552b7c671b92?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxvZmZpY2UlMjBjaGFpciUyMGZ1cm5pdHVyZXxlbnwwfHx8fDE3NzIxMDEyODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "office chair furniture"
+    }
+  ]
 }
