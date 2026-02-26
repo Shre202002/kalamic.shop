@@ -17,7 +17,6 @@ export function Navbar() {
     { name: 'Home', href: '/' },
     { name: 'Electronics', href: '/products?category=electronics' },
     { name: 'Fashion', href: '/products?category=fashion' },
-    { name: 'Discovery Quiz', href: '/survey', highlight: true },
   ];
 
   return (
