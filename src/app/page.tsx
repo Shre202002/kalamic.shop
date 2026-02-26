@@ -1,57 +1,44 @@
-
 "use client"
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Zap, ShieldCheck, Truck } from 'lucide-react';
+import { ShoppingBag, Zap, ShieldCheck, Truck, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { getFeaturedProducts } from '@/lib/actions/products';
 
 export default function Home() {
-  const featuredProducts = [
-    { 
-      id: '699026a8ae873e1fa69cb18a', 
-      name: 'Mor Stambh Ceramic Customized Pillar', 
-      price: 1499, 
-      image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18a')?.imageUrl || '', 
-      rating: 4.9, 
-      category: 'Home Decor', 
-      badge: 'Artisan Choice' 
-    },
-    { 
-      id: '699026a8ae873e1fa69cb18b', 
-      name: 'Handmade Ceramic Mirror', 
-      price: 999, 
-      originalPrice: 2599,
-      image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18b')?.imageUrl || '', 
-      rating: 4.8, 
-      category: 'Home Decor',
-      badge: 'Featured'
-    },
-    { 
-      id: '699026a8ae873e1fa69cb18c', 
-      name: 'Customized Ceramic Photo Frame', 
-      price: 699, 
-      image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18c')?.imageUrl || '', 
-      rating: 4.7, 
-      category: 'Gifts' 
-    },
-    { 
-      id: '699026a8ae873e1fa69cb18e', 
-      name: 'Handmade Ceramic Mandala Wheel', 
-      price: 2499, 
-      originalPrice: 4999,
-      image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18e')?.imageUrl || '', 
-      rating: 5.0, 
-      category: 'Home Decor', 
-      badge: 'Premium' 
-    },
-  ];
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        const products = await getFeaturedProducts();
+        if (products && products.length > 0) {
+          setFeaturedProducts(products);
+        } else {
+          // Fallback to static data if DB is empty
+          setFeaturedProducts([
+            { id: '699026a8ae873e1fa69cb18a', name: 'Mor Stambh Ceramic Customized Pillar', price: 1499, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18a')?.imageUrl || '', rating: 4.9, category: 'Home Decor', badge: 'Artisan Choice' },
+            { id: '699026a8ae873e1fa69cb18b', name: 'Handmade Ceramic Mirror', price: 999, originalPrice: 2599, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18b')?.imageUrl || '', rating: 4.8, category: 'Home Decor', badge: 'Featured' },
+            { id: '699026a8ae873e1fa69cb18c', name: 'Customized Ceramic Photo Frame', price: 699, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18c')?.imageUrl || '', rating: 4.7, category: 'Gifts' },
+            { id: '699026a8ae873e1fa69cb18e', name: 'Handmade Ceramic Mandala Wheel', price: 2499, originalPrice: 4999, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18e')?.imageUrl || '', rating: 5.0, category: 'Home Decor', badge: 'Premium' },
+          ]);
+        }
+      } catch (error) {
+        console.error("Failed to load products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadProducts();
+  }, []);
 
   return (
     <>
@@ -103,11 +90,17 @@ export default function Home() {
               <p className="text-muted-foreground max-w-lg mx-auto">Exquisite handmade ceramic pieces selected for your home.</p>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {featuredProducts.map((product) => (
-                <ProductCard key={product.id} {...product} />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="flex justify-center items-center py-20">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {featuredProducts.map((product) => (
+                  <ProductCard key={product.id || product._id} id={product.id || product._id} {...product} image={product.images?.[0] || product.image} />
+                ))}
+              </div>
+            )}
             
             <div className="text-center mt-12">
               <Link href="/products">
