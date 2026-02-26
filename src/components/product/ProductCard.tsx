@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 interface ProductCardProps {
   id: string;
@@ -24,17 +26,59 @@ interface ProductCardProps {
 
 export function ProductCard({ id, slug, name, price, originalPrice, image, rating, category, badge }: ProductCardProps) {
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const discount = originalPrice ? Math.round(((originalPrice - price) / originalPrice) * 100) : null;
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast({ title: "Please sign in", description: "You need an account to add items to your cart." });
+      return;
+    }
+
+    const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
+    await setDoc(cartItemRef, {
+      id,
+      productVariantId: id,
+      name,
+      priceAtAddToCart: price,
+      imageUrl: image,
+      quantity: 1,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
     toast({
       title: "Added to cart",
       description: `${name} has been added to your shopping bag.`,
     });
   };
 
-  // Prioritize slug for the permalink
+  const handleAddToWishlist = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast({ title: "Please sign in", description: "You need an account to save favorites." });
+      return;
+    }
+
+    const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
+    await setDoc(wishlistItemRef, {
+      id,
+      productId: id,
+      slug,
+      name,
+      price,
+      imageUrl: image,
+      addedAt: new Date().toISOString()
+    }, { merge: true });
+
+    toast({
+      title: "Saved to wishlist",
+      description: `${name} is now in your favorites.`,
+    });
+  };
+
   const permalink = slug || id;
 
   return (
@@ -58,7 +102,10 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, ratin
               {discount}% OFF
             </Badge>
           )}
-          <button className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-primary">
+          <button 
+            onClick={handleAddToWishlist}
+            className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-primary"
+          >
             <Heart className="h-4 w-4" />
           </button>
         </CardContent>

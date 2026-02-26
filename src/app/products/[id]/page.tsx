@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -11,10 +12,14 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { getProductById, getProductBySlug } from '@/lib/actions/products';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 export default function ProductDetailPage() {
   const params = useParams();
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [product, setProduct] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -22,20 +27,16 @@ export default function ProductDetailPage() {
     async function loadProduct() {
       try {
         const id = params.id as string;
-        // Try fetching by ID or Slug
         let data = await getProductById(id);
         if (!data) data = await getProductBySlug(id);
         
         if (data) {
           setProduct(data);
         } else {
-          // Fallback to static mock for development
+          // Mock fallbacks if DB is empty during dev
           const mock = [
             { _id: "699026a8ae873e1fa69cb18a", slug: "mor_stambh", name: "Mor Stambh Ceramic Customized Pillar", price: 1499, stock: 5, category: "Home Decor", description: "Bahut sundar handmade ceramic pillar jo Bhagwan ke Jhula ke liye perfect hai.", rating: 4.9, reviews: 24 },
-            { _id: "699026a8ae873e1fa69cb18b", slug: "mirror", name: "Handmade Ceramic Mirror", price: 999, compare_at_price: 2599, stock: 5, category: "Home Decor", description: "Elegant aur stylish handmade ceramic mirror with beautiful Indian motifs.", rating: 4.8, reviews: 18 },
-            { _id: "699026a8ae873e1fa69cb18c", slug: "peacock_embrace_frame", name: "Customized Ceramic Photo Frame", price: 699, stock: 13, category: "Gifts", description: "Personalized ceramic photo frame with lovely cultural designs.", rating: 4.7, reviews: 42 },
-            { _id: "699026a8ae873e1fa69cb18d", slug: "ceramic_fridge_magnet", name: "Handmade Ceramic Fridge Magnet – Indian Floral Motif", price: 299, stock: 5, category: "Accessories", description: "Cute set of handmade ceramic fridge magnets.", rating: 4.5, reviews: 56 },
-            { _id: "699026a8ae873e1fa69cb18e", slug: "mandala_wheel", name: "Handmade Ceramic Mandala Wheel", price: 2499, compare_at_price: 4999, stock: 5, category: "Home Decor", description: "Stunning handmade ceramic mandala wheel in golden finish.", rating: 5.0, reviews: 12 }
+            { _id: "699026a8ae873e1fa69cb18b", slug: "mirror", name: "Handmade Ceramic Mirror", price: 999, compare_at_price: 2599, stock: 5, category: "Home Decor", description: "Elegant aur stylish handmade ceramic mirror with beautiful Indian motifs.", rating: 4.8, reviews: 18 }
           ].find(p => p._id === id || p.slug === id);
           setProduct(mock);
         }
@@ -47,6 +48,55 @@ export default function ProductDetailPage() {
     }
     loadProduct();
   }, [params.id]);
+
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast({ title: "Please sign in", description: "You need an account to add items to your cart." });
+      return;
+    }
+
+    const id = product._id || product.id;
+    const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
+    await setDoc(cartItemRef, {
+      id,
+      productVariantId: id,
+      name: product.name,
+      priceAtAddToCart: product.price,
+      imageUrl: product.images?.[0] || `https://picsum.photos/seed/${id}/600/600`,
+      quantity: 1,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    toast({
+      title: "Added to cart",
+      description: `${product.name} has been added to your shopping bag.`,
+    });
+  };
+
+  const handleAddToWishlist = async () => {
+    if (!user) {
+      toast({ title: "Please sign in", description: "You need an account to save favorites." });
+      return;
+    }
+
+    const id = product._id || product.id;
+    const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
+    await setDoc(wishlistItemRef, {
+      id,
+      productId: id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      imageUrl: product.images?.[0] || `https://picsum.photos/seed/${id}/600/600`,
+      addedAt: new Date().toISOString()
+    }, { merge: true });
+
+    toast({
+      title: "Saved to wishlist",
+      description: `${product.name} is now in your favorites.`,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -60,30 +110,9 @@ export default function ProductDetailPage() {
     );
   }
 
-  if (!product) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold text-primary">Product Not Found</h1>
-            <p className="text-muted-foreground">The product you are looking for does not exist.</p>
-            <Button asChild><a href="/">Back to Home</a></Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  if (!product) return null;
 
   const productImage = product.images?.[0] || PlaceHolderImages.find(i => i.id === (product._id || product.id))?.imageUrl || "https://picsum.photos/seed/placeholder/800/800";
-
-  const handleAddToCart = () => {
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your shopping bag.`,
-    });
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -95,23 +124,16 @@ export default function ProductDetailPage() {
               <div className="relative aspect-square rounded-3xl overflow-hidden bg-white shadow-xl border border-primary/5">
                 <Image src={productImage} alt={product.name} fill className="object-cover" priority />
               </div>
-              <div className="grid grid-cols-4 gap-4">
-                {(product.images?.length > 1 ? product.images : [1, 2, 3, 4]).map((img: any, i: number) => (
-                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer hover:ring-2 hover:ring-accent transition-all">
-                    <Image src={typeof img === 'string' ? img : `https://picsum.photos/seed/${product.slug}-${i}/400/400`} alt={`${product.name} view ${i}`} fill className="object-cover opacity-60 hover:opacity-100" />
-                  </div>
-                ))}
-              </div>
             </div>
 
             <div className="flex flex-col">
               <div className="space-y-4 mb-8">
                 <div className="flex items-center justify-between">
                   <Badge variant="secondary" className="bg-primary/5 text-primary border-none">
-                    {product.category}
+                    {product.category || 'Handmade'}
                   </Badge>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" className="rounded-full">
+                    <Button variant="ghost" size="icon" className="rounded-full" onClick={handleAddToWishlist}>
                       <Heart className="h-5 w-5" />
                     </Button>
                     <Button variant="ghost" size="icon" className="rounded-full">
@@ -124,42 +146,23 @@ export default function ProductDetailPage() {
                 </h1>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={`h-4 w-4 ${i < Math.floor(product.rating || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
-                    ))}
-                    <span className="text-sm font-bold ml-1">{product.rating || '5.0'}</span>
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm font-bold ml-1">{product.rating || '4.9'}</span>
                   </div>
-                  <span className="text-sm text-muted-foreground">({product.numReviews || product.reviews || '0'} customer reviews)</span>
+                  <span className="text-sm text-muted-foreground">({product.reviews || '24'} reviews)</span>
                 </div>
                 <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-primary">₹{(product.price || product.basePrice).toFixed(2)}</span>
-                  {(product.compare_at_price || product.originalPrice) && (
-                    <span className="text-xl text-muted-foreground line-through">₹{Number(product.compare_at_price || product.originalPrice).toFixed(2)}</span>
-                  )}
+                  <span className="text-3xl font-bold text-primary">₹{(product.price).toFixed(2)}</span>
                 </div>
               </div>
 
               <div className="space-y-6 mb-10">
-                <div>
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Description</h3>
-                  <p className="text-muted-foreground leading-relaxed">{product.description}</p>
-                </div>
-
-                <div className="p-4 bg-muted/30 rounded-2xl border flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-2.5 w-2.5 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-destructive'}`}></div>
-                    <span className="text-sm font-semibold">{product.stock > 0 ? 'In Stock' : 'Out of Stock'}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground font-medium">Only {product.stock} pieces remaining!</span>
-                </div>
+                <p className="text-muted-foreground leading-relaxed">{product.description}</p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button size="lg" className="flex-1 h-14 bg-primary text-white hover:bg-primary/90 text-lg font-bold shadow-lg shadow-primary/20" onClick={handleAddToCart}>
                   <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
-                </Button>
-                <Button variant="outline" size="lg" className="h-14 px-8 text-primary border-primary">
-                  Buy Now
                 </Button>
               </div>
 

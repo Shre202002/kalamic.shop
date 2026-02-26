@@ -3,26 +3,50 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Sparkles } from 'lucide-react';
+import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const cartItemCount = 2; // Mock
+  const { user } = useUser();
+  const auth = useAuth();
+  const firestore = useFirestore();
+
+  const cartQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'cart', 'cart', 'items');
+  }, [firestore, user]);
+
+  const { data: cartItems } = useCollection(cartQuery);
+  const cartItemCount = cartItems?.length || 0;
 
   const navLinks = [
     { name: 'Home', href: '/' },
-    { name: 'Home Decor', href: '/products?category=home-decor' },
-    { name: 'Spiritual', href: '/products?category=spiritual' },
+    { name: 'Collection', href: '/products' },
+    { name: 'About', href: '/about' },
+    { name: 'Contact', href: '/contact' },
   ];
+
+  const handleSignOut = () => {
+    auth.signOut();
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Mobile Menu Trigger */}
         <div className="flex items-center gap-2 md:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -41,9 +65,7 @@ export function Navbar() {
                     href={link.href}
                     className="flex items-center justify-between p-4 text-lg font-medium border-b last:border-0 hover:text-primary transition-colors"
                   >
-                    <span className="flex items-center gap-2">
-                      {link.name}
-                    </span>
+                    <span>{link.name}</span>
                     <ChevronRight className="h-5 w-5 opacity-50" />
                   </Link>
                 ))}
@@ -52,12 +74,10 @@ export function Navbar() {
           </Sheet>
         </div>
 
-        {/* Brand */}
         <Link href="/" className="flex items-center gap-2">
           <span className="text-xl md:text-2xl font-bold text-primary tracking-tight">Kalamic</span>
         </Link>
 
-        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link 
@@ -70,7 +90,6 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* Actions */}
         <div className="flex items-center gap-1 md:gap-4">
           <Button 
             variant="ghost" 
@@ -98,18 +117,45 @@ export function Navbar() {
             </Button>
           </Link>
 
-          <Link href="/auth/login">
-            <Button variant="primary" size="sm" className="hidden sm:flex">
-              Sign In
-            </Button>
-            <Button variant="ghost" size="icon" className="sm:hidden">
-              <User className="h-5 w-5 text-primary" />
-            </Button>
-          </Link>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <User className="h-5 w-5 text-primary" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/orders" className="flex items-center">
+                    <Package className="mr-2 h-4 w-4" /> Order History
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/wishlist" className="flex items-center">
+                    <Heart className="mr-2 h-4 w-4" /> My Wishlist
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href="/auth/login">
+              <Button variant="primary" size="sm" className="hidden sm:flex">
+                Sign In
+              </Button>
+              <Button variant="ghost" size="icon" className="sm:hidden">
+                <User className="h-5 w-5 text-primary" />
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* Mobile Search Overlay */}
       {isSearchOpen && (
         <div className="absolute top-16 left-0 w-full p-4 bg-white border-b animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="container mx-auto flex gap-2">
