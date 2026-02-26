@@ -1,8 +1,9 @@
+
 'use client';
 
 import React from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -48,44 +49,9 @@ export default function CartPage() {
     toast({ title: "Item removed", description: "Your bag has been updated." });
   };
 
-  const handleCheckout = async () => {
-    if (!user || !cartItems?.length || !firestore) return;
-    
-    const orderId = `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
-
-    const orderData = {
-      id: orderId,
-      userId: user.uid,
-      orderDate: new Date().toISOString(),
-      totalAmount: subtotal + shipping,
-      orderStatus: 'processing',
-      shippingCost: shipping,
-      discountAmount: 0,
-      paymentId: 'SIMULATED',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-
-    setDoc(orderRef, orderData);
-
-    cartItems.forEach(item => {
-      const orderItemRef = doc(firestore, 'users', user.uid, 'orders', orderId, 'items', item.id);
-      setDoc(orderItemRef, {
-        id: item.id,
-        orderId: orderId,
-        productVariantId: item.productVariantId,
-        quantity: item.quantity,
-        priceAtOrder: item.priceAtAddToCart
-      });
-      handleRemoveItem(item.id);
-    });
-
-    toast({
-      title: "Order Placed!",
-      description: `Your masterpiece order ${orderId} is being prepared.`,
-    });
-    router.push('/orders');
+  const handleCheckoutRedirect = () => {
+    if (!cartItems?.length) return;
+    router.push('/checkout');
   };
 
   if (isUserLoading || isCartLoading) {
@@ -210,8 +176,8 @@ export default function CartPage() {
                     </div>
 
                     <div className="pt-4 space-y-4">
-                      <Button className="w-full h-14 text-lg font-extrabold rounded-2xl shadow-lg shadow-primary/20" onClick={handleCheckout}>
-                        Complete Purchase <ArrowRight className="ml-2 h-5 w-5" />
+                      <Button className="w-full h-14 text-lg font-extrabold rounded-2xl shadow-lg shadow-primary/20" onClick={handleCheckoutRedirect}>
+                        Proceed to Checkout <ArrowRight className="ml-2 h-5 w-5" />
                       </Button>
                       <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-bold opacity-60">
                         Secure SSL Encryption Guaranteed

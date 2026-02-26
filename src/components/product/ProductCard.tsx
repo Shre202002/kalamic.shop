@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -44,6 +45,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
     await setDoc(cartItemRef, {
       id,
       productVariantId: id,
+      cartId: user.uid, // Required by Firestore Security Rules
       name,
       priceAtAddToCart: price,
       imageUrl: image,
@@ -70,6 +72,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
     await setDoc(cartItemRef, {
       id,
       productVariantId: id,
+      cartId: user.uid, // Required by Firestore Security Rules
       name,
       priceAtAddToCart: price,
       imageUrl: image,
@@ -78,7 +81,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
       updatedAt: serverTimestamp(),
     }, { merge: true });
 
-    router.push('/cart');
+    router.push('/checkout');
   };
 
   const handleAddToWishlist = async (e: React.MouseEvent) => {

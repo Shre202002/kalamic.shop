@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -97,7 +98,7 @@ export default function ProductDetailPage() {
   }, [params.id]);
 
   const handleAddToCart = async () => {
-    if (!user) {
+    if (!user || !firestore) {
       toast({ title: "Please sign in", description: "You need an account to add items to your cart." });
       return;
     }
@@ -107,6 +108,7 @@ export default function ProductDetailPage() {
     await setDoc(cartItemRef, {
       id,
       productVariantId: id,
+      cartId: user.uid, // Required by Firestore rules
       name: product.name,
       priceAtAddToCart: product.price,
       imageUrl: product.images?.[0] || `https://picsum.photos/seed/${id}/600/600`,
@@ -122,7 +124,7 @@ export default function ProductDetailPage() {
   };
 
   const handleBuyNow = async () => {
-    if (!user) {
+    if (!user || !firestore) {
       toast({ title: "Please sign in", description: "You need an account to checkout." });
       return;
     }
@@ -132,6 +134,7 @@ export default function ProductDetailPage() {
     await setDoc(cartItemRef, {
       id,
       productVariantId: id,
+      cartId: user.uid, // Required by Firestore rules
       name: product.name,
       priceAtAddToCart: product.price,
       imageUrl: product.images?.[0] || `https://picsum.photos/seed/${id}/600/600`,
@@ -140,11 +143,11 @@ export default function ProductDetailPage() {
       updatedAt: serverTimestamp(),
     }, { merge: true });
 
-    router.push('/cart');
+    router.push('/checkout');
   };
 
   const handleAddToWishlist = async () => {
-    if (!user) {
+    if (!user || !firestore) {
       toast({ title: "Please sign in", description: "You need an account to save favorites." });
       return;
     }
