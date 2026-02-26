@@ -44,16 +44,24 @@ export default function CheckoutPage() {
     paymentMethod: 'card'
   });
 
-  // Strict verification check
+  // Strict verification check (OTP based via DB)
   useEffect(() => {
-    if (!isUserLoading && user && !user.emailVerified) {
-      toast({
-        variant: "destructive",
-        title: "Verification Required",
-        description: "Please verify your email before proceeding to checkout.",
-      });
-      router.push('/auth/login');
+    async function checkVerify() {
+      if (!isUserLoading && user) {
+        const profile = await getProfile(user.uid);
+        if (!profile || !profile.emailVerified) {
+          toast({
+            variant: "destructive",
+            title: "Verification Required",
+            description: "Please verify your email via OTP before proceeding to checkout.",
+          });
+          router.push('/auth/login');
+        }
+      } else if (!isUserLoading && !user) {
+        router.push('/auth/login');
+      }
     }
+    checkVerify();
   }, [user, isUserLoading, router, toast]);
 
   const cartQuery = useMemoFirebase(() => {
@@ -66,7 +74,7 @@ export default function CheckoutPage() {
   // Profile fetching for auto-fill
   useEffect(() => {
     async function loadUserData() {
-      if (!user || !user.emailVerified) return;
+      if (!user) return;
       try {
         const profile = await getProfile(user.uid);
 

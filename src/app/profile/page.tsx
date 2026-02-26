@@ -51,16 +51,26 @@ export default function ProfilePage() {
     landmark: ''
   });
 
-  // Strict verification check
+  // Strict verification check (OTP based via DB)
   useEffect(() => {
-    if (!isUserLoading && user && !user.emailVerified) {
-      router.push('/auth/login');
+    async function checkAuthAndVerification() {
+      if (!isUserLoading && !user) {
+        router.push('/auth/login');
+        return;
+      }
+      if (user) {
+        const p = await getProfile(user.uid);
+        if (!p || !p.emailVerified) {
+          router.push('/auth/login');
+        }
+      }
     }
+    checkAuthAndVerification();
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
     async function loadData() {
-      if (!user || !user.emailVerified) return;
+      if (!user) return;
       setIsLoadingData(true);
       try {
         let profileData = await getProfile(user.uid);
@@ -131,7 +141,7 @@ export default function ProfilePage() {
 
   const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.state && formData.city && formData.pincode && formData.landmark);
 
-  const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : 2024;
+  const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : new Date().getFullYear();
 
   if (isUserLoading || isLoadingData) {
     return (
@@ -139,23 +149,6 @@ export default function ProfilePage() {
         <Navbar />
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <div className="h-20 w-20 bg-muted/20 rounded-full flex items-center justify-center mb-6">
-            <UserIcon className="h-10 w-10 text-muted-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-primary mb-2">Artisan Profile</h1>
-          <p className="text-muted-foreground mb-8 max-sm">Sign in to manage your collection, track orders, and save your favorites.</p>
-          <Button asChild className="w-full max-w-xs h-12 rounded-xl"><Link href="/auth/login">Sign In</Link></Button>
         </main>
         <Footer />
       </div>
@@ -257,7 +250,7 @@ export default function ProfilePage() {
                     <div className="space-y-3">
                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Registered Email</Label>
                       <div className="flex items-center gap-3 p-4 bg-muted/20 rounded-2xl text-muted-foreground border border-dashed text-sm h-14">
-                        <Mail className="h-4 w-4" /> {user.email}
+                        <Mail className="h-4 w-4" /> {user?.email}
                         <Badge variant="outline" className="ml-auto text-[10px] border-muted-foreground/30">Verified</Badge>
                       </div>
                     </div>

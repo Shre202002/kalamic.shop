@@ -20,6 +20,24 @@ export async function getProfile(firebaseId: string) {
 }
 
 /**
+ * Marks a user's email as verified in MongoDB.
+ */
+export async function verifyUserEmail(firebaseId: string, email: string) {
+  await dbConnect();
+  try {
+    const user = await User.findOneAndUpdate(
+      { firebaseId },
+      { $set: { emailVerified: true, email } },
+      { new: true, upsert: true }
+    ).lean();
+    return JSON.parse(JSON.stringify(user));
+  } catch (error) {
+    console.error("Error verifying email in DB:", error);
+    throw new Error("Failed to verify email record.");
+  }
+}
+
+/**
  * Updates or creates the user profile with integrated address details.
  */
 export async function updateProfile(firebaseId: string, data: { 
@@ -37,7 +55,7 @@ export async function updateProfile(firebaseId: string, data: {
   try {
     const user = await User.findOneAndUpdate(
       { firebaseId },
-      { $set: data },
+      { $set: { ...data, emailVerified: true } }, // Ensure verified if updating
       { new: true, upsert: true, runValidators: true }
     ).lean();
     return JSON.parse(JSON.stringify(user));

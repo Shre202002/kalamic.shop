@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useUser, errorEmitter } from '@/firebase';
 import { initiateEmailSignIn, initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { sendOtp, verifyOtp } from '@/lib/actions/otp-actions';
+import { verifyUserEmail, getProfile } from '@/lib/actions/user-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +16,6 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, Lock, ShieldCheck, Key, CheckCircle2, AlertCircle, LogOut } from 'lucide-react';
-import { sendEmailVerification, reload } from 'firebase/auth';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,18 +25,27 @@ export default function LoginPage() {
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isResending, setIsResending] = useState(false);
+  const [isDbVerified, setIsDbVerified] = useState<boolean | null>(null);
   
   const auth = useAuth();
   const { user } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
-  // Redirect logic: Only proceed to profile if user is logged in AND email is verified
+  // Check DB verification status whenever user changes
   useEffect(() => {
-    if (user && user.emailVerified) {
-      router.push('/profile');
+    async function checkVerification() {
+      if (user) {
+        const profile = await getProfile(user.uid);
+        setIsDbVerified(profile?.emailVerified || false);
+        if (profile?.emailVerified) {
+          router.push('/profile');
+        }
+      } else {
+        setIsDbVerified(null);
+      }
     }
+    checkVerification();
   }, [user, router]);
 
   // Listen for login errors
@@ -77,14 +86,15 @@ export default function LoginPage() {
   };
 
   const handleRequestOtp = async () => {
-    if (!email) {
+    const targetEmail = email || user?.email;
+    if (!targetEmail) {
       toast({ variant: "destructive", title: "Email Required", description: "Please enter your email to receive an OTP." });
       return;
     }
 
     setIsLoading(true);
     try {
-      await sendOtp(email);
+      await sendOtp(targetEmail);
       setOtpSent(true);
       toast({ title: "OTP Sent", description: "Please check your console for the 6-digit code (simulated)." });
     } catch (err: any) {
@@ -96,17 +106,24 @@ export default function LoginPage() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpCode || otpCode.length !== 6) return;
+    const targetEmail = email || user?.email;
+    if (!otpCode || otpCode.length !== 6 || !targetEmail) return;
 
     setIsLoading(true);
     try {
-      const result = await verifyOtp(email, otpCode);
+      const result = await verifyOtp(targetEmail, otpCode);
       if (result.success) {
-        const defaultPassword = `OTP_${otpCode}_KALAMIC`;
-        if (isLogin) {
-          initiateEmailSignIn(auth, email, defaultPassword);
+        if (user) {
+          // Marking as verified in DB
+          await verifyUserEmail(user.uid, targetEmail);
+          setIsDbVerified(true);
+          toast({ title: "Email Verified", description: "Welcome to the Kalamic collection!" });
+          router.push('/profile');
         } else {
-          initiateEmailSignUp(auth, email, defaultPassword);
+          // Direct OTP Login flow
+          const defaultPassword = `OTP_${otpCode}_KALAMIC`;
+          initiateEmailSignIn(auth, targetEmail, defaultPassword);
+          // The verification in DB will happen on the next render via useEffect check or on profile page
         }
       } else {
         setIsLoading(false);
@@ -118,37 +135,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleResendVerification = async () => {
-    if (!user) return;
-    setIsResending(true);
-    try {
-      await sendEmailVerification(user);
-      toast({ title: "Verification Email Sent", description: "Please check your inbox." });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } finally {
-      setIsResending(false);
-    }
-  };
-
-  const handleCheckVerificationStatus = async () => {
-    if (!user) return;
-    setIsLoading(true);
-    try {
-      await reload(user);
-      if (user.emailVerified) {
-        toast({ title: "Email Verified", description: "Welcome to the Kalamic collection!" });
-        router.push('/profile');
-      } else {
-        toast({ variant: "destructive", title: "Not Verified Yet", description: "Please check your email and click the verification link." });
-      }
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSignOut = () => {
     auth.signOut();
     setOtpSent(false);
@@ -157,8 +143,8 @@ export default function LoginPage() {
     setOtpCode('');
   };
 
-  // If user is logged in but NOT verified, show verification screen
-  if (user && !user.emailVerified) {
+  // If user is logged in but NOT verified in DB, show OTP verification screen
+  if (user && isDbVerified === false) {
     return (
       <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
         <Navbar />
@@ -170,37 +156,50 @@ export default function LoginPage() {
               </div>
               <CardTitle className="text-3xl font-black text-primary">Verify Your Email</CardTitle>
               <CardDescription className="text-sm font-medium">
-                We've sent a verification link to <span className="font-bold text-primary">{user.email}</span>. Please verify your account to continue your ceramic journey.
+                Please verify your account <span className="font-bold text-primary">{user.email}</span> with a 6-digit OTP code to continue your ceramic journey.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-8 space-y-6">
-              <div className="bg-muted/10 p-4 rounded-2xl flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Compulsory verification ensures the security of your artisan acquisitions and delivery profile.
-                </p>
-              </div>
-              
-              <div className="space-y-3">
-                <Button 
-                  onClick={handleCheckVerificationStatus} 
-                  className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20"
-                  disabled={isLoading}
-                >
-                  {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
-                  I've Verified My Email
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={handleResendVerification} 
-                  className="w-full h-14 text-lg font-bold rounded-2xl border-2"
-                  disabled={isResending}
-                >
-                  {isResending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                  Resend Verification Link
-                </Button>
-              </div>
+              {!otpSent ? (
+                <div className="space-y-4">
+                  <div className="bg-muted/10 p-4 rounded-2xl flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      OTP verification ensures the security of your artisan acquisitions and delivery profile.
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleRequestOtp} 
+                    className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Key className="mr-2 h-5 w-5" />}
+                    Send Verification OTP
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="verify-otp">Enter 6-Digit Code</Label>
+                    <Input 
+                      id="verify-otp" 
+                      type="text" 
+                      maxLength={6}
+                      placeholder="000000" 
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      required 
+                      className="h-14 text-center text-2xl tracking-[0.5em] font-black rounded-xl"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20" disabled={isLoading}>
+                    {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Start Exploring"}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setOtpSent(false)} className="w-full text-xs" disabled={isLoading}>
+                    Resend Code
+                  </Button>
+                </form>
+              )}
             </CardContent>
             <CardFooter className="p-8 pt-0 flex flex-col gap-4">
               <Separator className="opacity-50" />
