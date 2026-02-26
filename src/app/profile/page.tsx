@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -27,13 +26,11 @@ import {
   Plus, 
   LogOut, 
   Loader2, 
-  ChevronRight,
   Settings,
   AlertCircle,
   ShieldCheck,
   Calendar,
-  Home,
-  Map
+  Home
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -122,6 +119,17 @@ export default function ProfilePage() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
+    // Check all fields are present
+    if (!formData.firstName || !formData.lastName || !formData.phone || !formData.address || !formData.city || !formData.state || !formData.pincode || !formData.landmark) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill in all required fields to complete your profile.",
+      });
+      return;
+    }
+
     setIsUpdating(true);
     try {
       const updated = await updateProfile(user.uid, formData);
@@ -170,7 +178,7 @@ export default function ProfilePage() {
     }
   };
 
-  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.pincode);
+  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.state && formData.city && formData.pincode && formData.landmark);
 
   const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : '2024';
 
@@ -232,7 +240,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="font-bold text-lg leading-tight">Attention Required</p>
-                  <p className="text-sm opacity-80">Please complete your personal details to unlock all artisan features and shipping services.</p>
+                  <p className="text-sm opacity-80">Please complete all required personal details below to enable shopping and acquisitions.</p>
                 </div>
               </CardContent>
             </Card>
@@ -247,7 +255,7 @@ export default function ProfilePage() {
                     <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
                       <UserIcon className="h-6 w-6 text-accent" /> Personal Details
                     </CardTitle>
-                    <CardDescription>Your identity within the Kalamic community.</CardDescription>
+                    <CardDescription>All fields below are required for verified shipping.</CardDescription>
                   </div>
                   <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/30 px-3 py-1.5 rounded-full">
                     <Calendar className="h-3 w-3" /> Member Since {memberSinceYear}
@@ -259,9 +267,10 @@ export default function ProfilePage() {
                 <form onSubmit={handleUpdateProfile} className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
-                      <Label htmlFor="firstName" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">First Name</Label>
+                      <Label htmlFor="firstName" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">First Name *</Label>
                       <Input 
                         id="firstName" 
+                        required
                         value={formData.firstName} 
                         onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
                         placeholder="Aarav" 
@@ -269,9 +278,10 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div className="space-y-3">
-                      <Label htmlFor="lastName" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Last Name</Label>
+                      <Label htmlFor="lastName" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Last Name *</Label>
                       <Input 
                         id="lastName" 
+                        required
                         value={formData.lastName} 
                         onChange={(e) => setFormData({...formData, lastName: e.target.value})} 
                         placeholder="Sharma" 
@@ -282,11 +292,12 @@ export default function ProfilePage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
-                      <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Contact Phone</Label>
+                      <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Contact Phone *</Label>
                       <div className="relative">
                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                           id="phone" 
+                          required
                           value={formData.phone} 
                           onChange={(e) => setFormData({...formData, phone: e.target.value})} 
                           placeholder="+91 XXXXX XXXXX" 
@@ -310,9 +321,10 @@ export default function ProfilePage() {
                     </h3>
                     
                     <div className="space-y-3">
-                      <Label htmlFor="address" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Street Address</Label>
+                      <Label htmlFor="address" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Street Address *</Label>
                       <Input 
                         id="address" 
+                        required
                         value={formData.address} 
                         onChange={(e) => setFormData({...formData, address: e.target.value})} 
                         placeholder="House No, Street Name" 
@@ -322,9 +334,10 @@ export default function ProfilePage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-3">
-                        <Label htmlFor="city" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">City</Label>
+                        <Label htmlFor="city" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">City *</Label>
                         <Input 
                           id="city" 
+                          required
                           value={formData.city} 
                           onChange={(e) => setFormData({...formData, city: e.target.value})} 
                           placeholder="Jaipur" 
@@ -332,9 +345,10 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="state" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">State</Label>
+                        <Label htmlFor="state" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">State *</Label>
                         <Input 
                           id="state" 
+                          required
                           value={formData.state} 
                           onChange={(e) => setFormData({...formData, state: e.target.value})} 
                           placeholder="Rajasthan" 
@@ -345,9 +359,10 @@ export default function ProfilePage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-3">
-                        <Label htmlFor="pincode" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pincode</Label>
+                        <Label htmlFor="pincode" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pincode *</Label>
                         <Input 
                           id="pincode" 
+                          required
                           value={formData.pincode} 
                           onChange={(e) => setFormData({...formData, pincode: e.target.value})} 
                           placeholder="302001" 
@@ -355,9 +370,10 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="landmark" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nearest Landmark</Label>
+                        <Label htmlFor="landmark" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nearest Landmark *</Label>
                         <Input 
                           id="landmark" 
+                          required
                           value={formData.landmark} 
                           onChange={(e) => setFormData({...formData, landmark: e.target.value})} 
                           placeholder="Opposite Art Gallery" 
@@ -374,7 +390,7 @@ export default function ProfilePage() {
                       className="bg-primary text-white px-12 h-14 rounded-2xl font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
                     >
                       {isUpdating ? <Loader2 className="mr-3 h-5 w-5 animate-spin" /> : null}
-                      Save Artisan Settings
+                      Save & Verify Profile
                     </Button>
                   </div>
                 </form>
@@ -384,16 +400,20 @@ export default function ProfilePage() {
             <div className="space-y-6">
               <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white p-8 space-y-6">
                 <h3 className="text-lg font-bold text-primary flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-accent" /> Account Management
+                  <Settings className="h-5 w-5 text-accent" /> Account Settings
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/10 border">
-                    <span className="text-sm font-medium text-muted-foreground">Identity Verified</span>
-                    <ShieldCheck className="h-5 w-5 text-green-500" />
+                    <span className="text-sm font-medium text-muted-foreground">Identity Status</span>
+                    {isProfileComplete ? (
+                      <ShieldCheck className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-destructive" />
+                    )}
                   </div>
                   <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/10 border">
-                    <span className="text-sm font-medium text-muted-foreground">Artisan Perks</span>
-                    <Badge className="bg-primary/10 text-primary border-none">Active</Badge>
+                    <span className="text-sm font-medium text-muted-foreground">Collector Tier</span>
+                    <Badge className="bg-primary/10 text-primary border-none">Artisan</Badge>
                   </div>
                 </div>
                 <Separator />
@@ -402,11 +422,10 @@ export default function ProfilePage() {
                   className="w-full h-14 rounded-2xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 border-2 border-dashed border-muted transition-all"
                   onClick={() => auth.signOut()}
                 >
-                  <LogOut className="mr-3 h-5 w-5" /> Sign Out from Kalamic
+                  <LogOut className="mr-3 h-5 w-5" /> Sign Out
                 </Button>
               </Card>
 
-              {/* Stats and addresses navigation below */}
               <div className="grid grid-cols-1 gap-6">
                  <Link href="/orders" className="group">
                     <Card className="bg-primary text-white rounded-[2rem] p-6 hover:shadow-xl transition-all">
@@ -432,25 +451,25 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Addresses Section */}
+          {/* Addresses Section (Additional Locations) */}
           <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white">
             <CardHeader className="flex flex-row items-center justify-between p-8 pb-4">
               <div className="space-y-1">
                 <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-                  <MapPin className="h-6 w-6 text-accent" /> Delivery Locations
+                  <MapPin className="h-6 w-6 text-accent" /> Alternative Addresses
                 </CardTitle>
-                <CardDescription>Manage your artisan delivery destinations.</CardDescription>
+                <CardDescription>Manage secondary artisan delivery destinations.</CardDescription>
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="h-12 rounded-2xl gap-2 px-6 shadow-lg shadow-primary/10">
-                    <Plus className="h-5 w-5" /> <span className="hidden sm:inline">Add New Location</span>
+                    <Plus className="h-5 w-5" /> <span className="hidden sm:inline">Add Location</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-lg rounded-[2.5rem] p-8 border-none shadow-2xl bg-white">
                   <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold text-primary">New Artisan Address</DialogTitle>
-                    <CardDescription>Register a new delivery destination.</CardDescription>
+                    <DialogTitle className="text-2xl font-bold text-primary">New Delivery Location</DialogTitle>
+                    <CardDescription>Register an alternative address.</CardDescription>
                   </DialogHeader>
                   <div className="grid gap-6 py-6">
                     <div className="space-y-2">
@@ -493,7 +512,7 @@ export default function ProfilePage() {
               {addresses.length === 0 ? (
                 <div className="text-center py-12 bg-muted/10 rounded-[2rem] border-2 border-dashed border-muted">
                   <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                  <p className="text-muted-foreground font-medium">No delivery locations saved yet.</p>
+                  <p className="text-muted-foreground font-medium">No alternative delivery locations saved.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
