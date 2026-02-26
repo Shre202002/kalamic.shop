@@ -2,14 +2,13 @@
 "use client"
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Heart, Share2, Star, Truck, ShieldCheck, Undo2, Loader2 } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, Star, Truck, ShieldCheck, Undo2, Loader2, ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { getProductById, getProductBySlug } from '@/lib/actions/products';
 import { useUser, useFirestore } from '@/firebase';
@@ -17,11 +16,13 @@ import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
   const [product, setProduct] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(0);
   
   useEffect(() => {
     async function loadProduct() {
@@ -32,13 +33,6 @@ export default function ProductDetailPage() {
         
         if (data) {
           setProduct(data);
-        } else {
-          // Mock fallbacks if DB is empty during dev
-          const mock = [
-            { _id: "699026a8ae873e1fa69cb18a", slug: "mor_stambh", name: "Mor Stambh Ceramic Customized Pillar", price: 1499, stock: 5, category: "Home Decor", description: "Bahut sundar handmade ceramic pillar jo Bhagwan ke Jhula ke liye perfect hai.", rating: 4.9, reviews: 24 },
-            { _id: "699026a8ae873e1fa69cb18b", slug: "mirror", name: "Handmade Ceramic Mirror", price: 999, compare_at_price: 2599, stock: 5, category: "Home Decor", description: "Elegant aur stylish handmade ceramic mirror with beautiful Indian motifs.", rating: 4.8, reviews: 18 }
-          ].find(p => p._id === id || p.slug === id);
-          setProduct(mock);
         }
       } catch (error) {
         console.error("Error loading product:", error);
@@ -100,7 +94,7 @@ export default function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="h-10 w-10 text-primary animate-spin" />
@@ -110,38 +104,79 @@ export default function ProductDetailPage() {
     );
   }
 
-  if (!product) return null;
+  if (!product) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <h1 className="text-2xl font-bold text-primary mb-4">Piece Not Found</h1>
+          <p className="text-muted-foreground mb-8">The artisan treasure you're looking for might have been retired.</p>
+          <Button onClick={() => router.push('/products')}>Back to Catalog</Button>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
-  const productImage = product.images?.[0] || PlaceHolderImages.find(i => i.id === (product._id || product.id))?.imageUrl || "https://picsum.photos/seed/placeholder/800/800";
+  const images = product.images?.length > 0 ? product.images : [`https://picsum.photos/seed/${product.slug}/800/800`];
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <main className="flex-1 py-8 md:py-16">
+      <main className="flex-1 py-6 md:py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {/* Mobile Back Button */}
+          <button 
+            onClick={() => router.back()}
+            className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary mb-6 md:hidden"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" /> Back
+          </button>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+            {/* Image Gallery */}
             <div className="space-y-4">
-              <div className="relative aspect-square rounded-3xl overflow-hidden bg-white shadow-xl border border-primary/5">
-                <Image src={productImage} alt={product.name} fill className="object-cover" priority />
+              <div className="relative aspect-square rounded-2xl md:rounded-3xl overflow-hidden bg-white shadow-xl border border-primary/5">
+                <Image 
+                  src={images[selectedImage]} 
+                  alt={product.name} 
+                  fill 
+                  className="object-cover animate-fade-in" 
+                  priority 
+                />
               </div>
+              {images.length > 1 && (
+                <div className="grid grid-cols-4 gap-2 md:gap-4">
+                  {images.map((img: string, i: number) => (
+                    <button 
+                      key={i}
+                      onClick={() => setSelectedImage(i)}
+                      className={`relative aspect-square rounded-lg md:rounded-xl overflow-hidden border-2 transition-all ${selectedImage === i ? 'border-primary' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                    >
+                      <Image src={img} alt={`${product.name} ${i + 1}`} fill className="object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
+            {/* Product Details */}
             <div className="flex flex-col">
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 mb-6 md:mb-8">
                 <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="bg-primary/5 text-primary border-none">
-                    {product.category || 'Handmade'}
+                  <Badge variant="secondary" className="bg-primary/5 text-primary border-none text-xs">
+                    {product.category || 'Artisan Ceramic'}
                   </Badge>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" className="rounded-full" onClick={handleAddToWishlist}>
+                  <div className="flex gap-1 md:gap-2">
+                    <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 md:h-10 md:w-10" onClick={handleAddToWishlist}>
                       <Heart className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="rounded-full">
+                    <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 md:h-10 md:w-10">
                       <Share2 className="h-5 w-5" />
                     </Button>
                   </div>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-extrabold text-primary leading-tight">
+                <h1 className="text-2xl md:text-4xl font-extrabold text-primary leading-tight">
                   {product.name}
                 </h1>
                 <div className="flex items-center gap-4">
@@ -152,32 +187,40 @@ export default function ProductDetailPage() {
                   <span className="text-sm text-muted-foreground">({product.reviews || '24'} reviews)</span>
                 </div>
                 <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-primary">₹{(product.price).toFixed(2)}</span>
+                  <span className="text-2xl md:text-4xl font-bold text-primary">₹{(product.price).toFixed(2)}</span>
+                  {product.compare_at_price && (
+                    <span className="text-sm md:text-lg text-muted-foreground line-through">₹{Number(product.compare_at_price).toFixed(2)}</span>
+                  )}
                 </div>
               </div>
 
-              <div className="space-y-6 mb-10">
-                <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+              <div className="space-y-6 mb-8 md:mb-10">
+                <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{product.description}</p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="flex-1 h-14 bg-primary text-white hover:bg-primary/90 text-lg font-bold shadow-lg shadow-primary/20" onClick={handleAddToCart}>
-                  <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-auto">
+                <Button 
+                  size="lg" 
+                  className="flex-1 h-12 md:h-14 bg-primary text-white hover:bg-primary/90 text-base md:text-lg font-bold shadow-lg shadow-primary/20" 
+                  onClick={handleAddToCart}
+                >
+                  <ShoppingCart className="mr-2 h-5 w-5" /> Add to Bag
                 </Button>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mt-12 pt-8 border-t">
+              {/* Trust Badges */}
+              <div className="grid grid-cols-3 gap-2 md:gap-4 mt-10 pt-8 border-t">
                 <div className="flex flex-col items-center text-center gap-2">
                   <Truck className="h-5 w-5 text-accent" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Safe Shipping</span>
+                  <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Safe Ship</span>
                 </div>
                 <div className="flex flex-col items-center text-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-accent" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Secure Payment</span>
+                  <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Secure Pay</span>
                 </div>
                 <div className="flex flex-col items-center text-center gap-2">
                   <Undo2 className="h-5 w-5 text-accent" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Artisan Crafted</span>
+                  <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Artisan</span>
                 </div>
               </div>
             </div>
