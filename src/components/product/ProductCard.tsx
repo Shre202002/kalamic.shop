@@ -3,10 +3,10 @@
 
 import React from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { Heart, ShoppingCart, Star } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Heart, ShoppingBag, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
@@ -21,17 +21,18 @@ interface ProductCardProps {
   image: string;
   rating: number;
   category: string;
-  badge?: string;
+  description?: string;
 }
 
-export function ProductCard({ id, slug, name, price, originalPrice, image, rating, category, badge }: ProductCardProps) {
+export function ProductCard({ id, slug, name, price, originalPrice, image, category, description }: ProductCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
-  const discount = originalPrice ? Math.round(((originalPrice - price) / originalPrice) * 100) : null;
+  const router = useRouter();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!user) {
       toast({ title: "Please sign in", description: "You need an account to add items to your cart." });
       return;
@@ -55,8 +56,33 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, ratin
     });
   };
 
+  const handleBuyNow = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast({ title: "Please sign in", description: "You need an account to checkout." });
+      return;
+    }
+
+    // Add to cart first
+    const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
+    await setDoc(cartItemRef, {
+      id,
+      productVariantId: id,
+      name,
+      priceAtAddToCart: price,
+      imageUrl: image,
+      quantity: 1,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    router.push('/cart');
+  };
+
   const handleAddToWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!user) {
       toast({ title: "Please sign in", description: "You need an account to save favorites." });
       return;
@@ -79,64 +105,70 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, ratin
     });
   };
 
-  const permalink = slug || id;
-
   return (
-    <Link href={`/products/${permalink}`} className="group block h-full">
-      <Card className="product-card-hover border-none overflow-hidden h-full flex flex-col bg-white">
-        <CardContent className="p-0 relative aspect-square overflow-hidden bg-muted">
+    <Card 
+      className="group border-none shadow-md hover:shadow-xl transition-all duration-300 rounded-3xl overflow-hidden bg-white cursor-pointer h-full flex flex-col"
+      onClick={() => router.push(`/products/${slug || id}`)}
+    >
+      {/* Image Container */}
+      <CardContent className="p-4 pb-0 relative">
+        <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-muted">
           <Image
             src={image}
             alt={name}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 768px) 50vw, 25vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
+            sizes="(max-width: 768px) 100vw, 33vw"
           />
-          {badge && (
-            <Badge className="absolute top-3 left-3 bg-accent text-accent-foreground z-10">
-              {badge}
-            </Badge>
-          )}
-          {discount && (
-            <Badge className="absolute top-3 left-3 bg-destructive text-destructive-foreground z-10">
-              {discount}% OFF
-            </Badge>
-          )}
+          {/* Badge */}
+          <Badge className="absolute top-3 left-3 bg-primary text-white hover:bg-primary border-none text-[10px] font-bold px-3 py-1 rounded-lg">
+            {category}
+          </Badge>
+          {/* Wishlist Button */}
           <button 
             onClick={handleAddToWishlist}
-            className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-primary"
+            className="absolute top-3 right-3 p-2.5 rounded-xl bg-white/90 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white text-primary shadow-lg"
           >
             <Heart className="h-4 w-4" />
           </button>
-        </CardContent>
-        <CardContent className="p-4 flex-1 flex flex-col gap-1">
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-            {category}
-          </span>
-          <h3 className="text-sm md:text-base font-semibold text-primary line-clamp-1 group-hover:text-accent transition-colors">
-            {name}
-          </h3>
-          <div className="flex items-center gap-1 mb-2">
-            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            <span className="text-xs font-medium">{rating}</span>
-          </div>
-          <div className="mt-auto flex items-baseline gap-2">
-            <span className="text-lg font-bold text-primary">₹{price.toFixed(2)}</span>
-            {originalPrice && (
-              <span className="text-xs text-muted-foreground line-through">₹{originalPrice.toFixed(2)}</span>
-            )}
-          </div>
-        </CardContent>
-        <CardFooter className="p-4 pt-0">
+        </div>
+      </CardContent>
+
+      {/* Content */}
+      <CardContent className="p-5 flex-1 flex flex-col">
+        <h3 className="text-lg font-bold text-primary leading-tight line-clamp-2 mb-1 group-hover:text-accent transition-colors duration-300">
+          {name}
+        </h3>
+        {description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed">
+            {description}
+          </p>
+        )}
+        
+        <div className="mt-auto flex items-baseline gap-2 mb-4">
+          <span className="text-xl font-extrabold text-primary">₹{price.toLocaleString()}</span>
+          {originalPrice && (
+            <span className="text-sm text-muted-foreground line-through opacity-50">₹{originalPrice.toLocaleString()}</span>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-2">
           <Button 
-            className="w-full bg-primary hover:bg-primary/90 text-white transition-all transform active:scale-95 flex items-center gap-2"
+            variant="outline"
+            className="h-10 rounded-xl border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 active:scale-95 text-xs font-bold gap-2"
             onClick={handleAddToCart}
           >
-            <ShoppingCart className="h-4 w-4" />
-            Add to Cart
+            <ShoppingBag className="h-3.5 w-3.5" /> Bag
           </Button>
-        </CardFooter>
-      </Card>
-    </Link>
+          <Button 
+            className="h-10 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all duration-300 active:scale-95 text-xs font-bold gap-2 shadow-lg shadow-primary/20"
+            onClick={handleBuyNow}
+          >
+            <Zap className="h-3.5 w-3.5" /> Buy
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
