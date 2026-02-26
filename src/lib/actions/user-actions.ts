@@ -18,26 +18,29 @@ export async function getProfile(firebaseId: string) {
 }
 
 export async function updateProfile(firebaseId: string, data: { 
-  firstName?: string, 
-  lastName?: string, 
-  phone?: string,
-  address?: string,
-  state?: string,
-  city?: string,
-  pincode?: string,
-  landmark?: string
+  email?: string,
+  firstName: string, 
+  lastName: string, 
+  phone: string,
+  address: string,
+  state: string,
+  city: string,
+  pincode: string,
+  landmark: string
 }) {
   await dbConnect();
   try {
+    // We use $set to update only provided fields, but for a "complete profile" 
+    // we expect all fields from the client.
     const user = await User.findOneAndUpdate(
       { firebaseId },
       { $set: data },
-      { new: true, upsert: true }
+      { new: true, upsert: true, runValidators: true }
     ).lean();
     return JSON.parse(JSON.stringify(user));
   } catch (error) {
     console.error("Error updating profile:", error);
-    throw new Error("Failed to update profile");
+    throw new Error("Failed to update profile. Ensure all required fields are filled.");
   }
 }
 

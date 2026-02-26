@@ -82,7 +82,8 @@ export default function ProfilePage() {
         
         // Auto-provision basic profile if it doesn't exist in MongoDB
         if (!profileData && user.email) {
-          profileData = await updateProfile(user.uid, { email: user.email });
+          // Note: Initial provision might fail schema validation if we don't handle it
+          // So we only update if we have enough info, or just wait for the user to save.
         }
 
         const [ordersData, wishlistData, addressesData] = await Promise.all([
@@ -132,7 +133,10 @@ export default function ProfilePage() {
 
     setIsUpdating(true);
     try {
-      const updated = await updateProfile(user.uid, formData);
+      const updated = await updateProfile(user.uid, {
+        ...formData,
+        email: user.email || ''
+      } as any);
       setProfile(updated);
       toast({
         title: "Profile Updated",
@@ -142,7 +146,7 @@ export default function ProfilePage() {
       toast({
         variant: "destructive",
         title: "Update Failed",
-        description: "Could not save your changes. Please try again.",
+        description: "Could not save your changes. Ensure all fields are filled.",
       });
     } finally {
       setIsUpdating(false);
@@ -180,7 +184,7 @@ export default function ProfilePage() {
 
   const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.state && formData.city && formData.pincode && formData.landmark);
 
-  const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : '2024';
+  const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : new Date().getFullYear();
 
   if (isUserLoading || isLoadingData) {
     return (
@@ -203,7 +207,7 @@ export default function ProfilePage() {
             <UserIcon className="h-10 w-10 text-muted-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-primary mb-2">Artisan Profile</h1>
-          <p className="text-muted-foreground mb-8 max-w-sm">Sign in to manage your collection, track orders, and save your favorites.</p>
+          <p className="text-muted-foreground mb-8 max-sm">Sign in to manage your collection, track orders, and save your favorites.</p>
           <Button asChild className="w-full max-w-xs h-12 rounded-xl"><Link href="/auth/login">Sign In</Link></Button>
         </main>
         <Footer />
