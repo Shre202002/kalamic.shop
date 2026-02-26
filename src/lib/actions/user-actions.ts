@@ -1,4 +1,3 @@
-
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -18,7 +17,16 @@ export async function getProfile(firebaseId: string) {
   }
 }
 
-export async function updateProfile(firebaseId: string, data: { firstName?: string, lastName?: string, phone?: string }) {
+export async function updateProfile(firebaseId: string, data: { 
+  firstName?: string, 
+  lastName?: string, 
+  phone?: string,
+  address?: string,
+  state?: string,
+  city?: string,
+  pincode?: string,
+  landmark?: string
+}) {
   await dbConnect();
   try {
     const user = await User.findOneAndUpdate(

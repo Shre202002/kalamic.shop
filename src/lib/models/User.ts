@@ -1,4 +1,3 @@
-
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUser extends Document {
@@ -7,6 +6,11 @@ export interface IUser extends Document {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  address?: string;
+  state?: string;
+  city?: string;
+  pincode?: string;
+  landmark?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +21,11 @@ const UserSchema: Schema = new Schema({
   firstName: { type: String },
   lastName: { type: String },
   phone: { type: String },
+  address: { type: String },
+  state: { type: String },
+  city: { type: String },
+  pincode: { type: String },
+  landmark: { type: String },
 }, { timestamps: true, collection: 'users' });
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

@@ -30,7 +30,8 @@ import {
   Settings,
   AlertCircle,
   ShieldCheck,
-  Calendar
+  Calendar,
+  Home
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -54,7 +55,12 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    phone: ''
+    phone: '',
+    address: '',
+    state: '',
+    city: '',
+    pincode: '',
+    landmark: ''
   });
 
   const [addressData, setAddressData] = useState({
@@ -85,7 +91,12 @@ export default function ProfilePage() {
           setFormData({
             firstName: profileData.firstName || '',
             lastName: profileData.lastName || '',
-            phone: profileData.phone || ''
+            phone: profileData.phone || '',
+            address: profileData.address || '',
+            state: profileData.state || '',
+            city: profileData.city || '',
+            pincode: profileData.pincode || '',
+            landmark: profileData.landmark || ''
           });
         }
         setOrders(ordersData);
@@ -105,7 +116,8 @@ export default function ProfilePage() {
     if (!user) return;
     setIsUpdating(true);
     try {
-      await updateProfile(user.uid, formData);
+      const updated = await updateProfile(user.uid, formData);
+      setProfile(updated);
       toast({
         title: "Profile Updated",
         description: "Your personal information has been saved successfully.",
@@ -150,7 +162,9 @@ export default function ProfilePage() {
     }
   };
 
-  const isProfileComplete = formData.firstName && formData.lastName && formData.phone;
+  const isProfileComplete = formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.pincode;
+
+  const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : '2024';
 
   if (isUserLoading || isLoadingData) {
     return (
@@ -210,7 +224,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="font-bold text-lg leading-tight">Attention Required</p>
-                  <p className="text-sm opacity-80">Please complete your name and phone number to unlock ordering and delivery services.</p>
+                  <p className="text-sm opacity-80">Please complete your personal details to unlock all artisan features and shipping services.</p>
                 </div>
               </CardContent>
             </Card>
@@ -267,7 +281,7 @@ export default function ProfilePage() {
                     <CardDescription>Your identity within the Kalamic community.</CardDescription>
                   </div>
                   <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/30 px-3 py-1.5 rounded-full">
-                    <Calendar className="h-3 w-3" /> Member Since 2024
+                    <Calendar className="h-3 w-3" /> Member Since {memberSinceYear}
                   </div>
                 </div>
               </CardHeader>
@@ -320,6 +334,70 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
+                  <Separator className="opacity-50" />
+                  <div className="space-y-6">
+                    <h3 className="text-sm font-bold text-primary flex items-center gap-2 uppercase tracking-widest">
+                      <Home className="h-4 w-4 text-accent" /> Profile Address
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      <Label htmlFor="address" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Street Address</Label>
+                      <Input 
+                        id="address" 
+                        value={formData.address} 
+                        onChange={(e) => setFormData({...formData, address: e.target.value})} 
+                        placeholder="House No, Street Name" 
+                        className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <Label htmlFor="city" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">City</Label>
+                        <Input 
+                          id="city" 
+                          value={formData.city} 
+                          onChange={(e) => setFormData({...formData, city: e.target.value})} 
+                          placeholder="e.g. Jaipur" 
+                          className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <Label htmlFor="state" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">State</Label>
+                        <Input 
+                          id="state" 
+                          value={formData.state} 
+                          onChange={(e) => setFormData({...formData, state: e.target.value})} 
+                          placeholder="e.g. Rajasthan" 
+                          className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <Label htmlFor="pincode" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pincode</Label>
+                        <Input 
+                          id="pincode" 
+                          value={formData.pincode} 
+                          onChange={(e) => setFormData({...formData, pincode: e.target.value})} 
+                          placeholder="e.g. 302001" 
+                          className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <Label htmlFor="landmark" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nearest Landmark</Label>
+                        <Input 
+                          id="landmark" 
+                          value={formData.landmark} 
+                          onChange={(e) => setFormData({...formData, landmark: e.target.value})} 
+                          placeholder="e.g. Opposite Art Gallery" 
+                          className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex justify-end pt-4">
                     <Button 
                       disabled={isUpdating} 
@@ -345,7 +423,7 @@ export default function ProfilePage() {
                     <ShieldCheck className="h-5 w-5 text-green-500" />
                   </div>
                   <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/10 border">
-                    <span className="text-sm font-medium text-muted-foreground">Newsletter</span>
+                    <span className="text-sm font-medium text-muted-foreground">Artisan Perks</span>
                     <Badge className="bg-primary/10 text-primary border-none">Active</Badge>
                   </div>
                 </div>
@@ -359,7 +437,20 @@ export default function ProfilePage() {
                 </Button>
               </Card>
 
-              {/* Address Quick View Header (Redirects to full address section or just shows count) */}
+              {/* Favorites Quick View */}
+              <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-accent text-accent-foreground p-8 relative group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                  <Heart className="h-24 w-24 fill-current" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">My Favorites</h3>
+                <p className="text-3xl font-black mb-4">{wishlistCount}</p>
+                <p className="text-sm opacity-80 mb-6">Curated masterpieces saved in your personal gallery.</p>
+                <div className="h-2 w-full bg-accent-foreground/10 rounded-full overflow-hidden">
+                   <div className="h-full bg-accent-foreground w-full opacity-30"></div>
+                </div>
+              </Card>
+
+              {/* Address Quick View Header */}
               <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-primary text-white p-8 relative">
                 <div className="absolute top-0 right-0 p-4 opacity-10">
                   <MapPin className="h-24 w-24" />
