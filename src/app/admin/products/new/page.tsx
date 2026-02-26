@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState } from 'react';
@@ -55,7 +54,7 @@ export default function NewProductPage() {
       setSeoResult(result);
       toast({
         title: "SEO Content Generated",
-        description: "AI has successfully optimized your product listing.",
+        description: "AI has successfully optimized your ceramic product listing.",
       });
     } catch (error) {
       toast({
@@ -79,12 +78,12 @@ export default function NewProductPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-primary">Add New Product</h1>
-              <p className="text-muted-foreground">Fill in the details to create a new product listing.</p>
+              <h1 className="text-3xl font-bold text-primary">New Ceramic Creation</h1>
+              <p className="text-muted-foreground">Add a new handcrafted piece to the Kalamic catalog.</p>
             </div>
           </div>
           <Button className="bg-primary text-white h-11 px-8">
-            <Save className="mr-2 h-5 w-5" /> Publish Product
+            <Save className="mr-2 h-5 w-5" /> Publish Piece
           </Button>
         </div>
 
@@ -93,8 +92,8 @@ export default function NewProductPage() {
             {/* Basic Information */}
             <Card className="border-none shadow-sm">
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>The core details of your product.</CardDescription>
+                <CardTitle>Artisan Details</CardTitle>
+                <CardDescription>The core details of your ceramic work.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -104,17 +103,17 @@ export default function NewProductPage() {
                     name="name" 
                     value={formData.name} 
                     onChange={handleInputChange} 
-                    placeholder="e.g. Ultra-Link Wireless Headphones" 
+                    placeholder="e.g. Blue Pottery Flower Vase" 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Long Description</Label>
+                  <Label htmlFor="description">Detailed Description</Label>
                   <Textarea 
                     id="description" 
                     name="description" 
                     value={formData.description} 
                     onChange={handleInputChange} 
-                    placeholder="Provide a detailed overview of the product..." 
+                    placeholder="Describe the clay type, firing method, and patterns..." 
                     className="min-h-[150px]"
                   />
                 </div>
@@ -126,11 +125,11 @@ export default function NewProductPage() {
                       name="category" 
                       value={formData.category} 
                       onChange={handleInputChange} 
-                      placeholder="e.g. Electronics" 
+                      placeholder="e.g. Home Decor" 
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price ($)</Label>
+                    <Label htmlFor="price">Price (₹)</Label>
                     <Input 
                       id="price" 
                       name="price" 
@@ -147,7 +146,7 @@ export default function NewProductPage() {
             {/* Images & Features */}
             <Card className="border-none shadow-sm">
               <CardHeader>
-                <CardTitle>Media & Features</CardTitle>
+                <CardTitle>Media & Craft Features</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -157,7 +156,7 @@ export default function NewProductPage() {
                     name="imageUrls" 
                     value={formData.imageUrls} 
                     onChange={handleInputChange} 
-                    placeholder="https://example.com/image1.jpg" 
+                    placeholder="https://example.com/artisan-photo.jpg" 
                   />
                 </div>
                 <div className="space-y-2">
@@ -167,7 +166,7 @@ export default function NewProductPage() {
                     name="features" 
                     value={formData.features} 
                     onChange={handleInputChange} 
-                    placeholder="Active Noise Cancellation&#10;40 Hour Battery Life&#10;Premium Leather Finish" 
+                    placeholder="Hand-molded Terracotta&#10;Kiln-fired at 1200°C&#10;Traditional Indigo Patterns" 
                   />
                 </div>
               </CardContent>
@@ -181,9 +180,9 @@ export default function NewProductPage() {
                 className="bg-accent text-accent-foreground hover:bg-accent/90 w-full lg:w-auto px-12 h-14 rounded-2xl shadow-xl shadow-accent/20 text-lg font-bold"
               >
                 {isGenerating ? (
-                  <><Loader2 className="mr-3 h-6 w-6 animate-spin" /> Analyzing Product...</>
+                  <><Loader2 className="mr-3 h-6 w-6 animate-spin" /> Analyzing Craftsmanship...</>
                 ) : (
-                  <><Sparkles className="mr-3 h-6 w-6" /> Generate SEO with AI</>
+                  <><Sparkles className="mr-3 h-6 w-6" /> Optimize Listing with AI</>
                 )}
               </Button>
             </div>
@@ -193,7 +192,7 @@ export default function NewProductPage() {
               <Card className="border-accent/30 bg-accent/5 shadow-inner border animate-in zoom-in-95 duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-primary">
-                    <Sparkles className="h-5 w-5 text-accent" /> AI Generated SEO Content
+                    <Sparkles className="h-5 w-5 text-accent" /> AI Generated Artisan Copy
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -205,16 +204,16 @@ export default function NewProductPage() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-widest font-bold">Meta Title</Label>
+                      <Label className="text-xs uppercase tracking-widest font-bold">Search Title</Label>
                       <div className="p-3 bg-white rounded-lg border text-sm font-semibold">{seoResult.metaTitle}</div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-widest font-bold">Open Graph Title</Label>
+                      <Label className="text-xs uppercase tracking-widest font-bold">Social Sharing Title</Label>
                       <div className="p-3 bg-white rounded-lg border text-sm font-semibold">{seoResult.ogTitle}</div>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-widest font-bold">Meta Keywords</Label>
+                    <Label className="text-xs uppercase tracking-widest font-bold">SEO Keywords</Label>
                     <div className="flex flex-wrap gap-2">
                       {seoResult.metaKeywords.map((kw, i) => (
                         <Badge key={i} variant="secondary" className="bg-primary/10 text-primary border-none">{kw}</Badge>
@@ -230,23 +229,23 @@ export default function NewProductPage() {
             {/* Status & Options */}
             <Card className="border-none shadow-sm">
               <CardHeader>
-                <CardTitle>Organization</CardTitle>
+                <CardTitle>Catalog Info</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 rounded-xl bg-muted/50 border space-y-3">
                   <Label className="text-xs font-bold uppercase tracking-wider opacity-60">Listing Status</Label>
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                    <span className="font-semibold text-sm">Active & Visible</span>
+                    <span className="font-semibold text-sm">Active in Shop</span>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Inventory SKU</Label>
-                  <Input placeholder="NG-PRD-001" />
+                  <Label>Artisan SKU</Label>
+                  <Input placeholder="KAL-CER-001" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Initial Stock Level</Label>
-                  <Input type="number" placeholder="50" />
+                  <Label>Initial Stock</Label>
+                  <Input type="number" placeholder="10" />
                 </div>
               </CardContent>
             </Card>
@@ -254,7 +253,7 @@ export default function NewProductPage() {
             {/* Preview Card */}
             <Card className="border-none shadow-sm overflow-hidden bg-muted/20">
               <div className="p-4 border-b bg-white">
-                <Label className="text-xs font-bold uppercase tracking-wider">Live Preview</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider">Storefront Preview</Label>
               </div>
               <div className="p-4">
                 <div className="bg-white rounded-2xl overflow-hidden shadow-sm">

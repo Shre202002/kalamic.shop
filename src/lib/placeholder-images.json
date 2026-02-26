@@ -29,12 +29,6 @@
       "description": "Handmade Ceramic Mandala Wheel",
       "imageUrl": "https://images.unsplash.com/photo-1578301978018-3005759f48f7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtYW5kYWxhJTIwY2VyYW1pY3xlbnwwfHx8fDE3NzIxNTM2MDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "mandala ceramic"
-    },
-    {
-      "id": "hero-electronics",
-      "description": "Premium Wireless Headphones",
-      "imageUrl": "https://images.unsplash.com/photo-1745789888337-ffc89563f087?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxlbGVjdHJvbmljcyUyMGhlYWRwaG9uZXN8ZW58MHx8fHwxNzcyMTI2Mjc4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "electronics headphones"
     }
   ]
 }

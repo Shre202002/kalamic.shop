@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from 'react';
@@ -24,17 +23,17 @@ import Link from 'next/link';
 
 export default function AdminDashboard() {
   const stats = [
-    { title: 'Total Revenue', value: '$124,592', change: '+12.5%', isUp: true },
-    { title: 'Active Orders', value: '456', change: '+18%', isUp: true },
-    { title: 'New Customers', value: '1,234', change: '-2.4%', isUp: false },
-    { title: 'Conversion Rate', value: '3.2%', change: '+0.5%', isUp: true },
+    { title: 'Total Revenue', value: '₹42,592', change: '+12.5%', isUp: true },
+    { title: 'Active Orders', value: '84', change: '+8%', isUp: true },
+    { title: 'New Customers', value: '156', change: '-2.4%', isUp: false },
+    { title: 'Conversion Rate', value: '4.1%', change: '+0.5%', isUp: true },
   ];
 
   const recentOrders = [
-    { id: '#ORD-7892', customer: 'John Doe', amount: '$299.00', status: 'Delivered', date: '2 mins ago' },
-    { id: '#ORD-7891', customer: 'Sarah Miller', amount: '$156.40', status: 'Processing', date: '15 mins ago' },
-    { id: '#ORD-7890', customer: 'Michael Chen', amount: '$1,299.00', status: 'Pending', date: '1 hour ago' },
-    { id: '#ORD-7889', customer: 'Emma Watson', amount: '$45.00', status: 'Shipped', date: '3 hours ago' },
+    { id: '#ORD-1001', customer: 'Aarav Sharma', amount: '₹1,499.00', status: 'Delivered', date: '2 mins ago' },
+    { id: '#ORD-1002', customer: 'Priya Patel', amount: '₹999.00', status: 'Processing', date: '15 mins ago' },
+    { id: '#ORD-1003', customer: 'Ishan Gupta', amount: '₹2,499.00', status: 'Pending', date: '1 hour ago' },
+    { id: '#ORD-1004', customer: 'Ananya Rao', amount: '₹699.00', status: 'Shipped', date: '3 hours ago' },
   ];
 
   return (
@@ -42,7 +41,7 @@ export default function AdminDashboard() {
       {/* Admin Sidebar */}
       <aside className="w-64 border-r bg-white hidden lg:flex flex-col">
         <div className="p-6 border-b">
-          <Link href="/admin/dashboard" className="text-2xl font-bold text-primary tracking-tight">NexGenShop</Link>
+          <Link href="/admin/dashboard" className="text-2xl font-bold text-primary tracking-tight">Kalamic</Link>
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-1">Admin Panel</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">
@@ -87,7 +86,7 @@ export default function AdminDashboard() {
         <header className="h-16 border-b bg-white flex items-center justify-between px-8 sticky top-0 z-10">
           <div className="relative w-96 hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Global search..." className="pl-10 h-10 bg-muted/30 border-none shadow-none" />
+            <Input placeholder="Search orders, products..." className="pl-10 h-10 bg-muted/30 border-none shadow-none" />
           </div>
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="relative">
@@ -96,12 +95,12 @@ export default function AdminDashboard() {
             </Button>
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold">Alex Rivera</p>
+                <p className="text-sm font-semibold">Admin User</p>
                 <p className="text-[10px] text-muted-foreground uppercase">Super Admin</p>
               </div>
               <Avatar className="h-10 w-10 border-2 border-primary/10">
-                <AvatarImage src="https://picsum.photos/seed/admin/200/200" />
-                <AvatarFallback>AR</AvatarFallback>
+                <AvatarImage src="https://picsum.photos/seed/kalamic-admin/200/200" />
+                <AvatarFallback>KA</AvatarFallback>
               </Avatar>
             </div>
           </div>
@@ -110,8 +109,8 @@ export default function AdminDashboard() {
         <div className="p-8 space-y-8 animate-fade-in">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-primary">Welcome back, Alex</h1>
-              <p className="text-muted-foreground">Here's what's happening with your store today.</p>
+              <h1 className="text-3xl font-bold text-primary">Kalamic Dashboard</h1>
+              <p className="text-muted-foreground">Manage your artisan ceramic collection and orders.</p>
             </div>
             <Link href="/admin/products/new">
               <Button className="bg-primary text-white h-11 px-6 shadow-lg shadow-primary/20">
@@ -145,7 +144,7 @@ export default function AdminDashboard() {
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div>
                   <CardTitle className="text-xl">Recent Orders</CardTitle>
-                  <CardDescription>A list of the latest orders in your store.</CardDescription>
+                  <CardDescription>Latest artisan acquisitions.</CardDescription>
                 </div>
                 <Button variant="ghost" size="sm" className="text-accent font-bold">View All</Button>
               </CardHeader>
@@ -180,13 +179,13 @@ export default function AdminDashboard() {
             <Card className="border-none shadow-sm">
               <CardHeader>
                 <CardTitle className="text-xl">Inventory Alert</CardTitle>
-                <CardDescription>Items running low on stock.</CardDescription>
+                <CardDescription>Handmade items running low.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {[
-                  { name: 'Wireless Headphones', stock: 5, status: 'Critical' },
-                  { name: 'Leather Sleeve', stock: 12, status: 'Low' },
-                  { name: 'Ergonomic Chair', stock: 8, status: 'Low' },
+                  { name: 'Mor Stambh Pillar', stock: 2, status: 'Critical' },
+                  { name: 'Mandala Wheel', stock: 5, status: 'Low' },
+                  { name: 'Ceramic Mirror', stock: 4, status: 'Low' },
                 ].map((item) => (
                   <div key={item.name} className="flex flex-col gap-2">
                     <div className="flex justify-between items-center text-sm">
@@ -196,7 +195,7 @@ export default function AdminDashboard() {
                     <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                       <div 
                         className={`h-full ${item.status === 'Critical' ? 'bg-destructive' : 'bg-yellow-500'}`} 
-                        style={{ width: `${(item.stock / 50) * 100}%` }}
+                        style={{ width: `${(item.stock / 15) * 100}%` }}
                       ></div>
                     </div>
                   </div>
