@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingBag, Zap, ShieldCheck, Truck, Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { getFeaturedProducts } from '@/lib/actions/products';
 
 export default function Home() {
@@ -21,17 +20,7 @@ export default function Home() {
     async function loadProducts() {
       try {
         const products = await getFeaturedProducts();
-        if (products && products.length > 0) {
-          setFeaturedProducts(products);
-        } else {
-          // Fallback to static data if DB is empty or unreachable
-          setFeaturedProducts([
-            { id: '699026a8ae873e1fa69cb18a', name: 'Mor Stambh Ceramic Customized Pillar', price: 1499, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18a')?.imageUrl || '', rating: 4.9, category: 'Home Decor', badge: 'Artisan Choice' },
-            { id: '699026a8ae873e1fa69cb18b', name: 'Handmade Ceramic Mirror', price: 999, originalPrice: 2599, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18b')?.imageUrl || '', rating: 4.8, category: 'Home Decor', badge: 'Featured' },
-            { id: '699026a8ae873e1fa69cb18c', name: 'Customized Ceramic Photo Frame', price: 699, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18c')?.imageUrl || '', rating: 4.7, category: 'Gifts' },
-            { id: '699026a8ae873e1fa69cb18e', name: 'Handmade Ceramic Mandala Wheel', price: 2499, originalPrice: 4999, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18e')?.imageUrl || '', rating: 5.0, category: 'Home Decor', badge: 'Premium' },
-          ]);
-        }
+        setFeaturedProducts(products);
       } catch (error) {
         console.error("Failed to load products:", error);
       } finally {
@@ -49,11 +38,12 @@ export default function Home() {
         <section className="relative h-[600px] flex items-center overflow-hidden bg-primary/5">
           <div className="absolute inset-0 z-0">
             <Image 
-              src={PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18a')?.imageUrl || 'https://picsum.photos/seed/kalamic-hero/1920/1080'}
-              alt="Hero"
+              src="https://images.unsplash.com/photo-1610701596007-11502861dcfa?q=80&w=2000"
+              alt="Handcrafted Kalamic Hero"
               fill
-              className="object-cover opacity-10"
+              className="object-cover opacity-20"
               priority
+              data-ai-hint="ceramic pottery"
             />
           </div>
           <div className="container mx-auto px-4 relative z-10">
@@ -95,11 +85,24 @@ export default function Home() {
               <div className="flex justify-center items-center py-20">
                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
               </div>
-            ) : (
+            ) : featuredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {featuredProducts.map((product) => (
-                  <ProductCard key={product.id || product._id} id={product.id || product._id} {...product} image={product.images?.[0] || product.image} />
+                  <ProductCard 
+                    key={product._id} 
+                    id={product._id} 
+                    name={product.name}
+                    price={product.price}
+                    originalPrice={product.compare_at_price ? Number(product.compare_at_price) : undefined}
+                    image={product.images?.[0] || 'https://placehold.co/600x600?text=No+Image'}
+                    rating={4.8} // Default since not in provided data
+                    category="Handmade"
+                  />
                 ))}
+              </div>
+            ) : (
+              <div className="text-center py-20 text-muted-foreground">
+                <p>No products found in the collection yet.</p>
               </div>
             )}
             

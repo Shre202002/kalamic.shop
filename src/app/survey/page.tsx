@@ -1,15 +1,15 @@
 
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { ProductCard } from '@/components/product/ProductCard';
-import { ChevronRight, ChevronLeft, CheckCircle2, RefreshCcw } from 'lucide-react';
+import { getProducts } from '@/lib/actions/products';
+import { ChevronRight, ChevronLeft, CheckCircle2, RefreshCcw, Loader2 } from 'lucide-react';
 
 const QUESTIONS = [
   {
@@ -28,7 +28,7 @@ const QUESTIONS = [
     question: "Which pattern style speaks to you?",
     description: "Our artisans specialize in traditional Indian motifs.",
     options: [
-      { label: "Peacock (Mor) Motifs", value: "peacock", icon: "🦚" },
+      { label: "Peacock (Mor) Motifs", value: "mor", icon: "🦚" },
       { label: "Mandala Patterns", value: "mandala", icon: "🌀" },
       { label: "Floral Designs", value: "floral", icon: "🌸" }
     ]
@@ -40,6 +40,20 @@ export default function SurveyPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
   const [recommendedProducts, setRecommendedProducts] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+
+  useEffect(() => {
+    async function preload() {
+      try {
+        const data = await getProducts();
+        setAllProducts(data);
+      } finally {
+        setIsDataLoading(false);
+      }
+    }
+    preload();
+  }, []);
 
   const progress = ((step) / QUESTIONS.length) * 100;
 
@@ -55,23 +69,17 @@ export default function SurveyPage() {
   };
 
   const generateRecommendations = (finalAnswers: Record<string, string>) => {
-    const products = [
-      { id: '699026a8ae873e1fa69cb18a', name: 'Mor Stambh Ceramic Customized Pillar', price: 1499, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18a')?.imageUrl || '', rating: 4.9, category: 'Home Decor', badge: 'Best Match' },
-      { id: '699026a8ae873e1fa69cb18b', name: 'Handmade Ceramic Mirror', price: 999, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18b')?.imageUrl || '', rating: 4.8, category: 'Home Decor' },
-      { id: '699026a8ae873e1fa69cb18c', name: 'Customized Ceramic Photo Frame', price: 699, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18c')?.imageUrl || '', rating: 4.7, category: 'Gifts' },
-      { id: '699026a8ae873e1fa69cb18d', name: 'Ceramic Fridge Magnet', price: 299, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18d')?.imageUrl || '', rating: 4.5, category: 'Accessories' },
-      { id: '699026a8ae873e1fa69cb18e', name: 'Handmade Ceramic Mandala Wheel', price: 2499, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18e')?.imageUrl || '', rating: 5.0, category: 'Home Decor', badge: 'Artisan Pick' },
-    ];
-
-    let filtered = products;
-    if (finalAnswers.category === 'spiritual') {
-      filtered = products.filter(p => p.id === '699026a8ae873e1fa69cb18a' || p.id === '699026a8ae873e1fa69cb18e');
-    } else if (finalAnswers.category === 'gift') {
-      filtered = products.filter(p => p.id === '699026a8ae873e1fa69cb18c' || p.id === '699026a8ae873e1fa69cb18b');
-    } else if (finalAnswers.vibe === 'peacock') {
-      filtered = products.filter(p => p.id === '699026a8ae873e1fa69cb18a' || p.id === '699026a8ae873e1fa69cb18e');
+    let filtered = [...allProducts];
+    
+    // Simple recommendation logic based on tags or names
+    if (finalAnswers.vibe === 'mor') {
+      filtered = allProducts.filter(p => p.name.toLowerCase().includes('mor') || p.slug.includes('mor'));
+    } else if (finalAnswers.vibe === 'mandala') {
+      filtered = allProducts.filter(p => p.name.toLowerCase().includes('mandala') || p.slug.includes('mandala'));
     }
 
+    if (filtered.length === 0) filtered = allProducts.slice(0, 4);
+    
     setRecommendedProducts(filtered.slice(0, 4));
     setShowResults(true);
   };
@@ -81,6 +89,15 @@ export default function SurveyPage() {
     setAnswers({});
     setShowResults(false);
   };
+
+  if (isDataLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <p className="mt-4 text-muted-foreground">Preparing discovery quiz...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -138,7 +155,16 @@ export default function SurveyPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
               {recommendedProducts.map((product) => (
-                <ProductCard key={product.id} {...product} />
+                <ProductCard 
+                  key={product._id} 
+                  id={product._id} 
+                  name={product.name}
+                  price={product.price}
+                  originalPrice={product.compare_at_price ? Number(product.compare_at_price) : undefined}
+                  image={product.images?.[0] || 'https://placehold.co/600x600?text=No+Image'}
+                  rating={4.8}
+                  category="Recommendation"
+                />
               ))}
             </div>
 
