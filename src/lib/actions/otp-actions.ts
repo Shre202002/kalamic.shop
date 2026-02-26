@@ -78,14 +78,11 @@ export async function verifyOtp(email: string, code: string) {
     }
 
     if (otpRecord.code !== code) {
-      // Log failed attempt
       await Otp.updateOne({ _id: otpRecord._id }, { $inc: { attempts: 1 } });
       console.warn(`[SECURITY] Failed OTP attempt for ${email} at ${new Date().toISOString()}`);
-      
       return { success: false, message: "Incorrect verification code." };
     }
 
-    // Success - delete OTP
     await Otp.deleteOne({ _id: otpRecord._id });
     return { success: true };
   } catch (error) {

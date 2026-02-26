@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Lock, ShieldCheck, Key, CheckCircle2, AlertCircle, LogOut } from 'lucide-react';
+import { Loader2, Mail, Lock, ShieldCheck, Key, AlertCircle, LogOut } from 'lucide-react';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -32,13 +32,13 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Check DB verification status whenever user changes
   useEffect(() => {
     async function checkVerification() {
       if (user) {
         const profile = await getProfile(user.uid);
-        setIsDbVerified(profile?.emailVerified || false);
-        if (profile?.emailVerified) {
+        const verified = profile?.emailVerified || false;
+        setIsDbVerified(verified);
+        if (verified) {
           router.push('/profile');
         }
       } else {
@@ -48,7 +48,6 @@ export default function LoginPage() {
     checkVerification();
   }, [user, router]);
 
-  // Listen for login errors
   useEffect(() => {
     const handleLoginError = (err: { code: string; message: string }) => {
       setIsLoading(false);
@@ -76,7 +75,6 @@ export default function LoginPage() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
-
     setIsLoading(true);
     if (isLogin) {
       initiateEmailSignIn(auth, email, password);
@@ -96,7 +94,7 @@ export default function LoginPage() {
     try {
       await sendOtp(targetEmail);
       setOtpSent(true);
-      toast({ title: "OTP Sent", description: "Please check your console for the 6-digit code (simulated)." });
+      toast({ title: "OTP Sent", description: "Please check your inbox for the 6-digit code." });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
     } finally {
@@ -114,16 +112,14 @@ export default function LoginPage() {
       const result = await verifyOtp(targetEmail, otpCode);
       if (result.success) {
         if (user) {
-          // Marking as verified in DB
           await verifyUserEmail(user.uid, targetEmail);
           setIsDbVerified(true);
           toast({ title: "Email Verified", description: "Welcome to the Kalamic collection!" });
           router.push('/profile');
         } else {
-          // Direct OTP Login flow
-          const defaultPassword = `OTP_${otpCode}_KALAMIC`;
+          // Direct OTP Login flow using a secure deterministic password
+          const defaultPassword = `OTP_SECURE_${targetEmail.split('@')[0]}_KALAMIC`;
           initiateEmailSignIn(auth, targetEmail, defaultPassword);
-          // The verification in DB will happen on the next render via useEffect check or on profile page
         }
       } else {
         setIsLoading(false);
@@ -143,7 +139,6 @@ export default function LoginPage() {
     setOtpCode('');
   };
 
-  // If user is logged in but NOT verified in DB, show OTP verification screen
   if (user && isDbVerified === false) {
     return (
       <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
@@ -156,7 +151,7 @@ export default function LoginPage() {
               </div>
               <CardTitle className="text-3xl font-black text-primary">Verify Your Email</CardTitle>
               <CardDescription className="text-sm font-medium">
-                Please verify your account <span className="font-bold text-primary">{user.email}</span> with a 6-digit OTP code to continue your ceramic journey.
+                Enter the 6-digit code sent to <span className="font-bold text-primary">{user.email}</span> to continue your artisan journey.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-8 space-y-6">

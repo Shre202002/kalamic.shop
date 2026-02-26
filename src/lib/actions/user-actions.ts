@@ -55,7 +55,7 @@ export async function updateProfile(firebaseId: string, data: {
   try {
     const user = await User.findOneAndUpdate(
       { firebaseId },
-      { $set: { ...data, emailVerified: true } }, // Ensure verified if updating
+      { $set: { ...data, emailVerified: true } },
       { new: true, upsert: true, runValidators: true }
     ).lean();
     return JSON.parse(JSON.stringify(user));

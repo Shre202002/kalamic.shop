@@ -4,7 +4,6 @@ import {
   signInAnonymously,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendEmailVerification,
 } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 
@@ -18,10 +17,6 @@ export function initiateAnonymousSignIn(authInstance: Auth): void {
 /** Initiate email/password sign-up (non-blocking). */
 export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
   createUserWithEmailAndPassword(authInstance, email, password)
-    .then((userCredential) => {
-      // Send verification email automatically upon sign up
-      sendEmailVerification(userCredential.user);
-    })
     .catch(err => {
       errorEmitter.emit('login-error', { code: err.code, message: err.message });
     });
