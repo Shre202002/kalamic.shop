@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -9,39 +9,28 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { ProductCard } from '@/components/product/ProductCard';
-import { ChevronRight, ChevronLeft, Sparkles, CheckCircle2, RefreshCcw } from 'lucide-react';
-import Image from 'next/image';
+import { ChevronRight, ChevronLeft, CheckCircle2, RefreshCcw } from 'lucide-react';
 
 const QUESTIONS = [
   {
     id: 'category',
-    question: "What are you looking to upgrade today?",
-    description: "Tell us the area of your life that needs a little NexGen touch.",
+    question: "What are you looking to enhance today?",
+    description: "Tell us where you want to add a touch of handcrafted ceramic art.",
     options: [
-      { label: "Daily Productivity", value: "productivity", icon: "💻" },
-      { label: "Home Comfort", value: "furniture", icon: "🏠" },
-      { label: "Personal Style", value: "fashion", icon: "👕" },
-      { label: "On-the-go Tech", value: "tech", icon: "🎧" }
+      { label: "Spiritual Space", value: "spiritual", icon: "🕉️" },
+      { label: "Wall Decor", value: "wall", icon: "🖼️" },
+      { label: "Gifting Someone", value: "gift", icon: "🎁" },
+      { label: "Small Accents", value: "accent", icon: "🐚" }
     ]
   },
   {
-    id: 'budget',
-    question: "What's your preferred investment range?",
-    description: "We have quality picks for every budget level.",
+    id: 'vibe',
+    question: "Which pattern style speaks to you?",
+    description: "Our artisans specialize in traditional Indian motifs.",
     options: [
-      { label: "Under $100", value: "low", icon: "💵" },
-      { label: "$100 - $300", value: "mid", icon: "💳" },
-      { label: "$300+", value: "high", icon: "💎" }
-    ]
-  },
-  {
-    id: 'style',
-    question: "Which vibe resonates with you most?",
-    description: "Help us match your unique aesthetic.",
-    options: [
-      { label: "Minimalist & Clean", value: "minimal", icon: "⚪" },
-      { label: "Bold & Technical", value: "technical", icon: "⚡" },
-      { label: "Professional & Classic", value: "pro", icon: "💼" }
+      { label: "Peacock (Mor) Motifs", value: "peacock", icon: "🦚" },
+      { label: "Mandala Patterns", value: "mandala", icon: "🌀" },
+      { label: "Floral Designs", value: "floral", icon: "🌸" }
     ]
   }
 ];
@@ -66,23 +55,24 @@ export default function SurveyPage() {
   };
 
   const generateRecommendations = (finalAnswers: Record<string, string>) => {
-    // Logic to map survey answers to placeholder products
     const products = [
-      { id: 'prod-1', name: 'Premium Noise Cancelling Headphones', price: 299, originalPrice: 349, image: PlaceHolderImages.find(i => i.id === 'prod-1')?.imageUrl || '', rating: 4.8, category: 'Electronics', badge: 'Best Match' },
-      { id: 'prod-2', name: 'Elite Smart Fitness Tracker', price: 149, image: PlaceHolderImages.find(i => i.id === 'prod-2')?.imageUrl || '', rating: 4.7, category: 'Electronics' },
-      { id: 'prod-3', name: 'Handcrafted Leather Laptop Sleeve', price: 79, originalPrice: 99, image: PlaceHolderImages.find(i => i.id === 'prod-3')?.imageUrl || '', rating: 4.9, category: 'Accessories', badge: 'Perfect Fit' },
-      { id: 'prod-4', name: 'Signature Ergonomic Desk Chair', price: 449, image: PlaceHolderImages.find(i => i.id === 'prod-4')?.imageUrl || '', rating: 4.6, category: 'Furniture' },
+      { id: '699026a8ae873e1fa69cb18a', name: 'Mor Stambh Ceramic Customized Pillar', price: 1499, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18a')?.imageUrl || '', rating: 4.9, category: 'Home Decor', badge: 'Best Match' },
+      { id: '699026a8ae873e1fa69cb18b', name: 'Handmade Ceramic Mirror', price: 999, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18b')?.imageUrl || '', rating: 4.8, category: 'Home Decor' },
+      { id: '699026a8ae873e1fa69cb18c', name: 'Customized Ceramic Photo Frame', price: 699, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18c')?.imageUrl || '', rating: 4.7, category: 'Gifts' },
+      { id: '699026a8ae873e1fa69cb18d', name: 'Ceramic Fridge Magnet', price: 299, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18d')?.imageUrl || '', rating: 4.5, category: 'Accessories' },
+      { id: '699026a8ae873e1fa69cb18e', name: 'Handmade Ceramic Mandala Wheel', price: 2499, image: PlaceHolderImages.find(i => i.id === '699026a8ae873e1fa69cb18e')?.imageUrl || '', rating: 5.0, category: 'Home Decor', badge: 'Artisan Pick' },
     ];
 
-    // Simple filtering based on category
     let filtered = products;
-    if (finalAnswers.category === 'productivity' || finalAnswers.category === 'tech') {
-      filtered = products.filter(p => p.category === 'Electronics' || p.category === 'Accessories');
-    } else if (finalAnswers.category === 'furniture') {
-      filtered = products.filter(p => p.category === 'Furniture');
+    if (finalAnswers.category === 'spiritual') {
+      filtered = products.filter(p => p.id === '699026a8ae873e1fa69cb18a' || p.id === '699026a8ae873e1fa69cb18e');
+    } else if (finalAnswers.category === 'gift') {
+      filtered = products.filter(p => p.id === '699026a8ae873e1fa69cb18c' || p.id === '699026a8ae873e1fa69cb18b');
+    } else if (finalAnswers.vibe === 'peacock') {
+      filtered = products.filter(p => p.id === '699026a8ae873e1fa69cb18a' || p.id === '699026a8ae873e1fa69cb18e');
     }
 
-    setRecommendedProducts(filtered);
+    setRecommendedProducts(filtered.slice(0, 4));
     setShowResults(true);
   };
 
@@ -101,7 +91,7 @@ export default function SurveyPage() {
             <div className="mb-8 space-y-4">
               <div className="flex justify-between items-end">
                 <div className="space-y-1">
-                  <span className="text-xs font-bold uppercase tracking-widest text-accent">Question {step + 1} of {QUESTIONS.length}</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-accent">Step {step + 1} of {QUESTIONS.length}</span>
                   <h1 className="text-3xl font-bold text-primary">{QUESTIONS[step].question}</h1>
                   <p className="text-muted-foreground">{QUESTIONS[step].description}</p>
                 </div>
@@ -140,9 +130,9 @@ export default function SurveyPage() {
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent font-bold text-sm">
                 <CheckCircle2 className="h-4 w-4" /> Discovery Complete
               </div>
-              <h1 className="text-4xl md:text-5xl font-extrabold text-primary tracking-tight">Your NexGen Recommendations</h1>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-primary tracking-tight">Your Ceramic Recommendations</h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Based on your preference for <span className="text-primary font-semibold">{QUESTIONS[0].options.find(o => o.value === answers.category)?.label.toLowerCase()}</span>, we've curated these perfect matches.
+                Based on your preference for <span className="text-primary font-semibold">{QUESTIONS[0].options.find(o => o.value === answers.category)?.label.toLowerCase()}</span>, we've found these perfect handcrafted matches.
               </p>
             </div>
 
@@ -153,7 +143,7 @@ export default function SurveyPage() {
             </div>
 
             <div className="flex flex-col items-center gap-4 pt-8 border-t">
-              <p className="text-muted-foreground text-sm font-medium">Not quite what you were looking for?</p>
+              <p className="text-muted-foreground text-sm font-medium">Want to try again?</p>
               <Button variant="outline" size="lg" onClick={resetSurvey} className="border-primary text-primary hover:bg-primary/5 h-12 px-8">
                 <RefreshCcw className="mr-2 h-4 w-4" /> Restart Discovery Quiz
               </Button>
