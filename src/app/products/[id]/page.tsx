@@ -504,24 +504,27 @@ export default function ProductDetailPage() {
               </section>
             </div>
 
+            {/* Sticky Similar Treasures Column */}
             <div className="space-y-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Star className="h-5 w-5 text-accent fill-accent" />
-                <h2 className="text-xl font-bold text-primary">Similar Treasures</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-6">
-                {relatedProducts.map(related => (
-                  <ProductCard 
-                    key={related._id || related.id} 
-                    id={related._id || related.id} 
-                    slug={related.slug} 
-                    name={related.name} 
-                    price={related.price} 
-                    image={related.images?.[0] || 'https://placehold.co/200x200'} 
-                    rating={related.averageRating || 4.8} 
-                    tag={related.tags?.[0] || "Artisan"} 
-                  />
-                ))}
+              <div className="lg:sticky lg:top-24 space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Star className="h-5 w-5 text-accent fill-accent" />
+                  <h2 className="text-xl font-bold text-primary">Similar Treasures</h2>
+                </div>
+                <div className="grid grid-cols-1 gap-6">
+                  {relatedProducts.map(related => (
+                    <ProductCard 
+                      key={related._id || related.id} 
+                      id={related._id || related.id} 
+                      slug={related.slug} 
+                      name={related.name} 
+                      price={related.price} 
+                      image={related.images?.[0] || 'https://placehold.co/200x200'} 
+                      rating={related.averageRating || 4.8} 
+                      tag={related.tags?.[0] || "Artisan"} 
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
