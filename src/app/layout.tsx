@@ -1,8 +1,8 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { TopLoader } from '@/components/layout/TopLoader';
 
 export const metadata: Metadata = {
   title: 'Kalamic | Handcrafted Ceramic Artistry',
@@ -28,6 +28,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased selection:bg-accent/30 min-h-screen flex flex-col">
         <FirebaseClientProvider>
+          <TopLoader />
           {children}
           <Toaster />
         </FirebaseClientProvider>
