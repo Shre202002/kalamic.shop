@@ -193,8 +193,12 @@ export default function ProductDetailPage() {
   }
 
   const images = product.images?.length > 0 ? product.images : [`https://picsum.photos/seed/${product.slug}/800/800`];
-  const averageRating = product.averageRating || 0;
-  const reviewCount = reviews.length || product.reviewCount || 0;
+  
+  // Dynamic Review Calculations
+  const reviewCount = reviews.length;
+  const averageRating = reviewCount > 0 
+    ? parseFloat((reviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount).toFixed(1)) 
+    : 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -243,7 +247,7 @@ export default function ProductDetailPage() {
                     <span className="text-sm font-bold text-green-700 mr-1">{averageRating || 'New'}</span>
                     <Star className="h-3 w-3 fill-green-700 text-green-700" />
                   </div>
-                  <span className="text-sm text-muted-foreground font-medium underline underline-offset-4 cursor-pointer">
+                  <span className="text-sm text-muted-foreground font-medium underline underline-offset-4 cursor-pointer" onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })}>
                     {reviewCount} Ratings & Reviews
                   </span>
                 </div>
