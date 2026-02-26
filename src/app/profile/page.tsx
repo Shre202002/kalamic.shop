@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -31,7 +32,8 @@ import {
   AlertCircle,
   ShieldCheck,
   Calendar,
-  Home
+  Home,
+  Map
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -79,8 +81,14 @@ export default function ProfilePage() {
       if (!user) return;
       setIsLoadingData(true);
       try {
-        const [profileData, ordersData, wishlistData, addressesData] = await Promise.all([
-          getProfile(user.uid),
+        let profileData = await getProfile(user.uid);
+        
+        // Auto-provision basic profile if it doesn't exist in MongoDB
+        if (!profileData && user.email) {
+          profileData = await updateProfile(user.uid, { email: user.email });
+        }
+
+        const [ordersData, wishlistData, addressesData] = await Promise.all([
           getUserOrders(user.uid),
           getWishlistItems(user.uid),
           getUserAddresses(user.uid)
@@ -120,7 +128,7 @@ export default function ProfilePage() {
       setProfile(updated);
       toast({
         title: "Profile Updated",
-        description: "Your personal information has been saved successfully.",
+        description: "Your artisan settings have been saved successfully.",
       });
     } catch (error) {
       toast({
@@ -162,7 +170,7 @@ export default function ProfilePage() {
     }
   };
 
-  const isProfileComplete = formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.pincode;
+  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.pincode);
 
   const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : '2024';
 
@@ -187,7 +195,7 @@ export default function ProfilePage() {
             <UserIcon className="h-10 w-10 text-muted-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-primary mb-2">Artisan Profile</h1>
-          <p className="text-muted-foreground mb-8 max-sm">Sign in to manage your collection, track orders, and save your favorites.</p>
+          <p className="text-muted-foreground mb-8 max-w-sm">Sign in to manage your collection, track orders, and save your favorites.</p>
           <Button asChild className="w-full max-w-xs h-12 rounded-xl"><Link href="/auth/login">Sign In</Link></Button>
         </main>
         <Footer />
@@ -230,45 +238,6 @@ export default function ProfilePage() {
             </Card>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link href="/orders">
-              <Card className="hover:shadow-xl hover:shadow-primary/5 transition-all border-none bg-white rounded-[2rem] group">
-                <CardContent className="p-8 flex items-center justify-between">
-                  <div className="flex items-center gap-6">
-                    <div className="h-16 w-16 rounded-3xl bg-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                      <Package className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-primary">Order History</h3>
-                      <p className="text-sm text-muted-foreground font-medium">{orders.length} Handcrafted Acquisitions</p>
-                    </div>
-                  </div>
-                  <div className="h-10 w-10 rounded-full border flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-                    <ChevronRight className="h-5 w-5" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/wishlist">
-              <Card className="hover:shadow-xl hover:shadow-accent/5 transition-all border-none bg-white rounded-[2rem] group">
-                <CardContent className="p-8 flex items-center justify-between">
-                  <div className="flex items-center gap-6">
-                    <div className="h-16 w-16 rounded-3xl bg-accent/5 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
-                      <Heart className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-primary">My Favorites</h3>
-                      <p className="text-sm text-muted-foreground font-medium">{wishlistCount} Saved Masterpieces</p>
-                    </div>
-                  </div>
-                  <div className="h-10 w-10 rounded-full border flex items-center justify-center group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
-                    <ChevronRight className="h-5 w-5" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Personal Information Card */}
             <Card className="lg:col-span-2 border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white">
@@ -295,7 +264,7 @@ export default function ProfilePage() {
                         id="firstName" 
                         value={formData.firstName} 
                         onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
-                        placeholder="e.g. Aarav" 
+                        placeholder="Aarav" 
                         className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
                       />
                     </div>
@@ -305,7 +274,7 @@ export default function ProfilePage() {
                         id="lastName" 
                         value={formData.lastName} 
                         onChange={(e) => setFormData({...formData, lastName: e.target.value})} 
-                        placeholder="e.g. Sharma" 
+                        placeholder="Sharma" 
                         className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
                       />
                     </div>
@@ -358,7 +327,7 @@ export default function ProfilePage() {
                           id="city" 
                           value={formData.city} 
                           onChange={(e) => setFormData({...formData, city: e.target.value})} 
-                          placeholder="e.g. Jaipur" 
+                          placeholder="Jaipur" 
                           className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
                         />
                       </div>
@@ -368,7 +337,7 @@ export default function ProfilePage() {
                           id="state" 
                           value={formData.state} 
                           onChange={(e) => setFormData({...formData, state: e.target.value})} 
-                          placeholder="e.g. Rajasthan" 
+                          placeholder="Rajasthan" 
                           className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
                         />
                       </div>
@@ -381,7 +350,7 @@ export default function ProfilePage() {
                           id="pincode" 
                           value={formData.pincode} 
                           onChange={(e) => setFormData({...formData, pincode: e.target.value})} 
-                          placeholder="e.g. 302001" 
+                          placeholder="302001" 
                           className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
                         />
                       </div>
@@ -391,7 +360,7 @@ export default function ProfilePage() {
                           id="landmark" 
                           value={formData.landmark} 
                           onChange={(e) => setFormData({...formData, landmark: e.target.value})} 
-                          placeholder="e.g. Opposite Art Gallery" 
+                          placeholder="Opposite Art Gallery" 
                           className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
                         />
                       </div>
@@ -400,6 +369,7 @@ export default function ProfilePage() {
 
                   <div className="flex justify-end pt-4">
                     <Button 
+                      type="submit"
                       disabled={isUpdating} 
                       className="bg-primary text-white px-12 h-14 rounded-2xl font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
                     >
@@ -411,7 +381,6 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Sidebar Stats/Account Card */}
             <div className="space-y-6">
               <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white p-8 space-y-6">
                 <h3 className="text-lg font-bold text-primary flex items-center gap-2">
@@ -437,31 +406,29 @@ export default function ProfilePage() {
                 </Button>
               </Card>
 
-              {/* Favorites Quick View */}
-              <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-accent text-accent-foreground p-8 relative group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                  <Heart className="h-24 w-24 fill-current" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">My Favorites</h3>
-                <p className="text-3xl font-black mb-4">{wishlistCount}</p>
-                <p className="text-sm opacity-80 mb-6">Curated masterpieces saved in your personal gallery.</p>
-                <div className="h-2 w-full bg-accent-foreground/10 rounded-full overflow-hidden">
-                   <div className="h-full bg-accent-foreground w-full opacity-30"></div>
-                </div>
-              </Card>
-
-              {/* Address Quick View Header */}
-              <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-primary text-white p-8 relative">
-                <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <MapPin className="h-24 w-24" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Saved Addresses</h3>
-                <p className="text-3xl font-black mb-4">{addresses.length}</p>
-                <p className="text-sm opacity-80 mb-6">Your delivery locations are securely stored for fast acquisitions.</p>
-                <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
-                   <div className="h-full bg-white w-full opacity-60"></div>
-                </div>
-              </Card>
+              {/* Stats and addresses navigation below */}
+              <div className="grid grid-cols-1 gap-6">
+                 <Link href="/orders" className="group">
+                    <Card className="bg-primary text-white rounded-[2rem] p-6 hover:shadow-xl transition-all">
+                      <div className="flex justify-between items-center mb-4">
+                        <Package className="h-8 w-8 opacity-40 group-hover:scale-110 transition-transform" />
+                        <span className="text-3xl font-black">{orders.length}</span>
+                      </div>
+                      <p className="font-bold text-lg">My Orders</p>
+                      <p className="text-xs opacity-70">Track your acquisitions</p>
+                    </Card>
+                 </Link>
+                 <Link href="/wishlist" className="group">
+                    <Card className="bg-accent text-accent-foreground rounded-[2rem] p-6 hover:shadow-xl transition-all">
+                      <div className="flex justify-between items-center mb-4">
+                        <Heart className="h-8 w-8 opacity-40 group-hover:scale-110 transition-transform" />
+                        <span className="text-3xl font-black">{wishlistCount}</span>
+                      </div>
+                      <p className="font-bold text-lg">Favorites</p>
+                      <p className="text-xs opacity-70">Saved masterpieces</p>
+                    </Card>
+                 </Link>
+              </div>
             </div>
           </div>
 
@@ -470,9 +437,9 @@ export default function ProfilePage() {
             <CardHeader className="flex flex-row items-center justify-between p-8 pb-4">
               <div className="space-y-1">
                 <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-                  <MapPin className="h-6 w-6 text-accent" /> Saved Addresses
+                  <MapPin className="h-6 w-6 text-accent" /> Delivery Locations
                 </CardTitle>
-                <CardDescription>Manage where your ceramic masterpieces are delivered.</CardDescription>
+                <CardDescription>Manage your artisan delivery destinations.</CardDescription>
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
