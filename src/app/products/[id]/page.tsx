@@ -7,7 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { 
   Dialog,
   DialogContent,
@@ -35,9 +35,8 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { getProductById, getProductBySlug, getFeaturedProducts } from '@/lib/actions/products';
 import { getProductReviews, submitReview } from '@/lib/actions/reviews';
-import { addToWishlist, getWishlistItems, removeFromWishlist } from '@/lib/actions/user-actions';
-import { useUser, useFirestore } from '@/firebase';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 import { ProductCard } from '@/components/product/ProductCard';
 import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,8 +55,17 @@ export default function ProductDetailPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isFavorited, setIsFavorited] = useState(false);
   
+  // Firestore Wishlist State
+  const wishlistDocQuery = useMemoFirebase(() => {
+    const id = product?._id || product?.id;
+    if (!firestore || !user || !id) return null;
+    return doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
+  }, [firestore, user, product]);
+
+  const { data: wishlistDoc } = useDoc(wishlistDocQuery);
+  const isFavorited = !!wishlistDoc;
+
   // Review Form State
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
@@ -78,13 +86,6 @@ export default function ProductDetailPage() {
           ]);
           setRelatedProducts(featured.filter((p: any) => (p._id || p.id) !== (data._id || data.id)).slice(0, 4));
           setReviews(reviewData);
-
-          // Check if favorited
-          if (user) {
-            const wishlist = await getWishlistItems(user.uid);
-            const productId = data._id || data.id;
-            setIsFavorited(wishlist.some((item: any) => item.productId === productId));
-          }
         }
       } catch (error) {
         console.error("Error loading product:", error);
@@ -93,7 +94,7 @@ export default function ProductDetailPage() {
       }
     }
     loadData();
-  }, [params.id, user]);
+  }, [params.id]);
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -149,17 +150,27 @@ export default function ProductDetailPage() {
     }
 
     const productId = product._id || product.id;
+    const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', productId);
+    
     try {
       if (isFavorited) {
-        await removeFromWishlist(user.uid, productId);
-        setIsFavorited(false);
+        await deleteDoc(wishlistItemRef);
         toast({
           title: "Removed from wishlist",
           description: `${product.name} has been removed from your favorites.`,
         });
       } else {
-        await addToWishlist(user.uid, product);
-        setIsFavorited(true);
+        await setDoc(wishlistItemRef, {
+          id: productId,
+          productId,
+          wishlistId: user.uid, // Required by rules
+          slug: product.slug,
+          name: product.name,
+          price: product.price,
+          imageUrl: product.images?.[0] || `https://picsum.photos/seed/${productId}/600/600`,
+          addedAt: new Date().toISOString()
+        }, { merge: true });
+
         toast({
           title: "Saved to wishlist",
           description: `${product.name} is now in your favorites.`,
@@ -252,8 +263,6 @@ export default function ProductDetailPage() {
   }
 
   const images = product.images?.length > 0 ? product.images : [`https://picsum.photos/seed/${product.slug}/800/800`];
-  
-  // Dynamic Review Calculations
   const reviewCount = reviews.length;
   const averageRating = reviewCount > 0 
     ? parseFloat((reviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount).toFixed(1)) 
@@ -264,7 +273,6 @@ export default function ProductDetailPage() {
       <Navbar />
       <main className="flex-1 py-4 md:py-8">
         <div className="container mx-auto px-4 max-w-7xl">
-          
           <nav className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-6 overflow-x-auto whitespace-nowrap">
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
             <ChevronRight className="h-3 w-3" />
@@ -274,8 +282,6 @@ export default function ProductDetailPage() {
           </nav>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 relative">
-            
-            {/* Gallery */}
             <div className="lg:col-span-5 space-y-4">
               <div className="lg:sticky lg:top-24">
                 <div className="relative aspect-square rounded-2xl md:rounded-3xl overflow-hidden bg-white shadow-lg border border-primary/5">
@@ -300,7 +306,6 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Info */}
             <div className="lg:col-span-4 space-y-6">
               <div className="space-y-2">
                 <p className="text-xs font-bold text-accent uppercase tracking-widest">{product.tags?.[0] || 'Handcrafted Ceramic'}</p>
@@ -362,11 +367,10 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Sidebar Actions - Fixed on Scroll */}
             <div className="lg:col-span-3">
               <div className="lg:sticky lg:top-24 space-y-4">
                 <Card className="border-none shadow-xl rounded-2xl overflow-hidden bg-white">
-                  <CardContent className="p-6 space-y-4">
+                  <div className="p-6 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className={`h-2.5 w-2.5 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-orange-500'}`} />
@@ -417,7 +421,7 @@ export default function ProductDetailPage() {
                         <Share2 className="h-4 w-4" /> Share
                       </Button>
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
 
                 <div className="p-4 rounded-xl border bg-white flex items-center gap-4 shadow-sm">
@@ -431,7 +435,6 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Technical Details & Reviews */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 pt-12 border-t">
             <div className="lg:col-span-2 space-y-12">
               <section className="space-y-6">
@@ -452,11 +455,9 @@ export default function ProductDetailPage() {
                 </div>
               </section>
 
-              {/* Reviews */}
               <section className="space-y-8" id="reviews">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-primary">Collector Reviews</h2>
-                  
                   {user ? (
                     <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
                       <DialogTrigger asChild>
@@ -551,7 +552,6 @@ export default function ProductDetailPage() {
               </section>
             </div>
 
-            {/* Sticky Similar Treasures Column */}
             <div className="space-y-6">
               <div className="lg:sticky lg:top-24 space-y-6">
                 <div className="flex items-center gap-2 mb-2">

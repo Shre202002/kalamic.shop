@@ -66,7 +66,6 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
       return;
     }
 
-    // Add to cart first
     const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
     await setDoc(cartItemRef, {
       id,
@@ -93,7 +92,6 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
     const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
     
     if (isFavorited) {
-      // Optimistically remove
       setIsFavorited(false);
       await deleteDoc(wishlistItemRef);
       toast({
@@ -101,11 +99,11 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
         description: `${name} has been removed from your favorites.`,
       });
     } else {
-      // Optimistically add
       setIsFavorited(true);
       await setDoc(wishlistItemRef, {
         id,
         productId: id,
+        wishlistId: user.uid, // Required by Firestore Security Rules
         slug,
         name,
         price,
@@ -125,7 +123,6 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
       className="group border-none shadow-md hover:shadow-xl transition-all duration-300 rounded-3xl overflow-hidden bg-white cursor-pointer h-full flex flex-col"
       onClick={() => router.push(`/products/${slug || id}`)}
     >
-      {/* Image Container */}
       <CardContent className="p-4 pb-0 relative">
         <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-muted">
           <Image
@@ -135,17 +132,15 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
             className="object-cover transition-transform duration-700 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, 33vw"
           />
-          {/* Tag Badge */}
           {tag && (
             <Badge className="absolute top-3 left-3 bg-primary text-white hover:bg-primary border-none text-[10px] font-bold px-3 py-1 rounded-lg">
               {tag}
             </Badge>
           )}
-          {/* Wishlist Button */}
           <button 
             onClick={handleAddToWishlist}
             className={cn(
-              "absolute top-3 right-3 p-2.5 rounded-xl backdrop-blur-md transition-all duration-300 shadow-lg",
+              "absolute top-3 right-3 p-2.5 rounded-xl backdrop-blur-md transition-all duration-300 shadow-lg z-10",
               isFavorited ? "bg-white opacity-100" : "bg-white/90 opacity-0 group-hover:opacity-100 hover:bg-white"
             )}
           >
@@ -154,7 +149,6 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
         </div>
       </CardContent>
 
-      {/* Content */}
       <CardContent className="p-5 flex-1 flex flex-col">
         <h3 className="text-lg font-bold text-primary leading-tight line-clamp-2 mb-1 group-hover:text-accent transition-colors duration-300">
           {name}
@@ -172,7 +166,6 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
           )}
         </div>
 
-        {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="outline"
