@@ -240,7 +240,7 @@ export default function ProductDetailPage() {
             {/* Info */}
             <div className="lg:col-span-4 space-y-6">
               <div className="space-y-2">
-                <p className="text-xs font-bold text-accent uppercase tracking-widest">{product.category_id || 'Handcrafted Ceramic'}</p>
+                <p className="text-xs font-bold text-accent uppercase tracking-widest">{product.tags?.[0] || 'Handcrafted Ceramic'}</p>
                 <h1 className="text-2xl md:text-3xl font-extrabold text-primary leading-tight">{product.name}</h1>
                 <div className="flex items-center gap-4 py-1">
                   <div className="flex items-center bg-green-50 px-2 py-0.5 rounded border border-green-100">
@@ -464,7 +464,7 @@ export default function ProductDetailPage() {
               <h2 className="text-xl font-bold text-primary">Similar Treasures</h2>
               <div className="grid grid-cols-1 gap-6">
                 {relatedProducts.map(related => (
-                  <ProductCard key={related._id || related.id} id={related._id || related.id} slug={related.slug} name={related.name} price={related.price} image={related.images?.[0] || 'https://placehold.co/200x200'} rating={related.averageRating || 4.8} category="Recommended" />
+                  <ProductCard key={related._id || related.id} id={related._id || related.id} slug={related.slug} name={related.name} price={related.price} image={related.images?.[0] || 'https://placehold.co/200x200'} rating={related.averageRating || 4.8} tag={related.tags?.[0] || "Artisan"} />
                 ))}
               </div>
             </div>

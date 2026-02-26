@@ -86,7 +86,7 @@ export default function ProductsPage() {
                   originalPrice={product.compare_at_price ? Number(product.compare_at_price) : undefined}
                   image={product.images?.[0] || 'https://placehold.co/600x800?text=No+Image'}
                   rating={product.averageRating || 4.8}
-                  category={product.category_id || "Artisan Ceramic"}
+                  tag={product.tags?.[0] || "Artisan"}
                 />
               ))}
             </div>

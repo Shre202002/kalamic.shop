@@ -96,8 +96,8 @@ export default function Home() {
                     price={product.price}
                     originalPrice={product.compare_at_price ? Number(product.compare_at_price) : undefined}
                     image={product.images?.[0] || 'https://placehold.co/600x600?text=No+Image'}
-                    rating={4.8}
-                    category="Handmade"
+                    rating={product.averageRating || 4.8}
+                    tag={product.tags?.[0] || "Artisan"}
                   />
                 ))}
               </div>

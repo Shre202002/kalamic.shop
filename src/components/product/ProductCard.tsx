@@ -20,11 +20,11 @@ interface ProductCardProps {
   originalPrice?: number;
   image: string;
   rating: number;
-  category: string;
+  tag?: string;
   description?: string;
 }
 
-export function ProductCard({ id, slug, name, price, originalPrice, image, category, description }: ProductCardProps) {
+export function ProductCard({ id, slug, name, price, originalPrice, image, tag, description }: ProductCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -120,10 +120,12 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, categ
             className="object-cover transition-transform duration-700 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, 33vw"
           />
-          {/* Badge */}
-          <Badge className="absolute top-3 left-3 bg-primary text-white hover:bg-primary border-none text-[10px] font-bold px-3 py-1 rounded-lg">
-            {category}
-          </Badge>
+          {/* Tag Badge */}
+          {tag && (
+            <Badge className="absolute top-3 left-3 bg-primary text-white hover:bg-primary border-none text-[10px] font-bold px-3 py-1 rounded-lg">
+              {tag}
+            </Badge>
+          )}
           {/* Wishlist Button */}
           <button 
             onClick={handleAddToWishlist}
