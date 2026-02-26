@@ -44,6 +44,18 @@ export default function CheckoutPage() {
     paymentMethod: 'card'
   });
 
+  // Strict verification check
+  useEffect(() => {
+    if (!isUserLoading && user && !user.emailVerified) {
+      toast({
+        variant: "destructive",
+        title: "Verification Required",
+        description: "Please verify your email before proceeding to checkout.",
+      });
+      router.push('/auth/login');
+    }
+  }, [user, isUserLoading, router, toast]);
+
   const cartQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, 'users', user.uid, 'cart', 'cart', 'items');
@@ -54,7 +66,7 @@ export default function CheckoutPage() {
   // Profile fetching for auto-fill
   useEffect(() => {
     async function loadUserData() {
-      if (!user) return;
+      if (!user || !user.emailVerified) return;
       try {
         const profile = await getProfile(user.uid);
 

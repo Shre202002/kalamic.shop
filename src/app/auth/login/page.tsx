@@ -14,7 +14,8 @@ import { Separator } from '@/components/ui/separator';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Lock, ShieldCheck, Key } from 'lucide-react';
+import { Loader2, Mail, Lock, ShieldCheck, Key, CheckCircle2, AlertCircle, LogOut } from 'lucide-react';
+import { sendEmailVerification, reload } from 'firebase/auth';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -24,20 +25,21 @@ export default function LoginPage() {
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   
   const auth = useAuth();
   const { user } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
-  // Redirect if already logged in
+  // Redirect logic: Only proceed to profile if user is logged in AND email is verified
   useEffect(() => {
-    if (user) {
+    if (user && user.emailVerified) {
       router.push('/profile');
     }
   }, [user, router]);
 
-  // Listen for login errors from the non-blocking emitter
+  // Listen for login errors
   useEffect(() => {
     const handleLoginError = (err: { code: string; message: string }) => {
       setIsLoading(false);
@@ -100,8 +102,6 @@ export default function LoginPage() {
     try {
       const result = await verifyOtp(email, otpCode);
       if (result.success) {
-        // For the prototype, we use a standard non-blocking signup/signin
-        // In a real app, this would use a Firebase Custom Token
         const defaultPassword = `OTP_${otpCode}_KALAMIC`;
         if (isLogin) {
           initiateEmailSignIn(auth, email, defaultPassword);
@@ -117,6 +117,107 @@ export default function LoginPage() {
       toast({ variant: "destructive", title: "Error", description: err.message });
     }
   };
+
+  const handleResendVerification = async () => {
+    if (!user) return;
+    setIsResending(true);
+    try {
+      await sendEmailVerification(user);
+      toast({ title: "Verification Email Sent", description: "Please check your inbox." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  const handleCheckVerificationStatus = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      await reload(user);
+      if (user.emailVerified) {
+        toast({ title: "Email Verified", description: "Welcome to the Kalamic collection!" });
+        router.push('/profile');
+      } else {
+        toast({ variant: "destructive", title: "Not Verified Yet", description: "Please check your email and click the verification link." });
+      }
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignOut = () => {
+    auth.signOut();
+    setOtpSent(false);
+    setEmail('');
+    setPassword('');
+    setOtpCode('');
+  };
+
+  // If user is logged in but NOT verified, show verification screen
+  if (user && !user.emailVerified) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-4 py-12">
+          <Card className="w-full max-w-md shadow-2xl border-none rounded-[2.5rem] overflow-hidden bg-white">
+            <CardHeader className="space-y-2 p-8 text-center bg-accent/5">
+              <div className="mx-auto h-16 w-16 rounded-3xl bg-accent/10 flex items-center justify-center text-accent mb-2">
+                <Mail className="h-8 w-8" />
+              </div>
+              <CardTitle className="text-3xl font-black text-primary">Verify Your Email</CardTitle>
+              <CardDescription className="text-sm font-medium">
+                We've sent a verification link to <span className="font-bold text-primary">{user.email}</span>. Please verify your account to continue your ceramic journey.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+              <div className="bg-muted/10 p-4 rounded-2xl flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Compulsory verification ensures the security of your artisan acquisitions and delivery profile.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <Button 
+                  onClick={handleCheckVerificationStatus} 
+                  className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20"
+                  disabled={isLoading}
+                >
+                  {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
+                  I've Verified My Email
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={handleResendVerification} 
+                  className="w-full h-14 text-lg font-bold rounded-2xl border-2"
+                  disabled={isResending}
+                >
+                  {isResending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                  Resend Verification Link
+                </Button>
+              </div>
+            </CardContent>
+            <CardFooter className="p-8 pt-0 flex flex-col gap-4">
+              <Separator className="opacity-50" />
+              <Button 
+                variant="ghost" 
+                className="w-full text-destructive font-bold hover:bg-destructive/5" 
+                onClick={handleSignOut}
+              >
+                <LogOut className="mr-2 h-4 w-4" /> Use a Different Account
+              </Button>
+            </CardFooter>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">

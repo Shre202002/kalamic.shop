@@ -27,10 +27,12 @@ import { useToast } from '@/hooks/use-toast';
 import { getProfile, updateProfile, getUserOrders, getWishlistItems } from '@/lib/actions/user-actions';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState([]);
@@ -49,9 +51,16 @@ export default function ProfilePage() {
     landmark: ''
   });
 
+  // Strict verification check
+  useEffect(() => {
+    if (!isUserLoading && user && !user.emailVerified) {
+      router.push('/auth/login');
+    }
+  }, [user, isUserLoading, router]);
+
   useEffect(() => {
     async function loadData() {
-      if (!user) return;
+      if (!user || !user.emailVerified) return;
       setIsLoadingData(true);
       try {
         let profileData = await getProfile(user.uid);
@@ -89,7 +98,6 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!user) return;
     
-    // Check all fields are present
     if (!formData.firstName || !formData.lastName || !formData.phone || !formData.address || !formData.city || !formData.state || !formData.pincode || !formData.landmark) {
       toast({
         variant: "destructive",
@@ -159,7 +167,6 @@ export default function ProfilePage() {
       <Navbar />
       <main className="flex-1 py-8 md:py-16">
         <div className="container mx-auto px-4 max-w-5xl space-y-8">
-          {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-accent font-bold text-xs uppercase tracking-widest">
@@ -190,7 +197,6 @@ export default function ProfilePage() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Personal Information Card */}
             <Card className="lg:col-span-2 border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white">
               <CardHeader className="p-8 pb-4">
                 <div className="flex items-center justify-between">
@@ -252,7 +258,7 @@ export default function ProfilePage() {
                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Registered Email</Label>
                       <div className="flex items-center gap-3 p-4 bg-muted/20 rounded-2xl text-muted-foreground border border-dashed text-sm h-14">
                         <Mail className="h-4 w-4" /> {user.email}
-                        <Badge variant="outline" className="ml-auto text-[10px] border-muted-foreground/30">Primary</Badge>
+                        <Badge variant="outline" className="ml-auto text-[10px] border-muted-foreground/30">Verified</Badge>
                       </div>
                     </div>
                   </div>
