@@ -234,11 +234,11 @@ export default function ProductDetailPage() {
             <span className="text-primary font-medium truncate">{product.name}</span>
           </nav>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 relative">
             
             {/* Gallery */}
             <div className="lg:col-span-5 space-y-4">
-              <div className="sticky top-24">
+              <div className="lg:sticky lg:top-24">
                 <div className="relative aspect-square rounded-2xl md:rounded-3xl overflow-hidden bg-white shadow-lg border border-primary/5">
                   <Image src={images[selectedImage]} alt={product.name} fill className="object-cover animate-fade-in" priority />
                   {product.compare_at_price && (
@@ -323,9 +323,9 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Sidebar Actions */}
+            {/* Sidebar Actions - Fixed on Scroll */}
             <div className="lg:col-span-3">
-              <div className="sticky top-24 space-y-4">
+              <div className="lg:sticky lg:top-24 space-y-4">
                 <Card className="border-none shadow-xl rounded-2xl overflow-hidden bg-white">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center justify-between">
