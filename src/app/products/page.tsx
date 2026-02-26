@@ -64,6 +64,7 @@ export default function ProductsPage() {
                 <ProductCard 
                   key={product._id} 
                   id={product._id} 
+                  slug={product.slug}
                   name={product.name}
                   price={product.price}
                   originalPrice={product.compare_at_price ? Number(product.compare_at_price) : undefined}

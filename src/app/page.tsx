@@ -91,11 +91,12 @@ export default function Home() {
                   <ProductCard 
                     key={product._id} 
                     id={product._id} 
+                    slug={product.slug}
                     name={product.name}
                     price={product.price}
                     originalPrice={product.compare_at_price ? Number(product.compare_at_price) : undefined}
                     image={product.images?.[0] || 'https://placehold.co/600x600?text=No+Image'}
-                    rating={4.8} // Default since not in provided data
+                    rating={4.8}
                     category="Handmade"
                   />
                 ))}

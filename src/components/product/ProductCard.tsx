@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   id: string;
+  slug: string;
   name: string;
   price: number;
   originalPrice?: number;
@@ -21,7 +22,7 @@ interface ProductCardProps {
   badge?: string;
 }
 
-export function ProductCard({ id, name, price, originalPrice, image, rating, category, badge }: ProductCardProps) {
+export function ProductCard({ id, slug, name, price, originalPrice, image, rating, category, badge }: ProductCardProps) {
   const { toast } = useToast();
   const discount = originalPrice ? Math.round(((originalPrice - price) / originalPrice) * 100) : null;
 
@@ -33,8 +34,11 @@ export function ProductCard({ id, name, price, originalPrice, image, rating, cat
     });
   };
 
+  // Prioritize slug for the permalink
+  const permalink = slug || id;
+
   return (
-    <Link href={`/products/${id}`} className="group block h-full">
+    <Link href={`/products/${permalink}`} className="group block h-full">
       <Card className="product-card-hover border-none overflow-hidden h-full flex flex-col bg-white">
         <CardContent className="p-0 relative aspect-square overflow-hidden bg-muted">
           <Image
@@ -70,9 +74,9 @@ export function ProductCard({ id, name, price, originalPrice, image, rating, cat
             <span className="text-xs font-medium">{rating}</span>
           </div>
           <div className="mt-auto flex items-baseline gap-2">
-            <span className="text-lg font-bold text-primary">${price.toFixed(2)}</span>
+            <span className="text-lg font-bold text-primary">₹{price.toFixed(2)}</span>
             {originalPrice && (
-              <span className="text-xs text-muted-foreground line-through">${originalPrice.toFixed(2)}</span>
+              <span className="text-xs text-muted-foreground line-through">₹{originalPrice.toFixed(2)}</span>
             )}
           </div>
         </CardContent>
