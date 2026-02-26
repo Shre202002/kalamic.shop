@@ -9,21 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter
-} from "@/components/ui/dialog";
-import { 
   User as UserIcon, 
   Mail, 
   Phone, 
   Package, 
   Heart, 
-  MapPin, 
-  Plus, 
   LogOut, 
   Loader2, 
   Settings,
@@ -34,7 +24,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { getProfile, updateProfile, getUserOrders, getWishlistItems, getUserAddresses, addAddress } from '@/lib/actions/user-actions';
+import { getProfile, updateProfile, getUserOrders, getWishlistItems } from '@/lib/actions/user-actions';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
@@ -45,11 +35,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState([]);
   const [wishlistCount, setWishlistCount] = useState(0);
-  const [addresses, setAddresses] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isAddingAddress, setIsAddingAddress] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -62,17 +49,6 @@ export default function ProfilePage() {
     landmark: ''
   });
 
-  const [addressData, setAddressData] = useState({
-    fullName: '',
-    street: '',
-    landmark: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    phone: '',
-    isDefault: false
-  });
-
   useEffect(() => {
     async function loadData() {
       if (!user) return;
@@ -80,16 +56,9 @@ export default function ProfilePage() {
       try {
         let profileData = await getProfile(user.uid);
         
-        // Auto-provision basic profile if it doesn't exist in MongoDB
-        if (!profileData && user.email) {
-          // Note: Initial provision might fail schema validation if we don't handle it
-          // So we only update if we have enough info, or just wait for the user to save.
-        }
-
-        const [ordersData, wishlistData, addressesData] = await Promise.all([
+        const [ordersData, wishlistData] = await Promise.all([
           getUserOrders(user.uid),
-          getWishlistItems(user.uid),
-          getUserAddresses(user.uid)
+          getWishlistItems(user.uid)
         ]);
 
         if (profileData) {
@@ -107,7 +76,6 @@ export default function ProfilePage() {
         }
         setOrders(ordersData);
         setWishlistCount(wishlistData.length);
-        setAddresses(addressesData);
       } catch (error) {
         console.error("Error loading profile data:", error);
       } finally {
@@ -153,38 +121,9 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAddAddress = async () => {
-    if (!user) return;
-    if (!addressData.fullName || !addressData.street || !addressData.city || !addressData.zipCode) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Please fill in all required address fields." });
-      return;
-    }
-    setIsAddingAddress(true);
-    try {
-      const newAddr = await addAddress(user.uid, addressData);
-      setAddresses([...addresses, newAddr] as any);
-      setIsDialogOpen(false);
-      setAddressData({
-        fullName: '',
-        street: '',
-        landmark: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        phone: '',
-        isDefault: false
-      });
-      toast({ title: "Address Saved", description: "A new delivery location has been added to your profile." });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to add address." });
-    } finally {
-      setIsAddingAddress(false);
-    }
-  };
-
   const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.state && formData.city && formData.pincode && formData.landmark);
 
-  const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : new Date().getFullYear();
+  const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : 2024;
 
   if (isUserLoading || isLoadingData) {
     return (
@@ -454,95 +393,6 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-
-          {/* Addresses Section (Additional Locations) */}
-          <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white">
-            <CardHeader className="flex flex-row items-center justify-between p-8 pb-4">
-              <div className="space-y-1">
-                <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-                  <MapPin className="h-6 w-6 text-accent" /> Alternative Addresses
-                </CardTitle>
-                <CardDescription>Manage secondary artisan delivery destinations.</CardDescription>
-              </div>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="h-12 rounded-2xl gap-2 px-6 shadow-lg shadow-primary/10">
-                    <Plus className="h-5 w-5" /> <span className="hidden sm:inline">Add Location</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-lg rounded-[2.5rem] p-8 border-none shadow-2xl bg-white">
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold text-primary">New Delivery Location</DialogTitle>
-                    <CardDescription>Register an alternative address.</CardDescription>
-                  </DialogHeader>
-                  <div className="grid gap-6 py-6">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Full Name</Label>
-                      <Input placeholder="Recipient Name" value={addressData.fullName} onChange={e => setAddressData({...addressData, fullName: e.target.value})} className="rounded-xl h-12 bg-muted/20 border-none" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Street Address</Label>
-                      <Input placeholder="House No, Street, Locality" value={addressData.street} onChange={e => setAddressData({...addressData, street: e.target.value})} className="rounded-xl h-12 bg-muted/20 border-none" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nearest Landmark</Label>
-                      <Input placeholder="e.g. Near Art Center" value={addressData.landmark} onChange={e => setAddressData({...addressData, landmark: e.target.value})} className="rounded-xl h-12 bg-muted/20 border-none" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">City</Label>
-                        <Input placeholder="City" value={addressData.city} onChange={e => setAddressData({...addressData, city: e.target.value})} className="rounded-xl h-12 bg-muted/20 border-none" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Postal Code</Label>
-                        <Input placeholder="110001" value={addressData.zipCode} onChange={e => setAddressData({...addressData, zipCode: e.target.value})} className="rounded-xl h-12 bg-muted/20 border-none" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Contact Phone</Label>
-                      <Input placeholder="+91 XXXXX XXXXX" value={addressData.phone} onChange={e => setAddressData({...addressData, phone: e.target.value})} className="rounded-xl h-12 bg-muted/20 border-none" />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleAddAddress} disabled={isAddingAddress} className="w-full h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">
-                      {isAddingAddress ? <Loader2 className="h-5 w-5 animate-spin mr-3" /> : null}
-                      Save Address
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent className="p-8">
-              {addresses.length === 0 ? (
-                <div className="text-center py-12 bg-muted/10 rounded-[2rem] border-2 border-dashed border-muted">
-                  <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                  <p className="text-muted-foreground font-medium">No alternative delivery locations saved.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {addresses.map((addr: any) => (
-                    <div key={addr.id || addr._id} className="p-6 rounded-[2rem] border bg-muted/10 relative hover:bg-white hover:shadow-lg transition-all group">
-                      {addr.isDefault && (
-                        <Badge className="absolute top-4 right-4 text-[10px] bg-accent text-accent-foreground border-none">Default</Badge>
-                      )}
-                      <p className="font-bold text-primary text-lg">{addr.fullName}</p>
-                      <Separator className="my-3 opacity-30" />
-                      <p className="text-sm text-muted-foreground leading-relaxed">{addr.street}</p>
-                      {addr.landmark && (
-                        <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-accent/10 text-[9px] text-accent font-black uppercase tracking-tighter">
-                          Landmark: {addr.landmark}
-                        </div>
-                      )}
-                      <p className="text-sm text-muted-foreground">{addr.city}, {addr.state} {addr.zipCode}</p>
-                      <div className="mt-4 flex items-center gap-2 text-primary font-bold text-sm">
-                        <Phone className="h-4 w-4 text-accent" /> {addr.phone}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </main>
       <Footer />

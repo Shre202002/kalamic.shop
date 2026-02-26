@@ -4,8 +4,10 @@ import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
 import Order from '@/lib/models/Order';
 import WishlistItem from '@/lib/models/WishlistItem';
-import Address from '@/lib/models/Address';
 
+/**
+ * Fetches the user profile from MongoDB by Firebase UID.
+ */
 export async function getProfile(firebaseId: string) {
   await dbConnect();
   try {
@@ -17,8 +19,11 @@ export async function getProfile(firebaseId: string) {
   }
 }
 
+/**
+ * Updates or creates the user profile with integrated address details.
+ */
 export async function updateProfile(firebaseId: string, data: { 
-  email?: string,
+  email: string,
   firstName: string, 
   lastName: string, 
   phone: string,
@@ -30,8 +35,6 @@ export async function updateProfile(firebaseId: string, data: {
 }) {
   await dbConnect();
   try {
-    // We use $set to update only provided fields, but for a "complete profile" 
-    // we expect all fields from the client.
     const user = await User.findOneAndUpdate(
       { firebaseId },
       { $set: data },
@@ -44,6 +47,9 @@ export async function updateProfile(firebaseId: string, data: {
   }
 }
 
+/**
+ * Fetches orders for a specific user.
+ */
 export async function getUserOrders(userId: string) {
   await dbConnect();
   try {
@@ -55,6 +61,9 @@ export async function getUserOrders(userId: string) {
   }
 }
 
+/**
+ * Fetches wishlist items for a specific user.
+ */
 export async function getWishlistItems(userId: string) {
   await dbConnect();
   try {
@@ -66,6 +75,9 @@ export async function getWishlistItems(userId: string) {
   }
 }
 
+/**
+ * Adds a product to the user's wishlist in MongoDB.
+ */
 export async function addToWishlist(userId: string, product: any) {
   await dbConnect();
   try {
@@ -91,6 +103,9 @@ export async function addToWishlist(userId: string, product: any) {
   }
 }
 
+/**
+ * Removes a product from the user's wishlist in MongoDB.
+ */
 export async function removeFromWishlist(userId: string, productId: string) {
   await dbConnect();
   try {
@@ -99,27 +114,5 @@ export async function removeFromWishlist(userId: string, productId: string) {
   } catch (error) {
     console.error("Error removing from wishlist:", error);
     throw new Error("Failed to remove from wishlist");
-  }
-}
-
-export async function getUserAddresses(userId: string) {
-  await dbConnect();
-  try {
-    const addresses = await Address.find({ userId }).lean();
-    return JSON.parse(JSON.stringify(addresses));
-  } catch (error) {
-    console.error("Error fetching addresses:", error);
-    return [];
-  }
-}
-
-export async function addAddress(userId: string, data: any) {
-  await dbConnect();
-  try {
-    const address = await Address.create({ ...data, userId });
-    return JSON.parse(JSON.stringify(address));
-  } catch (error) {
-    console.error("Error adding address:", error);
-    throw new Error("Failed to add address");
   }
 }

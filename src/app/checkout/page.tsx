@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
-import { getProfile, getUserAddresses } from '@/lib/actions/user-actions';
+import { getProfile } from '@/lib/actions/user-actions';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -14,14 +14,11 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { 
   CreditCard, 
-  Truck, 
   ShieldCheck, 
-  ChevronRight, 
   Loader2, 
   ShoppingBag,
   MapPin,
-  CheckCircle2,
-  AlertCircle
+  CheckCircle2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -54,21 +51,18 @@ export default function CheckoutPage() {
 
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
-  // Profile and Address fetching for auto-fill
+  // Profile fetching for auto-fill
   useEffect(() => {
     async function loadUserData() {
       if (!user) return;
       try {
-        const [profile, addresses] = await Promise.all([
-          getProfile(user.uid),
-          getUserAddresses(user.uid)
-        ]);
+        const profile = await getProfile(user.uid);
 
-        if (profile && (!profile.firstName || !profile.lastName || !profile.phone)) {
+        if (!profile || !profile.firstName || !profile.lastName || !profile.phone || !profile.address) {
            toast({
              variant: "destructive",
              title: "Profile Incomplete",
-             description: "Please complete your profile to proceed with checkout.",
+             description: "Please complete your delivery profile to proceed with checkout.",
            });
            router.push('/profile');
            return;
@@ -77,23 +71,14 @@ export default function CheckoutPage() {
         if (profile) {
           setFormData(prev => ({
             ...prev,
-            fullName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim(),
+            fullName: `${profile.firstName} ${profile.lastName}`.trim(),
             email: user.email || '',
-            phone: profile.phone || ''
-          }));
-        }
-
-        if (addresses && addresses.length > 0) {
-          const defaultAddr = addresses.find((a: any) => a.isDefault) || addresses[0];
-          setFormData(prev => ({
-            ...prev,
-            fullName: defaultAddr.fullName,
-            address: defaultAddr.street,
-            landmark: defaultAddr.landmark || '',
-            city: defaultAddr.city,
-            state: defaultAddr.state,
-            zip: defaultAddr.zipCode,
-            phone: defaultAddr.phone
+            phone: profile.phone,
+            address: profile.address,
+            landmark: profile.landmark || '',
+            city: profile.city,
+            state: profile.state,
+            zip: profile.pincode,
           }));
         }
       } catch (err) {
@@ -137,15 +122,7 @@ export default function CheckoutPage() {
         shippingCost: shipping,
         discountAmount: 0,
         paymentId: `PAY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-        shippingDetails: {
-          fullName: formData.fullName,
-          address: formData.address,
-          landmark: formData.landmark,
-          city: formData.city,
-          state: formData.state,
-          zip: formData.zip,
-          phone: formData.phone
-        },
+        shippingDetails: { ...formData },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -207,7 +184,9 @@ export default function CheckoutPage() {
           <ShoppingBag className="h-16 w-16 text-muted-foreground opacity-20 mb-4" />
           <h1 className="text-2xl font-bold text-primary">Your bag is empty</h1>
           <p className="text-muted-foreground mb-8">Add some artisan treasures to your bag before checking out.</p>
-          <Button asChild className="rounded-xl h-12 px-8"><Link href="/products">Browse Collection</Link></Button>
+          <Button asChild className="rounded-xl h-12 px-8">
+            <Link href="/products">Browse Collection</Link>
+          </Button>
         </main>
         <Footer />
       </div>
@@ -239,7 +218,7 @@ export default function CheckoutPage() {
                     </div>
                     <CardTitle className="text-xl">Shipping Address</CardTitle>
                   </div>
-                  <CardDescription>Where should we send your handcrafted treasures?</CardDescription>
+                  <CardDescription>Verified delivery details from your artisan profile.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-8 pt-0 space-y-4">
                   <div className="space-y-2">
@@ -249,7 +228,6 @@ export default function CheckoutPage() {
                       name="fullName" 
                       value={formData.fullName} 
                       onChange={handleInputChange} 
-                      placeholder="Enter your full name" 
                       className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
                     />
                   </div>
@@ -260,18 +238,6 @@ export default function CheckoutPage() {
                       name="address" 
                       value={formData.address} 
                       onChange={handleInputChange} 
-                      placeholder="123 Ceramic Lane" 
-                      className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="landmark">Nearest Landmark</Label>
-                    <Input 
-                      id="landmark" 
-                      name="landmark" 
-                      value={formData.landmark} 
-                      onChange={handleInputChange} 
-                      placeholder="e.g. Near Art Center" 
                       className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
                     />
                   </div>
@@ -283,7 +249,6 @@ export default function CheckoutPage() {
                         name="city" 
                         value={formData.city} 
                         onChange={handleInputChange} 
-                        placeholder="New Delhi" 
                         className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
                       />
                     </div>
@@ -294,7 +259,6 @@ export default function CheckoutPage() {
                         name="zip" 
                         value={formData.zip} 
                         onChange={handleInputChange} 
-                        placeholder="110001" 
                         className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
                       />
                     </div>
@@ -306,10 +270,10 @@ export default function CheckoutPage() {
                       name="phone" 
                       value={formData.phone} 
                       onChange={handleInputChange} 
-                      placeholder="+91 XXXXX XXXXX" 
                       className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
                     />
                   </div>
+                  <p className="text-[10px] text-muted-foreground italic">To change these details permanently, update your Profile Workspace.</p>
                 </CardContent>
               </Card>
 
@@ -319,9 +283,9 @@ export default function CheckoutPage() {
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                       <CreditCard className="h-4 w-4" />
                     </div>
-                    <CardTitle className="text-xl">Payment Details</CardTitle>
+                    <CardTitle className="text-xl">Payment Method</CardTitle>
                   </div>
-                  <CardDescription>Select your preferred payment method.</CardDescription>
+                  <CardDescription>Select your preferred acquisition method.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-8 pt-0 space-y-6">
                   <RadioGroup 
@@ -350,25 +314,6 @@ export default function CheckoutPage() {
                       </Label>
                     </div>
                   </RadioGroup>
-
-                  {formData.paymentMethod === 'card' && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                      <div className="space-y-2">
-                        <Label>Card Number</Label>
-                        <Input placeholder="0000 0000 0000 0000" className="rounded-xl h-12" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Expiry Date</Label>
-                          <Input placeholder="MM/YY" className="rounded-xl h-12" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>CVV</Label>
-                          <Input placeholder="123" className="rounded-xl h-12" />
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </div>
