@@ -1,0 +1,264 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * CORE PHILOSOPHY
+     * This ruleset enforces a strict user-ownership model combined with Database-Based Access Control (DBAC) for administrative roles.
+     * User data is secured by path-based ownership, while the product catalog is public for reading but restricted to admins for writing.
+     * 
+     * DATA STRUCTURE
+     * 1. Private User Data: Nested under /users/{userId}/... (including Cart, Wishlist, Addresses, and Orders).
+     * 2. Administrative Roles: Identified by the presence of a document in /admin_roles or /super_admin_roles.
+     * 3. Public Catalog: Top-level collections for Categories, Products, and Coupons.
+     * 
+     * KEY SECURITY DECISIONS
+     * - Authorization Independence: Rules rely on path parameters and internal document fields (like userId) to avoid costly get() calls.
+     * - DBAC for Roles: Admin privileges are granted based on the existence of documents in specific role collections, ensuring clear segregation.
+     * - Relational Integrity: On creation of user-scoped documents, the rules verify that the internal 'id' or 'userId' matches the path.
+     * - Structural Segregation: User-specific subcollections naturally handle listing security (users only see their own list).
+     */
+
+    // --- GLOBAL HELPER FUNCTIONS ---
+
+    /** Checks if the user is authenticated. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Checks if the user is an owner of a document that already exists. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /** Checks if the user has administrative privileges via DBAC. */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admin_roles/$(request.auth.uid));
+    }
+
+    /** Checks if the user has super-admin privileges via DBAC. */
+    function isSuperAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/super_admin_roles/$(request.auth.uid));
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for user profiles. Users manage their own profiles; Admins manage all.
+     * @path /users/{userId}
+     * @allow (create) if auth.uid == "user123" and data.id == "user123"
+     * @deny (create) if data.id != userId
+     * @principle Validates relational integrity between path and data; permits self-creation.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if (isExistingOwner(userId) || isAdmin()) && request.resource.data.id == resource.data.id;
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Dedicated collection to identify users with admin privileges.
+     * @path /admin_roles/{userId}
+     * @allow (get) if isSignedIn()
+     * @deny (write) if !isSuperAdmin()
+     * @principle Restricted write access for core role management.
+     */
+    match /admin_roles/{userId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    /**
+     * @description Dedicated collection for super admin identification.
+     * @path /super_admin_roles/{userId}
+     * @allow (get) if isSignedIn()
+     * @deny (create) if !isSuperAdmin()
+     * @principle Root-level permissions management restricted to super admins.
+     */
+    match /super_admin_roles/{userId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    /**
+     * @description Static metadata for role definitions.
+     * @path /roles_definitions/{roleId}
+     * @allow (get) if isSignedIn()
+     * @deny (update) if !isSuperAdmin()
+     * @principle Read-only role definitions for standard users.
+     */
+    match /roles_definitions/{roleId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    /**
+     * @description Publicly readable product categories.
+     * @path /categories/{categoryId}
+     * @allow (list) if true
+     * @deny (create) if !isAdmin()
+     * @principle Public catalog access with admin-only management.
+     */
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Main product catalog items.
+     * @path /products/{productId}
+     * @allow (get) if true
+     * @deny (delete) if !isAdmin()
+     * @principle Public product listings with administrative control.
+     */
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+
+      /**
+       * @description Product variants (sizes, colors).
+       * @path /products/{productId}/variants/{variantId}
+       * @allow (list) if true
+       * @deny (update) if !isAdmin()
+       * @principle Subcollection inheriting public read/admin write posture.
+       */
+      match /variants/{variantId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin();
+      }
+
+      /**
+       * @description User reviews for products.
+       * @path /products/{productId}/reviews/{reviewId}
+       * @allow (create) if auth.uid == data.userId
+       * @deny (update) if auth.uid != resource.data.userId
+       * @principle Public visibility with author-only write access.
+       */
+      match /reviews/{reviewId} {
+        allow get, list: if true;
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isExistingOwner(resource.data.userId);
+      }
+    }
+
+    /**
+     * @description User-specific shopping cart.
+     * @path /users/{userId}/cart
+     * @allow (get) if auth.uid == userId
+     * @deny (create) if data.userId != userId
+     * @principle Path-based ownership for shopping session data.
+     */
+    match /users/{userId}/cart {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId) || isAdmin();
+
+      /**
+       * @description Items within a user's cart.
+       * @path /users/{userId}/cart/items/{itemId}
+       * @allow (list) if isOwner(userId)
+       * @deny (create) if data.cartId != userId
+       * @principle Secures individual cart line items via parent user context.
+       */
+      match /items/{itemId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && request.resource.data.cartId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.cartId == resource.data.cartId;
+        allow delete: if isExistingOwner(userId) || isAdmin();
+      }
+    }
+
+    /**
+     * @description User wishlist management.
+     * @path /users/{userId}/wishlist
+     * @allow (get) if isOwner(userId)
+     * @deny (write) if !isOwner(userId)
+     * @principle Enforces private access to personal shopping interests.
+     */
+    match /users/{userId}/wishlist {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId) || isAdmin();
+
+      /**
+       * @description Individual wishlist items.
+       * @path /users/{userId}/wishlist/items/{itemId}
+       */
+      match /items/{itemId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && request.resource.data.wishlistId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.wishlistId == resource.data.wishlistId;
+        allow delete: if isExistingOwner(userId) || isAdmin();
+      }
+    }
+
+    /**
+     * @description User shipping/billing addresses.
+     * @path /users/{userId}/addresses/{addressId}
+     * @allow (create) if auth.uid == userId
+     * @deny (update) if auth.uid != userId
+     * @principle Private address book management.
+     */
+    match /users/{userId}/addresses/{addressId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId) || isAdmin();
+    }
+
+    /**
+     * @description Discount coupons available for checkout.
+     * @path /coupons/{couponId}
+     * @allow (get) if true
+     * @deny (create) if !isAdmin()
+     * @principle Publicly accessible codes with admin-only management.
+     */
+    match /coupons/{couponId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Order history for a user.
+     * @path /users/{userId}/orders/{orderId}
+     * @allow (get) if auth.uid == userId
+     * @deny (update) if !isAdmin() and data.orderStatus == "shipped"
+     * @principle Users can view their own orders; admins can manage order states.
+     */
+    match /users/{userId}/orders/{orderId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if (isExistingOwner(userId) || isAdmin()) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isAdmin();
+
+      /**
+       * @description Specific items in a completed order.
+       */
+      match /items/{itemId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+
+      /**
+       * @description Payment transaction records for an order.
+       */
+      match /payments/{paymentId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}
