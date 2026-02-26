@@ -13,6 +13,14 @@ export interface IProduct extends Document {
   tags: string[];
   compare_at_price?: number | string;
   short_description?: string;
+  technical_details?: {
+    material?: string;
+    firing_method?: string;
+    weight?: string;
+    origin?: string;
+    dimensions?: string;
+    [key: string]: string | undefined;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,7 +36,12 @@ const ProductSchema: Schema = new Schema({
   is_active: { type: Boolean, default: true },
   tags: [{ type: String }],
   compare_at_price: { type: Schema.Types.Mixed },
-  short_description: { type: String }
+  short_description: { type: String },
+  technical_details: {
+    type: Map,
+    of: String,
+    default: {}
+  }
 }, { timestamps: true });
 
 // Optimize search

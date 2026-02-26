@@ -18,7 +18,6 @@ import {
   ShieldCheck, 
   Undo2, 
   Loader2, 
-  ChevronLeft, 
   ChevronRight,
   Info,
   CheckCircle2,
@@ -339,27 +338,38 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 pt-12 border-t">
             <div className="lg:col-span-2 space-y-12">
               
-              {/* Specs Table */}
+              {/* Dynamic Specs Table */}
               <section className="space-y-6">
                 <h2 className="text-2xl font-bold text-primary">Technical Details</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                  <div className="flex justify-between border-b py-2">
-                    <span className="text-sm font-bold text-muted-foreground">Material</span>
-                    <span className="text-sm text-primary font-medium">Clay/Ceramic</span>
+                {product.technical_details && Object.entries(product.technical_details).length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                    {Object.entries(product.technical_details).map(([key, value]) => (
+                      <div key={key} className="flex justify-between border-b py-2">
+                        <span className="text-sm font-bold text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
+                        <span className="text-sm text-primary font-medium">{String(value)}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex justify-between border-b py-2">
-                    <span className="text-sm font-bold text-muted-foreground">Firing Method</span>
-                    <span className="text-sm text-primary font-medium">Kiln-fired (1200°C)</span>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                    <div className="flex justify-between border-b py-2">
+                      <span className="text-sm font-bold text-muted-foreground">Material</span>
+                      <span className="text-sm text-primary font-medium">Clay/Ceramic</span>
+                    </div>
+                    <div className="flex justify-between border-b py-2">
+                      <span className="text-sm font-bold text-muted-foreground">Firing Method</span>
+                      <span className="text-sm text-primary font-medium">Kiln-fired (1200°C)</span>
+                    </div>
+                    <div className="flex justify-between border-b py-2">
+                      <span className="text-sm font-bold text-muted-foreground">Artisan Origin</span>
+                      <span className="text-sm text-primary font-medium">Rajasthan, India</span>
+                    </div>
+                    <div className="flex justify-between border-b py-2">
+                      <span className="text-sm font-bold text-muted-foreground">Authenticity</span>
+                      <span className="text-sm text-primary font-medium">Handcrafted Certified</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between border-b py-2">
-                    <span className="text-sm font-bold text-muted-foreground">Weight</span>
-                    <span className="text-sm text-primary font-medium">850g</span>
-                  </div>
-                  <div className="flex justify-between border-b py-2">
-                    <span className="text-sm font-bold text-muted-foreground">Artisan Origin</span>
-                    <span className="text-sm text-primary font-medium">Rajasthan, India</span>
-                  </div>
-                </div>
+                )}
               </section>
 
               {/* Reviews Section */}
