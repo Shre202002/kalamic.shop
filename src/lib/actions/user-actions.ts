@@ -29,25 +29,34 @@ export async function getProfile(firebaseId: string) {
 
 /**
  * Creates a base profile for a new user.
+ * Handles cases where email might be missing (e.g. phone login).
  */
-export async function getOrCreateProfile(firebaseId: string, email: string) {
+export async function getOrCreateProfile(firebaseId: string, email?: string | null) {
   await dbConnect();
   try {
-    const role = email === PERMANENT_SUPER_ADMIN ? 'super_admin' : 'buyer';
+    const cleanEmail = email?.trim().toLowerCase();
+    const role = cleanEmail === PERMANENT_SUPER_ADMIN ? 'super_admin' : 'buyer';
+    
+    // Construct base update object
+    const onInsert: any = {
+      role,
+      emailVerified: false,
+      phoneVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    // Only include email if it exists and is not an empty string
+    if (cleanEmail) {
+      onInsert.email = cleanEmail;
+    }
+
     const user = await User.findOneAndUpdate(
       { firebaseId },
-      { 
-        $setOnInsert: { 
-          email, 
-          role,
-          emailVerified: false,
-          phoneVerified: false,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        } 
-      },
+      { $setOnInsert: onInsert },
       { new: true, upsert: true }
     ).lean();
+    
     return JSON.parse(JSON.stringify(user));
   } catch (error) {
     console.error("Error provisioning profile:", error);
@@ -63,7 +72,7 @@ export async function verifyUserEmail(firebaseId: string, email: string) {
   try {
     const user = await User.findOneAndUpdate(
       { firebaseId },
-      { $set: { emailVerified: true, email } },
+      { $set: { emailVerified: true, email: email.toLowerCase() } },
       { new: true, upsert: true }
     ).lean();
     return JSON.parse(JSON.stringify(user));

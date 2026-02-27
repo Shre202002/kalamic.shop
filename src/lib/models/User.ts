@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUser extends Document {
   firebaseId: string;
-  email: string;
+  email?: string;
   firstName: string;
   lastName: string;
   phone: string;
@@ -23,7 +23,9 @@ export interface IUser extends Document {
 
 const UserSchema: Schema = new Schema({
   firebaseId: { type: String, required: true, unique: true, index: true },
-  email: { type: String, required: true, unique: true },
+  // Email is optional for phone-only signups, but must be unique if provided.
+  // Sparse index allows multiple documents to have no email field.
+  email: { type: String, required: false, unique: true, sparse: true, trim: true, lowercase: true },
   firstName: { type: String, required: false }, 
   lastName: { type: String, required: false },  
   phone: { type: String, required: false },     
