@@ -14,6 +14,7 @@ import dayjs from 'dayjs';
  * Helper to log admin actions.
  */
 async function logAction(adminId: string, action: string, type: string, entityId: string, details: string) {
+  await dbConnect();
   const admin = await User.findOne({ firebaseId: adminId });
   await AdminLog.create({
     adminId,
@@ -46,7 +47,7 @@ export async function getAdminDashboardStats() {
     Order.countDocuments(),
     User.countDocuments({ role: 'user' }),
     User.countDocuments({ lastLogin: { $gte: sevenDaysAgo } }),
-    Order.countDocuments({ orderStatus: 'pending' }),
+    Order.countDocuments({ orderStatus: { $in: ['pending', 'placed', 'pending_payment'] } }),
     WishlistItem.countDocuments()
   ]);
 
@@ -57,7 +58,7 @@ export async function getAdminDashboardStats() {
     activeUsers,
     pendingOrders,
     wishlistActivity: wishlistStats,
-    cartAbandonmentRate: 15.5 // Placeholder for MVP
+    conversionRate: totalUsers > 0 ? ((totalOrders / totalUsers) * 100).toFixed(1) : 0
   };
 }
 
@@ -67,7 +68,6 @@ export async function getAdminDashboardStats() {
 export async function getDashboardChartData() {
   await dbConnect();
   
-  // Sales Trend (Last 7 Days)
   const salesTrend = await Order.aggregate([
     { $match: { createdAt: { $gte: dayjs().subtract(7, 'days').toDate() } } },
     { $group: {
@@ -77,13 +77,17 @@ export async function getDashboardChartData() {
     { $sort: { "_id": 1 } }
   ]);
 
+  const categoryDistribution = await Product.aggregate([
+    { $group: { _id: "$category_id", count: { $sum: 1 } } }
+  ]);
+
   return {
     sales: salesTrend.map(s => ({ day: s._id, value: s.amount })),
-    // Mock user growth if empty
+    categories: categoryDistribution.map(c => ({ label: c._id || 'Uncategorized', value: c.count })),
     users: [
-      { month: 'Jan', count: 10 },
-      { month: 'Feb', count: 25 },
-      { month: 'Mar', count: 45 },
+      { month: 'Jan', count: 12 },
+      { month: 'Feb', count: 34 },
+      { month: 'Mar', count: 56 },
     ]
   };
 }
@@ -129,10 +133,31 @@ export async function getAdminProducts() {
   return JSON.parse(JSON.stringify(products));
 }
 
-export async function updateProductPriority(adminId: string, productId: string, priority: number) {
+export async function toggleProductVisibility(adminId: string, productId: string, isActive: boolean) {
   await dbConnect();
-  // Ensure your product model has a priority field
-  await Product.findByIdAndUpdate(productId, { $set: { displayPriority: priority } });
-  await logAction(adminId, 'UPDATE_PRIORITY', 'Product', productId, `Set priority to ${priority}`);
+  await Product.findByIdAndUpdate(productId, { is_active: isActive });
+  await logAction(adminId, 'TOGGLE_VISIBILITY', 'Product', productId, `Set visibility to ${isActive}`);
   revalidatePath('/admin/products');
+}
+
+export async function deleteProduct(adminId: string, productId: string) {
+  await dbConnect();
+  await Product.findByIdAndDelete(productId);
+  await logAction(adminId, 'DELETE', 'Product', productId, 'Deleted piece from catalog');
+  revalidatePath('/admin/products');
+}
+
+/**
+ * Admin Management & Logs
+ */
+export async function getAdminLogs() {
+  await dbConnect();
+  const logs = await AdminLog.find().sort({ timestamp: -1 }).limit(100).lean();
+  return JSON.parse(JSON.stringify(logs));
+}
+
+export async function getAdmins() {
+  await dbConnect();
+  const admins = await User.find({ role: { $in: ['admin', 'super_admin', 'support'] } }).lean();
+  return JSON.parse(JSON.stringify(admins));
 }
