@@ -89,6 +89,8 @@ export default function SettingsPage() {
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
+                    primaryTypographyProps={{ component: 'div' }}
+                    secondaryTypographyProps={{ component: 'div' }}
                     primary={
                       <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography sx={{ fontWeight: 700 }}>{log.action.replace('_', ' ')}</Typography>
@@ -99,13 +101,17 @@ export default function SettingsPage() {
                     }
                     secondary={
                       <React.Fragment>
-                        <Typography component="span" variant="body2" color="text.primary" sx={{ display: 'block', mt: 0.5 }}>
+                        <Typography component="div" variant="body2" color="text.primary" sx={{ display: 'block', mt: 0.5, fontWeight: 600 }}>
                           {log.adminName} ({log.role})
                         </Typography>
-                        <Typography variant="caption" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', px: 1, borderRadius: 1 }}>
-                          {log.entityType} ID: {log.entityId}
+                        <Box sx={{ mt: 0.5, mb: 1 }}>
+                          <Typography component="span" variant="caption" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', px: 1, borderRadius: 1, border: '1px solid rgba(0,0,0,0.05)' }}>
+                            {log.entityType} ID: {log.entityId}
+                          </Typography>
+                        </Box>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                          {log.details}
                         </Typography>
-                        <Typography variant="body2" sx={{ mt: 1 }}>{log.details}</Typography>
                       </React.Fragment>
                     }
                   />
