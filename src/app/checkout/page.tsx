@@ -1,9 +1,11 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getProfile } from '@/lib/actions/user-actions';
+import { createCashfreeOrder, verifyCashfreePayment } from '@/lib/actions/cashfree';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -18,12 +20,19 @@ import {
   Loader2, 
   ShoppingBag,
   MapPin,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import Link from 'next/link';
+import Script from 'next/script';
+
+declare global {
+  interface Window {
+    Cashfree: any;
+  }
+}
 
 export default function CheckoutPage() {
   const { user, isUserLoading } = useUser();
@@ -32,6 +41,7 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -121,9 +131,15 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!cashfreeLoaded) {
+      toast({ variant: "destructive", title: "System Error", description: "Payment gateway is still initializing. Please wait a moment." });
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      const orderId = `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      // 1. Create a "Pending" order in Firestore first
+      const orderId = `KAL-${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
       const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
 
       const orderData = {
@@ -131,10 +147,10 @@ export default function CheckoutPage() {
         userId: user.uid,
         orderDate: new Date().toISOString(),
         totalAmount: total,
-        orderStatus: 'processing',
+        orderStatus: 'pending_payment',
         shippingCost: shipping,
         discountAmount: 0,
-        paymentId: `PAY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+        paymentId: '', // To be filled after success
         shippingDetails: { ...formData },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -142,9 +158,10 @@ export default function CheckoutPage() {
 
       await setDoc(orderRef, orderData);
 
-      const clearPromises = cartItems.map(async (item) => {
+      // Save items to order subcollection
+      const itemPromises = cartItems.map(async (item) => {
         const orderItemRef = doc(firestore, 'users', user.uid, 'orders', orderId, 'items', item.id);
-        await setDoc(orderItemRef, {
+        return setDoc(orderItemRef, {
           id: item.id,
           orderId: orderId,
           productVariantId: item.productVariantId,
@@ -153,27 +170,76 @@ export default function CheckoutPage() {
           name: item.name,
           imageUrl: item.imageUrl
         });
-        
-        const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id);
-        await deleteDoc(cartItemRef);
+      });
+      await Promise.all(itemPromises);
+
+      // 2. Create Cashfree Order on Server
+      const { paymentSessionId } = await createCashfreeOrder({
+        orderId,
+        orderAmount: total,
+        orderCurrency: 'INR',
+        customerDetails: {
+          customerId: user.uid,
+          customerPhone: formData.phone.replace(/\D/g, '').slice(-10), // Clean 10 digit phone
+          customerEmail: user.email || 'guest@kalamic.shop',
+          customerName: formData.fullName,
+        }
       });
 
-      await Promise.all(clearPromises);
-
-      toast({
-        title: "Order Successful!",
-        description: `Thank you for your purchase. Order ID: ${orderId}`,
+      // 3. Initiate Cashfree Checkout
+      const cashfree = new window.Cashfree({
+        mode: process.env.NEXT_PUBLIC_CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
       });
-      router.push('/orders');
-    } catch (error) {
+
+      cashfree.checkout({
+        paymentSessionId,
+        redirectTarget: "_self" // Or "_modal" for a bridge experience
+      }).then(async (result: any) => {
+        if (result.error) {
+          toast({ variant: "destructive", title: "Payment Failed", description: result.error.message });
+          setIsProcessing(false);
+          return;
+        }
+
+        if (result.redirect) {
+          // If redirected, verification will happen on the return URL
+          return;
+        }
+
+        // 4. Verify Payment on Success (for non-redirect flows)
+        if (result.paymentDetails) {
+          const verification = await verifyCashfreePayment(orderId);
+          if (verification.success) {
+            // Finalize order status in Firestore
+            await updateDoc(orderRef, {
+              orderStatus: 'placed',
+              paymentId: verification.paymentId,
+              updatedAt: serverTimestamp()
+            });
+
+            // Clear Cart
+            const clearPromises = cartItems.map(item => 
+              deleteDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id))
+            );
+            await Promise.all(clearPromises);
+
+            toast({ title: "Order Successful!", description: `Acquisition complete. Order ID: ${orderId}` });
+            router.push(`/orders/${orderId}`);
+          } else {
+            throw new Error("Payment verification failed. Please contact support.");
+          }
+        }
+      });
+
+    } catch (error: any) {
       console.error("Order failed:", error);
       toast({
         variant: "destructive",
-        title: "Order Failed",
-        description: "There was an error processing your order. Please try again.",
+        title: "Order Process Failed",
+        description: error.message || "There was an error initiating your payment.",
       });
     } finally {
-      setIsProcessing(false);
+      // Don't set isProcessing false here if redirecting
     }
   };
 
@@ -192,6 +258,11 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
       <Navbar />
+      <Script 
+        src="https://sdk.cashfree.com/js/v3/cashfree.js" 
+        onLoad={() => setCashfreeLoaded(true)}
+      />
+      
       <main className="flex-1 py-8 md:py-16">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-4">
@@ -200,7 +271,7 @@ export default function CheckoutPage() {
               <p className="text-muted-foreground mt-1">Complete your acquisition of handcrafted art.</p>
             </div>
             <div className="flex items-center gap-2 text-sm font-bold text-primary bg-white px-4 py-2 rounded-full border shadow-sm">
-              <ShieldCheck className="h-4 w-4 text-accent" /> Secure Transaction
+              <ShieldCheck className="h-4 w-4 text-accent" /> Secure Cashfree Transaction
             </div>
           </div>
 
@@ -260,16 +331,16 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Contact Phone</Label>
+                    <Label htmlFor="phone">Contact Phone (Required for SMS tracking)</Label>
                     <Input 
                       id="phone" 
                       name="phone" 
+                      placeholder="+91XXXXXXXXXX"
                       value={formData.phone} 
                       onChange={handleInputChange} 
                       className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
                     />
                   </div>
-                  <p className="text-[10px] text-muted-foreground italic">To change these details permanently, update your Profile Workspace.</p>
                 </CardContent>
               </Card>
 
@@ -296,20 +367,17 @@ export default function CheckoutPage() {
                         className="flex flex-col items-center justify-between rounded-2xl border-2 border-muted bg-popover p-4 hover:bg-accent/5 hover:text-accent-foreground peer-data-[state=checked]:border-accent [&:has([data-state=checked])]:border-accent cursor-pointer transition-all"
                       >
                         <CreditCard className="mb-3 h-6 w-6" />
-                        <span className="text-sm font-bold">Credit / Debit Card</span>
-                      </Label>
-                    </div>
-                    <div>
-                      <RadioGroupItem value="upi" id="upi" className="peer sr-only" />
-                      <Label
-                        htmlFor="upi"
-                        className="flex flex-col items-center justify-between rounded-2xl border-2 border-muted bg-popover p-4 hover:bg-accent/5 hover:text-accent-foreground peer-data-[state=checked]:border-accent [&:has([data-state=checked])]:border-accent cursor-pointer transition-all"
-                      >
-                        <div className="mb-3 h-6 flex items-center justify-center text-xs font-black italic tracking-tighter">UPI</div>
-                        <span className="text-sm font-bold">UPI / QR Code</span>
+                        <span className="text-sm font-bold">Safe Online Payment</span>
+                        <span className="text-[10px] text-muted-foreground mt-1">Cards, UPI, Netbanking</span>
                       </Label>
                     </div>
                   </RadioGroup>
+                  <div className="p-4 bg-muted/20 rounded-xl border border-dashed border-primary/20 flex gap-3 items-start">
+                    <AlertTriangle className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      You will be redirected to Cashfree's secure payment page. All sensitive information is encrypted via industry-standard SSL.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -357,13 +425,13 @@ export default function CheckoutPage() {
 
                   <Button 
                     onClick={handlePlaceOrder} 
-                    disabled={isProcessing}
+                    disabled={isProcessing || !cashfreeLoaded}
                     className="w-full h-16 rounded-2xl bg-primary text-white hover:bg-primary/90 text-xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95 mt-4"
                   >
                     {isProcessing ? (
-                      <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Finalizing...</>
+                      <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Initiating Gateway...</>
                     ) : (
-                      <><CheckCircle2 className="mr-2 h-6 w-6" /> Complete Purchase</>
+                      <><CheckCircle2 className="mr-2 h-6 w-6" /> Pay with Cashfree</>
                     )}
                   </Button>
                 </CardContent>
