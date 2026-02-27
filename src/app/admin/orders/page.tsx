@@ -22,7 +22,16 @@ export default function OrdersManagement() {
   }, []);
 
   const columns: GridColDef[] = [
-    { field: 'id', headerName: 'Order ID', width: 150 },
+    { 
+      field: '_id', 
+      headerName: 'Order ID', 
+      width: 220,
+      renderCell: (params) => (
+        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>
+          {params.value}
+        </Typography>
+      )
+    },
     { 
       field: 'userId', 
       headerName: 'Collector ID', 
@@ -42,7 +51,7 @@ export default function OrdersManagement() {
       renderCell: (params) => (
         <Chip 
           label={params.value} 
-          size="sm" 
+          size="small" 
           color={params.value === 'delivered' ? 'success' : 'warning'} 
           sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.65rem' }}
         />
@@ -79,6 +88,7 @@ export default function OrdersManagement() {
       <Paper>
         <DataGrid
           rows={orders}
+          getRowId={(row) => row._id}
           columns={columns}
           loading={loading}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
