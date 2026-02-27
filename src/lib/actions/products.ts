@@ -1,4 +1,3 @@
-
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -47,12 +46,10 @@ export async function getProductById(id: string) {
   await dbConnect();
   try {
     let product = null;
-    // Check if ID is likely a MongoDB ObjectId (24 chars)
     if (id.length === 24) {
       product = await KalamicProduct.findOne({ _id: id, is_deleted: { $ne: true } }).lean();
     }
     
-    // Fallback or secondary check for Slug
     if (!product) {
       product = await KalamicProduct.findOne({ slug: id.toLowerCase(), is_deleted: { $ne: true } }).lean();
     }

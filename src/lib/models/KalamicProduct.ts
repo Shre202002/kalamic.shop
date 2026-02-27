@@ -1,4 +1,3 @@
-
 import mongoose, { Schema, Document } from 'mongoose';
 
 /**
@@ -46,6 +45,8 @@ export interface IKalamicProduct extends Document {
     wishlist_count: number;
     cart_add_count: number;
     share_count: number;
+    average_rating?: number;
+    review_count?: number;
   };
   seo: {
     meta_title: string;
@@ -103,7 +104,9 @@ const KalamicProductSchema: Schema = new Schema({
     total_orders: { type: Number, default: 0 },
     wishlist_count: { type: Number, default: 0 },
     cart_add_count: { type: Number, default: 0 },
-    share_count: { type: Number, default: 0 }
+    share_count: { type: Number, default: 0 },
+    average_rating: { type: Number, default: 0 },
+    review_count: { type: Number, default: 0 }
   },
   seo: {
     meta_title: { type: String, default: '' },

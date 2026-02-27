@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -42,7 +41,9 @@ import {
   SettingsSuggest,
   HistoryEdu,
   Visibility as ViewIcon,
-  ShoppingBag as OrderIcon
+  ShoppingBag as OrderIcon,
+  Favorite as WishIcon,
+  Star as StarIcon
 } from '@mui/icons-material';
 import { 
   getAdminProducts, 
@@ -77,6 +78,13 @@ const INITIAL_PRODUCT = {
     meta_title: '',
     meta_description: '',
     meta_keywords: []
+  },
+  analytics: {
+    total_views: 0,
+    total_orders: 0,
+    wishlist_count: 0,
+    average_rating: 0,
+    review_count: 0
   }
 };
 
@@ -93,7 +101,6 @@ export default function ProductsManagement() {
   const [activeTab, setActiveTab] = useState(0);
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { toast } = useToast();
 
   const load = async () => {
@@ -116,6 +123,7 @@ export default function ProductsManagement() {
       setEditingProduct({
         ...INITIAL_PRODUCT,
         ...product,
+        analytics: { ...INITIAL_PRODUCT.analytics, ...product.analytics },
         images: Array.isArray(product.images) && product.images.length ? product.images.map((i: any) => ({ ...i })) : INITIAL_PRODUCT.images,
         specifications: Array.isArray(product.specifications) && product.specifications.length ? product.specifications.map((s: any) => ({ ...s })) : INITIAL_PRODUCT.specifications,
         shipping: {
@@ -143,12 +151,6 @@ export default function ProductsManagement() {
       return;
     }
 
-    const hasPrimary = editingProduct.images.some((img: any) => img.is_primary && img.url);
-    if (!hasPrimary && editingProduct.images.length > 0) {
-      toast({ variant: "destructive", title: "Validation Error", description: "At least one image must be marked as primary." });
-      return;
-    }
-
     setIsSaving(true);
     try {
       await saveProduct(user.uid, editingProduct);
@@ -169,7 +171,7 @@ export default function ProductsManagement() {
       width: 80,
       renderCell: (params) => {
         const primary = params.value?.find((img: any) => img.is_primary) || params.value?.[0];
-        return <Avatar variant="rounded" src={primary?.url || ''} sx={{ width: 44, height: 44 }}><ImageIcon /></Avatar>;
+        return <Avatar variant="rounded" src={primary?.url || ''} sx={{ width: 44, height: 44, bgcolor: 'primary.light' }}><ImageIcon /></Avatar>;
       }
     },
     { 
@@ -188,12 +190,14 @@ export default function ProductsManagement() {
     { field: 'stock', headerName: 'Stock', width: 90, renderCell: (params) => <Chip label={params.value ?? 0} size="small" color={(params.value ?? 0) > 5 ? 'success' : 'warning'} /> },
     { 
       field: 'analytics', 
-      headerName: 'Stats', 
-      width: 150,
+      headerName: 'Performance', 
+      width: 280,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-          <Tooltip title="Views"><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><ViewIcon sx={{ fontSize: 14 }} /><Typography variant="caption">{params.value?.total_views || 0}</Typography></Box></Tooltip>
-          <Tooltip title="Orders"><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><OrderIcon sx={{ fontSize: 14 }} /><Typography variant="caption">{params.value?.total_orders || 0}</Typography></Box></Tooltip>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Tooltip title="Views"><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><ViewIcon sx={{ fontSize: 14, color: 'info.main' }} /><Typography variant="caption" fontWeight={700}>{params.value?.total_views || 0}</Typography></Box></Tooltip>
+          <Tooltip title="Orders"><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><OrderIcon sx={{ fontSize: 14, color: 'success.main' }} /><Typography variant="caption" fontWeight={700}>{params.value?.total_orders || 0}</Typography></Box></Tooltip>
+          <Tooltip title="Wishlisted"><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><WishIcon sx={{ fontSize: 14, color: 'error.main' }} /><Typography variant="caption" fontWeight={700}>{params.value?.wishlist_count || 0}</Typography></Box></Tooltip>
+          <Tooltip title="Rating"><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><StarIcon sx={{ fontSize: 14, color: 'warning.main' }} /><Typography variant="caption" fontWeight={700}>{params.value?.average_rating || 0} ({params.value?.review_count || 0})</Typography></Box></Tooltip>
         </Box>
       )
     },
@@ -219,8 +223,8 @@ export default function ProductsManagement() {
     <Box sx={{ flexGrow: 1 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 5 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 900 }}>Kalamic Catalog</Typography>
-          <Typography variant="body2" color="text.secondary">Manage your artisan pieces in the Kalamic_Products collection.</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 900 }}>Artisan Catalog</Typography>
+          <Typography variant="body2" color="text.secondary">Managing the primary Kalamic_Products collection.</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'white', px: 2, borderRadius: 3, border: '1px solid rgba(0,0,0,0.05)' }}>
@@ -268,7 +272,8 @@ export default function ProductsManagement() {
                     <TextField fullWidth label="Name *" value={editingProduct.name} onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})} sx={{ mb: 3 }} />
                     <TextField fullWidth label="Slug *" value={editingProduct.slug} onChange={(e) => setEditingProduct({...editingProduct, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} sx={{ mb: 3 }} />
                     <TextField fullWidth label="Category ID *" value={editingProduct.category_id} onChange={(e) => setEditingProduct({...editingProduct, category_id: e.target.value})} sx={{ mb: 3 }} />
-                    <TextField fullWidth multiline rows={4} label="Description *" value={editingProduct.description} onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})} />
+                    <TextField fullWidth multiline rows={4} label="Full Description *" value={editingProduct.description} onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})} sx={{ mb: 3 }} />
+                    <TextField fullWidth label="Short Description" value={editingProduct.short_description} onChange={(e) => setEditingProduct({...editingProduct, short_description: e.target.value})} />
                   </Grid>
                   <Grid item xs={12} md={4}>
                     <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
@@ -278,7 +283,7 @@ export default function ProductsManagement() {
                       <TextField fullWidth label="SKU" value={editingProduct.sku} onChange={(e) => setEditingProduct({...editingProduct, sku: e.target.value})} />
                     </Paper>
                     <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
-                      <FormControlLabel control={<Switch checked={!!editingProduct.is_active} onChange={(e) => setEditingProduct({...editingProduct, is_active: e.target.checked})} />} label="Live" />
+                      <FormControlLabel control={<Switch checked={!!editingProduct.is_active} onChange={(e) => setEditingProduct({...editingProduct, is_active: e.target.checked})} />} label="Active" />
                       <FormControlLabel control={<Switch checked={!!editingProduct.is_featured} onChange={(e) => setEditingProduct({...editingProduct, is_featured: e.target.checked})} />} label="Featured" />
                     </Paper>
                   </Grid>
@@ -321,17 +326,17 @@ export default function ProductsManagement() {
 
               {activeTab === 3 && (
                 <Grid container spacing={3}>
-                  <Grid item xs={12} md={4}><TextField fullWidth type="number" label="Weight (kg)" value={editingProduct.shipping.weight_kg} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, weight_kg: parseFloat(e.target.value)}})} /></Grid>
-                  <Grid item xs={4}><TextField fullWidth label="Length (cm)" value={editingProduct.shipping.package_dimensions_cm.length} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, length: parseFloat(e.target.value)}}})} /></Grid>
-                  <Grid item xs={4}><TextField fullWidth label="Width (cm)" value={editingProduct.shipping.package_dimensions_cm.width} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, width: parseFloat(e.target.value)}}})} /></Grid>
-                  <Grid item xs={4}><TextField fullWidth label="Height (cm)" value={editingProduct.shipping.package_dimensions_cm.height} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, height: parseFloat(e.target.value)}}})} /></Grid>
+                  <Grid item xs={12} md={4}><TextField fullWidth type="number" label="Weight (kg)" value={editingProduct.shipping?.weight_kg} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, weight_kg: parseFloat(e.target.value)}})} /></Grid>
+                  <Grid item xs={4}><TextField fullWidth label="Length (cm)" value={editingProduct.shipping?.package_dimensions_cm?.length} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, length: parseFloat(e.target.value)}}})} /></Grid>
+                  <Grid item xs={4}><TextField fullWidth label="Width (cm)" value={editingProduct.shipping?.package_dimensions_cm?.width} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, width: parseFloat(e.target.value)}}})} /></Grid>
+                  <Grid item xs={4}><TextField fullWidth label="Height (cm)" value={editingProduct.shipping?.package_dimensions_cm?.height} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, height: parseFloat(e.target.value)}}})} /></Grid>
                 </Grid>
               )}
 
               {activeTab === 4 && (
                 <Box>
-                  <TextField fullWidth label="Meta Title" value={editingProduct.seo.meta_title} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_title: e.target.value}})} sx={{ mb: 3 }} />
-                  <TextField fullWidth multiline rows={3} label="Meta Description" value={editingProduct.seo.meta_description} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_description: e.target.value}})} />
+                  <TextField fullWidth label="Meta Title" value={editingProduct.seo?.meta_title} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_title: e.target.value}})} sx={{ mb: 3 }} />
+                  <TextField fullWidth multiline rows={3} label="Meta Description" value={editingProduct.seo?.meta_description} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_description: e.target.value}})} />
                 </Box>
               )}
             </Box>
@@ -339,7 +344,7 @@ export default function ProductsManagement() {
 
           <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
             <Button onClick={() => setDialogOpen(false)} color="inherit">Discard</Button>
-            <Button variant="contained" startIcon={isSaving ? <CircularProgress size={20} /> : <Save />} onClick={handleSaveProduct} disabled={isSaving}>Save Piece</Button>
+            <Button variant="contained" startIcon={isSaving ? <CircularProgress size={20} /> : <Save />} onClick={handleSaveProduct} disabled={isSaving}>Save Creation</Button>
           </DialogActions>
         </Dialog>
       )}
