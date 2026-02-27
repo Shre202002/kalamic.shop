@@ -40,7 +40,6 @@ export async function verifyUserEmail(firebaseId: string, email: string) {
 
 /**
  * Updates or creates the user profile with integrated address details.
- * All fields are forced as required for a "Verified Collector".
  */
 export async function updateProfile(firebaseId: string, data: { 
   email: string,
@@ -92,47 +91,5 @@ export async function getWishlistItems(userId: string) {
   } catch (error) {
     console.error("Error fetching wishlist items:", error);
     return [];
-  }
-}
-
-/**
- * Adds a product to the user's wishlist in MongoDB.
- */
-export async function addToWishlist(userId: string, product: any) {
-  await dbConnect();
-  try {
-    const productId = product._id || product.id;
-    const item = await WishlistItem.findOneAndUpdate(
-      { userId, productId },
-      { 
-        $set: { 
-          userId, 
-          productId,
-          slug: product.slug,
-          name: product.name,
-          price: product.price,
-          imageUrl: product.images?.[0] || product.imageUrl
-        } 
-      },
-      { upsert: true, new: true }
-    ).lean();
-    return JSON.parse(JSON.stringify(item));
-  } catch (error) {
-    console.error("Error adding to wishlist:", error);
-    throw new Error("Failed to add to wishlist");
-  }
-}
-
-/**
- * Removes a product from the user's wishlist in MongoDB.
- */
-export async function removeFromWishlist(userId: string, productId: string) {
-  await dbConnect();
-  try {
-    await WishlistItem.findOneAndDelete({ userId, productId });
-    return true;
-  } catch (error) {
-    console.error("Error removing from wishlist:", error);
-    throw new Error("Failed to remove from wishlist");
   }
 }

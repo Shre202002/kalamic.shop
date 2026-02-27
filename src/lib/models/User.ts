@@ -19,14 +19,14 @@ export interface IUser extends Document {
 const UserSchema: Schema = new Schema({
   firebaseId: { type: String, required: true, unique: true, index: true },
   email: { type: String, required: true, unique: true },
-  firstName: { type: String, required: false }, // Made optional for initial OTP verification step
-  lastName: { type: String, required: false },  // Made optional for initial OTP verification step
-  phone: { type: String, required: false },     // Made optional for initial OTP verification step
-  address: { type: String, required: false },   // Made optional for initial OTP verification step
-  state: { type: String, required: false },     // Made optional for initial OTP verification step
-  city: { type: String, required: false },      // Made optional for initial OTP verification step
-  pincode: { type: String, required: false },   // Made optional for initial OTP verification step
-  landmark: { type: String, required: false },  // Made optional for initial OTP verification step
+  firstName: { type: String, required: false }, 
+  lastName: { type: String, required: false },  
+  phone: { type: String, required: false },     
+  address: { type: String, required: false },   
+  state: { type: String, required: false },     
+  city: { type: String, required: false },      
+  pincode: { type: String, required: false },   
+  landmark: { type: String, required: false },  
   emailVerified: { type: Boolean, default: false },
 }, { timestamps: true, collection: 'users' });
 
