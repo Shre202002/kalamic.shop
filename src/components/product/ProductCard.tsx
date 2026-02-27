@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState } from 'react';
@@ -12,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { trackProductAction, untrackWishlistAction } from '@/lib/actions/products';
 
 interface ProductCardProps {
   id: string;
@@ -45,7 +45,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
     await setDoc(cartItemRef, {
       id,
       productVariantId: id,
-      cartId: user.uid, // Required by Firestore Security Rules
+      cartId: user.uid,
       name,
       priceAtAddToCart: price,
       imageUrl: image,
@@ -53,6 +53,9 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     }, { merge: true });
+
+    // Track Analytics
+    await trackProductAction(id, 'cart_add_count');
 
     toast({
       title: "Added to cart",
@@ -72,7 +75,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
     await setDoc(cartItemRef, {
       id,
       productVariantId: id,
-      cartId: user.uid, // Required by Firestore Security Rules
+      cartId: user.uid,
       name,
       priceAtAddToCart: price,
       imageUrl: image,
@@ -94,30 +97,39 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
 
     const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
     
-    if (isFavorited) {
-      setIsFavorited(false);
-      await deleteDoc(wishlistItemRef);
-      toast({
-        title: "Removed from wishlist",
-        description: `${name} has been removed from your favorites.`,
-      });
-    } else {
-      setIsFavorited(true);
-      await setDoc(wishlistItemRef, {
-        id,
-        productId: id,
-        wishlistId: user.uid, // Required by Firestore Security Rules
-        slug,
-        name,
-        price,
-        imageUrl: image,
-        addedAt: new Date().toISOString()
-      }, { merge: true });
+    try {
+      if (isFavorited) {
+        setIsFavorited(false);
+        await deleteDoc(wishlistItemRef);
+        // Untrack Analytics
+        await untrackWishlistAction(id);
+        toast({
+          title: "Removed from wishlist",
+          description: `${name} has been removed from your favorites.`,
+        });
+      } else {
+        setIsFavorited(true);
+        await setDoc(wishlistItemRef, {
+          id,
+          productId: id,
+          wishlistId: user.uid,
+          slug,
+          name,
+          price,
+          imageUrl: image,
+          addedAt: new Date().toISOString()
+        }, { merge: true });
 
-      toast({
-        title: "Saved to wishlist",
-        description: `${name} is now in your favorites.`,
-      });
+        // Track Analytics
+        await trackProductAction(id, 'wishlist_count');
+
+        toast({
+          title: "Saved to wishlist",
+          description: `${name} is now in your favorites.`,
+        });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not update favorites." });
     }
   };
 
@@ -129,7 +141,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
       <CardContent className="p-4 pb-0 relative">
         <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-muted">
           <Image
-            src={image}
+            src={image || 'https://placehold.co/600x800?text=Kalamic'}
             alt={name || 'Ceramic Piece'}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"

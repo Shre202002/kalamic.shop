@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { untrackWishlistAction } from '@/lib/actions/products';
 
 export default function WishlistPage() {
   const { user, isUserLoading } = useUser();
@@ -29,6 +30,10 @@ export default function WishlistPage() {
     try {
       const itemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', productId);
       await deleteDoc(itemRef);
+      
+      // Untrack Analytics
+      await untrackWishlistAction(productId);
+
       toast({
         title: "Removed from favorites",
         description: "Your wishlist has been updated.",
