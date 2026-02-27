@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * @fileOverview Represents a handcrafted ceramic product in the Kalamic catalog.
- * Updated to support detailed media, inventory, shipping, and analytics.
+ * Follows the structured schema for media, inventory, shipping, and engagements.
  */
 
 export interface IProduct extends Document {
