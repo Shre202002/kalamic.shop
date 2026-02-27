@@ -51,6 +51,7 @@ export async function initiatePhoneSignIn(
     phoneConfirmationResult = await signInWithPhoneNumber(authInstance, phoneNumber, appVerifier);
     return true;
   } catch (err: any) {
+    console.error("Phone Auth Initiation Error:", err);
     errorEmitter.emit('login-error', { code: err.code, message: err.message });
     return false;
   }
@@ -73,6 +74,7 @@ export async function confirmPhoneCode(verificationCode: string): Promise<boolea
     await phoneConfirmationResult.confirm(verificationCode);
     return true;
   } catch (err: any) {
+    console.error("Phone Code Confirmation Error:", err);
     errorEmitter.emit('login-error', { code: err.code, message: err.message });
     return false;
   }

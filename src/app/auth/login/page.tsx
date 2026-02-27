@@ -70,6 +70,8 @@ export default function LoginPage() {
         friendlyMessage = "Invalid phone number format. Please use +[country code][number].";
       } else if (err.code === 'auth/too-many-requests') {
         friendlyMessage = "Too many attempts. Please try again later.";
+      } else if (err.code === 'auth/captcha-check-failed') {
+        friendlyMessage = "Security check failed. Please refresh and try again.";
       }
 
       toast({
@@ -120,6 +122,8 @@ export default function LoginPage() {
     try {
       const result = await verifyOtp(email, otpCode);
       if (result.success) {
+        // Fallback login for email OTP (usually handled by linking or primary OTP provider)
+        // In this app, we default to password-based accounts for simplicity
         const defaultPassword = `OTP_SECURE_${email.split('@')[0]}_KALAMIC`;
         initiateEmailSignIn(auth, email, defaultPassword);
       } else {
@@ -134,7 +138,7 @@ export default function LoginPage() {
 
   const handleRequestPhoneOtp = async () => {
     if (!phoneNumber || !recaptchaVerifier) {
-      toast({ variant: "destructive", title: "Error", description: "Please enter a valid phone number." });
+      toast({ variant: "destructive", title: "Error", description: "Please enter a valid phone number and wait for security check." });
       return;
     }
 
