@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -21,11 +22,12 @@ import {
   ShieldCheck,
   Calendar,
   Home,
-  ChevronRight
+  ChevronRight,
+  CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { getProfile, updateProfile, getUserOrders, getWishlistItems, verifyUserEmail } from '@/lib/actions/user-actions';
+import { getProfile, updateProfile, getUserOrders, getWishlistItems, verifyUserEmail, getOrCreateProfile } from '@/lib/actions/user-actions';
 import { sendOtp, verifyOtp } from '@/lib/actions/otp-actions';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -71,7 +73,7 @@ export default function ProfilePage() {
         
         // Auto-provision basic profile if not exists
         if (!profileData) {
-          profileData = await verifyUserEmail(user.uid, user.email || '');
+          profileData = await getOrCreateProfile(user.uid, user.email || '');
         }
 
         const [ordersData, wishlistData] = await Promise.all([
@@ -125,6 +127,8 @@ export default function ProfilePage() {
       if (result.success) {
         const updated = await verifyUserEmail(user.uid, user.email);
         setProfile(updated);
+        setIsOtpSent(false);
+        setOtpCode('');
         toast({ title: "Email Verified", description: "Your artisan profile is now authenticated." });
       } else {
         toast({ variant: "destructive", title: "Verification Failed", description: result.message });
@@ -217,37 +221,10 @@ export default function ProfilePage() {
                   <h3 className="text-2xl font-black text-primary">Artisanal Verification Pending</h3>
                   <p className="text-muted-foreground text-base max-w-lg">
                     {!isEmailVerified 
-                      ? "To protect our collection, email verification is compulsory. Please request and enter your 6-digit code." 
+                      ? "To protect our collection, email verification is compulsory. Please request and enter your 6-digit code below." 
                       : "Your delivery credentials are incomplete. Fill out your workspace details to unlock handcrafted acquisitions."}
                   </p>
                 </div>
-                {!isEmailVerified && (
-                  <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    {!isOtpSent ? (
-                      <Button onClick={handleSendOtp} disabled={isVerifying} size="lg" className="h-14 rounded-2xl px-8 shadow-lg shadow-primary/20">
-                        {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Send Verification Code
-                      </Button>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        <Input 
-                          placeholder="000000" 
-                          maxLength={6} 
-                          className="w-40 h-14 text-center text-2xl font-black tracking-[0.2em] rounded-2xl border-2 border-primary/20"
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value)}
-                        />
-                        <Button onClick={handleVerifyOtp} disabled={isVerifying} className="h-14 rounded-2xl px-8 shadow-lg shadow-primary/20">
-                          {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Verify
-                        </Button>
-                        <Button variant="ghost" onClick={() => setIsOtpSent(false)} className="h-14 w-14 rounded-2xl p-0">
-                          <ChevronRight className="h-6 w-6 rotate-180" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
@@ -283,7 +260,7 @@ export default function ProfilePage() {
                             value={formData.firstName} 
                             onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
                             placeholder="Aarav" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
                           />
                         </div>
                         <div className="space-y-2.5">
@@ -293,7 +270,7 @@ export default function ProfilePage() {
                             value={formData.lastName} 
                             onChange={(e) => setFormData({...formData, lastName: e.target.value})} 
                             placeholder="Sharma" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
                           />
                         </div>
                       </div>
@@ -302,22 +279,73 @@ export default function ProfilePage() {
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone *</Label>
                           <div className="relative">
-                            <Phone className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                             <Input 
                               required
                               value={formData.phone} 
                               onChange={(e) => setFormData({...formData, phone: e.target.value})} 
                               placeholder="+91 XXXXX XXXXX" 
-                              className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                              className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
                             />
                           </div>
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Authenticated Email</Label>
-                          <div className="flex items-center gap-3 p-4 bg-muted/5 rounded-2xl text-muted-foreground border border-dashed text-sm h-14 px-6">
-                            <Mail className="h-4 w-4 opacity-50" /> 
-                            <span className="truncate flex-1">{user?.email}</span>
-                            {isEmailVerified && <Badge variant="outline" className="text-[9px] border-green-500 text-green-600 bg-green-50">Verified</Badge>}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 p-4 bg-muted/5 rounded-2xl text-muted-foreground border border-dashed text-sm h-14 px-6">
+                              <Mail className="h-4 w-4 opacity-50" /> 
+                              <span className="truncate flex-1">{user?.email}</span>
+                              {isEmailVerified ? (
+                                <Badge variant="outline" className="text-[9px] border-green-500 text-green-600 bg-green-50 flex items-center gap-1">
+                                  <CheckCircle2 className="h-2 w-2" /> Verified
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive" className="text-[9px] font-bold">Unverified</Badge>
+                              )}
+                            </div>
+                            
+                            {!isEmailVerified && (
+                              <div className="pt-1 flex flex-col gap-3">
+                                {!isOtpSent ? (
+                                  <Button 
+                                    type="button"
+                                    onClick={handleSendOtp} 
+                                    disabled={isVerifying} 
+                                    variant="outline"
+                                    className="w-full h-12 rounded-xl border-accent text-accent hover:bg-accent/5 font-bold text-xs"
+                                  >
+                                    {isVerifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                                    Send Verification Code
+                                  </Button>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <Input 
+                                      placeholder="000000" 
+                                      maxLength={6} 
+                                      className="flex-1 h-12 text-center text-xl font-black tracking-[0.2em] rounded-xl border-2 border-primary/20"
+                                      value={otpCode}
+                                      onChange={(e) => setOtpCode(e.target.value)}
+                                    />
+                                    <Button 
+                                      type="button"
+                                      onClick={handleVerifyOtp} 
+                                      disabled={isVerifying || otpCode.length !== 6} 
+                                      className="h-12 rounded-xl px-6 font-bold shadow-lg"
+                                    >
+                                      {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify Code"}
+                                    </Button>
+                                    <Button 
+                                      type="button"
+                                      variant="ghost" 
+                                      onClick={() => setIsOtpSent(false)} 
+                                      className="h-12 w-12 rounded-xl p-0"
+                                    >
+                                      <ChevronRight className="h-5 w-5 rotate-180" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -332,13 +360,13 @@ export default function ProfilePage() {
                       <div className="space-y-2.5">
                         <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Street Address *</Label>
                         <div className="relative">
-                          <Home className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Home className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                           <Input 
                             required
                             value={formData.address} 
                             onChange={(e) => setFormData({...formData, address: e.target.value})} 
                             placeholder="House No, Street Name, Block" 
-                            className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                            className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
                           />
                         </div>
                       </div>
@@ -351,7 +379,7 @@ export default function ProfilePage() {
                             value={formData.city} 
                             onChange={(e) => setFormData({...formData, city: e.target.value})} 
                             placeholder="Jaipur" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
                           />
                         </div>
                         <div className="space-y-2.5">
@@ -361,7 +389,7 @@ export default function ProfilePage() {
                             value={formData.state} 
                             onChange={(e) => setFormData({...formData, state: e.target.value})} 
                             placeholder="Rajasthan" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
                           />
                         </div>
                       </div>
@@ -374,7 +402,7 @@ export default function ProfilePage() {
                             value={formData.pincode} 
                             onChange={(e) => setFormData({...formData, pincode: e.target.value})} 
                             placeholder="302001" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
                           />
                         </div>
                         <div className="space-y-2.5">
@@ -384,7 +412,7 @@ export default function ProfilePage() {
                             value={formData.landmark} 
                             onChange={(e) => setFormData({...formData, landmark: e.target.value})} 
                             placeholder="e.g. Near City Palace" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
                           />
                         </div>
                       </div>

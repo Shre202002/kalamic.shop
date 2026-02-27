@@ -1,3 +1,4 @@
+
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -16,6 +17,31 @@ export async function getProfile(firebaseId: string) {
   } catch (error) {
     console.error("Error fetching profile:", error);
     return null;
+  }
+}
+
+/**
+ * Creates a base profile for a new user without marking it as verified.
+ */
+export async function getOrCreateProfile(firebaseId: string, email: string) {
+  await dbConnect();
+  try {
+    const user = await User.findOneAndUpdate(
+      { firebaseId },
+      { 
+        $setOnInsert: { 
+          email, 
+          emailVerified: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        } 
+      },
+      { new: true, upsert: true }
+    ).lean();
+    return JSON.parse(JSON.stringify(user));
+  } catch (error) {
+    console.error("Error provisioning profile:", error);
+    throw new Error("Failed to provision profile.");
   }
 }
 
@@ -40,6 +66,7 @@ export async function verifyUserEmail(firebaseId: string, email: string) {
 
 /**
  * Updates or creates the user profile with integrated address details.
+ * Does NOT force email verification.
  */
 export async function updateProfile(firebaseId: string, data: { 
   email: string,
@@ -56,7 +83,7 @@ export async function updateProfile(firebaseId: string, data: {
   try {
     const user = await User.findOneAndUpdate(
       { firebaseId },
-      { $set: { ...data, emailVerified: true } },
+      { $set: { ...data } },
       { new: true, upsert: true, runValidators: true }
     ).lean();
     return JSON.parse(JSON.stringify(user));
