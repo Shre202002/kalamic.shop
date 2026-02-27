@@ -34,14 +34,12 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Redirect to profile as soon as a Firebase user exists
   useEffect(() => {
     if (user) {
       router.push('/profile');
     }
   }, [user, router]);
 
-  // Initialize reCAPTCHA
   useEffect(() => {
     if (auth && !recaptchaVerifier) {
       try {
@@ -60,21 +58,22 @@ export default function LoginPage() {
 
   useEffect(() => {
     const handleLoginError = (err: { code: string; message: string }) => {
+      // Don't stop loading if we are in the middle of an OTP fallback check
+      // This listener can be noisy during our custom fallback logic
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        // We handle these specifically in handleVerifyEmailOtp
+        return;
+      }
+
       setIsLoading(false);
       let friendlyMessage = err.message || "An authentication error occurred.";
       
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-        friendlyMessage = "Wrong credentials. Please check and try again.";
-      } else if (err.code === 'auth/email-already-in-use') {
+      if (err.code === 'auth/email-already-in-use') {
         friendlyMessage = "An account with this email already exists.";
       } else if (err.code === 'auth/invalid-phone-number') {
         friendlyMessage = "Invalid format. Use +[country code][number] (e.g., +919876543210).";
       } else if (err.code === 'auth/too-many-requests') {
         friendlyMessage = "Too many attempts. Please try again later.";
-      } else if (err.code === 'auth/quota-exceeded') {
-        friendlyMessage = "SMS quota exceeded. Please contact support or try a different method.";
-      } else if (err.code === 'auth/captcha-check-failed') {
-        friendlyMessage = "Security check failed. Please refresh and try again.";
       }
 
       toast({
@@ -125,14 +124,15 @@ export default function LoginPage() {
     try {
       const result = await verifyOtp(email, otpCode);
       if (result.success) {
-        // For OTP login, use a consistent secret password derived from email
-        const defaultPassword = `OTP_SEC_KAL_${email.trim().toLowerCase().split('@')[0]}`;
+        // For OTP login, use a consistent secret password derived from the unique email
+        const safePrefix = email.trim().toLowerCase().replace(/[@.]/g, '_');
+        const defaultPassword = `OTP_SEC_KAL_PRO_${safePrefix}`;
         
-        // Try sign in, if it fails (likely new user), try sign up
         try {
           await initiateEmailSignIn(auth, email, defaultPassword);
         } catch (error: any) {
-          if (error.code === 'auth/user-not-found') {
+          // Both user-not-found and invalid-credential could mean the account needs to be created
+          if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             await initiateEmailSignUp(auth, email, defaultPassword);
           } else {
             throw error;
@@ -144,7 +144,6 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       setIsLoading(false);
-      // Firebase errors are handled by errorEmitter, only handle verifyOtp errors here
       if (err.message && !err.code) {
         toast({ variant: "destructive", title: "Error", description: err.message });
       }
@@ -158,7 +157,7 @@ export default function LoginPage() {
     }
 
     if (!recaptchaVerifier) {
-      toast({ variant: "destructive", title: "Security Error", description: "reCAPTCHA is still initializing. Please wait a moment." });
+      toast({ variant: "destructive", title: "Security Error", description: "reCAPTCHA is still initializing. Please wait." });
       return;
     }
 
@@ -230,7 +229,7 @@ export default function LoginPage() {
               <TabsContent value="password">
                 <form onSubmit={handlePasswordSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email" className="ml-1">Email Address</Label>
                     <div className="relative">
                       <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                       <Input 
@@ -240,12 +239,12 @@ export default function LoginPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required 
-                        className="pl-14 h-12 rounded-xl"
+                        className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Secret Password</Label>
+                    <Label htmlFor="password" className="ml-1">Secret Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                       <Input 
@@ -254,7 +253,7 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required 
-                        className="pl-14 h-12 rounded-xl"
+                        className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
                       />
                     </div>
                   </div>
@@ -269,7 +268,7 @@ export default function LoginPage() {
                 {!otpSent ? (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="otp-email">Email Address</Label>
+                      <Label htmlFor="otp-email" className="ml-1">Email Address</Label>
                       <div className="relative">
                         <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input 
@@ -279,7 +278,7 @@ export default function LoginPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required 
-                          className="pl-14 h-12 rounded-xl"
+                          className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
                         />
                       </div>
                     </div>
@@ -295,7 +294,7 @@ export default function LoginPage() {
                 ) : (
                   <form onSubmit={handleVerifyEmailOtp} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="otp">Enter 6-Digit Code</Label>
+                      <Label htmlFor="otp" className="ml-1">Enter 6-Digit Code</Label>
                       <div className="relative">
                         <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input 
@@ -326,7 +325,7 @@ export default function LoginPage() {
                 {!otpSent ? (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phoneNumber">Phone Number (with +)</Label>
+                      <Label htmlFor="phoneNumber" className="ml-1">Phone Number (with +)</Label>
                       <div className="relative">
                         <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input 
@@ -336,10 +335,10 @@ export default function LoginPage() {
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
                           required 
-                          className="pl-14 h-12 rounded-xl"
+                          className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
                         />
                       </div>
-                      <p className="text-[10px] text-muted-foreground italic">Must start with + country code (e.g., +91 for India)</p>
+                      <p className="text-[10px] text-muted-foreground italic">Must start with + country code</p>
                     </div>
                     <Button 
                       onClick={handleRequestPhoneOtp} 
@@ -353,7 +352,7 @@ export default function LoginPage() {
                 ) : (
                   <form onSubmit={handleVerifyPhoneOtp} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone-otp">Enter 6-Digit Code</Label>
+                      <Label htmlFor="phone-otp" className="ml-1">Enter 6-Digit Code</Label>
                       <div className="relative">
                         <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input 
@@ -390,7 +389,7 @@ export default function LoginPage() {
               className="w-full text-sm font-bold text-muted-foreground hover:text-primary transition-colors"
               onClick={() => {
                 setIsLogin(!isLogin);
-                setAuthMethod('password'); // Always reset to password tab when toggling mode
+                setAuthMethod('password');
                 setOtpSent(false);
                 setOtpCode('');
               }}

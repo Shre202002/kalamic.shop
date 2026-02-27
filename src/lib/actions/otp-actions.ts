@@ -14,7 +14,6 @@ async function generateAndStoreOtp(identifier: string) {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
-  // We use the email field of the Otp model as a generic identifier
   await Otp.deleteMany({ email: cleanIdentifier });
   await Otp.create({
     email: cleanIdentifier,
@@ -62,14 +61,12 @@ export async function sendOtp(email: string) {
 
 /**
  * Simulates sending an OTP via SMS for phone verification.
- * In production, you would use Twilio, MessageBird, or similar.
  */
 export async function sendPhoneOtp(phone: string) {
   const cleanPhone = phone.trim();
   console.log(`[AUTH] Requesting Phone OTP for: ${cleanPhone}`);
   const code = await generateAndStoreOtp(cleanPhone);
 
-  // SIMULATION: Log to console instead of sending real SMS
   console.log(`\n--------------------------------------`);
   console.log(`[SIMULATED SMS] TO: ${cleanPhone}`);
   console.log(`[SIMULATED SMS] CODE: ${code}`);
@@ -89,19 +86,29 @@ export async function verifyOtp(identifier: string, code: string) {
   const cleanIdentifier = identifier.trim().toLowerCase();
   const cleanCode = code.trim();
 
+  console.log(`[AUTH] Verifying OTP for: ${cleanIdentifier} with code: ${cleanCode}`);
+
   try {
     const otpRecord = await Otp.findOne({ email: cleanIdentifier }).sort({ createdAt: -1 });
 
-    if (!otpRecord) return { success: false, message: "No active verification code found." };
+    if (!otpRecord) {
+      console.error(`[AUTH] No OTP record found for: ${cleanIdentifier}`);
+      return { success: false, message: "No active verification code found." };
+    }
+
     if (new Date() > otpRecord.expiresAt) {
+      console.error(`[AUTH] OTP expired for: ${cleanIdentifier}`);
       await Otp.deleteOne({ _id: otpRecord._id });
       return { success: false, message: "Code has expired." };
     }
+
     if (otpRecord.code !== cleanCode) {
+      console.error(`[AUTH] Incorrect OTP code for: ${cleanIdentifier}. Expected: ${otpRecord.code}, Got: ${cleanCode}`);
       await Otp.updateOne({ _id: otpRecord._id }, { $inc: { attempts: 1 } });
       return { success: false, message: "Incorrect code." };
     }
 
+    console.log(`[AUTH] OTP verification SUCCESS for: ${cleanIdentifier}`);
     await Otp.deleteOne({ _id: otpRecord._id });
     return { success: true };
   } catch (error: any) {
