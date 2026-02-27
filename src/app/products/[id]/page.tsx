@@ -57,6 +57,13 @@ export default function ProductDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   
+  // Analytics tracking (run once when product loads)
+  useEffect(() => {
+    if (product?._id) {
+      trackProductAction(product._id, 'total_views');
+    }
+  }, [product?._id]);
+
   // Firestore Wishlist State
   const wishlistDocQuery = useMemoFirebase(() => {
     const id = product?._id || product?.id;
@@ -80,8 +87,6 @@ export default function ProductDetailPage() {
         
         if (data) {
           setProduct(data);
-          // Track View Analytics
-          trackProductAction(data._id, 'total_views');
           
           const [featured, reviewData] = await Promise.all([
             getFeaturedProducts(),
@@ -278,9 +283,14 @@ export default function ProductDetailPage() {
     );
   }
 
-  const images = product.images?.length > 0 
-    ? product.images.map((img: any) => img.url) 
-    : [`https://picsum.photos/seed/${product.slug}/800/800`];
+  // Filter out empty URLs to prevent next/image errors
+  const images = (product.images || [])
+    .filter((img: any) => img.url && img.url.trim() !== "")
+    .map((img: any) => img.url);
+    
+  if (images.length === 0) {
+    images.push(`https://placehold.co/800x800?text=${encodeURIComponent(product.name)}`);
+  }
     
   const reviewCount = reviews.length;
   const averageRating = reviewCount > 0 
@@ -304,7 +314,13 @@ export default function ProductDetailPage() {
             <div className="lg:col-span-5 space-y-4">
               <div className="lg:sticky lg:top-24">
                 <div className="relative aspect-square rounded-2xl md:rounded-3xl overflow-hidden bg-white shadow-lg border border-primary/5">
-                  <Image src={images[selectedImage]} alt={product.name} fill className="object-cover animate-fade-in" priority />
+                  <Image 
+                    src={images[selectedImage % images.length]} 
+                    alt={product.name} 
+                    fill 
+                    className="object-cover animate-fade-in" 
+                    priority 
+                  />
                   {product.compare_at_price && (
                     <Badge className="absolute top-4 left-4 bg-destructive text-destructive-foreground">SALE</Badge>
                   )}
@@ -342,12 +358,12 @@ export default function ProductDetailPage() {
 
               <div className="space-y-1">
                 <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-primary">₹{(product.price).toFixed(2)}</span>
+                  <span className="text-3xl font-bold text-primary">₹{(product.price ?? 0).toFixed(2)}</span>
                   {product.compare_at_price && (
                     <>
-                      <span className="text-lg text-muted-foreground line-through">₹{Number(product.compare_at_price).toFixed(2)}</span>
+                      <span className="text-lg text-muted-foreground line-through">₹{Number(product.compare_at_price ?? 0).toFixed(2)}</span>
                       <span className="text-sm font-bold text-green-600">
-                        {Math.round(((Number(product.compare_at_price) - product.price) / Number(product.compare_at_price)) * 100)}% off
+                        {Math.round(((Number(product.compare_at_price ?? 0) - (product.price ?? 0)) / Number(product.compare_at_price ?? 1)) * 100)}% off
                       </span>
                     </>
                   )}

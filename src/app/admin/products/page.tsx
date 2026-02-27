@@ -47,14 +47,16 @@ import {
   Language as SeoIcon,
   LocalShipping,
   SettingsSuggest,
-  HistoryEdu
+  HistoryEdu,
+  CloudSync
 } from '@mui/icons-material';
 import { 
   getAdminProducts, 
   toggleProductVisibility, 
   toggleProductFeature,
   deleteProduct,
-  saveProduct 
+  saveProduct,
+  seedDefaultProducts 
 } from '@/lib/actions/admin-actions';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -103,6 +105,7 @@ export default function ProductsManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
   const theme = useTheme();
@@ -158,6 +161,21 @@ export default function ProductsManagement() {
       toast({ variant: "destructive", title: "Save Failed", description: error.message });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSeedCatalog = async () => {
+    if (!confirm("This will replace your current catalog with the 5 handcrafted default pieces. Continue?")) return;
+    
+    setIsSeeding(true);
+    try {
+      await seedDefaultProducts('current-admin');
+      toast({ title: "Catalog Seeded", description: "Handcrafted default pieces are now live." });
+      load();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Seed Failed", description: e.message });
+    } finally {
+      setIsSeeding(false);
     }
   };
 
@@ -355,6 +373,16 @@ export default function ProductsManagement() {
             />
           </Box>
           
+          <Tooltip title="Reset & Seed Catalog">
+            <IconButton 
+              onClick={handleSeedCatalog} 
+              disabled={isSeeding}
+              sx={{ bgcolor: 'white', border: `1px solid ${theme.palette.divider}`, borderRadius: 3 }}
+            >
+              {isSeeding ? <CircularProgress size={20} /> : <CloudSync color="primary" />}
+            </IconButton>
+          </Tooltip>
+
           <Button 
             variant="contained" 
             disableElevation 
