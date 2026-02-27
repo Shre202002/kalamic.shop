@@ -21,12 +21,14 @@ import {
   ShoppingBag,
   MapPin,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  ChevronLeft
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Script from 'next/script';
+import Link from 'next/link';
 
 declare global {
   interface Window {
@@ -54,7 +56,7 @@ export default function CheckoutPage() {
     paymentMethod: 'card'
   });
 
-  // Strict profile and verification enforcement
+  // Strict profile verification
   useEffect(() => {
     async function checkVerify() {
       if (!isUserLoading && user) {
@@ -66,8 +68,8 @@ export default function CheckoutPage() {
         if (!isVerified || !isComplete) {
           toast({
             variant: "destructive",
-            title: "Collector Profile Incomplete",
-            description: "Please verify your email and complete your delivery details in the workspace first.",
+            title: "Artisan Profile Incomplete",
+            description: "Please verify your email and complete your delivery details in your workspace first.",
           });
           router.push('/profile');
         }
@@ -85,7 +87,7 @@ export default function CheckoutPage() {
 
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
-  // Auto-fill from DB
+  // Auto-fill from Profile
   useEffect(() => {
     async function loadUserData() {
       if (!user) return;
@@ -122,23 +124,24 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length || !firestore) return;
     
+    // Basic validation
     if (!formData.fullName || !formData.address || !formData.city || !formData.phone) {
       toast({
         variant: "destructive",
-        title: "Missing Information",
-        description: "Please complete the shipping address fields.",
+        title: "Incomplete Details",
+        description: "Please ensure all shipping fields are completed for a safe delivery.",
       });
       return;
     }
 
     if (!cashfreeLoaded) {
-      toast({ variant: "destructive", title: "System Error", description: "Payment gateway is still initializing. Please wait a moment." });
+      toast({ variant: "destructive", title: "System Error", description: "Payment gateway is initializing. Please wait." });
       return;
     }
 
     setIsProcessing(true);
     try {
-      // 1. Create a "Pending" order in Firestore first
+      // 1. Create a "Pending Payment" order record
       const orderId = `KAL-${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
       const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
 
@@ -150,7 +153,6 @@ export default function CheckoutPage() {
         orderStatus: 'pending_payment',
         shippingCost: shipping,
         discountAmount: 0,
-        paymentId: '', // To be filled after success
         shippingDetails: { ...formData },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -158,7 +160,7 @@ export default function CheckoutPage() {
 
       await setDoc(orderRef, orderData);
 
-      // Save items to order subcollection
+      // Add items to subcollection
       const itemPromises = cartItems.map(async (item) => {
         const orderItemRef = doc(firestore, 'users', user.uid, 'orders', orderId, 'items', item.id);
         return setDoc(orderItemRef, {
@@ -173,27 +175,27 @@ export default function CheckoutPage() {
       });
       await Promise.all(itemPromises);
 
-      // 2. Create Cashfree Order on Server
+      // 2. Request Secure Session from Server
       const { paymentSessionId } = await createCashfreeOrder({
         orderId,
         orderAmount: total,
         orderCurrency: 'INR',
         customerDetails: {
           customerId: user.uid,
-          customerPhone: formData.phone.replace(/\D/g, '').slice(-10), // Clean 10 digit phone
+          customerPhone: formData.phone.replace(/\D/g, '').slice(-10),
           customerEmail: user.email || 'guest@kalamic.shop',
           customerName: formData.fullName,
         }
       });
 
-      // 3. Initiate Cashfree Checkout
+      // 3. Launch Cashfree SDK
       const cashfree = new window.Cashfree({
         mode: process.env.NEXT_PUBLIC_CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
       });
 
       cashfree.checkout({
         paymentSessionId,
-        redirectTarget: "_self" // Or "_modal" for a bridge experience
+        redirectTarget: "_self" 
       }).then(async (result: any) => {
         if (result.error) {
           toast({ variant: "destructive", title: "Payment Failed", description: result.error.message });
@@ -202,55 +204,58 @@ export default function CheckoutPage() {
         }
 
         if (result.redirect) {
-          // If redirected, verification will happen on the return URL
+          // Logic will continue on return URL
           return;
         }
 
-        // 4. Verify Payment on Success (for non-redirect flows)
+        // 4. Client-side Success: Verify on Server immediately
         if (result.paymentDetails) {
+          setIsProcessing(true);
           const verification = await verifyCashfreePayment(orderId);
+          
           if (verification.success) {
-            // Finalize order status in Firestore
+            // Update Order to 'placed'
             await updateDoc(orderRef, {
               orderStatus: 'placed',
               paymentId: verification.paymentId,
               updatedAt: serverTimestamp()
             });
 
-            // Clear Cart
+            // Clear Cart items
             const clearPromises = cartItems.map(item => 
               deleteDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id))
             );
             await Promise.all(clearPromises);
 
-            toast({ title: "Order Successful!", description: `Acquisition complete. Order ID: ${orderId}` });
+            toast({ title: "Acquisition Successful!", description: `Order ID: ${orderId} has been confirmed.` });
             router.push(`/orders/${orderId}`);
           } else {
-            throw new Error("Payment verification failed. Please contact support.");
+            toast({ 
+              variant: "destructive", 
+              title: "Verification Pending", 
+              description: "We are waiting for final payment confirmation from the bank." 
+            });
+            router.push('/orders');
           }
         }
       });
 
     } catch (error: any) {
-      console.error("Order failed:", error);
+      console.error("Payment initiation failed:", error);
       toast({
         variant: "destructive",
-        title: "Order Process Failed",
-        description: error.message || "There was an error initiating your payment.",
+        title: "Secure Checkout Failed",
+        description: error.message || "We encountered an error connecting to our payment partner.",
       });
-    } finally {
-      // Don't set isProcessing false here if redirecting
+      setIsProcessing(false);
     }
   };
 
   if (isUserLoading || isCartLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        </main>
-        <Footer />
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <Loader2 className="h-12 w-12 text-primary animate-spin" />
+        <p className="mt-4 text-muted-foreground font-medium">Securing your session...</p>
       </div>
     );
   }
@@ -266,174 +271,186 @@ export default function CheckoutPage() {
       <main className="flex-1 py-8 md:py-16">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-4">
-            <div>
-              <h1 className="text-3xl md:text-5xl font-extrabold text-primary tracking-tight">Checkout</h1>
-              <p className="text-muted-foreground mt-1">Complete your acquisition of handcrafted art.</p>
+            <div className="space-y-1">
+              <Link href="/cart" className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 mb-2">
+                <ChevronLeft className="h-3 w-3" /> Back to Bag
+              </Link>
+              <h1 className="text-3xl md:text-5xl font-black text-primary tracking-tight">Checkout</h1>
+              <p className="text-muted-foreground">Confirm your selection and shipping destination.</p>
             </div>
-            <div className="flex items-center gap-2 text-sm font-bold text-primary bg-white px-4 py-2 rounded-full border shadow-sm">
-              <ShieldCheck className="h-4 w-4 text-accent" /> Secure Cashfree Transaction
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary bg-white px-6 py-3 rounded-2xl shadow-sm border">
+              <ShieldCheck className="h-4 w-4 text-accent" /> Secure Cashfree® Integration
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7 space-y-6">
-              <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
-                <CardHeader className="p-8 pb-4">
-                  <div className="flex items-center gap-3 mb-1">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <MapPin className="h-4 w-4" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            <div className="lg:col-span-7 space-y-8">
+              <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white">
+                <CardHeader className="p-10 pb-4">
+                  <div className="flex items-center gap-4 mb-1">
+                    <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                      <MapPin className="h-5 w-5" />
                     </div>
-                    <CardTitle className="text-xl">Shipping Address</CardTitle>
+                    <CardTitle className="text-2xl font-black text-primary">Shipping Credentials</CardTitle>
                   </div>
-                  <CardDescription>Verified delivery details from your artisan profile.</CardDescription>
+                  <CardDescription className="text-base">Verified delivery details for your artisan pieces.</CardDescription>
                 </CardHeader>
-                <CardContent className="p-8 pt-0 space-y-4">
+                <CardContent className="p-10 pt-4 space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Name</Label>
                     <Input 
                       id="fullName" 
                       name="fullName" 
                       value={formData.fullName} 
                       onChange={handleInputChange} 
-                      className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
+                      className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address">Street Address</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Street Address</Label>
                     <Input 
                       id="address" 
                       name="address" 
                       value={formData.address} 
                       onChange={handleInputChange} 
-                      className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
+                      className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City</Label>
                       <Input 
                         id="city" 
                         name="city" 
                         value={formData.city} 
                         onChange={handleInputChange} 
-                        className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
+                        className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="zip">ZIP / Postal Code</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">ZIP / Pincode</Label>
                       <Input 
                         id="zip" 
                         name="zip" 
                         value={formData.zip} 
                         onChange={handleInputChange} 
-                        className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
+                        className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Contact Phone (Required for SMS tracking)</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone (For SMS Tracking)</Label>
                     <Input 
                       id="phone" 
                       name="phone" 
                       placeholder="+91XXXXXXXXXX"
                       value={formData.phone} 
                       onChange={handleInputChange} 
-                      className="rounded-xl h-12 border-muted/30 focus-visible:ring-accent"
+                      className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6"
                     />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
-                <CardHeader className="p-8 pb-4">
-                  <div className="flex items-center gap-3 mb-1">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <CreditCard className="h-4 w-4" />
+              <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white">
+                <CardHeader className="p-10 pb-4">
+                  <div className="flex items-center gap-4 mb-1">
+                    <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                      <CreditCard className="h-5 w-5" />
                     </div>
-                    <CardTitle className="text-xl">Payment Method</CardTitle>
+                    <CardTitle className="text-2xl font-black text-primary">Payment Architecture</CardTitle>
                   </div>
-                  <CardDescription>Select your preferred acquisition method.</CardDescription>
+                  <CardDescription className="text-base">Choose your method of acquisition.</CardDescription>
                 </CardHeader>
-                <CardContent className="p-8 pt-0 space-y-6">
+                <CardContent className="p-10 pt-4 space-y-8">
                   <RadioGroup 
                     defaultValue="card" 
                     onValueChange={(v) => setFormData({...formData, paymentMethod: v})}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    className="grid grid-cols-1 md:grid-cols-2 gap-6"
                   >
                     <div>
                       <RadioGroupItem value="card" id="card" className="peer sr-only" />
                       <Label
                         htmlFor="card"
-                        className="flex flex-col items-center justify-between rounded-2xl border-2 border-muted bg-popover p-4 hover:bg-accent/5 hover:text-accent-foreground peer-data-[state=checked]:border-accent [&:has([data-state=checked])]:border-accent cursor-pointer transition-all"
+                        className="flex flex-col items-center justify-center rounded-[2rem] border-2 border-muted bg-white p-8 hover:bg-primary/5 hover:border-primary/20 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary cursor-pointer transition-all h-full"
                       >
-                        <CreditCard className="mb-3 h-6 w-6" />
-                        <span className="text-sm font-bold">Safe Online Payment</span>
-                        <span className="text-[10px] text-muted-foreground mt-1">Cards, UPI, Netbanking</span>
+                        <CreditCard className="mb-4 h-8 w-8 text-primary" />
+                        <span className="text-lg font-black text-primary">Secure Online</span>
+                        <span className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest">Cards, UPI, Banking</span>
                       </Label>
                     </div>
                   </RadioGroup>
-                  <div className="p-4 bg-muted/20 rounded-xl border border-dashed border-primary/20 flex gap-3 items-start">
-                    <AlertTriangle className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      You will be redirected to Cashfree's secure payment page. All sensitive information is encrypted via industry-standard SSL.
+                  <div className="p-6 bg-[#FAF4EB] rounded-[1.5rem] border border-dashed border-primary/20 flex gap-4 items-start">
+                    <AlertTriangle className="h-6 w-6 text-accent flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-muted-foreground leading-relaxed italic">
+                      Note: You will be redirected to a secure Cashfree environment to complete your transaction. Your order will be confirmed once verification is received.
                     </p>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            <div className="lg:col-span-5 space-y-6 sticky top-24">
-              <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white">
-                <CardHeader className="p-8 pb-4">
-                  <CardTitle className="text-2xl font-bold">Order Summary</CardTitle>
+            <div className="lg:col-span-5 space-y-8 lg:sticky lg:top-24">
+              <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                <CardHeader className="p-10 pb-4">
+                  <CardTitle className="text-3xl font-black text-primary">Acquisition Summary</CardTitle>
                 </CardHeader>
-                <CardContent className="p-8 pt-0 space-y-6">
-                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
+                <CardContent className="p-10 pt-4 space-y-8">
+                  <div className="space-y-6 max-h-[350px] overflow-y-auto pr-4 scrollbar-hide">
                     {cartItems?.map((item) => (
-                      <div key={item.id} className="flex gap-4 items-center">
-                        <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-                          <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                      <div key={item.id} className="flex gap-6 items-center group">
+                        <div className="relative h-20 w-20 rounded-2xl overflow-hidden bg-muted flex-shrink-0 shadow-inner">
+                          <Image src={item.imageUrl} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-primary truncate">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                          <p className="text-base font-black text-primary truncate">{item.name}</p>
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Quantity: {item.quantity}</p>
                         </div>
-                        <p className="text-sm font-bold text-primary">₹{(item.priceAtAddToCart * item.quantity).toFixed(2)}</p>
+                        <p className="text-lg font-black text-primary">₹{(item.priceAtAddToCart * item.quantity).toLocaleString()}</p>
                       </div>
                     ))}
                   </div>
 
-                  <Separator />
+                  <Separator className="opacity-30" />
 
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
+                  <div className="space-y-4">
+                    <div className="flex justify-between text-sm font-bold uppercase tracking-widest">
                       <span className="text-muted-foreground">Subtotal</span>
-                      <span className="font-medium text-primary">₹{subtotal.toFixed(2)}</span>
+                      <span className="text-primary">₹{subtotal.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Shipping (FragileCare™)</span>
-                      <span className="font-medium text-accent">₹{shipping.toFixed(2)}</span>
+                    <div className="flex justify-between text-sm font-bold uppercase tracking-widest">
+                      <span className="text-muted-foreground">FragileCare™ Shipping</span>
+                      <span className="text-accent">₹{shipping.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  <Separator />
+                  <Separator className="opacity-30" />
 
                   <div className="flex justify-between items-end">
-                    <span className="text-lg font-bold text-primary">Total Amount</span>
-                    <span className="text-3xl font-black text-primary">₹{total.toFixed(2)}</span>
+                    <span className="text-xl font-black text-primary uppercase tracking-tighter">Total Amount</span>
+                    <div className="text-right">
+                      <p className="text-4xl font-black text-primary tracking-tighter">₹{total.toLocaleString()}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Inclusive of taxes</p>
+                    </div>
                   </div>
 
                   <Button 
                     onClick={handlePlaceOrder} 
                     disabled={isProcessing || !cashfreeLoaded}
-                    className="w-full h-16 rounded-2xl bg-primary text-white hover:bg-primary/90 text-xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95 mt-4"
+                    className="w-full h-20 rounded-[2rem] bg-primary text-white hover:bg-primary/90 text-2xl font-black shadow-2xl shadow-primary/20 transition-all active:scale-95 mt-6"
                   >
                     {isProcessing ? (
-                      <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Initiating Gateway...</>
+                      <><Loader2 className="mr-3 h-8 w-8 animate-spin" /> Securing...</>
                     ) : (
-                      <><CheckCircle2 className="mr-2 h-6 w-6" /> Pay with Cashfree</>
+                      <><CheckCircle2 className="mr-3 h-8 w-8" /> Pay ₹{total.toLocaleString()}</>
                     )}
                   </Button>
+                  
+                  <div className="flex items-center justify-center gap-2 opacity-40">
+                    <div className="h-px bg-muted flex-1" />
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em]">Verified Artisan Transaction</p>
+                    <div className="h-px bg-muted flex-1" />
+                  </div>
                 </CardContent>
               </Card>
             </div>
