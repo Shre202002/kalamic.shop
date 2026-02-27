@@ -126,12 +126,12 @@ export default function ProductsManagement() {
 
   const handleOpenDialog = (product?: any) => {
     if (product) {
-      // Ensure nested objects exist to prevent map/access errors
+      // Deep normalization to prevent "map of undefined" errors
       const normalizedProduct = {
         ...INITIAL_PRODUCT,
         ...product,
-        images: product.images?.length ? product.images : INITIAL_PRODUCT.images,
-        specifications: product.specifications?.length ? product.specifications : INITIAL_PRODUCT.specifications,
+        images: Array.isArray(product.images) && product.images.length ? product.images : INITIAL_PRODUCT.images,
+        specifications: Array.isArray(product.specifications) && product.specifications.length ? product.specifications : INITIAL_PRODUCT.specifications,
         shipping: {
           ...INITIAL_PRODUCT.shipping,
           ...(product.shipping || {}),
@@ -143,7 +143,7 @@ export default function ProductsManagement() {
         seo: {
           ...INITIAL_PRODUCT.seo,
           ...(product.seo || {}),
-          meta_keywords: product.seo?.meta_keywords || []
+          meta_keywords: Array.isArray(product.seo?.meta_keywords) ? product.seo.meta_keywords : []
         }
       };
       setEditingProduct(normalizedProduct);

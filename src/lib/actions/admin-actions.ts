@@ -143,15 +143,33 @@ export async function saveProduct(adminId: string, productData: any) {
     const isNew = !productData._id;
     let savedProduct;
 
+    // Ensure numeric fields are correctly typed
+    const cleanedData = {
+      ...productData,
+      price: Number(productData.price) || 0,
+      compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
+      stock: Number(productData.stock) || 0,
+      visibility_priority: Number(productData.visibility_priority) || 0,
+      shipping: {
+        ...productData.shipping,
+        weight_kg: Number(productData.shipping?.weight_kg) || 0,
+        package_dimensions_cm: {
+          length: Number(productData.shipping?.package_dimensions_cm?.length) || 0,
+          width: Number(productData.shipping?.package_dimensions_cm?.width) || 0,
+          height: Number(productData.shipping?.package_dimensions_cm?.height) || 0,
+        }
+      }
+    };
+
     if (isNew) {
       savedProduct = await Product.create({
-        ...productData,
+        ...cleanedData,
         created_by_admin: adminId,
         updated_by_admin: adminId
       });
       await logAction(adminId, 'CREATE_PRODUCT', 'Product', savedProduct._id.toString(), `Created piece: ${savedProduct.name}`);
     } else {
-      const { _id, ...updateData } = productData;
+      const { _id, ...updateData } = cleanedData;
       savedProduct = await Product.findByIdAndUpdate(
         _id,
         { ...updateData, updated_by_admin: adminId },
@@ -160,7 +178,12 @@ export async function saveProduct(adminId: string, productData: any) {
       await logAction(adminId, 'UPDATE_PRODUCT', 'Product', _id, `Updated piece: ${savedProduct.name}`);
     }
 
+    // Seamlessly update caches
     revalidatePath('/admin/products');
+    revalidatePath(`/products/${savedProduct.slug}`);
+    revalidatePath('/products');
+    revalidatePath('/');
+    
     return JSON.parse(JSON.stringify(savedProduct));
   } catch (error: any) {
     console.error("Save Product Error:", error);
@@ -170,23 +193,26 @@ export async function saveProduct(adminId: string, productData: any) {
 
 export async function toggleProductVisibility(adminId: string, productId: string, isActive: boolean) {
   await dbConnect();
-  await Product.findByIdAndUpdate(productId, { is_active: isActive });
+  const product = await Product.findByIdAndUpdate(productId, { is_active: isActive });
   await logAction(adminId, 'TOGGLE_VISIBILITY', 'Product', productId, `Active: ${isActive}`);
   revalidatePath('/admin/products');
+  if (product) revalidatePath(`/products/${product.slug}`);
 }
 
 export async function toggleProductFeature(adminId: string, productId: string, isFeatured: boolean) {
   await dbConnect();
-  await Product.findByIdAndUpdate(productId, { is_featured: isFeatured });
+  const product = await Product.findByIdAndUpdate(productId, { is_featured: isFeatured });
   await logAction(adminId, 'TOGGLE_FEATURED', 'Product', productId, `Featured: ${isFeatured}`);
   revalidatePath('/admin/products');
+  if (product) revalidatePath(`/products/${product.slug}`);
 }
 
 export async function deleteProduct(adminId: string, productId: string) {
   await dbConnect();
-  await Product.findByIdAndUpdate(productId, { is_deleted: true, is_active: false });
+  const product = await Product.findByIdAndUpdate(productId, { is_deleted: true, is_active: false });
   await logAction(adminId, 'SOFT_DELETE', 'Product', productId, 'Moved to archived pieces');
   revalidatePath('/admin/products');
+  if (product) revalidatePath(`/products/${product.slug}`);
 }
 
 /**

@@ -57,6 +57,7 @@ export default function ProductDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   
+  // Track views once on load
   useEffect(() => {
     if (product?._id) {
       trackProductAction(product._id, 'total_views');
@@ -209,7 +210,7 @@ export default function ProductDetailPage() {
 
       if (navigator.share) {
         await navigator.share(shareData);
-      } else if (navigator.clipboard) {
+      } else {
         try {
           await navigator.clipboard.writeText(window.location.href);
           toast({
@@ -217,19 +218,12 @@ export default function ProductDetailPage() {
             description: "Product link copied to clipboard.",
           });
         } catch (clipboardErr) {
-          console.warn("Clipboard access denied:", clipboardErr);
           toast({
             variant: "destructive",
             title: "Action Restricted",
-            description: "Browser policy blocked clipboard access. Please manually copy the URL.",
+            description: "Please manually copy the URL from your browser address bar.",
           });
         }
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Share Unavailable",
-          description: "Sharing features are not supported by your current browser.",
-        });
       }
     } catch (err) {
       console.error("Error sharing:", err);
@@ -291,6 +285,7 @@ export default function ProductDetailPage() {
     );
   }
 
+  // Robust image handling to prevent empty string src errors
   const images = (product.images || [])
     .filter((img: any) => img.url && img.url.trim() !== "")
     .map((img: any) => img.url);
@@ -305,7 +300,7 @@ export default function ProductDetailPage() {
   const reviewCount = reviews.length;
   const averageRating = reviewCount > 0 
     ? parseFloat((reviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount).toFixed(1)) 
-    : 0;
+    : (product.averageRating || 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -361,17 +356,17 @@ export default function ProductDetailPage() {
                     <Star className="h-3 w-3 fill-green-700 text-green-700" />
                   </div>
                   <span className="text-sm text-muted-foreground font-medium underline underline-offset-4 cursor-pointer hover:text-primary transition-colors" onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })}>
-                    {reviewCount} Ratings & Reviews
+                    {reviewCount || product.reviewCount || 0} Ratings & Reviews
                   </span>
                 </div>
               </div>
 
               <div className="space-y-1">
                 <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-primary">₹{(product.price ?? 0).toFixed(2)}</span>
+                  <span className="text-3xl font-bold text-primary">₹{(product.price ?? 0).toLocaleString()}</span>
                   {product.compare_at_price && (
                     <>
-                      <span className="text-lg text-muted-foreground line-through">₹{Number(product.compare_at_price ?? 0).toFixed(2)}</span>
+                      <span className="text-lg text-muted-foreground line-through">₹{Number(product.compare_at_price ?? 0).toLocaleString()}</span>
                       <span className="text-sm font-bold text-green-600">
                         {Math.round(((Number(product.compare_at_price ?? 0) - (product.price ?? 0)) / Number(product.compare_at_price ?? 1)) * 100)}% off
                       </span>
@@ -399,7 +394,7 @@ export default function ProductDetailPage() {
                   <div className="p-6 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className={`h-2.5 w-2.5 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-orange-500'}`} />
+                        <div className={`h-2.5 w-2.5 rounded-full ${(product.stock ?? 0) > 0 ? 'bg-green-500' : 'bg-orange-500'}`} />
                         <span className="text-sm font-bold text-primary">{(product.stock ?? 0) > 0 ? 'Available Now' : 'Limited Edition'}</span>
                       </div>
                       <Badge variant="outline" className="text-[10px] font-bold border-accent text-accent">FAST SHIP</Badge>
@@ -466,7 +461,7 @@ export default function ProductDetailPage() {
               <section className="space-y-6">
                 <h2 className="text-2xl font-bold text-primary border-b pb-2">Technical Specifications</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                  {product.specifications?.length > 0 ? (
+                  {Array.isArray(product.specifications) && product.specifications.length > 0 ? (
                     product.specifications.map((spec: any, i: number) => (
                       <div key={i} className="flex justify-between border-b border-muted/30 py-2">
                         <span className="text-sm font-bold text-muted-foreground capitalize">{spec.key}</span>
@@ -530,14 +525,14 @@ export default function ProductDetailPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="text-center md:text-left bg-white p-8 rounded-3xl shadow-sm border border-primary/5">
-                    <p className="text-6xl font-extrabold text-primary">{averageRating}</p>
+                    <p className="text-6xl font-extrabold text-primary">{averageRating || 0}</p>
                     <div className="flex justify-center md:justify-start gap-1 my-3">
                       {[1,2,3,4,5].map(i => (
                         <Star key={i} className={`h-5 w-5 ${averageRating >= i ? 'fill-accent text-accent' : 'text-muted-foreground/20'}`} />
                       ))}
                     </div>
                     <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider">
-                      {reviewCount} Verified collector{reviewCount !== 1 ? 's' : ''}
+                      {reviewCount || 0} Verified collector{reviewCount !== 1 ? 's' : ''}
                     </p>
                   </div>
 
