@@ -21,7 +21,7 @@ import {
   ShieldCheck,
   Calendar,
   Home,
-  Key
+  ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -140,19 +140,6 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!user) return;
     
-    // Validate all fields are present
-    const requiredFields = ['firstName', 'lastName', 'phone', 'address', 'city', 'state', 'pincode', 'landmark'];
-    const missing = requiredFields.filter(f => !formData[f as keyof typeof formData]);
-    
-    if (missing.length > 0) {
-      toast({
-        variant: "destructive",
-        title: "Incomplete Profile",
-        description: "Please fill in all address and contact details to proceed.",
-      });
-      return;
-    }
-
     setIsUpdating(true);
     try {
       const updated = await updateProfile(user.uid, {
@@ -179,7 +166,6 @@ export default function ProfilePage() {
   const isEmailVerified = profile?.emailVerified;
   const isFullyVerified = isProfileComplete && isEmailVerified;
 
-  // Dynamic Member Since Year from DB
   const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : 2024;
 
   if (isUserLoading || isLoadingData) {
@@ -198,59 +184,65 @@ export default function ProfilePage() {
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
       <Navbar />
       <main className="flex-1 py-8 md:py-16">
-        <div className="container mx-auto px-4 max-w-5xl space-y-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-accent font-bold text-xs uppercase tracking-widest">
-                <ShieldCheck className="h-4 w-4" /> Secure Artisan Account
+        <div className="container mx-auto px-4 max-w-6xl space-y-10">
+          {/* Header Summary */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-primary/10 pb-8">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-[0.2em]">
+                <ShieldCheck className="h-4 w-4 text-accent" /> Collector Dashboard
               </div>
-              <h1 className="text-4xl md:text-6xl font-extrabold text-primary tracking-tight">Artisan Workspace</h1>
-              <p className="text-muted-foreground text-sm md:text-lg">Manage your handcrafted treasures and delivery preferences.</p>
+              <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tight">Artisan Workspace</h1>
+              <p className="text-muted-foreground text-sm md:text-lg max-w-xl">
+                Fine-tune your personal credentials and artisanal delivery preferences.
+              </p>
             </div>
-            <div className="flex items-center gap-3">
-               <Badge variant={isFullyVerified ? "default" : "destructive"} className="h-10 px-4 rounded-xl text-xs font-bold uppercase tracking-wider">
-                {isFullyVerified ? "Verified Collector" : "Verification Required"}
+            <div className="flex flex-wrap items-center gap-3">
+               <Badge variant={isFullyVerified ? "default" : "destructive"} className="h-12 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg">
+                {isFullyVerified ? "Fully Verified Master" : "Action Required"}
               </Badge>
+               <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-white border px-4 py-3 rounded-2xl shadow-sm">
+                <Calendar className="h-3 w-3 text-accent" /> Since {memberSinceYear}
+              </div>
             </div>
           </div>
 
           {/* Verification Warning Card */}
           {(!isEmailVerified || !isProfileComplete) && (
-            <Card className="bg-destructive/5 border-destructive/20 border-2 rounded-[2rem] overflow-hidden">
-              <CardContent className="p-8 flex flex-col md:flex-row items-center gap-6">
-                <div className="h-16 w-16 rounded-3xl bg-destructive/10 flex items-center justify-center text-destructive flex-shrink-0">
-                  <AlertCircle className="h-8 w-8" />
+            <Card className="bg-destructive/5 border-destructive/30 border-2 rounded-[2.5rem] overflow-hidden shadow-xl animate-in zoom-in-95 duration-500">
+              <CardContent className="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8">
+                <div className="h-20 w-20 rounded-[2rem] bg-destructive/10 flex items-center justify-center text-destructive flex-shrink-0 border border-destructive/20 shadow-inner">
+                  <AlertCircle className="h-10 w-10" />
                 </div>
-                <div className="flex-1 text-center md:text-left">
-                  <h3 className="text-xl font-black text-primary mb-1">Incomplete Collector Profile</h3>
-                  <p className="text-muted-foreground text-sm">
+                <div className="flex-1 text-center md:text-left space-y-2">
+                  <h3 className="text-2xl font-black text-primary">Artisanal Verification Pending</h3>
+                  <p className="text-muted-foreground text-base max-w-lg">
                     {!isEmailVerified 
-                      ? "Your email is not verified. Please request an OTP to authenticate your account." 
-                      : "Please fill out all address and contact details to enable acquisitions."}
+                      ? "To protect our collection, email verification is compulsory. Please request and enter your 6-digit code." 
+                      : "Your delivery credentials are incomplete. Fill out your workspace details to unlock handcrafted acquisitions."}
                   </p>
                 </div>
                 {!isEmailVerified && (
-                  <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                  <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                     {!isOtpSent ? (
-                      <Button onClick={handleSendOtp} disabled={isVerifying} className="h-12 rounded-xl">
+                      <Button onClick={handleSendOtp} disabled={isVerifying} size="lg" className="h-14 rounded-2xl px-8 shadow-lg shadow-primary/20">
                         {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Send Verification OTP
+                        Send Verification Code
                       </Button>
                     ) : (
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-3">
                         <Input 
                           placeholder="000000" 
                           maxLength={6} 
-                          className="w-32 h-12 text-center font-bold tracking-widest"
+                          className="w-40 h-14 text-center text-2xl font-black tracking-[0.2em] rounded-2xl border-2 border-primary/20"
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
                         />
-                        <Button onClick={handleVerifyOtp} disabled={isVerifying} className="h-12 rounded-xl">
+                        <Button onClick={handleVerifyOtp} disabled={isVerifying} className="h-14 rounded-2xl px-8 shadow-lg shadow-primary/20">
                           {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           Verify
                         </Button>
-                        <Button variant="ghost" onClick={() => setIsOtpSent(false)} className="h-12 px-2">
-                          Retry
+                        <Button variant="ghost" onClick={() => setIsOtpSent(false)} className="h-14 w-14 rounded-2xl p-0">
+                          <ChevronRight className="h-6 w-6 rotate-180" />
                         </Button>
                       </div>
                     )}
@@ -260,194 +252,223 @@ export default function ProfilePage() {
             </Card>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="lg:col-span-2 border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white">
-              <CardHeader className="p-8 pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-                      <UserIcon className="h-6 w-6 text-accent" /> Personal Details
-                    </CardTitle>
-                    <CardDescription>Mandatory information for artisanal delivery and acquisition.</CardDescription>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            {/* Left Column: Form */}
+            <div className="lg:col-span-8 space-y-8">
+              <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                <CardHeader className="p-10 pb-6 bg-primary/[0.02]">
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                      <UserIcon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-3xl font-black text-primary">Collector Profile</CardTitle>
+                      <CardDescription className="text-base">Enter the credentials we use for artisan certificates and delivery.</CardDescription>
+                    </div>
                   </div>
-                  <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/30 px-3 py-1.5 rounded-full">
-                    <Calendar className="h-3 w-3" /> Member Since {memberSinceYear}
+                </CardHeader>
+                <Separator className="mx-10 opacity-30" />
+                <CardContent className="p-10 pt-8">
+                  <form onSubmit={handleUpdateProfile} className="space-y-12">
+                    {/* Identity Section */}
+                    <div className="space-y-6">
+                      <h3 className="text-xs font-black uppercase tracking-[0.25em] text-accent flex items-center gap-3">
+                        <div className="h-1.5 w-1.5 rounded-full bg-accent" /> Identity & Contact
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">First Name *</Label>
+                          <Input 
+                            required
+                            value={formData.firstName} 
+                            onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
+                            placeholder="Aarav" 
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                          />
+                        </div>
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Last Name *</Label>
+                          <Input 
+                            required
+                            value={formData.lastName} 
+                            onChange={(e) => setFormData({...formData, lastName: e.target.value})} 
+                            placeholder="Sharma" 
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone *</Label>
+                          <div className="relative">
+                            <Phone className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                              required
+                              value={formData.phone} 
+                              onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+                              placeholder="+91 XXXXX XXXXX" 
+                              className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Authenticated Email</Label>
+                          <div className="flex items-center gap-3 p-4 bg-muted/5 rounded-2xl text-muted-foreground border border-dashed text-sm h-14 px-6">
+                            <Mail className="h-4 w-4 opacity-50" /> 
+                            <span className="truncate flex-1">{user?.email}</span>
+                            {isEmailVerified && <Badge variant="outline" className="text-[9px] border-green-500 text-green-600 bg-green-50">Verified</Badge>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Delivery Section */}
+                    <div className="space-y-6">
+                      <h3 className="text-xs font-black uppercase tracking-[0.25em] text-accent flex items-center gap-3">
+                        <div className="h-1.5 w-1.5 rounded-full bg-accent" /> Artisanal Shipping Destination
+                      </h3>
+                      
+                      <div className="space-y-2.5">
+                        <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Street Address *</Label>
+                        <div className="relative">
+                          <Home className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            required
+                            value={formData.address} 
+                            onChange={(e) => setFormData({...formData, address: e.target.value})} 
+                            placeholder="House No, Street Name, Block" 
+                            className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City / Township *</Label>
+                          <Input 
+                            required
+                            value={formData.city} 
+                            onChange={(e) => setFormData({...formData, city: e.target.value})} 
+                            placeholder="Jaipur" 
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                          />
+                        </div>
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">State / Region *</Label>
+                          <Input 
+                            required
+                            value={formData.state} 
+                            onChange={(e) => setFormData({...formData, state: e.target.value})} 
+                            placeholder="Rajasthan" 
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Pincode *</Label>
+                          <Input 
+                            required
+                            value={formData.pincode} 
+                            onChange={(e) => setFormData({...formData, pincode: e.target.value})} 
+                            placeholder="302001" 
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                          />
+                        </div>
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Nearest Craft Landmark *</Label>
+                          <Input 
+                            required
+                            value={formData.landmark} 
+                            onChange={(e) => setFormData({...formData, landmark: e.target.value})} 
+                            placeholder="e.g. Near City Palace" 
+                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium px-6"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        type="submit"
+                        disabled={isUpdating} 
+                        className="bg-primary text-white px-12 h-16 rounded-[1.5rem] text-lg font-black shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all active:scale-95"
+                      >
+                        {isUpdating ? <Loader2 className="mr-3 h-6 w-6 animate-spin" /> : null}
+                        Save Artisan Settings
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column: Status & Stats */}
+            <div className="lg:col-span-4 space-y-8">
+              {/* Account Card */}
+              <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white p-8">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="h-14 w-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shadow-inner">
+                    <Settings className="h-7 w-7" />
                   </div>
+                  <h3 className="text-xl font-black text-primary">Control Hub</h3>
                 </div>
-              </CardHeader>
-              <Separator className="mx-8 opacity-50" />
-              <CardContent className="p-8 pt-6">
-                <form onSubmit={handleUpdateProfile} className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">First Name *</Label>
-                      <Input 
-                        required
-                        value={formData.firstName} 
-                        onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
-                        placeholder="Aarav" 
-                        className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Last Name *</Label>
-                      <Input 
-                        required
-                        value={formData.lastName} 
-                        onChange={(e) => setFormData({...formData, lastName: e.target.value})} 
-                        placeholder="Sharma" 
-                        className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Contact Phone *</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          required
-                          value={formData.phone} 
-                          onChange={(e) => setFormData({...formData, phone: e.target.value})} 
-                          placeholder="+91 XXXXX XXXXX" 
-                          className="pl-12 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Artisan Email</Label>
-                      <div className="flex items-center gap-3 p-4 bg-muted/10 rounded-2xl text-muted-foreground border border-dashed text-sm h-14">
-                        <Mail className="h-4 w-4" /> {user?.email}
-                        {isEmailVerified && <Badge variant="outline" className="ml-auto text-[10px] border-green-500 text-green-600">Verified</Badge>}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator className="opacity-50" />
-                  <div className="space-y-6">
-                    <h3 className="text-sm font-bold text-primary flex items-center gap-2 uppercase tracking-widest">
-                      <Home className="h-4 w-4 text-accent" /> Shipping Address
-                    </h3>
-                    
-                    <div className="space-y-3">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Street Address *</Label>
-                      <Input 
-                        required
-                        value={formData.address} 
-                        onChange={(e) => setFormData({...formData, address: e.target.value})} 
-                        placeholder="House No, Street Name" 
-                        className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">City *</Label>
-                        <Input 
-                          required
-                          value={formData.city} 
-                          onChange={(e) => setFormData({...formData, city: e.target.value})} 
-                          placeholder="Jaipur" 
-                          className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">State *</Label>
-                        <Input 
-                          required
-                          value={formData.state} 
-                          onChange={(e) => setFormData({...formData, state: e.target.value})} 
-                          placeholder="Rajasthan" 
-                          className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pincode *</Label>
-                        <Input 
-                          required
-                          value={formData.pincode} 
-                          onChange={(e) => setFormData({...formData, pincode: e.target.value})} 
-                          placeholder="302001" 
-                          className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nearest Landmark *</Label>
-                        <Input 
-                          required
-                          value={formData.landmark} 
-                          onChange={(e) => setFormData({...formData, landmark: e.target.value})} 
-                          placeholder="Opposite Art Gallery" 
-                          className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/30"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-4">
-                    <Button 
-                      type="submit"
-                      disabled={isUpdating} 
-                      className="bg-primary text-white px-12 h-14 rounded-2xl font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
-                    >
-                      {isUpdating ? <Loader2 className="mr-3 h-5 w-5 animate-spin" /> : null}
-                      Update Workspace
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-6">
-              <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white p-8 space-y-6">
-                <h3 className="text-lg font-bold text-primary flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-accent" /> Account Control
-                </h3>
+                
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/10 border">
-                    <span className="text-sm font-medium text-muted-foreground">Verification</span>
+                  <div className="flex items-center justify-between p-5 rounded-3xl bg-[#FAF4EB]/50 border-2 border-primary/5 transition-all hover:border-primary/10">
+                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Auth Status</span>
                     {isFullyVerified ? (
-                      <ShieldCheck className="h-5 w-5 text-green-500" />
+                      <Badge className="bg-green-500 hover:bg-green-600 px-3 py-1 text-[10px] font-bold">VERIFIED</Badge>
                     ) : (
-                      <AlertCircle className="h-5 w-5 text-destructive" />
+                      <Badge variant="destructive" className="px-3 py-1 text-[10px] font-bold">PENDING</Badge>
                     )}
                   </div>
-                  <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/10 border">
-                    <span className="text-sm font-medium text-muted-foreground">Status</span>
-                    <Badge className="bg-primary/10 text-primary border-none">{isFullyVerified ? 'Verified' : 'Pending'}</Badge>
+                  <div className="flex items-center justify-between p-5 rounded-3xl bg-[#FAF4EB]/50 border-2 border-primary/5">
+                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loyalty Level</span>
+                    <span className="text-sm font-black text-primary italic">Silver Artisan</span>
                   </div>
                 </div>
-                <Separator />
+
+                <Separator className="my-8 opacity-50" />
+                
                 <Button 
                   variant="ghost" 
-                  className="w-full h-14 rounded-2xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 border-2 border-dashed border-muted transition-all"
+                  className="w-full h-16 rounded-[1.5rem] text-muted-foreground hover:text-destructive hover:bg-destructive/5 border-2 border-dashed border-muted transition-all font-black text-base group"
                   onClick={() => auth.signOut()}
                 >
-                  <LogOut className="mr-3 h-5 w-5" /> Sign Out
+                  <LogOut className="mr-3 h-5 w-5 group-hover:translate-x-1 transition-transform" /> Sign Out from Studio
                 </Button>
               </Card>
 
+              {/* Quick Navigation Cards */}
               <div className="grid grid-cols-1 gap-6">
                  <Link href="/orders" className="group">
-                    <Card className="bg-primary text-white rounded-[2rem] p-6 hover:shadow-xl transition-all">
-                      <div className="flex justify-between items-center mb-4">
-                        <Package className="h-8 w-8 opacity-40 group-hover:scale-110 transition-transform" />
-                        <span className="text-3xl font-black">{orders.length}</span>
+                    <Card className="bg-primary text-white rounded-[2.5rem] p-8 hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
+                      <div className="flex justify-between items-center mb-6 relative z-10">
+                        <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                          <Package className="h-6 w-6" />
+                        </div>
+                        <span className="text-4xl font-black tracking-tighter">{orders.length}</span>
                       </div>
-                      <p className="font-bold text-lg">My Orders</p>
+                      <p className="font-black text-xl relative z-10">Artisan Acquisitions</p>
+                      <p className="text-xs opacity-60 mt-1 uppercase tracking-widest">Track your orders</p>
                     </Card>
                  </Link>
+                 
                  <Link href="/wishlist" className="group">
-                    <Card className="bg-accent text-accent-foreground rounded-[2rem] p-6 hover:shadow-xl transition-all">
-                      <div className="flex justify-between items-center mb-4">
-                        <Heart className="h-8 w-8 opacity-40 group-hover:scale-110 transition-transform" />
-                        <span className="text-3xl font-black">{wishlistCount}</span>
+                    <Card className="bg-accent text-accent-foreground rounded-[2.5rem] p-8 hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
+                      <div className="absolute bottom-0 right-0 w-32 h-32 bg-black/5 rounded-full -mr-16 -mb-16 group-hover:scale-150 transition-transform duration-700" />
+                      <div className="flex justify-between items-center mb-6 relative z-10">
+                        <div className="h-12 w-12 rounded-2xl bg-black/5 flex items-center justify-center backdrop-blur-sm">
+                          <Heart className="h-6 w-6" />
+                        </div>
+                        <span className="text-4xl font-black tracking-tighter">{wishlistCount}</span>
                       </div>
-                      <p className="font-bold text-lg">My Wishlist</p>
+                      <p className="font-black text-xl relative z-10">Saved Treasures</p>
+                      <p className="text-[10px] opacity-60 mt-1 uppercase tracking-widest">Your curated wishlist</p>
                     </Card>
                  </Link>
               </div>
