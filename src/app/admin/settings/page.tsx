@@ -198,6 +198,8 @@ export default function SettingsPage() {
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
+                    primaryTypographyProps={{ component: 'div' }}
+                    secondaryTypographyProps={{ component: 'div' }}
                     primary={
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                         <Typography sx={{ fontWeight: 900, color: 'text.primary', letterSpacing: -0.5 }}>{log.action.replace('_', ' ')}</Typography>
