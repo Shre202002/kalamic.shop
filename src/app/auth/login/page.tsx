@@ -58,11 +58,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     const handleLoginError = (err: { code: string; message: string }) => {
-      // Ignore errors that we handle via the OTP bridge fallback (silent sign-up)
-      if (authMethod === 'email-otp') {
-        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') return;
-      }
-
       setIsLoading(false);
       let friendlyMessage = err.message || "An authentication error occurred.";
       
@@ -74,6 +69,8 @@ export default function LoginPage() {
         friendlyMessage = "Too many attempts. Please try again later.";
       } else if (err.code === 'auth/wrong-password') {
         friendlyMessage = "Incorrect password. Please try again.";
+      } else if (err.code === 'auth/invalid-credential') {
+        friendlyMessage = "Invalid credentials. Please check your details.";
       }
 
       toast({
@@ -85,7 +82,7 @@ export default function LoginPage() {
 
     errorEmitter.on('login-error', handleLoginError);
     return () => errorEmitter.off('login-error', handleLoginError);
-  }, [toast, authMethod]);
+  }, [toast]);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,39 +96,39 @@ export default function LoginPage() {
   };
 
   /**
-   * Temporarily disabled - OTP Login Section
+   * Temporarily disabled - Email OTP Section
    */
   const handleRequestEmailOtp = async () => {
-    // Feature temporarily disabled
     toast({ title: "Maintenance", description: "Email OTP login is temporarily offline." });
-    return;
   };
 
   /**
-   * Temporarily disabled - OTP Login Section
-   */
-  const handleVerifyEmailOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Feature temporarily disabled
-    return;
-  };
-
-  /**
-   * Temporarily disabled - OTP Login Section
+   * Phone OTP Login Flow
    */
   const handleRequestPhoneOtp = async () => {
-    // Feature temporarily disabled
-    toast({ title: "Maintenance", description: "Phone OTP login is temporarily offline." });
-    return;
+    if (!phoneNumber || !recaptchaVerifier || !auth) {
+      toast({ variant: "destructive", title: "Missing Information", description: "Please enter a valid phone number." });
+      return;
+    }
+    
+    setIsLoading(true);
+    const success = await initiatePhoneSignIn(auth, phoneNumber, recaptchaVerifier);
+    if (success) {
+      setOtpSent(true);
+      toast({ title: "OTP Sent", description: "A verification code has been sent to your phone." });
+    }
+    setIsLoading(false);
   };
 
-  /**
-   * Temporarily disabled - OTP Login Section
-   */
   const handleVerifyPhoneOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Feature temporarily disabled
-    return;
+    if (!otpCode) return;
+    setIsLoading(true);
+    const success = await confirmPhoneCode(otpCode);
+    if (success) {
+      router.push('/profile');
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -156,7 +153,11 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="p-8">
-            <Tabs value={authMethod} onValueChange={(v) => setAuthMethod(v as any)} className="w-full">
+            <Tabs value={authMethod} onValueChange={(v) => {
+              setAuthMethod(v as any);
+              setOtpSent(false);
+              setOtpCode('');
+            }} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/20 p-1 rounded-xl">
                 <TabsTrigger value="password" disabled={isLoading} className="rounded-lg font-bold text-xs">Password</TabsTrigger>
                 
@@ -169,13 +170,13 @@ export default function LoginPage() {
                   Email (Offline)
                 </TabsTrigger>
 
-                {/* Phone OTP - Temporarily disabled */}
+                {/* Phone OTP - Re-enabled */}
                 <TabsTrigger 
                   value="phone" 
-                  disabled={true} 
-                  className="rounded-lg font-bold text-xs opacity-50 cursor-not-allowed"
+                  disabled={isLoading} 
+                  className="rounded-lg font-bold text-xs"
                 >
-                  Phone (Offline)
+                  Phone
                 </TabsTrigger>
               </TabsList>
 
@@ -218,17 +219,65 @@ export default function LoginPage() {
                 </form>
               </TabsContent>
 
-              {/* Temporarily disabled Email OTP Content */}
+              {/* Email OTP Content - Temporarily disabled */}
               <TabsContent value="email-otp">
                 <div className="p-4 text-center text-muted-foreground text-sm">
                   Email verification login is currently undergoing maintenance.
                 </div>
               </TabsContent>
 
-              {/* Temporarily disabled Phone OTP Content */}
+              {/* Phone OTP Content - Re-enabled */}
               <TabsContent value="phone">
-                <div className="p-4 text-center text-muted-foreground text-sm">
-                  Phone verification login is currently undergoing maintenance.
+                <div className="space-y-4">
+                  {!otpSent ? (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="ml-1">Phone Number</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                          <Input 
+                            id="phone" 
+                            type="tel" 
+                            placeholder="+919876543210" 
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            required 
+                            className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
+                          />
+                        </div>
+                      </div>
+                      <Button onClick={handleRequestPhoneOtp} className="w-full h-14 text-lg font-bold rounded-2xl" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                        Send Verification Code
+                      </Button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleVerifyPhoneOtp} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="otp" className="ml-1">Verification Code</Label>
+                        <div className="relative">
+                          <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                          <Input 
+                            id="otp" 
+                            type="text" 
+                            placeholder="6-digit code" 
+                            maxLength={6}
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value)}
+                            required 
+                            className="pl-14 h-12 rounded-xl text-center tracking-[0.5em] font-black"
+                          />
+                        </div>
+                      </div>
+                      <Button type="submit" className="w-full h-14 text-lg font-bold rounded-2xl" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                        Verify & Sign In
+                      </Button>
+                      <Button variant="ghost" onClick={() => setOtpSent(false)} className="w-full text-xs font-bold text-muted-foreground">
+                        Try a different number
+                      </Button>
+                    </form>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
