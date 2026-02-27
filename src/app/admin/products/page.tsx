@@ -32,11 +32,8 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { 
   Edit, 
   Delete, 
-  Visibility, 
   Add, 
   Search, 
-  Star,
-  StarOutline,
   Inventory as InventoryIcon,
   Close,
   Save,
@@ -54,7 +51,6 @@ import {
   saveProduct,
   seedInitialCatalog
 } from '@/lib/actions/admin-actions';
-import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
 const DEFAULT_SPECS = [
@@ -126,16 +122,12 @@ export default function ProductsManagement() {
 
   const handleOpenDialog = (product?: any) => {
     if (product) {
-      // Deep normalization to handle legacy or partial data
+      // Deep normalization to ensure all nested objects exist for the controlled inputs
       const normalizedProduct = {
         ...INITIAL_PRODUCT,
         ...product,
         images: Array.isArray(product.images) && product.images.length 
-          ? product.images.map((img: any) => ({
-              url: typeof img === 'string' ? img : (img.url || ''),
-              alt: typeof img === 'string' ? '' : (img.alt || ''),
-              is_primary: typeof img === 'string' ? false : !!img.is_primary
-            }))
+          ? product.images.map((img: any) => typeof img === 'string' ? { url: img, alt: '', is_primary: false } : { ...img })
           : INITIAL_PRODUCT.images,
         specifications: Array.isArray(product.specifications) && product.specifications.length 
           ? product.specifications.map((s: any) => ({ ...s }))
@@ -385,7 +377,7 @@ export default function ProductsManagement() {
 
               {activeTab === 1 && (
                 <Box>
-                  {editingProduct.images.map((img: any, idx: number) => (
+                  {(editingProduct.images || []).map((img: any, idx: number) => (
                     <Paper key={idx} variant="outlined" sx={{ p: 3, mb: 2, borderRadius: 3 }}>
                       <Grid container spacing={2} alignItems="center">
                         <Grid item xs={12} md={8}>
@@ -410,7 +402,7 @@ export default function ProductsManagement() {
                       </Grid>
                     </Paper>
                   ))}
-                  <Button startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...editingProduct.images, { url: '', alt: '', is_primary: false }]})}>Add Image</Button>
+                  <Button startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...(editingProduct.images || []), { url: '', alt: '', is_primary: false }]})}>Add Image</Button>
                 </Box>
               )}
 
@@ -429,7 +421,7 @@ export default function ProductsManagement() {
 
               {activeTab === 3 && (
                 <Grid container spacing={2}>
-                  {editingProduct.specifications.map((spec: any, idx: number) => (
+                  {(editingProduct.specifications || []).map((spec: any, idx: number) => (
                     <Grid item xs={12} md={6} key={idx}>
                       <TextField fullWidth label={spec.key} value={spec.value} onChange={(e) => {
                         const newSpecs = [...editingProduct.specifications];
@@ -444,13 +436,13 @@ export default function ProductsManagement() {
               {activeTab === 4 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={4}>
-                    <TextField fullWidth type="number" label="Weight (kg)" value={editingProduct.shipping.weight_kg} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, weight_kg: parseFloat(e.target.value) || 0}})} />
+                    <TextField fullWidth type="number" label="Weight (kg)" value={editingProduct.shipping?.weight_kg || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...(editingProduct.shipping || {}), weight_kg: parseFloat(e.target.value) || 0}})} />
                   </Grid>
                   <Grid item xs={12} md={8}>
                     <Box sx={{ display: 'flex', gap: 2 }}>
-                      <TextField label="Length (cm)" value={editingProduct.shipping.package_dimensions_cm.length} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, length: parseFloat(e.target.value) || 0}}})} />
-                      <TextField label="Width (cm)" value={editingProduct.shipping.package_dimensions_cm.width} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, width: parseFloat(e.target.value) || 0}}})} />
-                      <TextField label="Height (cm)" value={editingProduct.shipping.package_dimensions_cm.height} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, height: parseFloat(e.target.value) || 0}}})} />
+                      <TextField label="Length (cm)" value={editingProduct.shipping?.package_dimensions_cm?.length || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...(editingProduct.shipping || {}), package_dimensions_cm: {...(editingProduct.shipping?.package_dimensions_cm || {}), length: parseFloat(e.target.value) || 0}}})} />
+                      <TextField label="Width (cm)" value={editingProduct.shipping?.package_dimensions_cm?.width || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...(editingProduct.shipping || {}), package_dimensions_cm: {...(editingProduct.shipping?.package_dimensions_cm || {}), width: parseFloat(e.target.value) || 0}}})} />
+                      <TextField label="Height (cm)" value={editingProduct.shipping?.package_dimensions_cm?.height || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...(editingProduct.shipping || {}), package_dimensions_cm: {...(editingProduct.shipping?.package_dimensions_cm || {}), height: parseFloat(e.target.value) || 0}}})} />
                     </Box>
                   </Grid>
                 </Grid>
@@ -458,9 +450,9 @@ export default function ProductsManagement() {
 
               {activeTab === 5 && (
                 <Box>
-                  <TextField fullWidth label="SEO Title" value={editingProduct.seo.meta_title} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_title: e.target.value}})} sx={{ mb: 3 }} />
-                  <TextField fullWidth multiline rows={3} label="SEO Description" value={editingProduct.seo.meta_description} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_description: e.target.value}})} sx={{ mb: 3 }} />
-                  <TextField fullWidth label="Keywords (comma separated)" value={editingProduct.seo.meta_keywords.join(', ')} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_keywords: e.target.value.split(',').map(k => k.trim())}})} />
+                  <TextField fullWidth label="SEO Title" value={editingProduct.seo?.meta_title || ''} onChange={(e) => setEditingProduct({...editingProduct, seo: {...(editingProduct.seo || {}), meta_title: e.target.value}})} sx={{ mb: 3 }} />
+                  <TextField fullWidth multiline rows={3} label="SEO Description" value={editingProduct.seo?.meta_description || ''} onChange={(e) => setEditingProduct({...editingProduct, seo: {...(editingProduct.seo || {}), meta_description: e.target.value}})} sx={{ mb: 3 }} />
+                  <TextField fullWidth label="Keywords (comma separated)" value={(editingProduct.seo?.meta_keywords || []).join(', ')} onChange={(e) => setEditingProduct({...editingProduct, seo: {...(editingProduct.seo || {}), meta_keywords: e.target.value.split(',').map(k => k.trim())}})} />
                 </Box>
               )}
             </Box>
@@ -468,7 +460,7 @@ export default function ProductsManagement() {
 
           <DialogActions sx={{ p: 3, bgcolor: alpha(theme.palette.divider, 0.02), borderTop: 1, borderColor: 'divider' }}>
             <Button onClick={handleCloseDialog} color="inherit">Discard</Button>
-            <Button variant="contained" startIcon={isSaving ? <CircularProgress size={20} /> : <Save />} onClick={handleSaveProduct} disabled={isSaving}>Save Piece</Button>
+            <Button variant="contained" startIcon={isSaving ? <CircularProgress size={20} /> : <Save />} onClick={handleSaveProduct} disabled={isSaving}>Save Masterpiece</Button>
           </DialogActions>
         </Dialog>
       )}

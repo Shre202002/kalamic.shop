@@ -62,8 +62,8 @@ export interface IProduct extends Document {
     meta_keywords: string[];
   };
 
-  created_by_admin?: string;
-  updated_by_admin?: string;
+  created_by_admin?: string; // String to allow Firebase UIDs
+  updated_by_admin?: string; // String to allow Firebase UIDs
   createdAt: Date;
   updatedAt: Date;
 }
@@ -71,7 +71,7 @@ export interface IProduct extends Document {
 const ProductSchema: Schema = new Schema({
   name: { type: String, required: true, trim: true },
   slug: { type: String, required: true, unique: true, index: true },
-  short_description: { type: String },
+  short_description: { type: String, default: "" },
   description: { type: String, required: true },
 
   category_id: { type: Schema.Types.ObjectId, index: true },

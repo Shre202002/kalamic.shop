@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -29,8 +30,7 @@ import {
   ChevronRight,
   Package,
   MessageSquare,
-  Zap,
-  User as UserIcon
+  Zap
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -285,7 +285,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  // Robust image handling to prevent empty string src errors
+  // Robust image handling
   const images = (product.images || [])
     .filter((img: any) => img.url && img.url.trim() !== "")
     .map((img: any) => img.url);

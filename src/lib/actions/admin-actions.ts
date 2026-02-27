@@ -5,7 +5,6 @@ import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
 import Product from '@/lib/models/Product';
 import AdminLog from '@/lib/models/AdminLog';
-import WishlistItem from '@/lib/models/WishlistItem';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { revalidatePath } from 'next/cache';
 import dayjs from 'dayjs';
@@ -69,7 +68,8 @@ export async function seedInitialCatalog(adminId: string) {
           meta_title: "Mor Stambh Ceramic Pillar – Handmade Temple Decor",
           meta_description: "Buy handmade ceramic Mor Stambh pillar for temple and festive decor.",
           meta_keywords: ["mor stambh", "ceramic pillar", "temple decor"]
-        }
+        },
+        analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
       },
       {
         _id: new mongoose.Types.ObjectId("699026a8ae873e1fa69cb18b"),
@@ -85,6 +85,7 @@ export async function seedInitialCatalog(adminId: string) {
         currency: "INR",
         stock: 5,
         sku: "CM-001",
+        is_active: true,
         is_featured: true,
         visibility_priority: 2,
         specifications: [
@@ -100,7 +101,8 @@ export async function seedInitialCatalog(adminId: string) {
           meta_title: "Handmade Ceramic Mirror – Decorative Wall Mirror",
           meta_description: "Premium handcrafted ceramic mirror for elegant home interiors.",
           meta_keywords: ["ceramic mirror", "handmade mirror", "wall decor"]
-        }
+        },
+        analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
       },
       {
         _id: new mongoose.Types.ObjectId("699026a8ae873e1fa69cb18c"),
@@ -116,6 +118,7 @@ export async function seedInitialCatalog(adminId: string) {
         currency: "INR",
         stock: 13,
         sku: "CF-001",
+        is_active: true,
         visibility_priority: 3,
         specifications: [
           { key: "Material", value: "Ceramic" },
@@ -130,7 +133,8 @@ export async function seedInitialCatalog(adminId: string) {
           meta_title: "Customized Ceramic Photo Frame – Handmade Gift",
           meta_description: "Buy personalized ceramic photo frame for gifting and decor.",
           meta_keywords: ["ceramic frame", "custom gift", "photo decor"]
-        }
+        },
+        analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
       },
       {
         _id: new mongoose.Types.ObjectId("699026a8ae873e1fa69cb18e"),
@@ -146,6 +150,7 @@ export async function seedInitialCatalog(adminId: string) {
         currency: "INR",
         stock: 5,
         sku: "MW-001",
+        is_active: true,
         is_featured: true,
         visibility_priority: 2,
         specifications: [
@@ -161,7 +166,8 @@ export async function seedInitialCatalog(adminId: string) {
           meta_title: "Handmade Ceramic Mandala Wheel – Temple Decor",
           meta_description: "Golden ceramic mandala wheel with Laddu Gopal design.",
           meta_keywords: ["mandala wheel", "ceramic decor", "temple decor"]
-        }
+        },
+        analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
       },
       {
         _id: new mongoose.Types.ObjectId("699026a8ae873e1fa69cb18d"),
@@ -177,6 +183,7 @@ export async function seedInitialCatalog(adminId: string) {
         currency: "INR",
         stock: 5,
         sku: "FM-001",
+        is_active: true,
         visibility_priority: 4,
         specifications: [
           { key: "Material", value: "Ceramic" },
@@ -191,14 +198,15 @@ export async function seedInitialCatalog(adminId: string) {
           meta_title: "Handmade Ceramic Fridge Magnet – Floral Motif",
           meta_description: "Decorative ceramic fridge magnets for gifting and decor.",
           meta_keywords: ["ceramic magnet", "handmade gift", "fridge decor"]
-        }
+        },
+        analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
       }
     ];
 
     await Product.deleteMany({});
-    await Product.insertMany(products.map(p => ({ ...p, is_active: true, is_deleted: false })));
+    await Product.insertMany(products);
     
-    await logAction(adminId, 'SEED_CATALOG', 'Product', 'all', 'Restored dropped collection with artisan baseline.');
+    await logAction(adminId, 'RESTORE_CATALOG', 'Product', 'all', 'Restored dropped collection with artisan baseline.');
     
     revalidatePath('/admin/products');
     revalidatePath('/products');
@@ -224,6 +232,7 @@ export async function saveProduct(adminId: string, productData: any) {
   try {
     const isNew = !productData._id;
     
+    // Explicit cleaning to ensure schema compliance and numeric conversion
     const cleanedData = {
       name: String(productData.name || ""),
       slug: String(productData.slug || ""),
@@ -339,9 +348,6 @@ export async function getAdmins() {
   return JSON.parse(JSON.stringify(await User.find({ role: { $in: ['admin', 'super_admin'] } }).lean()));
 }
 
-/**
- * Analytics & Dashboard Data
- */
 export async function getAdminDashboardStats() {
   await dbConnect();
   try {
@@ -370,7 +376,6 @@ export async function getAdminDashboardStats() {
       wishlistActivity: wishlistTotal[0]?.total || 0
     };
   } catch (error) {
-    console.error("Dashboard stats error:", error);
     return { revenue: 0, orders: 0, activeUsers: 0, users: 0, pendingOrders: 0, conversionRate: 0, wishlistActivity: 0 };
   }
 }
@@ -378,7 +383,6 @@ export async function getAdminDashboardStats() {
 export async function getDashboardChartData() {
   await dbConnect();
   try {
-    // 7 day sales trend
     const last7Days = Array.from({ length: 7 }, (_, i) => dayjs().subtract(6 - i, 'day').format('YYYY-MM-DD'));
     const salesData = await OrderedItem.aggregate([
       { $match: { created_at: { $gte: dayjs().subtract(7, 'day').toDate() } } },
@@ -393,7 +397,6 @@ export async function getDashboardChartData() {
       value: salesData.find(s => s._id === day)?.total || 0
     }));
 
-    // User growth (simplified aggregation)
     const monthlyUsers = await User.aggregate([
       { $group: {
           _id: { $dateToString: { format: "%b", date: "$createdAt" } },
@@ -402,24 +405,17 @@ export async function getDashboardChartData() {
       { $limit: 6 }
     ]);
 
-    const categoryDistribution = [
-      { id: 0, value: 45, label: 'Temple Decor' },
-      { id: 1, value: 25, label: 'Wall Art' },
-      { id: 2, value: 20, label: 'Custom Gifts' },
-      { id: 3, value: 10, label: 'Accents' },
-    ];
-
     return {
       sales: salesChart,
-      users: monthlyUsers.length > 0 ? monthlyUsers.map(u => ({ month: u._id, count: u.count })) : [
-        { month: 'Jan', count: 0 },
-        { month: 'Feb', count: 0 },
-        { month: 'Mar', count: 0 }
-      ],
-      categories: categoryDistribution
+      users: monthlyUsers.length > 0 ? monthlyUsers.map(u => ({ month: u._id, count: u.count })) : [],
+      categories: [
+        { id: 0, value: 45, label: 'Temple Decor' },
+        { id: 1, value: 25, label: 'Wall Art' },
+        { id: 2, value: 20, label: 'Custom Gifts' },
+        { id: 3, value: 10, label: 'Accents' },
+      ]
     };
   } catch (error) {
-    console.error("Chart data error:", error);
     return { sales: [], users: [], categories: [] };
   }
 }
