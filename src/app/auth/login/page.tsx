@@ -58,9 +58,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     const handleLoginError = (err: { code: string; message: string }) => {
-      // Ignore errors that we handle via the OTP bridge fallback
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        if (authMethod === 'email-otp') return;
+      // Ignore errors that we handle via the OTP bridge fallback (silent sign-up)
+      if (authMethod === 'email-otp') {
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') return;
       }
 
       setIsLoading(false);
@@ -72,6 +72,8 @@ export default function LoginPage() {
         friendlyMessage = "Invalid format. Use +[country code][number] (e.g., +919876543210).";
       } else if (err.code === 'auth/too-many-requests') {
         friendlyMessage = "Too many attempts. Please try again later.";
+      } else if (err.code === 'auth/wrong-password') {
+        friendlyMessage = "Incorrect password. Please try again.";
       }
 
       toast({
@@ -122,15 +124,13 @@ export default function LoginPage() {
     try {
       const result = await verifyOtp(email, otpCode);
       if (result.success) {
-        // Step 1: Successful DB verification.
-        // Step 2: Bridge to Firebase Auth using a deterministic shadow password.
+        // Deterministic shadow password for OTP bridge
         const shadowPassword = `KAL_OTP_SEC_${email.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
         
         try {
-          // Attempt Sign In first
           await initiateEmailSignIn(auth, email, shadowPassword);
         } catch (signInErr: any) {
-          // If user doesn't exist, Create Account (Sign Up)
+          // If user doesn't exist, create them
           if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
              await initiateEmailSignUp(auth, email, shadowPassword);
           } else {
@@ -245,6 +245,7 @@ export default function LoginPage() {
                       <Input 
                         id="password" 
                         type="password" 
+                        placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required 

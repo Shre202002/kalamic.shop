@@ -7,6 +7,7 @@ import { sendEmail } from '@/lib/email';
 
 /**
  * Generates and stores a 6-digit OTP for the given identifier (email or phone).
+ * Uses an upsert to ensure the record is atomic and stored correctly.
  */
 async function generateAndStoreOtp(identifier: string) {
   await dbConnect();
@@ -14,14 +15,30 @@ async function generateAndStoreOtp(identifier: string) {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
-  await Otp.deleteMany({ email: cleanIdentifier });
-  await Otp.create({
-    email: cleanIdentifier,
-    code,
-    expiresAt,
-  });
+  console.log(`[DB] Storing OTP for ${cleanIdentifier}: ${code}`);
 
-  return code;
+  try {
+    // Atomic update or insert
+    const record = await Otp.findOneAndUpdate(
+      { email: cleanIdentifier },
+      { 
+        code, 
+        expiresAt, 
+        attempts: 0,
+        createdAt: new Date() 
+      },
+      { upsert: true, new: true }
+    );
+    
+    if (!record) {
+      throw new Error("Failed to save OTP record to database.");
+    }
+    
+    return code;
+  } catch (dbError: any) {
+    console.error("[DB] OTP Storage Error:", dbError);
+    throw new Error("Database error while generating code.");
+  }
 }
 
 /**
@@ -30,6 +47,7 @@ async function generateAndStoreOtp(identifier: string) {
 export async function sendOtp(email: string) {
   const cleanEmail = email.trim().toLowerCase();
   console.log(`[AUTH] Requesting Email OTP for: ${cleanEmail}`);
+  
   const code = await generateAndStoreOtp(cleanEmail);
 
   try {
@@ -55,6 +73,7 @@ export async function sendOtp(email: string) {
     });
     return { success: true, message: "Verification code sent to email." };
   } catch (error: any) {
+    console.error("[SMTP] Email delivery failed:", error);
     throw new Error(error.message || "Failed to deliver email OTP.");
   }
 }
@@ -92,7 +111,7 @@ export async function verifyOtp(identifier: string, code: string) {
     const otpRecord = await Otp.findOne({ email: cleanIdentifier }).sort({ createdAt: -1 });
 
     if (!otpRecord) {
-      console.error(`[AUTH] No OTP record found for: ${cleanIdentifier}`);
+      console.error(`[AUTH] No OTP record found in DB for: ${cleanIdentifier}`);
       return { success: false, message: "No active verification code found." };
     }
 
@@ -103,7 +122,7 @@ export async function verifyOtp(identifier: string, code: string) {
     }
 
     if (otpRecord.code !== cleanCode) {
-      console.error(`[AUTH] Incorrect OTP code for: ${cleanIdentifier}. Expected: ${otpRecord.code}, Got: ${cleanCode}`);
+      console.error(`[AUTH] Incorrect code for: ${cleanIdentifier}. Expected: ${otpRecord.code}, Got: ${cleanCode}`);
       await Otp.updateOne({ _id: otpRecord._id }, { $inc: { attempts: 1 } });
       return { success: false, message: "Incorrect code." };
     }
