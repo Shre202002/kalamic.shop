@@ -1,8 +1,8 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, Paper, Chip, IconButton, Tooltip } from '@mui/material';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Box, Typography, Paper, Chip, IconButton, Tooltip, Skeleton } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Visibility, Edit, FileDownload } from '@mui/icons-material';
 import { getAllOrders, updateOrderStatus } from '@/lib/actions/admin-actions';
@@ -11,17 +11,33 @@ import dayjs from 'dayjs';
 export default function OrdersManagement() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    let isMounted = true;
+
     async function load() {
-      const data = await getAllOrders();
-      setOrders(data);
-      setLoading(false);
+      try {
+        const data = await getAllOrders();
+        if (isMounted) {
+          setOrders(data);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Failed to load orders:", error);
+        if (isMounted) setLoading(false);
+      }
     }
+
     load();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const columns: GridColDef[] = [
+  const columns: GridColDef[] = useMemo(() => [
     { 
       field: '_id', 
       headerName: 'Order ID', 
@@ -75,7 +91,15 @@ export default function OrdersManagement() {
         </Box>
       )
     }
-  ];
+  ], []);
+
+  if (!mounted) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Skeleton variant="rectangular" height={400} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ height: 600, width: '100%' }}>
@@ -91,10 +115,19 @@ export default function OrdersManagement() {
           getRowId={(row) => row._id}
           columns={columns}
           loading={loading}
-          initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+          initialState={{ 
+            pagination: { 
+              paginationModel: { pageSize: 10 } 
+            } 
+          }}
           pageSizeOptions={[10, 25, 50]}
           disableRowSelectionOnClick
-          sx={{ border: 'none' }}
+          sx={{ 
+            border: 'none',
+            '& .MuiDataGrid-cell:focus': {
+              outline: 'none',
+            },
+          }}
         />
       </Paper>
     </Box>
