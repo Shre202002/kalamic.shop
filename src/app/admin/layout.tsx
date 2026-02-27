@@ -31,8 +31,9 @@ const adminTheme = createTheme({
   },
   typography: {
     fontFamily: 'Inter, sans-serif',
-    h4: { fontWeight: 800 },
-    h6: { fontWeight: 700 }
+    fontSize: 13,
+    h4: { fontWeight: 800, fontSize: '1.75rem' },
+    h6: { fontWeight: 700, fontSize: '1rem' }
   },
   components: {
     MuiButton: {

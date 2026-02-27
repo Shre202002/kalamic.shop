@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -167,8 +168,8 @@ export default function ProductDetailPage() {
     }
   };
 
-  if (isLoading) return <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF4EB]"><Loader2 className="animate-spin text-primary h-12 w-12" /><p className="mt-4 text-primary font-black uppercase tracking-widest text-xs">Curating Piece...</p></div>;
-  if (!product) return <div className="p-20 text-center bg-[#FAF4EB] min-h-screen flex flex-col items-center justify-center"><h1 className="text-4xl font-black text-primary mb-6">Piece Not Found</h1><Button asChild className="rounded-2xl h-14 px-8"><Link href="/products">Return to Shop</Link></Button></div>;
+  if (isLoading) return <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF4EB]"><Loader2 className="animate-spin text-primary h-10 w-10" /><p className="mt-4 text-primary font-black uppercase tracking-widest text-[10px]">Curating Piece...</p></div>;
+  if (!product) return <div className="p-20 text-center bg-[#FAF4EB] min-h-screen flex flex-col items-center justify-center"><h1 className="text-3xl font-black text-primary mb-6">Piece Not Found</h1><Button asChild className="rounded-2xl h-12 px-8"><Link href="/products">Return to Shop</Link></Button></div>;
 
   const images = (product.images || []).map((img: any) => img.url);
   const currentImageUrl = images[selectedImage] || 'https://placehold.co/800x800?text=Kalamic';
@@ -205,7 +206,7 @@ export default function ProductDetailPage() {
                     key={i} 
                     onClick={() => setSelectedImage(i)} 
                     className={cn(
-                      "relative min-w-[100px] h-[100px] rounded-3xl overflow-hidden border-4 transition-all duration-300 shadow-md", 
+                      "relative min-w-[80px] h-[80px] rounded-3xl overflow-hidden border-4 transition-all duration-300 shadow-md", 
                       selectedImage === i ? "border-primary scale-105" : "border-white opacity-60 hover:opacity-100"
                     )}
                   >
@@ -227,11 +228,11 @@ export default function ProductDetailPage() {
                     {product.analytics?.review_count || reviews.length} Authenticated Reviews
                   </span>
                 </div>
-                <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tighter leading-none">{product.name}</h1>
+                <h1 className="text-3xl md:text-5xl font-black text-primary tracking-tighter leading-none">{product.name}</h1>
                 <div className="flex items-center gap-4">
-                  <span className="text-4xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
+                  <span className="text-3xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
                   {product.compare_at_price && (
-                    <span className="text-xl text-muted-foreground line-through decoration-primary/30 opacity-50">₹{product.compare_at_price.toLocaleString()}</span>
+                    <span className="text-lg text-muted-foreground line-through decoration-primary/30 opacity-50">₹{product.compare_at_price.toLocaleString()}</span>
                   )}
                 </div>
               </div>
@@ -246,10 +247,10 @@ export default function ProductDetailPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button onClick={handleAddToCart} disabled={product.stock <= 0} className="h-16 rounded-2xl bg-primary text-white font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all">
+                  <Button onClick={handleAddToCart} disabled={product.stock <= 0} className="h-14 rounded-2xl bg-primary text-white font-black text-base shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all">
                     <ShoppingCart className="mr-2 h-5 w-5" /> Add to Bag
                   </Button>
-                  <Button onClick={handleAddToWishlist} variant="outline" className={cn("h-16 rounded-2xl border-2 font-black transition-all", isFavorited ? "bg-red-50 border-red-100 text-red-500" : "border-muted/30 hover:border-primary")}>
+                  <Button onClick={handleAddToWishlist} variant="outline" className={cn("h-14 rounded-2xl border-2 font-black transition-all", isFavorited ? "bg-red-50 border-red-100 text-red-500" : "border-muted/30 hover:border-primary")}>
                     <Heart className={cn("mr-2 h-5 w-5", isFavorited && "fill-current")} /> {isFavorited ? 'Favorited' : 'Wishlist'}
                   </Button>
                 </div>
@@ -266,7 +267,7 @@ export default function ProductDetailPage() {
                       <Info className="h-4 w-4 text-accent" /> The Artisan Narrative
                     </span>
                   </AccordionTrigger>
-                  <AccordionContent className="p-8 pt-4 text-sm text-muted-foreground leading-relaxed italic whitespace-pre-wrap">
+                  <AccordionContent className="p-8 pt-4 text-xs text-muted-foreground leading-relaxed italic whitespace-pre-wrap">
                     {product.description}
                   </AccordionContent>
                 </AccordionItem>
@@ -282,7 +283,7 @@ export default function ProductDetailPage() {
                       {product.specifications?.map((s: any, i: number) => (
                         <div key={i} className="flex justify-between items-center py-3 border-b border-muted/10 last:border-0">
                           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.key}</span>
-                          <span className="text-xs font-bold text-primary">{s.value}</span>
+                          <span className="text-[10px] font-bold text-primary">{s.value}</span>
                         </div>
                       ))}
                     </div>
@@ -300,7 +301,7 @@ export default function ProductDetailPage() {
                       <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Item Weight</span>
                       <span className="text-xs font-bold">{product.shipping?.weight_kg || 0} KG</span>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed italic">
+                    <p className="text-[10px] text-muted-foreground leading-relaxed italic">
                       Every Kalamic piece is secured in our proprietary triple-layer eco-conscious packaging to ensure safe transit from our kiln to your space.
                     </p>
                   </AccordionContent>
@@ -313,16 +314,16 @@ export default function ProductDetailPage() {
           <section className="space-y-12">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-primary/5 pb-8">
               <div className="space-y-2">
-                <h2 className="text-4xl font-black text-primary tracking-tighter">Collector Chronicles</h2>
-                <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest">Voices from the artisan community</p>
+                <h2 className="text-3xl font-black text-primary tracking-tighter">Collector Chronicles</h2>
+                <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest">Voices from the artisan community</p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right hidden sm:block">
-                  <p className="text-2xl font-black text-primary leading-none">{product.analytics?.average_rating || 4.8}</p>
+                  <p className="text-xl font-black text-primary leading-none">{product.analytics?.average_rating || 4.8}</p>
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Studio Average</p>
                 </div>
-                <div className="h-12 w-12 rounded-2xl bg-accent flex items-center justify-center text-white shadow-xl shadow-accent/20">
-                  <MessageSquare className="h-6 w-6" />
+                <div className="h-10 w-10 rounded-2xl bg-accent flex items-center justify-center text-white shadow-xl shadow-accent/20">
+                  <MessageSquare className="h-5 w-5" />
                 </div>
               </div>
             </div>
@@ -333,7 +334,7 @@ export default function ProductDetailPage() {
                 {user ? (
                   <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
                     <div className="p-8 bg-primary/5 border-b border-primary/10">
-                      <h3 className="font-black text-primary uppercase tracking-widest text-xs">Share Your Perspective</h3>
+                      <h3 className="font-black text-primary uppercase tracking-widest text-[10px]">Share Your Perspective</h3>
                     </div>
                     <CardContent className="p-8 space-y-6">
                       <div className="space-y-3">
@@ -345,7 +346,7 @@ export default function ProductDetailPage() {
                               onClick={() => setReviewRating(star)} 
                               className={cn("h-10 w-10 rounded-xl flex items-center justify-center transition-all", star <= reviewRating ? "bg-accent text-white shadow-lg" : "bg-muted/20 text-muted-foreground hover:bg-muted/40")}
                             >
-                              <Star className={cn("h-5 w-5", star <= reviewRating && "fill-current")} />
+                              <Star className={cn("h-4 w-4", star <= reviewRating && "fill-current")} />
                             </button>
                           ))}
                         </div>
@@ -356,24 +357,24 @@ export default function ProductDetailPage() {
                           value={reviewComment}
                           onChange={(e) => setReviewComment(e.target.value)}
                           placeholder="Describe the craftsmanship..." 
-                          className="w-full min-h-[150px] p-6 rounded-2xl bg-[#FAF4EB]/30 border-2 border-transparent focus:border-accent focus:bg-white outline-none transition-all text-sm font-medium resize-none"
+                          className="w-full min-h-[120px] p-6 rounded-2xl bg-[#FAF4EB]/30 border-2 border-transparent focus:border-accent focus:bg-white outline-none transition-all text-sm font-medium resize-none"
                         />
                       </div>
-                      <Button onClick={handleSubmitReview} disabled={isSubmittingReview} className="w-full h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/10">
+                      <Button onClick={handleSubmitReview} disabled={isSubmittingReview} className="w-full h-12 rounded-2xl font-black text-base shadow-xl shadow-primary/10">
                         {isSubmittingReview ? <Loader2 className="animate-spin" /> : "Post Feedback"}
                       </Button>
                     </CardContent>
                   </Card>
                 ) : (
                   <div className="p-10 rounded-[2.5rem] bg-white shadow-xl border-2 border-dashed border-muted/30 text-center space-y-6">
-                    <div className="h-16 w-16 rounded-full bg-muted/10 flex items-center justify-center mx-auto">
-                      <Lock className="h-8 w-8 text-muted-foreground opacity-30" />
+                    <div className="h-14 w-14 rounded-full bg-muted/10 flex items-center justify-center mx-auto">
+                      <Lock className="h-6 w-6 text-muted-foreground opacity-30" />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-xl font-black text-primary">Identity Restricted</h3>
-                      <p className="text-xs text-muted-foreground font-medium px-4">Please join our artisan community to share your feedback.</p>
+                      <h3 className="text-lg font-black text-primary">Identity Restricted</h3>
+                      <p className="text-[10px] text-muted-foreground font-medium px-4">Please join our artisan community to share your feedback.</p>
                     </div>
-                    <Button asChild variant="outline" className="w-full h-12 rounded-2xl border-primary text-primary font-black uppercase tracking-widest text-[10px]">
+                    <Button asChild variant="outline" className="w-full h-10 rounded-2xl border-primary text-primary font-black uppercase tracking-widest text-[10px]">
                       <Link href="/auth/login">Sign In to Review</Link>
                     </Button>
                   </div>
@@ -384,26 +385,26 @@ export default function ProductDetailPage() {
               <div className="lg:col-span-8 space-y-6">
                 {!reviews.length ? (
                   <div className="py-20 text-center space-y-4 bg-white/50 rounded-[3rem] border-2 border-dashed border-primary/5">
-                    <MessageSquare className="h-12 w-12 text-muted-foreground opacity-20 mx-auto" />
-                    <p className="text-muted-foreground font-bold italic">This piece is waiting for its first chronicle.</p>
+                    <MessageSquare className="h-10 w-10 text-muted-foreground opacity-20 mx-auto" />
+                    <p className="text-muted-foreground text-sm font-bold italic">This piece is waiting for its first chronicle.</p>
                   </div>
                 ) : (
                   reviews.map((rev) => (
                     <div key={rev._id} className="p-8 md:p-10 rounded-[2.5rem] bg-white shadow-sm border border-primary/5 hover:shadow-xl transition-all duration-500">
                       <div className="flex flex-col md:flex-row justify-between gap-6 mb-6">
                         <div className="flex items-center gap-4">
-                          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-xl shadow-inner">
+                          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-lg shadow-inner">
                             {rev.user_name[0].toUpperCase()}
                           </div>
                           <div>
-                            <h4 className="font-black text-primary leading-none text-lg">{rev.user_name}</h4>
+                            <h4 className="font-black text-primary leading-none text-base">{rev.user_name}</h4>
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Verified Collector</p>
                           </div>
                         </div>
                         <div className="flex flex-col items-start md:items-end gap-2">
                           <div className="flex gap-1">
                             {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} className={cn("h-4 w-4", s <= rev.rating ? "text-accent fill-current" : "text-muted opacity-30")} />
+                              <Star key={s} className={cn("h-3 w-3", s <= rev.rating ? "text-accent fill-current" : "text-muted opacity-30")} />
                             ))}
                           </div>
                           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -411,7 +412,7 @@ export default function ProductDetailPage() {
                           </span>
                         </div>
                       </div>
-                      <p className="text-muted-foreground leading-relaxed font-medium">"{rev.comment}"</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed font-medium">"{rev.comment}"</p>
                     </div>
                   ))
                 )}
@@ -424,11 +425,11 @@ export default function ProductDetailPage() {
       {/* Sticky Mobile Add to Cart */}
       <div className="md:hidden sticky bottom-0 z-40 w-full p-4 bg-white/80 backdrop-blur-lg border-t animate-in slide-in-from-bottom duration-500">
         <div className="flex gap-3">
-          <Button onClick={handleAddToCart} disabled={product.stock <= 0} className="flex-1 h-14 rounded-2xl bg-primary text-white font-black shadow-lg shadow-primary/20">
+          <Button onClick={handleAddToCart} disabled={product.stock <= 0} className="flex-1 h-12 rounded-2xl bg-primary text-white font-black shadow-lg shadow-primary/20 text-sm">
             Add to Bag — ₹{product.price.toLocaleString()}
           </Button>
-          <Button onClick={handleAddToWishlist} variant="outline" className={cn("h-14 w-14 rounded-2xl border-2 shrink-0", isFavorited ? "bg-red-50 text-red-500 border-red-100" : "bg-white border-muted/20")}>
-            <Heart className={cn("h-6 w-6", isFavorited && "fill-current")} />
+          <Button onClick={handleAddToWishlist} variant="outline" className={cn("h-12 w-12 rounded-2xl border-2 shrink-0", isFavorited ? "bg-red-50 text-red-500 border-red-100" : "bg-white border-muted/20")}>
+            <Heart className={cn("h-5 w-5", isFavorited && "fill-current")} />
           </Button>
         </div>
       </div>

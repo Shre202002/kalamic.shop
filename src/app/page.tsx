@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -92,12 +93,12 @@ export default function Home() {
               </div>
               
               <div className="space-y-4">
-                <h1 className="text-5xl md:text-8xl font-black text-primary tracking-tighter leading-[0.9]">
+                <h1 className="text-4xl md:text-7xl font-black text-primary tracking-tighter leading-[0.9]">
                   Elevate Your <br /> 
                   <span className="text-accent underline decoration-primary/10">Home</span> With <br />
                   Ceramic Art.
                 </h1>
-                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl font-medium">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl font-medium">
                   Crafted with devotion, designed for elegance. Discover India's finest handcrafted ceramic collection.
                 </p>
               </div>
@@ -177,7 +178,7 @@ export default function Home() {
                 <div className="flex items-center gap-2 text-accent font-black text-[10px] uppercase tracking-[0.25em]">
                   <TrendingUp className="h-4 w-4" /> The Artisan Collection
                 </div>
-                <h2 className="text-4xl md:text-6xl font-black text-primary tracking-tighter leading-none">Best Selling Pieces</h2>
+                <h2 className="text-3xl md:text-5xl font-black text-primary tracking-tighter leading-none">Best Selling Pieces</h2>
               </div>
               <Button asChild variant="link" className="text-accent font-black uppercase tracking-widest text-xs p-0 group">
                 <Link href="/products" className="flex items-center gap-2">
@@ -223,10 +224,10 @@ export default function Home() {
                     <Badge className="bg-accent text-accent-foreground rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest shadow-lg">
                       Community Favorites
                     </Badge>
-                    <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-[0.9]">
+                    <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-[0.9]">
                       Most Loved <br /> by Collectors
                     </h2>
-                    <p className="text-white/70 text-lg font-medium leading-relaxed">
+                    <p className="text-white/70 text-base font-medium leading-relaxed">
                       Pieces that have found their space in homes across India. Curated by popularity.
                     </p>
                   </div>
@@ -234,9 +235,9 @@ export default function Home() {
                   <div className="space-y-6 pt-4">
                     {trendingProducts.map((p, i) => (
                       <div key={p._id} className="flex items-center gap-4 text-white/90 group cursor-pointer" onClick={() => window.location.href = `/products/${p.slug}`}>
-                        <span className="text-3xl font-black text-accent/40 italic">0{i+1}</span>
+                        <span className="text-2xl font-black text-accent/40 italic">0{i+1}</span>
                         <div className="flex-1 border-b border-white/10 pb-4 flex justify-between items-center group-hover:border-accent transition-colors">
-                          <span className="font-bold text-lg">{p.name}</span>
+                          <span className="font-bold text-base">{p.name}</span>
                           <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
                             <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest"><Eye className="h-3 w-3" /> {p.analytics?.total_views}</div>
                             <ArrowRight className="h-5 w-5 text-accent" />
@@ -259,10 +260,10 @@ export default function Home() {
                     <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent" />
                     <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
                       <div className="space-y-1">
-                        <p className="text-white font-black text-2xl tracking-tight">Kalamic Mor Stambh</p>
-                        <p className="text-accent font-bold text-xs uppercase tracking-widest">Our #1 Gift Selection</p>
+                        <p className="text-white font-black text-xl tracking-tight">Kalamic Mor Stambh</p>
+                        <p className="text-accent font-bold text-[10px] uppercase tracking-widest">Our #1 Gift Selection</p>
                       </div>
-                      <Button asChild size="icon" className="h-14 w-14 rounded-2xl bg-accent text-primary shadow-xl">
+                      <Button asChild size="icon" className="h-12 w-12 rounded-2xl bg-accent text-primary shadow-xl">
                         <Link href="/products/mor_stambh"><ArrowRight /></Link>
                       </Button>
                     </div>
@@ -290,10 +291,10 @@ export default function Home() {
                 </div>
                 <div className="absolute -bottom-10 -right-10 bg-white p-8 rounded-[2rem] shadow-2xl max-w-xs z-20 border">
                   <Star className="h-8 w-8 text-accent fill-current mb-4" />
-                  <p className="text-primary font-black italic text-lg leading-snug">
+                  <p className="text-primary font-black italic text-base leading-snug">
                     "Every piece is a fingerprint of the artist's soul."
                   </p>
-                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-4">Kalamic Studio, Jaipur</p>
+                  <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-4">Kalamic Studio, Jaipur</p>
                 </div>
               </div>
 
@@ -302,24 +303,24 @@ export default function Home() {
                   <div className="flex items-center gap-2 text-accent font-black text-[10px] uppercase tracking-[0.25em]">
                     <div className="h-px w-8 bg-accent" /> Our Heritage
                   </div>
-                  <h2 className="text-4xl md:text-6xl font-black text-primary tracking-tighter leading-none">The Kiln & The Hands</h2>
-                  <p className="text-lg text-muted-foreground leading-relaxed font-medium">
+                  <h2 className="text-3xl md:text-5xl font-black text-primary tracking-tighter leading-none">The Kiln & The Hands</h2>
+                  <p className="text-base text-muted-foreground leading-relaxed font-medium">
                     Kalamic was born from a simple mission: to preserve India's ancient ceramic motifs in designs that fit the modern minimalist home. 
                   </p>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                   <div className="space-y-2">
-                    <h4 className="font-black text-primary uppercase text-xs tracking-widest">Ethical Sourcing</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">Direct support for 50+ master artisans across Rajasthan and Gujarat.</p>
+                    <h4 className="font-black text-primary uppercase text-[10px] tracking-widest">Ethical Sourcing</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">Direct support for 50+ master artisans across Rajasthan and Gujarat.</p>
                   </div>
                   <div className="space-y-2">
-                    <h4 className="font-black text-primary uppercase text-xs tracking-widest">Time-Honored Firing</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">Traditional wood-fired kilns reaching 1200°C for eternal durability.</p>
+                    <h4 className="font-black text-primary uppercase text-[10px] tracking-widest">Time-Honored Firing</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">Traditional wood-fired kilns reaching 1200°C for eternal durability.</p>
                   </div>
                 </div>
 
-                <Button asChild size="lg" variant="outline" className="h-16 px-10 rounded-2xl border-primary/20 hover:bg-primary/5 text-primary font-black">
+                <Button asChild size="lg" variant="outline" className="h-14 px-10 rounded-2xl border-primary/20 hover:bg-primary/5 text-primary font-black">
                   <Link href="/about">Read Our Full Story</Link>
                 </Button>
               </div>
@@ -333,13 +334,13 @@ export default function Home() {
             <div className="bg-accent rounded-[3rem] p-12 md:p-24 text-center space-y-8 relative overflow-hidden group shadow-2xl shadow-accent/20">
               <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-[0.02] transition-opacity" />
               <div className="max-w-2xl mx-auto space-y-4 relative z-10">
-                <h2 className="text-4xl md:text-7xl font-black text-primary tracking-tighter leading-[0.85]">
+                <h2 className="text-3xl md:text-6xl font-black text-primary tracking-tighter leading-[0.85]">
                   Start Your <br /> Artisan Journey.
                 </h2>
-                <p className="text-primary/70 text-lg font-bold uppercase tracking-widest">Free Shipping on your first order</p>
+                <p className="text-primary/70 text-base font-bold uppercase tracking-widest">Free Shipping on your first order</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4 relative z-10">
-                <Button asChild size="lg" className="bg-primary text-white h-16 px-12 rounded-2xl shadow-2xl text-xl font-black hover:scale-105 transition-transform">
+                <Button asChild size="lg" className="bg-primary text-white h-14 px-12 rounded-2xl shadow-2xl text-lg font-black hover:scale-105 transition-transform">
                   <Link href="/products">Shop All Masterpieces</Link>
                 </Button>
               </div>
@@ -353,7 +354,7 @@ export default function Home() {
         "md:hidden fixed bottom-6 left-6 right-6 z-50 transition-all duration-500 translate-y-20 opacity-0",
         showStickyCta && "translate-y-0 opacity-100"
       )}>
-        <Button asChild size="lg" className="w-full h-16 rounded-2xl bg-primary text-white shadow-2xl font-black text-lg">
+        <Button asChild size="lg" className="w-full h-14 rounded-2xl bg-primary text-white shadow-2xl font-black text-base">
           <Link href="/products">Shop The Collection — ₹1,499+</Link>
         </Button>
       </div>

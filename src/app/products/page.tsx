@@ -42,11 +42,11 @@ export default function ProductsPage() {
           {/* Header Section */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-8">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-accent font-bold text-xs uppercase tracking-widest">
+              <div className="flex items-center gap-2 text-accent font-bold text-[10px] uppercase tracking-widest">
                 <Package className="h-4 w-4" /> The Collection
               </div>
-              <h1 className="text-4xl md:text-6xl font-extrabold text-primary tracking-tight">Kalamic Catalog</h1>
-              <p className="text-sm md:text-lg text-muted-foreground max-w-lg leading-relaxed">
+              <h1 className="text-3xl md:text-5xl font-extrabold text-primary tracking-tight">Kalamic Catalog</h1>
+              <p className="text-sm md:text-base text-muted-foreground max-w-lg leading-relaxed">
                 Discover our curated selection of premium handcrafted ceramic treasures for your space.
               </p>
             </div>
@@ -56,13 +56,13 @@ export default function ProductsPage() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input 
                   placeholder="Search the collection..." 
-                  className="pl-14 h-14 rounded-2xl bg-white border-none shadow-lg focus-visible:ring-2 focus-visible:ring-accent transition-all text-lg"
+                  className="pl-14 h-12 rounded-2xl bg-white border-none shadow-lg focus-visible:ring-2 focus-visible:ring-accent transition-all text-base"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button variant="outline" className="h-14 w-14 rounded-2xl bg-white shadow-lg border-none hover:bg-primary/5 hidden md:flex">
-                <SlidersHorizontal className="h-6 w-6 text-primary" />
+              <Button variant="outline" className="h-12 w-12 rounded-2xl bg-white shadow-lg border-none hover:bg-primary/5 hidden md:flex">
+                <SlidersHorizontal className="h-5 w-5 text-primary" />
               </Button>
             </div>
           </div>
@@ -70,7 +70,7 @@ export default function ProductsPage() {
           {/* Grid Section */}
           {isLoading ? (
             <div className="flex flex-col justify-center items-center py-32 space-y-4">
-              <Loader2 className="h-12 w-12 text-primary animate-spin" />
+              <Loader2 className="h-10 w-10 text-primary animate-spin" />
               <p className="text-muted-foreground font-medium">Revealing artisan treasures...</p>
             </div>
           ) : filteredProducts.length > 0 ? (
@@ -93,13 +93,13 @@ export default function ProductsPage() {
           ) : (
             <div className="text-center py-32 bg-white rounded-[40px] shadow-sm border border-dashed border-primary/20 px-8">
               <div className="h-20 w-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Search className="h-10 w-10 text-muted-foreground opacity-30" />
+                <Search className="h-8 w-8 text-muted-foreground opacity-30" />
               </div>
-              <h2 className="text-2xl font-bold text-primary">No masterpieces found</h2>
-              <p className="text-muted-foreground mt-2 max-w-sm mx-auto">We couldn't find any ceramic pieces matching "{searchQuery}". Try a different keyword.</p>
+              <h2 className="text-xl font-bold text-primary">No masterpieces found</h2>
+              <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">We couldn't find any ceramic pieces matching "{searchQuery}". Try a different keyword.</p>
               <Button 
                 variant="link" 
-                className="text-accent font-bold mt-4 text-lg"
+                className="text-accent font-bold mt-4 text-base"
                 onClick={() => setSearchQuery('')}
               >
                 View all items

@@ -3,6 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  font-size: 15px;
+}
+
 @layer base {
   :root {
     --background: 36 45% 95%; /* #FAF4EB - Off-white/Beige */
