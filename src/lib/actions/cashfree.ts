@@ -58,6 +58,7 @@ export async function createCashfreeOrder(data: {
           customer_name: data.customerDetails.customerName,
         },
         order_meta: {
+          // Fallback to localhost if base URL is not provided
           return_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/orders?order_id={order_id}`,
         },
       }),
@@ -113,6 +114,7 @@ export async function verifyCashfreePayment(orderId: string) {
       throw new Error('Failed to verify payment with Cashfree');
     }
 
+    // Success status in Cashfree V3 is usually 'PAID'
     const isPaid = result.order_status === 'PAID';
     
     return {

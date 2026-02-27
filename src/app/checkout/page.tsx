@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -18,7 +17,6 @@ import {
   CreditCard, 
   ShieldCheck, 
   Loader2, 
-  ShoppingBag,
   MapPin,
   CheckCircle2,
   AlertTriangle,
@@ -56,7 +54,7 @@ export default function CheckoutPage() {
     paymentMethod: 'card'
   });
 
-  // Strict profile verification
+  // Verification of profile status
   useEffect(() => {
     async function checkVerify() {
       if (!isUserLoading && user) {
@@ -68,7 +66,7 @@ export default function CheckoutPage() {
         if (!isVerified || !isComplete) {
           toast({
             variant: "destructive",
-            title: "Artisan Profile Incomplete",
+            title: "Collector Profile Incomplete",
             description: "Please verify your email and complete your delivery details in your workspace first.",
           });
           router.push('/profile');
@@ -121,22 +119,17 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  /**
-   * Finalizes the order after payment verification
-   */
   const finalizeOrder = async (orderId: string, paymentId: string) => {
     if (!user || !firestore || !cartItems) return;
     
     const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
     
-    // Update Order to 'placed'
     await updateDoc(orderRef, {
       orderStatus: 'placed',
       paymentId: paymentId,
       updatedAt: serverTimestamp()
     });
 
-    // Clear Cart items
     const clearPromises = cartItems.map(item => 
       deleteDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id))
     );
@@ -149,7 +142,6 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length || !firestore) return;
     
-    // Basic validation
     if (!formData.fullName || !formData.address || !formData.city || !formData.phone) {
       toast({
         variant: "destructive",
@@ -161,7 +153,6 @@ export default function CheckoutPage() {
 
     setIsProcessing(true);
     try {
-      // 1. Create a "Pending Payment" order record
       const orderId = `KAL-${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
       const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
 
@@ -180,7 +171,6 @@ export default function CheckoutPage() {
 
       await setDoc(orderRef, orderData);
 
-      // Add items to subcollection
       const itemPromises = cartItems.map(async (item) => {
         const orderItemRef = doc(firestore, 'users', user.uid, 'orders', orderId, 'items', item.id);
         return setDoc(orderItemRef, {
@@ -195,7 +185,6 @@ export default function CheckoutPage() {
       });
       await Promise.all(itemPromises);
 
-      // 2. Request Secure Session from Server
       const result = await createCashfreeOrder({
         orderId,
         orderAmount: total,
@@ -208,14 +197,12 @@ export default function CheckoutPage() {
         }
       });
 
-      // 3. Handle Mock Mode or Real Checkout
       if (result.isMock) {
         toast({
           title: "Mock Mode Active",
-          description: "API keys missing. Simulating successful transaction for testing purposes...",
+          description: "No real transaction will occur. Simulating successful acquisition...",
         });
         
-        // Simulate a small delay for "payment processing"
         setTimeout(async () => {
           const verification = await verifyCashfreePayment(orderId);
           if (verification.success) {
@@ -225,9 +212,8 @@ export default function CheckoutPage() {
         return;
       }
 
-      // 4. Launch Real Cashfree SDK
       if (!cashfreeLoaded) {
-        toast({ variant: "destructive", title: "System Error", description: "Payment gateway SDK failed to load." });
+        toast({ variant: "destructive", title: "System Error", description: "Payment SDK failed to load. Please refresh." });
         setIsProcessing(false);
         return;
       }
@@ -258,7 +244,7 @@ export default function CheckoutPage() {
             toast({ 
               variant: "destructive", 
               title: "Verification Pending", 
-              description: "We are waiting for final payment confirmation from the bank." 
+              description: "We are waiting for final confirmation from the payment gateway." 
             });
             router.push('/orders');
           }
@@ -270,7 +256,7 @@ export default function CheckoutPage() {
       toast({
         variant: "destructive",
         title: "Secure Checkout Failed",
-        description: error.message || "We encountered an error connecting to our payment partner.",
+        description: error.message || "Encountered an error connecting to our payment partner.",
       });
       setIsProcessing(false);
     }
