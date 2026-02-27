@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -21,31 +20,33 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
+import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [userRole, setUserRole] = useState<string>('buyer');
+  const [isScrolled, setIsScrolled] = useState(false);
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
 
   useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    
     async function fetchRole() {
       if (user) {
-        // Instant check for the Super Admin email before DB fetch
         if (user.email === 'sriyanshgupta24@gmail.com') {
           setUserRole('super_admin');
         }
-        
         const profile = await getProfile(user.uid);
-        if (profile) {
-          setUserRole(profile.role || 'buyer');
-        }
+        if (profile) setUserRole(profile.role || 'buyer');
       } else {
         setUserRole('buyer');
       }
     }
     fetchRole();
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [user]);
 
   const cartQuery = useMemoFirebase(() => {
@@ -57,22 +58,20 @@ export function Navbar() {
   const cartItemCount = cartItems?.length || 0;
 
   const navLinks = [
-    { name: 'Home', href: '/' },
     { name: 'Collection', href: '/products' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
 
-  const handleSignOut = () => {
-    auth.signOut();
-  };
-
-  // DASHBOARD VISIBILITY: Only for super_admin, admin, and support
+  const handleSignOut = () => auth.signOut();
   const isAdmin = ['super_admin', 'admin', 'support'].includes(userRole);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+    <header className={cn(
+      "sticky top-0 z-50 w-full transition-all duration-300",
+      isScrolled ? "bg-white/90 backdrop-blur-lg shadow-sm h-16 border-b" : "bg-transparent h-20"
+    )}>
+      <div className="container mx-auto px-4 h-full flex items-center justify-between">
         <div className="flex items-center gap-2 md:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -85,6 +84,7 @@ export function Navbar() {
                 <SheetTitle className="text-2xl font-bold text-primary">Kalamic</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col p-4">
+                <Link href="/" className="flex items-center justify-between p-4 text-lg font-medium border-b hover:text-primary transition-colors">Home</Link>
                 {navLinks.map((link) => (
                   <Link
                     key={link.name}
@@ -100,16 +100,16 @@ export function Navbar() {
           </Sheet>
         </div>
 
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl md:text-2xl font-black text-primary tracking-tighter">Kalamic</span>
+        <Link href="/" className="flex items-center gap-2 group">
+          <span className="text-2xl md:text-3xl font-black text-primary tracking-tighter group-hover:scale-105 transition-transform">Kalamic</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-10">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
               href={link.href} 
-              className="text-sm font-bold transition-colors hover:text-primary opacity-70 hover:opacity-100"
+              className="text-xs font-black uppercase tracking-[0.2em] transition-all hover:text-primary opacity-60 hover:opacity-100"
             >
               {link.name}
             </Link>
@@ -184,7 +184,6 @@ export function Navbar() {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 
-                {/* ADMIN PANEL: Visible to Super Admin, Admin, and Support */}
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator className="opacity-50" />
@@ -207,7 +206,7 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <Link href="/auth/login">
-              <Button className="hidden sm:flex bg-primary text-white font-bold h-10 px-6 rounded-xl shadow-lg shadow-primary/20">
+              <Button className="hidden sm:flex bg-primary text-white font-black h-10 px-6 rounded-xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
                 Sign In
               </Button>
               <Button variant="ghost" size="icon" className="sm:hidden text-primary">

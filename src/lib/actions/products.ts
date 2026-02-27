@@ -39,6 +39,27 @@ export async function getFeaturedProducts() {
 }
 
 /**
+ * Fetches trending products based on orders and wishlist counts.
+ */
+export async function getTrendingProducts() {
+  await dbConnect();
+  try {
+    // Sort by combined popularity score (orders + wishlists)
+    const products = await KalamicProduct.find({
+      is_active: true,
+      is_deleted: { $ne: true }
+    }).sort({ 
+      'analytics.total_orders': -1, 
+      'analytics.wishlist_count': -1 
+    }).limit(4).lean();
+    return JSON.parse(JSON.stringify(products));
+  } catch (error) {
+    console.error("Error fetching trending products:", error);
+    return [];
+  }
+}
+
+/**
  * Fetches a single Kalamic product by MongoDB ID or slug.
  */
 export async function getProductById(id: string) {

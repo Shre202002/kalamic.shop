@@ -1,10 +1,9 @@
-
 "use client"
 
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Heart, ShoppingBag, Zap } from 'lucide-react';
+import { Heart, ShoppingBag, Zap, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +26,7 @@ interface ProductCardProps {
   isInitiallyFavorited?: boolean;
 }
 
-export function ProductCard({ id, slug, name, price, originalPrice, image, tag, description, isInitiallyFavorited = false }: ProductCardProps) {
+export function ProductCard({ id, slug, name, price, originalPrice, image, tag, description, rating, isInitiallyFavorited = false }: ProductCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -107,11 +106,11 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
 
   return (
     <Card 
-      className="group border-none shadow-md hover:shadow-xl transition-all duration-300 rounded-3xl overflow-hidden bg-white cursor-pointer h-full flex flex-col"
+      className="group border-none shadow-md hover:shadow-2xl transition-all duration-500 rounded-[2.5rem] overflow-hidden bg-white cursor-pointer h-full flex flex-col"
       onClick={() => router.push(`/products/${slug || id}`)}
     >
       <CardContent className="p-4 pb-0 relative">
-        <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-muted">
+        <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden bg-muted shadow-inner">
           <Image
             src={displayImage}
             alt={name || 'Ceramic Piece'}
@@ -120,15 +119,17 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
             sizes="(max-width: 768px) 100vw, 33vw"
           />
           {tag && (
-            <Badge className="absolute top-3 left-3 bg-primary text-white border-none text-[10px] font-bold px-3 py-1 rounded-lg">
-              {tag}
-            </Badge>
+            <div className="absolute top-4 left-4">
+              <Badge className="bg-primary text-white border-none text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg">
+                {tag}
+              </Badge>
+            </div>
           )}
           <button 
             onClick={handleAddToWishlist}
             className={cn(
-              "absolute top-3 right-3 p-2.5 rounded-xl backdrop-blur-md transition-all duration-300 shadow-lg z-10",
-              isFavorited ? "bg-white opacity-100" : "bg-white/90 opacity-0 group-hover:opacity-100 hover:bg-white"
+              "absolute top-4 right-4 p-3 rounded-2xl backdrop-blur-md transition-all duration-300 shadow-xl z-10",
+              isFavorited ? "bg-white scale-110" : "bg-white/80 opacity-0 group-hover:opacity-100 hover:bg-white"
             )}
           >
             <Heart className={cn("h-4 w-4 transition-colors", isFavorited ? "fill-red-500 text-red-500" : "text-primary")} />
@@ -136,36 +137,41 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
         </div>
       </CardContent>
 
-      <CardContent className="p-5 flex-1 flex flex-col">
-        <h3 className="text-lg font-bold text-primary leading-tight line-clamp-2 mb-1 group-hover:text-accent transition-colors duration-300">
+      <CardContent className="p-6 flex-1 flex flex-col">
+        <div className="flex items-center gap-1 text-accent mb-2">
+          {[1,2,3,4,5].map(i => <Star key={i} className={cn("h-3 w-3", i <= Math.round(rating) ? "fill-current" : "opacity-20")} />)}
+          <span className="text-[10px] font-black text-muted-foreground ml-1">{rating || 4.8}</span>
+        </div>
+        
+        <h3 className="text-xl font-black text-primary tracking-tight leading-tight line-clamp-2 mb-2 group-hover:text-accent transition-colors duration-300">
           {name || 'Handcrafted Piece'}
         </h3>
         {description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed">
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-4 leading-relaxed font-medium">
             {description}
           </p>
         )}
         
-        <div className="mt-auto flex items-baseline gap-2 mb-4">
-          <span className="text-xl font-extrabold text-primary">₹{(price ?? 0).toLocaleString()}</span>
+        <div className="mt-auto flex items-baseline gap-2 mb-6">
+          <span className="text-2xl font-black text-primary tracking-tight">₹{(price ?? 0).toLocaleString()}</span>
           {originalPrice && (
-            <span className="text-sm text-muted-foreground line-through opacity-50">₹{originalPrice.toLocaleString()}</span>
+            <span className="text-sm text-muted-foreground line-through opacity-40 font-bold">₹{originalPrice.toLocaleString()}</span>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           <Button 
             variant="outline"
-            className="h-10 rounded-xl border-primary text-primary hover:bg-primary hover:text-white text-xs font-bold gap-2"
+            className="h-12 rounded-2xl border-primary/20 text-primary hover:bg-primary/5 text-xs font-black gap-2 transition-all active:scale-95"
             onClick={handleAddToCart}
           >
-            <ShoppingBag className="h-3.5 w-3.5" /> Bag
+            <ShoppingBag className="h-4 w-4" /> Bag
           </Button>
           <Button 
-            className="h-10 rounded-xl bg-primary text-white hover:bg-primary/90 text-xs font-bold gap-2 shadow-lg shadow-primary/20"
+            className="h-12 rounded-2xl bg-primary text-white hover:bg-primary/90 text-xs font-black gap-2 shadow-xl shadow-primary/20 transition-all active:scale-95"
             onClick={handleBuyNow}
           >
-            <Zap className="h-3.5 w-3.5" /> Buy
+            <Zap className="h-4 w-4" /> Buy
           </Button>
         </div>
       </CardContent>
