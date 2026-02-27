@@ -23,7 +23,8 @@ import {
   Calendar,
   Home,
   ChevronRight,
-  CheckCircle2
+  CheckCircle2,
+  Key
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -155,9 +156,11 @@ export default function ProfilePage() {
     }
     setIsVerifyingPhone(true);
     try {
-      await sendPhoneOtp(formData.phone);
-      setIsPhoneOtpSent(true);
-      toast({ title: "Phone OTP Sent", description: "Simulated: Check the server console." });
+      const res = await sendPhoneOtp(formData.phone);
+      if (res.success) {
+        setIsPhoneOtpSent(true);
+        toast({ title: "Phone OTP Sent", description: "Simulated: Check the server console for the code." });
+      }
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } finally {
@@ -315,9 +318,14 @@ export default function ProfilePage() {
                               </div>
                             </div>
                             {!isPhoneVerified && isPhoneOtpSent && (
-                              <div className="flex items-center gap-2 animate-in slide-in-from-top-2">
-                                <Input placeholder="OTP" maxLength={6} value={phoneOtpCode} onChange={(e) => setPhoneOtpCode(e.target.value)} className="w-24 h-10 text-center font-bold" />
-                                <Button type="button" size="sm" onClick={handleVerifyPhoneOtp} disabled={isVerifyingPhone}>{isVerifyingPhone ? <Loader2 className="h-3 w-3 animate-spin" /> : "Confirm"}</Button>
+                              <div className="flex items-center gap-2 animate-in slide-in-from-top-2 bg-accent/5 p-3 rounded-2xl border border-accent/20">
+                                <div className="relative flex-1">
+                                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-accent/50 z-10" />
+                                  <Input placeholder="6-digit OTP" maxLength={6} value={phoneOtpCode} onChange={(e) => setPhoneOtpCode(e.target.value)} className="pl-10 h-10 rounded-xl font-bold tracking-[0.2em] text-center" />
+                                </div>
+                                <Button type="button" size="sm" className="h-10 rounded-xl px-6" onClick={handleVerifyPhoneOtp} disabled={isVerifyingPhone}>
+                                  {isVerifyingPhone ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
+                                </Button>
                               </div>
                             )}
                           </div>
@@ -337,9 +345,14 @@ export default function ProfilePage() {
                               </div>
                             </div>
                             {!isEmailVerified && isEmailOtpSent && (
-                              <div className="flex items-center gap-2 animate-in slide-in-from-top-2">
-                                <Input placeholder="OTP" maxLength={6} value={emailOtpCode} onChange={(e) => setEmailOtpCode(e.target.value)} className="w-24 h-10 text-center font-bold" />
-                                <Button type="button" size="sm" onClick={handleVerifyEmailOtp} disabled={isVerifyingEmail}>{isVerifyingEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : "Confirm"}</Button>
+                              <div className="flex items-center gap-2 animate-in slide-in-from-top-2 bg-accent/5 p-3 rounded-2xl border border-accent/20">
+                                <div className="relative flex-1">
+                                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-accent/50 z-10" />
+                                  <Input placeholder="6-digit OTP" maxLength={6} value={emailOtpCode} onChange={(e) => setEmailOtpCode(e.target.value)} className="pl-10 h-10 rounded-xl font-bold tracking-[0.2em] text-center" />
+                                </div>
+                                <Button type="button" size="sm" className="h-10 rounded-xl px-6" onClick={handleVerifyEmailOtp} disabled={isVerifyingEmail}>
+                                  {isVerifyingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
+                                </Button>
                               </div>
                             )}
                           </div>

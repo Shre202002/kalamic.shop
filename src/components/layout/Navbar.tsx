@@ -166,7 +166,7 @@ export function Navbar() {
           <div className="container mx-auto flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search products..." className="pl-10" autoFocus />
+              <Input placeholder="Search products..." className="pl-12 h-10" autoFocus />
             </div>
             <Button variant="ghost" onClick={() => setIsSearchOpen(false)}>Cancel</Button>
           </div>

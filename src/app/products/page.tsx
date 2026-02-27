@@ -56,7 +56,7 @@ export default function ProductsPage() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input 
                   placeholder="Search the collection..." 
-                  className="pl-12 h-14 rounded-2xl bg-white border-none shadow-lg focus-visible:ring-2 focus-visible:ring-accent transition-all text-lg"
+                  className="pl-14 h-14 rounded-2xl bg-white border-none shadow-lg focus-visible:ring-2 focus-visible:ring-accent transition-all text-lg"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
