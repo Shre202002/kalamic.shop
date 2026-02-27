@@ -41,15 +41,13 @@ import {
   Language as SeoIcon,
   LocalShipping,
   SettingsSuggest,
-  HistoryEdu,
-  CloudSync
+  HistoryEdu
 } from '@mui/icons-material';
 import { 
   getAdminProducts, 
   toggleProductVisibility, 
   deleteProduct,
-  saveProduct,
-  seedInitialCatalog
+  saveProduct
 } from '@/lib/actions/admin-actions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -96,7 +94,6 @@ export default function ProductsManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
   const theme = useTheme();
@@ -200,20 +197,6 @@ export default function ProductsManagement() {
     }
   };
 
-  const handleRestoreCatalog = async () => {
-    if (!confirm("Re-sync artisan baseline? This will populate the 5 core handcrafted pieces.")) return;
-    setIsSeeding(true);
-    try {
-      await seedInitialCatalog('current-admin');
-      toast({ title: "Catalog Restored", description: "Baseline collection is now live." });
-      load();
-    } catch (e) {
-      toast({ variant: "destructive", title: "Restoration Failed" });
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-
   const filteredProducts = useMemo(() => {
     if (!searchQuery) return products;
     const q = searchQuery.toLowerCase();
@@ -290,14 +273,14 @@ export default function ProductsManagement() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 5, gap: 3 }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'flex-end' }, mb: 5, gap: 3 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 900, mb: 1 }}>Artisan Inventory</Typography>
           <Typography variant="body2" color="text.secondary">Unified command center for the handcrafted collection.</Typography>
         </Box>
         
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'white', px: 2, borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
+        <Box sx={{ display: 'flex', gap: 2, width: { xs: '100%', md: 'auto' } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'white', px: 2, borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)', flex: 1 }}>
             <Search sx={{ color: 'text.disabled', mr: 1, fontSize: 20 }} />
             <InputBase
               placeholder="Search pieces..."
@@ -306,12 +289,6 @@ export default function ProductsManagement() {
               sx={{ flex: 1, fontSize: '0.85rem', fontWeight: 600 }}
             />
           </Box>
-
-          <Tooltip title="Restore Artisan Baseline">
-            <IconButton onClick={handleRestoreCatalog} disabled={isSeeding} sx={{ bgcolor: 'white', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3 }}>
-              {isSeeding ? <CircularProgress size={20} /> : <CloudSync />}
-            </IconButton>
-          </Tooltip>
 
           <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()} sx={{ borderRadius: 3, px: 3, fontWeight: 800 }}>
             New Piece
