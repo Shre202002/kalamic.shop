@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -31,7 +30,7 @@ export async function createCashfreeOrder(data: {
 }) {
   // If credentials are missing, enter Mock Mode for prototyping
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    console.warn('[CASHFREE] Missing credentials. Entering Mock Mode for testing.');
+    console.info('[CASHFREE] Missing credentials (CASHFREE_APP_ID/SECRET). Entering Mock Mode for development.');
     return {
       paymentSessionId: `mock_session_${Math.random().toString(36).substring(7)}`,
       orderId: data.orderId,
@@ -88,6 +87,7 @@ export async function createCashfreeOrder(data: {
 export async function verifyCashfreePayment(orderId: string) {
   // Handle Mock Verification
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+    console.info('[CASHFREE] Verifying Mock Order:', orderId);
     return {
       success: true,
       status: 'PAID',

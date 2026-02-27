@@ -23,6 +23,18 @@ If you are managing the OAuth Client ID in the [Google Cloud Console](https://co
 
 ---
 
+## 💳 Payment Gateway (Cashfree)
+
+To enable real payments, add these variables to your `.env` file:
+```env
+CASHFREE_APP_ID=your_app_id
+CASHFREE_SECRET_KEY=your_secret_key
+CASHFREE_ENV=sandbox # or 'production'
+```
+*Note: If these are missing, the app will run in **Mock Mode** for safe testing.*
+
+---
+
 ## 🚀 Getting Started
 
 ### Development
@@ -40,5 +52,5 @@ npm run genkit:dev
 - `src/app`: Next.js App Router pages.
 - `src/components`: Reusable UI components (ShadCN).
 - `src/firebase`: Client-side Firebase configuration and hooks.
-- `src/lib/actions`: Server-side logic for MongoDB operations and OTP handling.
+- `src/lib/actions`: Server-side logic for MongoDB operations and payment handling.
 - `src/lib/models`: Mongoose schemas for MongoDB.
