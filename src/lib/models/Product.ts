@@ -62,8 +62,8 @@ export interface IProduct extends Document {
     meta_keywords: string[];
   };
 
-  created_by_admin?: mongoose.Types.ObjectId;
-  updated_by_admin?: mongoose.Types.ObjectId;
+  created_by_admin?: string;
+  updated_by_admin?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -124,8 +124,8 @@ const ProductSchema: Schema = new Schema({
     meta_keywords: [{ type: String }]
   },
 
-  created_by_admin: { type: Schema.Types.ObjectId },
-  updated_by_admin: { type: Schema.Types.ObjectId }
+  created_by_admin: { type: String },
+  updated_by_admin: { type: String }
 }, { timestamps: true });
 
 // Optimize search for discovery

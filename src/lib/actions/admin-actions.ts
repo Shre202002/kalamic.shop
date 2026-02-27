@@ -1,3 +1,4 @@
+
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -142,8 +143,7 @@ export async function saveProduct(adminId: string, productData: any) {
   try {
     const isNew = !productData._id;
     
-    // Explicitly rebuild the data structure to match the schema and prevent "Cast to embedded failed" errors
-    // This ensures that strings are never passed where objects are expected
+    // Explicitly rebuild the data structure to match the schema
     const cleanedData = {
       name: String(productData.name || ""),
       slug: String(productData.slug || ""),
@@ -157,7 +157,6 @@ export async function saveProduct(adminId: string, productData: any) {
       is_featured: !!productData.is_featured,
       visibility_priority: Number(productData.visibility_priority) || 0,
       images: (productData.images || []).map((img: any) => {
-        // Handle legacy strings or objects
         const url = typeof img === 'string' ? img : (img.url || "");
         const alt = typeof img === 'string' ? "" : (img.alt || "");
         const is_primary = typeof img === 'string' ? false : !!img.is_primary;
@@ -202,7 +201,6 @@ export async function saveProduct(adminId: string, productData: any) {
       await logAction(adminId, 'UPDATE_PRODUCT', 'Product', productData._id, `Updated piece: ${savedProduct.name}`);
     }
 
-    // Seamlessly update caches for real-time storefront updates
     revalidatePath('/admin/products');
     revalidatePath(`/products/${savedProduct.slug}`);
     revalidatePath('/products');
