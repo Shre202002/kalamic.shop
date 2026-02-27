@@ -12,6 +12,7 @@ export interface IUser extends Document {
   pincode: string;
   landmark: string;
   emailVerified: boolean;
+  phoneVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,6 +29,7 @@ const UserSchema: Schema = new Schema({
   pincode: { type: String, required: false },   
   landmark: { type: String, required: false },  
   emailVerified: { type: Boolean, default: false },
+  phoneVerified: { type: Boolean, default: false },
 }, { timestamps: true, collection: 'users' });
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

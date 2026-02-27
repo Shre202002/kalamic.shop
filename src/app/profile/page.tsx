@@ -27,8 +27,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { getProfile, updateProfile, getUserOrders, getWishlistItems, verifyUserEmail, getOrCreateProfile } from '@/lib/actions/user-actions';
-import { sendOtp, verifyOtp } from '@/lib/actions/otp-actions';
+import { getProfile, updateProfile, getUserOrders, getWishlistItems, verifyUserEmail, verifyUserPhone, getOrCreateProfile } from '@/lib/actions/user-actions';
+import { sendOtp, sendPhoneOtp, verifyOtp } from '@/lib/actions/otp-actions';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
@@ -38,14 +38,22 @@ export default function ProfilePage() {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState([]);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
+  
+  // Email verification state
+  const [emailOtpCode, setEmailOtpCode] = useState('');
+  const [isEmailOtpSent, setIsEmailOtpSent] = useState(false);
+  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+
+  // Phone verification state
+  const [phoneOtpCode, setPhoneOtpCode] = useState('');
+  const [isPhoneOtpSent, setIsPhoneOtpSent] = useState(false);
+  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -70,8 +78,6 @@ export default function ProfilePage() {
       setIsLoadingData(true);
       try {
         let profileData = await getProfile(user.uid);
-        
-        // Auto-provision basic profile if not exists
         if (!profileData) {
           profileData = await getOrCreateProfile(user.uid, user.email || '');
         }
@@ -105,38 +111,78 @@ export default function ProfilePage() {
     loadData();
   }, [user]);
 
-  const handleSendOtp = async () => {
+  // Handle Email Verification
+  const handleSendEmailOtp = async () => {
     if (!user?.email) return;
-    setIsVerifying(true);
+    setIsVerifyingEmail(true);
     try {
       await sendOtp(user.email);
-      setIsOtpSent(true);
-      toast({ title: "Verification Code Sent", description: "Please check your inbox." });
+      setIsEmailOtpSent(true);
+      toast({ title: "Email OTP Sent", description: "Check your inbox for the code." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } finally {
-      setIsVerifying(false);
+      setIsVerifyingEmail(false);
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (!otpCode || !user?.email) return;
-    setIsVerifying(true);
+  const handleVerifyEmailOtp = async () => {
+    if (!emailOtpCode || !user?.email) return;
+    setIsVerifyingEmail(true);
     try {
-      const result = await verifyOtp(user.email, otpCode);
+      const result = await verifyOtp(user.email, emailOtpCode);
       if (result.success) {
         const updated = await verifyUserEmail(user.uid, user.email);
         setProfile(updated);
-        setIsOtpSent(false);
-        setOtpCode('');
-        toast({ title: "Email Verified", description: "Your artisan profile is now authenticated." });
+        setIsEmailOtpSent(false);
+        setEmailOtpCode('');
+        toast({ title: "Email Verified", description: "Your email is now authenticated." });
       } else {
-        toast({ variant: "destructive", title: "Verification Failed", description: result.message });
+        toast({ variant: "destructive", title: "Failed", description: result.message });
       }
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } finally {
-      setIsVerifying(false);
+      setIsVerifyingEmail(false);
+    }
+  };
+
+  // Handle Phone Verification
+  const handleSendPhoneOtp = async () => {
+    if (!formData.phone) {
+      toast({ variant: "destructive", title: "Phone Required", description: "Please enter your phone number first." });
+      return;
+    }
+    setIsVerifyingPhone(true);
+    try {
+      await sendPhoneOtp(formData.phone);
+      setIsPhoneOtpSent(true);
+      toast({ title: "Phone OTP Sent", description: "Simulated: Check the server console." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally {
+      setIsVerifyingPhone(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async () => {
+    if (!phoneOtpCode || !formData.phone) return;
+    setIsVerifyingPhone(true);
+    try {
+      const result = await verifyOtp(formData.phone, phoneOtpCode);
+      if (result.success) {
+        const updated = await verifyUserPhone(user!.uid, formData.phone);
+        setProfile(updated);
+        setIsPhoneOtpSent(false);
+        setPhoneOtpCode('');
+        toast({ title: "Phone Verified", description: "Your contact number is now verified." });
+      } else {
+        toast({ variant: "destructive", title: "Failed", description: result.message });
+      }
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally {
+      setIsVerifyingPhone(false);
     }
   };
 
@@ -151,16 +197,9 @@ export default function ProfilePage() {
         email: user.email || ''
       } as any);
       setProfile(updated);
-      toast({
-        title: "Profile Updated",
-        description: "Your artisan settings have been saved successfully.",
-      });
+      toast({ title: "Profile Updated", description: "Your settings have been saved." });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: "Could not save your changes. Ensure all fields are correctly formatted.",
-      });
+      toast({ variant: "destructive", title: "Update Failed", description: "Could not save changes." });
     } finally {
       setIsUpdating(false);
     }
@@ -168,7 +207,8 @@ export default function ProfilePage() {
 
   const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.state && formData.city && formData.pincode && formData.landmark);
   const isEmailVerified = profile?.emailVerified;
-  const isFullyVerified = isProfileComplete && isEmailVerified;
+  const isPhoneVerified = profile?.phoneVerified;
+  const isFullyVerified = isProfileComplete && isEmailVerified && isPhoneVerified;
 
   const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : 2024;
 
@@ -189,7 +229,6 @@ export default function ProfilePage() {
       <Navbar />
       <main className="flex-1 py-8 md:py-16">
         <div className="container mx-auto px-4 max-w-6xl space-y-10">
-          {/* Header Summary */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-primary/10 pb-8">
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-[0.2em]">
@@ -210,19 +249,18 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Verification Warning Card */}
-          {(!isEmailVerified || !isProfileComplete) && (
+          {(!isFullyVerified) && (
             <Card className="bg-destructive/5 border-destructive/30 border-2 rounded-[2.5rem] overflow-hidden shadow-xl animate-in zoom-in-95 duration-500">
               <CardContent className="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8">
                 <div className="h-20 w-20 rounded-[2rem] bg-destructive/10 flex items-center justify-center text-destructive flex-shrink-0 border border-destructive/20 shadow-inner">
                   <AlertCircle className="h-10 w-10" />
                 </div>
                 <div className="flex-1 text-center md:text-left space-y-2">
-                  <h3 className="text-2xl font-black text-primary">Artisanal Verification Pending</h3>
+                  <h3 className="text-2xl font-black text-primary">Verification Required</h3>
                   <p className="text-muted-foreground text-base max-w-lg">
-                    {!isEmailVerified 
-                      ? "To protect our collection, email verification is compulsory. Please request and enter your 6-digit code below." 
-                      : "Your delivery credentials are incomplete. Fill out your workspace details to unlock handcrafted acquisitions."}
+                    {!isEmailVerified && "• Email verification pending. "}
+                    {!isPhoneVerified && "• Phone verification pending. "}
+                    {!isProfileComplete && "• Complete your delivery details to start acquiring art."}
                   </p>
                 </div>
               </CardContent>
@@ -230,7 +268,6 @@ export default function ProfilePage() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            {/* Left Column: Form */}
             <div className="lg:col-span-8 space-y-8">
               <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
                 <CardHeader className="p-10 pb-6 bg-primary/[0.02]">
@@ -247,7 +284,6 @@ export default function ProfilePage() {
                 <Separator className="mx-10 opacity-30" />
                 <CardContent className="p-10 pt-8">
                   <form onSubmit={handleUpdateProfile} className="space-y-12">
-                    {/* Identity Section */}
                     <div className="space-y-6">
                       <h3 className="text-xs font-black uppercase tracking-[0.25em] text-accent flex items-center gap-3">
                         <div className="h-1.5 w-1.5 rounded-full bg-accent" /> Identity & Contact
@@ -255,95 +291,55 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">First Name *</Label>
-                          <Input 
-                            required
-                            value={formData.firstName} 
-                            onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
-                            placeholder="Aarav" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
-                          />
+                          <Input required value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} placeholder="Aarav" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Last Name *</Label>
-                          <Input 
-                            required
-                            value={formData.lastName} 
-                            onChange={(e) => setFormData({...formData, lastName: e.target.value})} 
-                            placeholder="Sharma" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
-                          />
+                          <Input required value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} placeholder="Sharma" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone *</Label>
-                          <div className="relative">
-                            <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                            <Input 
-                              required
-                              value={formData.phone} 
-                              onChange={(e) => setFormData({...formData, phone: e.target.value})} 
-                              placeholder="+91 XXXXX XXXXX" 
-                              className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
-                            />
+                          <div className="space-y-3">
+                            <div className="relative">
+                              <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                              <Input required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} placeholder="+91 XXXXX XXXXX" className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-24" />
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                                {isPhoneVerified ? (
+                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                ) : (
+                                  <Button type="button" size="sm" variant="ghost" className="text-[10px] font-bold text-accent" onClick={handleSendPhoneOtp}>Verify</Button>
+                                )}
+                              </div>
+                            </div>
+                            {!isPhoneVerified && isPhoneOtpSent && (
+                              <div className="flex items-center gap-2 animate-in slide-in-from-top-2">
+                                <Input placeholder="OTP" maxLength={6} value={phoneOtpCode} onChange={(e) => setPhoneOtpCode(e.target.value)} className="w-24 h-10 text-center font-bold" />
+                                <Button type="button" size="sm" onClick={handleVerifyPhoneOtp} disabled={isVerifyingPhone}>{isVerifyingPhone ? <Loader2 className="h-3 w-3 animate-spin" /> : "Confirm"}</Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Authenticated Email</Label>
                           <div className="space-y-3">
-                            <div className="flex items-center gap-3 p-4 bg-muted/5 rounded-2xl text-muted-foreground border border-dashed text-sm h-14 px-6">
-                              <Mail className="h-4 w-4 opacity-50" /> 
-                              <span className="truncate flex-1">{user?.email}</span>
-                              {isEmailVerified ? (
-                                <Badge variant="outline" className="text-[9px] border-green-500 text-green-600 bg-green-50 flex items-center gap-1">
-                                  <CheckCircle2 className="h-2 w-2" /> Verified
-                                </Badge>
-                              ) : (
-                                <Badge variant="destructive" className="text-[9px] font-bold">Unverified</Badge>
-                              )}
-                            </div>
-                            
-                            {!isEmailVerified && (
-                              <div className="pt-1 flex flex-col gap-3">
-                                {!isOtpSent ? (
-                                  <Button 
-                                    type="button"
-                                    onClick={handleSendOtp} 
-                                    disabled={isVerifying} 
-                                    variant="outline"
-                                    className="w-full h-12 rounded-xl border-accent text-accent hover:bg-accent/5 font-bold text-xs"
-                                  >
-                                    {isVerifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-                                    Send Verification Code
-                                  </Button>
+                            <div className="relative">
+                              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                              <Input disabled value={user?.email || ''} className="pl-14 rounded-2xl h-14 border-muted/30 bg-muted/20 text-lg font-medium pr-24" />
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                                {isEmailVerified ? (
+                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
                                 ) : (
-                                  <div className="flex items-center gap-2">
-                                    <Input 
-                                      placeholder="000000" 
-                                      maxLength={6} 
-                                      className="flex-1 h-12 text-center text-xl font-black tracking-[0.2em] rounded-xl border-2 border-primary/20"
-                                      value={otpCode}
-                                      onChange={(e) => setOtpCode(e.target.value)}
-                                    />
-                                    <Button 
-                                      type="button"
-                                      onClick={handleVerifyOtp} 
-                                      disabled={isVerifying || otpCode.length !== 6} 
-                                      className="h-12 rounded-xl px-6 font-bold shadow-lg"
-                                    >
-                                      {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify Code"}
-                                    </Button>
-                                    <Button 
-                                      type="button"
-                                      variant="ghost" 
-                                      onClick={() => setIsOtpSent(false)} 
-                                      className="h-12 w-12 rounded-xl p-0"
-                                    >
-                                      <ChevronRight className="h-5 w-5 rotate-180" />
-                                    </Button>
-                                  </div>
+                                  <Button type="button" size="sm" variant="ghost" className="text-[10px] font-bold text-accent" onClick={handleSendEmailOtp}>Verify</Button>
                                 )}
+                              </div>
+                            </div>
+                            {!isEmailVerified && isEmailOtpSent && (
+                              <div className="flex items-center gap-2 animate-in slide-in-from-top-2">
+                                <Input placeholder="OTP" maxLength={6} value={emailOtpCode} onChange={(e) => setEmailOtpCode(e.target.value)} className="w-24 h-10 text-center font-bold" />
+                                <Button type="button" size="sm" onClick={handleVerifyEmailOtp} disabled={isVerifyingEmail}>{isVerifyingEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : "Confirm"}</Button>
                               </div>
                             )}
                           </div>
@@ -351,79 +347,41 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    {/* Delivery Section */}
                     <div className="space-y-6">
                       <h3 className="text-xs font-black uppercase tracking-[0.25em] text-accent flex items-center gap-3">
                         <div className="h-1.5 w-1.5 rounded-full bg-accent" /> Artisanal Shipping Destination
                       </h3>
-                      
                       <div className="space-y-2.5">
                         <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Street Address *</Label>
                         <div className="relative">
                           <Home className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                          <Input 
-                            required
-                            value={formData.address} 
-                            onChange={(e) => setFormData({...formData, address: e.target.value})} 
-                            placeholder="House No, Street Name, Block" 
-                            className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
-                          />
+                          <Input required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="House No, Street Name, Block" className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6" />
                         </div>
                       </div>
-
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City / Township *</Label>
-                          <Input 
-                            required
-                            value={formData.city} 
-                            onChange={(e) => setFormData({...formData, city: e.target.value})} 
-                            placeholder="Jaipur" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
-                          />
+                          <Input required value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} placeholder="Jaipur" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">State / Region *</Label>
-                          <Input 
-                            required
-                            value={formData.state} 
-                            onChange={(e) => setFormData({...formData, state: e.target.value})} 
-                            placeholder="Rajasthan" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
-                          />
+                          <Input required value={formData.state} onChange={(e) => setFormData({...formData, state: e.target.value})} placeholder="Rajasthan" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                         </div>
                       </div>
-
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Pincode *</Label>
-                          <Input 
-                            required
-                            value={formData.pincode} 
-                            onChange={(e) => setFormData({...formData, pincode: e.target.value})} 
-                            placeholder="302001" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
-                          />
+                          <Input required value={formData.pincode} onChange={(e) => setFormData({...formData, pincode: e.target.value})} placeholder="302001" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Nearest Craft Landmark *</Label>
-                          <Input 
-                            required
-                            value={formData.landmark} 
-                            onChange={(e) => setFormData({...formData, landmark: e.target.value})} 
-                            placeholder="e.g. Near City Palace" 
-                            className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6"
-                          />
+                          <Input required value={formData.landmark} onChange={(e) => setFormData({...formData, landmark: e.target.value})} placeholder="e.g. Near City Palace" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                         </div>
                       </div>
                     </div>
 
                     <div className="flex justify-end pt-4">
-                      <Button 
-                        type="submit"
-                        disabled={isUpdating} 
-                        className="bg-primary text-white px-12 h-16 rounded-[1.5rem] text-lg font-black shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all active:scale-95"
-                      >
+                      <Button type="submit" disabled={isUpdating} className="bg-primary text-white px-12 h-16 rounded-[1.5rem] text-lg font-black shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all active:scale-95">
                         {isUpdating ? <Loader2 className="mr-3 h-6 w-6 animate-spin" /> : null}
                         Save Artisan Settings
                       </Button>
@@ -433,9 +391,7 @@ export default function ProfilePage() {
               </Card>
             </div>
 
-            {/* Right Column: Status & Stats */}
             <div className="lg:col-span-4 space-y-8">
-              {/* Account Card */}
               <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white p-8">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="h-14 w-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shadow-inner">
@@ -443,9 +399,8 @@ export default function ProfilePage() {
                   </div>
                   <h3 className="text-xl font-black text-primary">Control Hub</h3>
                 </div>
-                
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-5 rounded-3xl bg-[#FAF4EB]/50 border-2 border-primary/5 transition-all hover:border-primary/10">
+                  <div className="flex items-center justify-between p-5 rounded-3xl bg-[#FAF4EB]/50 border-2 border-primary/5">
                     <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Auth Status</span>
                     {isFullyVerified ? (
                       <Badge className="bg-green-500 hover:bg-green-600 px-3 py-1 text-[10px] font-bold">VERIFIED</Badge>
@@ -458,19 +413,12 @@ export default function ProfilePage() {
                     <span className="text-sm font-black text-primary italic">Silver Artisan</span>
                   </div>
                 </div>
-
                 <Separator className="my-8 opacity-50" />
-                
-                <Button 
-                  variant="ghost" 
-                  className="w-full h-16 rounded-[1.5rem] text-muted-foreground hover:text-destructive hover:bg-destructive/5 border-2 border-dashed border-muted transition-all font-black text-base group"
-                  onClick={() => auth.signOut()}
-                >
+                <Button variant="ghost" className="w-full h-16 rounded-[1.5rem] text-muted-foreground hover:text-destructive hover:bg-destructive/5 border-2 border-dashed border-muted transition-all font-black text-base group" onClick={() => auth.signOut()}>
                   <LogOut className="mr-3 h-5 w-5 group-hover:translate-x-1 transition-transform" /> Sign Out from Studio
                 </Button>
               </Card>
 
-              {/* Quick Navigation Cards */}
               <div className="grid grid-cols-1 gap-6">
                  <Link href="/orders" className="group">
                     <Card className="bg-primary text-white rounded-[2.5rem] p-8 hover:shadow-2xl transition-all duration-300 relative overflow-hidden">

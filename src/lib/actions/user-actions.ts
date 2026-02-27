@@ -32,6 +32,7 @@ export async function getOrCreateProfile(firebaseId: string, email: string) {
         $setOnInsert: { 
           email, 
           emailVerified: false,
+          phoneVerified: false,
           createdAt: new Date(),
           updatedAt: new Date()
         } 
@@ -47,7 +48,6 @@ export async function getOrCreateProfile(firebaseId: string, email: string) {
 
 /**
  * Marks a user's email as verified in MongoDB.
- * This is the source of truth for verification in the app.
  */
 export async function verifyUserEmail(firebaseId: string, email: string) {
   await dbConnect();
@@ -65,8 +65,25 @@ export async function verifyUserEmail(firebaseId: string, email: string) {
 }
 
 /**
+ * Marks a user's phone as verified in MongoDB.
+ */
+export async function verifyUserPhone(firebaseId: string, phone: string) {
+  await dbConnect();
+  try {
+    const user = await User.findOneAndUpdate(
+      { firebaseId },
+      { $set: { phoneVerified: true, phone } },
+      { new: true, upsert: true }
+    ).lean();
+    return JSON.parse(JSON.stringify(user));
+  } catch (error) {
+    console.error("Error verifying phone in DB:", error);
+    throw new Error("Failed to verify phone record.");
+  }
+}
+
+/**
  * Updates or creates the user profile with integrated address details.
- * Does NOT force email verification.
  */
 export async function updateProfile(firebaseId: string, data: { 
   email: string,
@@ -81,6 +98,7 @@ export async function updateProfile(firebaseId: string, data: {
 }) {
   await dbConnect();
   try {
+    // Preserve verification flags during general update
     const user = await User.findOneAndUpdate(
       { firebaseId },
       { $set: { ...data } },
