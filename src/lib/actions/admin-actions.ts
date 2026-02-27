@@ -9,6 +9,7 @@ import WishlistItem from '@/lib/models/WishlistItem';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { revalidatePath } from 'next/cache';
 import dayjs from 'dayjs';
+import mongoose from 'mongoose';
 
 /**
  * Helper to log admin actions.
@@ -129,13 +130,43 @@ export async function toggleUserStatus(adminId: string, userId: string, status: 
 }
 
 /**
- * Product Management (Hardened for new Schema).
+ * Product Management (Full CRUD).
  */
 export async function getAdminProducts() {
   await dbConnect();
-  // We include soft-deleted products in admin view but mark them
-  const products = await Product.find({ is_deleted: { $ne: true } }).sort({ createdAt: -1 }).lean();
+  const products = await Product.find({ is_deleted: { $ne: true } }).sort({ visibility_priority: -1, createdAt: -1 }).lean();
   return JSON.parse(JSON.stringify(products));
+}
+
+export async function saveProduct(adminId: string, productData: any) {
+  await dbConnect();
+  try {
+    const isNew = !productData._id;
+    let savedProduct;
+
+    if (isNew) {
+      savedProduct = await Product.create({
+        ...productData,
+        created_by_admin: adminId,
+        updated_by_admin: adminId
+      });
+      await logAction(adminId, 'CREATE_PRODUCT', 'Product', savedProduct._id.toString(), `Created piece: ${savedProduct.name}`);
+    } else {
+      const { _id, ...updateData } = productData;
+      savedProduct = await Product.findByIdAndUpdate(
+        _id,
+        { ...updateData, updated_by_admin: adminId },
+        { new: true, runValidators: true }
+      );
+      await logAction(adminId, 'UPDATE_PRODUCT', 'Product', _id, `Updated piece: ${savedProduct.name}`);
+    }
+
+    revalidatePath('/admin/products');
+    return JSON.parse(JSON.stringify(savedProduct));
+  } catch (error: any) {
+    console.error("Save Product Error:", error);
+    throw new Error(error.message || "Failed to save product");
+  }
 }
 
 export async function toggleProductVisibility(adminId: string, productId: string, isActive: boolean) {
@@ -154,7 +185,6 @@ export async function toggleProductFeature(adminId: string, productId: string, i
 
 export async function deleteProduct(adminId: string, productId: string) {
   await dbConnect();
-  // Use Soft Delete
   await Product.findByIdAndUpdate(productId, { is_deleted: true, is_active: false });
   await logAction(adminId, 'SOFT_DELETE', 'Product', productId, 'Moved to archived pieces');
   revalidatePath('/admin/products');
