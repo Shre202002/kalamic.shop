@@ -143,21 +143,36 @@ export async function saveProduct(adminId: string, productData: any) {
     const isNew = !productData._id;
     let savedProduct;
 
-    // Ensure numeric fields are correctly typed
+    // Ensure numeric fields are correctly typed and handle nested structure
     const cleanedData = {
       ...productData,
       price: Number(productData.price) || 0,
-      compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
+      compare_at_price: productData.compare_at_price && productData.compare_at_price !== "" 
+        ? Number(productData.compare_at_price) 
+        : undefined,
       stock: Number(productData.stock) || 0,
       visibility_priority: Number(productData.visibility_priority) || 0,
+      images: (productData.images || []).map((img: any) => ({
+        url: img.url || "",
+        alt: img.alt || "",
+        is_primary: !!img.is_primary
+      })),
+      specifications: (productData.specifications || []).map((spec: any) => ({
+        key: spec.key || "",
+        value: spec.value || ""
+      })),
       shipping: {
-        ...productData.shipping,
         weight_kg: Number(productData.shipping?.weight_kg) || 0,
         package_dimensions_cm: {
           length: Number(productData.shipping?.package_dimensions_cm?.length) || 0,
           width: Number(productData.shipping?.package_dimensions_cm?.width) || 0,
           height: Number(productData.shipping?.package_dimensions_cm?.height) || 0,
         }
+      },
+      seo: {
+        meta_title: productData.seo?.meta_title || "",
+        meta_description: productData.seo?.meta_description || "",
+        meta_keywords: Array.isArray(productData.seo?.meta_keywords) ? productData.seo.meta_keywords : []
       }
     };
 
@@ -178,7 +193,7 @@ export async function saveProduct(adminId: string, productData: any) {
       await logAction(adminId, 'UPDATE_PRODUCT', 'Product', _id, `Updated piece: ${savedProduct.name}`);
     }
 
-    // Seamlessly update caches
+    // Seamlessly update caches for real-time storefront updates
     revalidatePath('/admin/products');
     revalidatePath(`/products/${savedProduct.slug}`);
     revalidatePath('/products');

@@ -72,7 +72,7 @@ const INITIAL_PRODUCT = {
   short_description: '',
   description: '',
   price: 0,
-  compare_at_price: 0,
+  compare_at_price: undefined,
   stock: 0,
   sku: '',
   is_active: true,
@@ -126,12 +126,16 @@ export default function ProductsManagement() {
 
   const handleOpenDialog = (product?: any) => {
     if (product) {
-      // Deep normalization to prevent "map of undefined" errors
+      // Deep normalization to handle legacy data structures and prevent TypeError
       const normalizedProduct = {
         ...INITIAL_PRODUCT,
         ...product,
-        images: Array.isArray(product.images) && product.images.length ? product.images : INITIAL_PRODUCT.images,
-        specifications: Array.isArray(product.specifications) && product.specifications.length ? product.specifications : INITIAL_PRODUCT.specifications,
+        images: Array.isArray(product.images) && product.images.length 
+          ? product.images.map((img: any) => typeof img === 'string' ? { url: img, alt: '', is_primary: false } : { ...img })
+          : INITIAL_PRODUCT.images,
+        specifications: Array.isArray(product.specifications) && product.specifications.length 
+          ? product.specifications.map((s: any) => ({ ...s }))
+          : INITIAL_PRODUCT.specifications,
         shipping: {
           ...INITIAL_PRODUCT.shipping,
           ...(product.shipping || {}),
@@ -143,7 +147,7 @@ export default function ProductsManagement() {
         seo: {
           ...INITIAL_PRODUCT.seo,
           ...(product.seo || {}),
-          meta_keywords: Array.isArray(product.seo?.meta_keywords) ? product.seo.meta_keywords : []
+          meta_keywords: Array.isArray(product.seo?.meta_keywords) ? [...product.seo.meta_keywords] : []
         }
       };
       setEditingProduct(normalizedProduct);
@@ -225,11 +229,12 @@ export default function ProductsManagement() {
       headerName: 'Preview',
       width: 80,
       renderCell: (params) => {
-        const primaryImg = params.value?.find((img: any) => img.is_primary) || params.value?.[0];
+        const primaryImg = Array.isArray(params.value) ? (params.value.find((img: any) => img.is_primary) || params.value[0]) : null;
+        const url = typeof primaryImg === 'string' ? primaryImg : (primaryImg?.url || '');
         return (
           <Avatar 
             variant="rounded" 
-            src={primaryImg?.url || 'https://placehold.co/100x100?text=K'} 
+            src={url || 'https://placehold.co/100x100?text=K'} 
             sx={{ 
               width: 44, 
               height: 44, 
@@ -287,9 +292,9 @@ export default function ProductsManagement() {
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Switch 
-            checked={params.value} 
+            checked={!!params.value} 
             size="small" 
-            onChange={() => handleToggleVisibility(params.row._id, params.value)}
+            onChange={() => handleToggleVisibility(params.row._id, !!params.value)}
           />
           <Typography variant="caption" sx={{ fontWeight: 800, color: params.value ? 'success.main' : 'text.disabled', fontSize: '0.65rem' }}>
             {params.value ? 'LIVE' : 'HIDDEN'}
@@ -306,7 +311,7 @@ export default function ProductsManagement() {
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           <Tooltip title={params.row.is_featured ? "Remove from Spotlight" : "Feature Piece"}>
-            <IconButton size="small" onClick={() => handleToggleFeature(params.row._id, params.row.is_featured)}>
+            <IconButton size="small" onClick={() => handleToggleFeature(params.row._id, !!params.row.is_featured)}>
               {params.row.is_featured ? <Star sx={{ color: 'accent.main' }} /> : <StarOutline />}
             </IconButton>
           </Tooltip>
@@ -531,10 +536,11 @@ export default function ProductsManagement() {
                             fullWidth 
                             label="Image URL" 
                             size="small" 
-                            value={img.url || ''}
+                            value={typeof img === 'string' ? img : (img.url || '')}
                             onChange={(e) => {
                               const newImgs = [...(editingProduct.images || [])];
-                              newImgs[idx].url = e.target.value;
+                              const currentImg = typeof newImgs[idx] === 'string' ? { url: newImgs[idx], alt: '', is_primary: false } : newImgs[idx];
+                              newImgs[idx] = { ...currentImg, url: e.target.value };
                               setEditingProduct({...editingProduct, images: newImgs});
                             }}
                             sx={{ mb: 2 }}
@@ -546,7 +552,8 @@ export default function ProductsManagement() {
                             value={img.alt || ''}
                             onChange={(e) => {
                               const newImgs = [...(editingProduct.images || [])];
-                              newImgs[idx].alt = e.target.value;
+                              const currentImg = typeof newImgs[idx] === 'string' ? { url: newImgs[idx], alt: '', is_primary: false } : newImgs[idx];
+                              newImgs[idx] = { ...currentImg, alt: e.target.value };
                               setEditingProduct({...editingProduct, images: newImgs});
                             }}
                           />
@@ -554,7 +561,10 @@ export default function ProductsManagement() {
                         <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
                           <FormControlLabel
                             control={<Checkbox checked={!!img.is_primary} onChange={(e) => {
-                              const newImgs = (editingProduct.images || []).map((i: any, iidx: number) => ({ ...i, is_primary: iidx === idx }));
+                              const newImgs = (editingProduct.images || []).map((i: any, iidx: number) => {
+                                const currentI = typeof i === 'string' ? { url: i, alt: '', is_primary: false } : i;
+                                return { ...currentI, is_primary: iidx === idx };
+                              });
                               setEditingProduct({...editingProduct, images: newImgs});
                             }} />}
                             label="Primary Image"
@@ -592,8 +602,8 @@ export default function ProductsManagement() {
                         fullWidth 
                         type="number" 
                         label="Compare at Price (₹)" 
-                        value={editingProduct.compare_at_price ?? 0}
-                        onChange={(e) => setEditingProduct({...editingProduct, compare_at_price: parseFloat(e.target.value) || 0})}
+                        value={editingProduct.compare_at_price ?? ''}
+                        onChange={(e) => setEditingProduct({...editingProduct, compare_at_price: e.target.value === '' ? undefined : parseFloat(e.target.value)})}
                       />
                     </Paper>
                   </Grid>
@@ -629,7 +639,7 @@ export default function ProductsManagement() {
                         value={spec.value || ''}
                         onChange={(e) => {
                           const newSpecs = [...(editingProduct.specifications || [])];
-                          newSpecs[idx].value = e.target.value;
+                          newSpecs[idx] = { ...newSpecs[idx], value: e.target.value };
                           setEditingProduct({...editingProduct, specifications: newSpecs});
                         }}
                       />
