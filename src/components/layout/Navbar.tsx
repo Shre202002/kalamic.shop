@@ -3,11 +3,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut } from 'lucide-react';
+import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut, Settings, CreditCard, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import {
@@ -17,6 +18,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 
 export function Navbar() {
@@ -75,7 +77,7 @@ export function Navbar() {
         </div>
 
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl md:text-2xl font-bold text-primary tracking-tight">Kalamic</span>
+          <span className="text-xl md:text-2xl font-black text-primary tracking-tighter">Kalamic</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
@@ -83,7 +85,7 @@ export function Navbar() {
             <Link 
               key={link.name} 
               href={link.href} 
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className="text-sm font-bold transition-colors hover:text-primary opacity-70 hover:opacity-100"
             >
               {link.name}
             </Link>
@@ -94,23 +96,23 @@ export function Navbar() {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="hidden sm:flex"
+            className="hidden sm:flex hover:bg-primary/5 text-primary"
             onClick={() => setIsSearchOpen(!isSearchOpen)}
           >
-            <Search className="h-5 w-5 text-primary" />
+            <Search className="h-5 w-5" />
           </Button>
 
           <Link href="/wishlist">
-            <Button variant="ghost" size="icon" className="hidden sm:flex">
-              <Heart className="h-5 w-5 text-primary" />
+            <Button variant="ghost" size="icon" className="hidden sm:flex hover:bg-primary/5 text-primary">
+              <Heart className="h-5 w-5" />
             </Button>
           </Link>
 
           <Link href="/cart">
-            <Button variant="ghost" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5 text-primary" />
+            <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 text-primary">
+              <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-accent text-accent-foreground">
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-accent text-accent-foreground border-2 border-white text-[10px] font-black">
                   {cartItemCount}
                 </Badge>
               )}
@@ -120,41 +122,69 @@ export function Navbar() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <User className="h-5 w-5 text-primary" />
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/5 p-0.5 border-2 border-transparent focus-visible:ring-accent">
+                  <Avatar className="h-8 w-8 border shadow-sm">
+                    <AvatarImage src={user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`} />
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                      {user.email?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile" className="flex items-center">
-                    <User className="mr-2 h-4 w-4" /> My Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/orders" className="flex items-center">
-                    <Package className="mr-2 h-4 w-4" /> Order History
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/wishlist" className="flex items-center">
-                    <Heart className="mr-2 h-4 w-4" /> My Wishlist
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" /> Sign Out
+              <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-primary/10">
+                <DropdownMenuLabel className="font-normal p-3">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-bold leading-none text-primary">{user.displayName || 'Artisan Collector'}</p>
+                    <p className="text-[10px] font-medium leading-none text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="opacity-50" />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-primary/5 focus:text-primary">
+                    <Link href="/profile" className="flex items-center w-full">
+                      <User className="mr-3 h-4 w-4 opacity-70" />
+                      <span className="text-sm font-semibold">My Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-primary/5 focus:text-primary">
+                    <Link href="/orders" className="flex items-center w-full">
+                      <Package className="mr-3 h-4 w-4 opacity-70" />
+                      <span className="text-sm font-semibold">Order History</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-primary/5 focus:text-primary">
+                    <Link href="/wishlist" className="flex items-center w-full">
+                      <Heart className="mr-3 h-4 w-4 opacity-70" />
+                      <span className="text-sm font-semibold">Wishlist</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator className="opacity-50" />
+                <DropdownMenuGroup>
+                   <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-primary/5 focus:text-primary">
+                    <Link href="/admin/dashboard" className="flex items-center w-full">
+                      <LayoutDashboard className="mr-3 h-4 w-4 opacity-70" />
+                      <span className="text-sm font-semibold">Admin Panel</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="rounded-xl cursor-pointer p-3 focus:bg-primary/5 focus:text-primary opacity-50 cursor-not-allowed">
+                    <CreditCard className="mr-3 h-4 w-4 opacity-70" />
+                    <span className="text-sm font-semibold">Billing (Coming Soon)</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator className="opacity-50" />
+                <DropdownMenuItem onClick={handleSignOut} className="rounded-xl cursor-pointer p-3 text-destructive focus:bg-destructive/10 focus:text-destructive font-bold">
+                  <LogOut className="mr-3 h-4 w-4" /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Link href="/auth/login">
-              <Button variant="primary" size="sm" className="hidden sm:flex">
+              <Button className="hidden sm:flex bg-primary text-white font-bold h-10 px-6 rounded-xl shadow-lg shadow-primary/20">
                 Sign In
               </Button>
-              <Button variant="ghost" size="icon" className="sm:hidden">
-                <User className="h-5 w-5 text-primary" />
+              <Button variant="ghost" size="icon" className="sm:hidden text-primary">
+                <User className="h-5 w-5" />
               </Button>
             </Link>
           )}
@@ -162,13 +192,17 @@ export function Navbar() {
       </div>
 
       {isSearchOpen && (
-        <div className="absolute top-16 left-0 w-full p-4 bg-white border-b animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="container mx-auto flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search products..." className="pl-12 h-10" autoFocus />
+        <div className="absolute top-16 left-0 w-full p-6 bg-white border-b animate-in fade-in slide-in-from-top-2 duration-300 shadow-xl">
+          <div className="container mx-auto flex gap-4">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input 
+                placeholder="Search the collection..." 
+                className="pl-14 h-14 rounded-2xl bg-muted/20 border-none shadow-inner focus-visible:ring-2 focus-visible:ring-accent transition-all text-lg font-medium" 
+                autoFocus 
+              />
             </div>
-            <Button variant="ghost" onClick={() => setIsSearchOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setIsSearchOpen(false)} className="h-14 px-6 font-bold text-muted-foreground hover:text-primary">Cancel</Button>
           </div>
         </div>
       )}
