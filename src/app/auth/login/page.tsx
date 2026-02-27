@@ -26,6 +26,7 @@ export default function LoginPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDbVerified, setIsDbVerified] = useState<boolean | null>(null);
+  const [wasOtpValidated, setWasOtpValidated] = useState(false);
   
   const auth = useAuth();
   const { user } = useUser();
@@ -36,7 +37,18 @@ export default function LoginPage() {
     async function checkVerification() {
       if (user) {
         const profile = await getProfile(user.uid);
-        const verified = profile?.emailVerified || false;
+        let verified = profile?.emailVerified || false;
+
+        // If they just logged in via OTP, auto-verify them in DB if not already done
+        if (wasOtpValidated && !verified) {
+          try {
+            await verifyUserEmail(user.uid, user.email || email);
+            verified = true;
+          } catch (e) {
+            console.error("Auto-verification failed after OTP login", e);
+          }
+        }
+
         setIsDbVerified(verified);
         if (verified) {
           router.push('/profile');
@@ -46,7 +58,7 @@ export default function LoginPage() {
       }
     }
     checkVerification();
-  }, [user, router]);
+  }, [user, router, wasOtpValidated, email]);
 
   useEffect(() => {
     const handleLoginError = (err: { code: string; message: string }) => {
@@ -76,6 +88,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email || !password) return;
     setIsLoading(true);
+    setWasOtpValidated(false); // Reset OTP flag
     if (isLogin) {
       initiateEmailSignIn(auth, email, password);
     } else {
@@ -96,7 +109,7 @@ export default function LoginPage() {
       setOtpSent(true);
       toast({ title: "OTP Sent", description: "Please check your inbox for the 6-digit code." });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: "Delivery Error", description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -111,6 +124,7 @@ export default function LoginPage() {
     try {
       const result = await verifyOtp(targetEmail, otpCode);
       if (result.success) {
+        setWasOtpValidated(true);
         if (user) {
           await verifyUserEmail(user.uid, targetEmail);
           setIsDbVerified(true);
@@ -137,6 +151,7 @@ export default function LoginPage() {
     setEmail('');
     setPassword('');
     setOtpCode('');
+    setWasOtpValidated(false);
   };
 
   if (user && isDbVerified === false) {

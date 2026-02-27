@@ -16,7 +16,10 @@ const transporter = nodemailer.createTransport({
     // This allows connection even if the server uses a self-signed certificate,
     // which is common for some SMTP providers.
     rejectUnauthorized: false
-  }
+  },
+  // Increase timeout for slow relays
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
 });
 
 /**
@@ -32,6 +35,10 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
   }
 
   try {
+    // Verify connection configuration
+    await transporter.verify();
+    console.log("[SMTP] Connection verified successfully.");
+
     const info = await transporter.sendMail({
       from: `"Kalamic Artisan Shop" <${process.env.SMTP_USER}>`,
       to,
@@ -47,8 +54,17 @@ export async function sendEmail({ to, subject, text, html }: { to: string; subje
       message: error.message,
       code: error.code,
       command: error.command,
-      response: error.response
+      response: error.response,
+      stack: error.stack
     });
+    
+    // Provide a more helpful error message based on common failure codes
+    if (error.code === 'EAUTH') {
+      throw new Error("SMTP Authentication failed. Please check your SMTP_USER and SMTP_PASSWORD.");
+    } else if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+      throw new Error("SMTP Server connection failed. Check your SMTP_HOST and SMTP_PORT.");
+    }
+    
     throw new Error(`SMTP Delivery Failed: ${error.message}`);
   }
 }
