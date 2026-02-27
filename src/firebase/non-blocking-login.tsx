@@ -53,8 +53,10 @@ export async function initiatePhoneSignIn(
   appVerifier: RecaptchaVerifier
 ): Promise<boolean> {
   try {
+    const cleanPhone = phoneNumber.trim();
+    
     // Validate number format (E.164)
-    if (!phoneNumber.startsWith('+')) {
+    if (!cleanPhone.startsWith('+')) {
       errorEmitter.emit('login-error', { 
         code: 'auth/invalid-phone-number', 
         message: 'Phone number must start with + followed by country code (e.g., +91...)' 
@@ -62,11 +64,11 @@ export async function initiatePhoneSignIn(
       return false;
     }
 
-    console.log(`[AUTH] Initiating Firebase Phone Auth for: ${phoneNumber}`);
-    phoneConfirmationResult = await signInWithPhoneNumber(authInstance, phoneNumber, appVerifier);
+    console.log(`[AUTH] Requesting Real Firebase SMS for: ${cleanPhone}`);
+    phoneConfirmationResult = await signInWithPhoneNumber(authInstance, cleanPhone, appVerifier);
     return true;
   } catch (err: any) {
-    console.error("Phone Auth Initiation Error:", err);
+    console.error("Firebase Phone Auth Error:", err);
     errorEmitter.emit('login-error', { code: err.code, message: err.message });
     return false;
   }
@@ -80,16 +82,16 @@ export async function confirmPhoneCode(verificationCode: string): Promise<boolea
   if (!phoneConfirmationResult) {
     errorEmitter.emit('login-error', { 
       code: 'auth/no-confirmation-result', 
-      message: 'No pending phone verification found. Please request a new code.' 
+      message: 'No pending verification found. Please request a new code.' 
     });
     return false;
   }
 
   try {
-    await phoneConfirmationResult.confirm(verificationCode);
+    await phoneConfirmationResult.confirm(verificationCode.trim());
     return true;
   } catch (err: any) {
-    console.error("Phone Code Confirmation Error:", err);
+    console.error("Code Confirmation Error:", err);
     errorEmitter.emit('login-error', { code: err.code, message: err.message });
     return false;
   }

@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, errorEmitter } from '@/firebase';
+import { initiatePhoneSignIn, confirmPhoneCode } from '@/firebase/non-blocking-login';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,10 +30,11 @@ import {
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { getProfile, updateProfile, getUserOrders, getWishlistItems, verifyUserEmail, verifyUserPhone, getOrCreateProfile } from '@/lib/actions/user-actions';
-import { sendOtp, sendPhoneOtp, verifyOtp } from '@/lib/actions/otp-actions';
+import { sendOtp, verifyOtp } from '@/lib/actions/otp-actions';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
+import { RecaptchaVerifier } from 'firebase/auth';
 
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
@@ -51,10 +53,11 @@ export default function ProfilePage() {
   const [isEmailOtpSent, setIsEmailOtpSent] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
 
-  // Phone verification state
+  // Phone verification state (Firebase Real)
   const [phoneOtpCode, setPhoneOtpCode] = useState('');
   const [isPhoneOtpSent, setIsPhoneOtpSent] = useState(false);
   const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -72,6 +75,20 @@ export default function ProfilePage() {
       router.push('/auth/login');
     }
   }, [user, isUserLoading, router]);
+
+  // Recaptcha for Profile Phone Verification
+  useEffect(() => {
+    if (auth && !recaptchaVerifier) {
+      try {
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-profile', {
+          size: 'invisible'
+        });
+        setRecaptchaVerifier(verifier);
+      } catch (error) {
+        console.error("Profile Recaptcha Init Error:", error);
+      }
+    }
+  }, [auth, recaptchaVerifier]);
 
   useEffect(() => {
     async function loadData() {
@@ -148,18 +165,27 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle Phone Verification
+  // Handle Phone Verification (REAL Firebase)
   const handleSendPhoneOtp = async () => {
     if (!formData.phone) {
-      toast({ variant: "destructive", title: "Phone Required", description: "Please enter your phone number first." });
+      toast({ variant: "destructive", title: "Phone Required", description: "Please enter your phone number." });
       return;
     }
+    if (!formData.phone.startsWith('+')) {
+      toast({ variant: "destructive", title: "Invalid Format", description: "Include '+' and country code (e.g., +91...)" });
+      return;
+    }
+    if (!auth || !recaptchaVerifier) {
+      toast({ variant: "destructive", title: "System Busy", description: "Verification services are starting..." });
+      return;
+    }
+
     setIsVerifyingPhone(true);
     try {
-      const res = await sendPhoneOtp(formData.phone);
-      if (res.success) {
+      const success = await initiatePhoneSignIn(auth, formData.phone.trim(), recaptchaVerifier);
+      if (success) {
         setIsPhoneOtpSent(true);
-        toast({ title: "Phone OTP Sent", description: "Simulated: Check the server console for the code." });
+        toast({ title: "OTP Sent", description: "A verification code has been sent via SMS." });
       }
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
@@ -169,21 +195,19 @@ export default function ProfilePage() {
   };
 
   const handleVerifyPhoneOtp = async () => {
-    if (!phoneOtpCode || !formData.phone) return;
+    if (!phoneOtpCode) return;
     setIsVerifyingPhone(true);
     try {
-      const result = await verifyOtp(formData.phone, phoneOtpCode);
-      if (result.success) {
+      const success = await confirmPhoneCode(phoneOtpCode);
+      if (success) {
         const updated = await verifyUserPhone(user!.uid, formData.phone);
         setProfile(updated);
         setIsPhoneOtpSent(false);
         setPhoneOtpCode('');
         toast({ title: "Phone Verified", description: "Your contact number is now verified." });
-      } else {
-        toast({ variant: "destructive", title: "Failed", description: result.message });
       }
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      toast({ variant: "destructive", title: "Failed", description: "Verification code is incorrect." });
     } finally {
       setIsVerifyingPhone(false);
     }
@@ -230,6 +254,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
       <Navbar />
+      <div id="recaptcha-profile"></div>
       <main className="flex-1 py-8 md:py-16">
         <div className="container mx-auto px-4 max-w-6xl space-y-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-primary/10 pb-8">
@@ -307,7 +332,7 @@ export default function ProfilePage() {
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone *</Label>
                           <div className="space-y-3">
                             <div className="relative">
-                              <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                              <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                               <Input required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} placeholder="+91 XXXXX XXXXX" className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-24" />
                               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
                                 {isPhoneVerified ? (
@@ -334,7 +359,7 @@ export default function ProfilePage() {
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Authenticated Email</Label>
                           <div className="space-y-3">
                             <div className="relative">
-                              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                               <Input disabled value={user?.email || ''} className="pl-14 rounded-2xl h-14 border-muted/30 bg-muted/20 text-lg font-medium pr-24" />
                               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
                                 {isEmailVerified ? (
@@ -367,7 +392,7 @@ export default function ProfilePage() {
                       <div className="space-y-2.5">
                         <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Street Address *</Label>
                         <div className="relative">
-                          <Home className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                          <Home className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                           <Input required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="House No, Street Name, Block" className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6" />
                         </div>
                       </div>
@@ -383,7 +408,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Pincode *</Label>
+                          <Label className="text-[10px) font-black uppercase tracking-widest ml-1 opacity-60">Pincode *</Label>
                           <Input required value={formData.pincode} onChange={(e) => setFormData({...formData, pincode: e.target.value})} placeholder="302001" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                         </div>
                         <div className="space-y-2.5">

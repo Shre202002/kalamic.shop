@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, errorEmitter } from '@/firebase';
 import { initiateEmailSignIn, initiateEmailSignUp, initiatePhoneSignIn, confirmPhoneCode } from '@/firebase/non-blocking-login';
-import { sendOtp, verifyOtp } from '@/lib/actions/otp-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -96,23 +95,30 @@ export default function LoginPage() {
   };
 
   /**
-   * Temporarily disabled - Email OTP Section
-   */
-  const handleRequestEmailOtp = async () => {
-    toast({ title: "Maintenance", description: "Email OTP login is temporarily offline." });
-  };
-
-  /**
    * Phone OTP Login Flow
    */
   const handleRequestPhoneOtp = async () => {
-    if (!phoneNumber || !recaptchaVerifier || !auth) {
-      toast({ variant: "destructive", title: "Missing Information", description: "Please enter a valid phone number." });
+    if (!phoneNumber) {
+      toast({ variant: "destructive", title: "Missing Phone", description: "Please enter your phone number." });
+      return;
+    }
+
+    if (!phoneNumber.startsWith('+')) {
+      toast({ 
+        variant: "destructive", 
+        title: "Invalid Format", 
+        description: "Phone number must include '+' and country code (e.g., +91...)" 
+      });
+      return;
+    }
+
+    if (!recaptchaVerifier || !auth) {
+      toast({ variant: "destructive", title: "System Error", description: "Auth service is initializing. Please wait." });
       return;
     }
     
     setIsLoading(true);
-    const success = await initiatePhoneSignIn(auth, phoneNumber, recaptchaVerifier);
+    const success = await initiatePhoneSignIn(auth, phoneNumber.trim(), recaptchaVerifier);
     if (success) {
       setOtpSent(true);
       toast({ title: "OTP Sent", description: "A verification code has been sent to your phone." });
@@ -170,7 +176,6 @@ export default function LoginPage() {
                   Email (Offline)
                 </TabsTrigger>
 
-                {/* Phone OTP - Re-enabled */}
                 <TabsTrigger 
                   value="phone" 
                   disabled={isLoading} 
@@ -185,7 +190,7 @@ export default function LoginPage() {
                   <div className="space-y-2">
                     <Label htmlFor="email" className="ml-1">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                       <Input 
                         id="email" 
                         type="email" 
@@ -200,7 +205,7 @@ export default function LoginPage() {
                   <div className="space-y-2">
                     <Label htmlFor="password" className="ml-1">Secret Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                      <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                       <Input 
                         id="password" 
                         type="password" 
@@ -219,14 +224,12 @@ export default function LoginPage() {
                 </form>
               </TabsContent>
 
-              {/* Email OTP Content - Temporarily disabled */}
               <TabsContent value="email-otp">
-                <div className="p-4 text-center text-muted-foreground text-sm">
+                <div className="p-4 text-center text-muted-foreground text-sm italic">
                   Email verification login is currently undergoing maintenance.
                 </div>
               </TabsContent>
 
-              {/* Phone OTP Content - Re-enabled */}
               <TabsContent value="phone">
                 <div className="space-y-4">
                   {!otpSent ? (
@@ -234,7 +237,7 @@ export default function LoginPage() {
                       <div className="space-y-2">
                         <Label htmlFor="phone" className="ml-1">Phone Number</Label>
                         <div className="relative">
-                          <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                          <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                           <Input 
                             id="phone" 
                             type="tel" 
@@ -245,8 +248,9 @@ export default function LoginPage() {
                             className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
                           />
                         </div>
+                        <p className="text-[10px] text-muted-foreground ml-1 font-bold">Must include + and country code.</p>
                       </div>
-                      <Button onClick={handleRequestPhoneOtp} className="w-full h-14 text-lg font-bold rounded-2xl" disabled={isLoading}>
+                      <Button onClick={handleRequestPhoneOtp} className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/10" disabled={isLoading}>
                         {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
                         Send Verification Code
                       </Button>
@@ -256,7 +260,7 @@ export default function LoginPage() {
                       <div className="space-y-2">
                         <Label htmlFor="otp" className="ml-1">Verification Code</Label>
                         <div className="relative">
-                          <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                          <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                           <Input 
                             id="otp" 
                             type="text" 
@@ -291,7 +295,7 @@ export default function LoginPage() {
               className="w-full text-sm font-bold text-muted-foreground hover:text-primary transition-colors"
               onClick={() => {
                 setIsLogin(!isLogin);
-                setAuthMethod('password');
+                setAuthMethod('password'); // Reset to password tab by default
                 setOtpSent(false);
                 setOtpCode('');
               }}
