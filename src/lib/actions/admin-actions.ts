@@ -2,11 +2,11 @@
 'use server';
 
 import dbConnect from '@/lib/db';
-import Order from '@/lib/models/Order';
 import User from '@/lib/models/User';
 import Product from '@/lib/models/Product';
 import AdminLog from '@/lib/models/AdminLog';
 import WishlistItem from '@/lib/models/WishlistItem';
+import OrderedItem from '@/lib/models/OrderedItem';
 import { revalidatePath } from 'next/cache';
 import dayjs from 'dayjs';
 
@@ -43,11 +43,11 @@ export async function getAdminDashboardStats() {
     pendingOrders,
     wishlistStats
   ] = await Promise.all([
-    Order.aggregate([{ $group: { _id: null, total: { $sum: "$totalAmount" } } }]),
-    Order.countDocuments(),
-    User.countDocuments(), // Total users regardless of role for KPI
+    OrderedItem.aggregate([{ $group: { _id: null, total: { $sum: "$total_amount" } } }]),
+    OrderedItem.countDocuments(),
+    User.countDocuments(),
     User.countDocuments({ lastLogin: { $gte: sevenDaysAgo } }),
-    Order.countDocuments({ orderStatus: { $in: ['pending', 'placed', 'pending_payment'] } }),
+    OrderedItem.countDocuments({ status: { $in: ['Placed', 'Crafting', 'Developing', 'Packed'] } }),
     WishlistItem.countDocuments()
   ]);
 
@@ -70,11 +70,11 @@ export async function getAdminDashboardStats() {
 export async function getDashboardChartData() {
   await dbConnect();
   
-  const salesTrend = await Order.aggregate([
-    { $match: { createdAt: { $gte: dayjs().subtract(7, 'days').toDate() } } },
+  const salesTrend = await OrderedItem.aggregate([
+    { $match: { created_at: { $gte: dayjs().subtract(7, 'days').toDate() } } },
     { $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-        amount: { $sum: "$totalAmount" }
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$created_at" } },
+        amount: { $sum: "$total_amount" }
     }},
     { $sort: { "_id": 1 } }
   ]);
@@ -100,24 +100,35 @@ export async function getDashboardChartData() {
 }
 
 /**
- * Order Management Actions
+ * Order Management Actions - Switching to OrderedItem (Ordered_Items collection)
  */
 export async function getAllOrders() {
   await dbConnect();
-  const orders = await Order.find().sort({ createdAt: -1 }).lean();
+  const orders = await OrderedItem.find().sort({ created_at: -1 }).lean();
   return JSON.parse(JSON.stringify(orders));
 }
 
 export async function updateOrderStatus(adminId: string, orderId: string, status: string) {
   await dbConnect();
-  await Order.findByIdAndUpdate(orderId, { orderStatus: status });
-  await logAction(adminId, 'UPDATE_STATUS', 'Order', orderId, `Changed to ${status}`);
+  const order = await OrderedItem.findById(orderId);
+  if (!order) throw new Error("Order not found");
+
+  const oldStatus = order.status;
+  await OrderedItem.findByIdAndUpdate(orderId, { status });
+  
+  await logAction(
+    adminId, 
+    'UPDATE_ORDER_STATUS', 
+    'OrderedItem', 
+    order.order_number, 
+    `Status transitioned from ${oldStatus} to ${status}`
+  );
+  
   revalidatePath('/admin/orders');
 }
 
 /**
  * User Management Actions
- * Updated to show ALL users without role filtering.
  */
 export async function getAllUsers() {
   await dbConnect();
