@@ -30,7 +30,7 @@ async function logAction(adminId: string, action: string, type: string, entityId
 
 /**
  * Resets and seeds the catalog using data from src/data/product.ts.
- * Converts string IDs to MongoDB ObjectIds.
+ * Converts string IDs to MongoDB ObjectIds and ensures all fields are correctly typed.
  */
 export async function seedDefaultProducts(adminId: string) {
   await dbConnect();
@@ -39,11 +39,14 @@ export async function seedDefaultProducts(adminId: string) {
     // 1. Clear existing products
     await Product.deleteMany({});
     
-    // 2. Map and format products for insertion
+    // 2. Map and format products for insertion with strict field mapping
     const productsToInsert = defaultProducts.map(p => ({
       ...p,
       _id: new mongoose.Types.ObjectId(p._id),
       category_id: p.category_id ? new mongoose.Types.ObjectId(p.category_id) : undefined,
+      // Ensure specific fields are strings or numbers, not empty strings if they should be null/undefined
+      short_description: p.short_description || undefined,
+      compare_at_price: typeof p.compare_at_price === 'number' ? p.compare_at_price : undefined,
       analytics: {
         total_views: 0,
         total_orders: 0,
