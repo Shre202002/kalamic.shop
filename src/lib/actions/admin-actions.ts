@@ -80,6 +80,18 @@ export async function removeAdminAccess(superAdminId: string, targetUserId: stri
   revalidatePath('/admin/settings');
 }
 
+export async function toggleUserStatus(adminId: string, targetUserId: string, newStatus: string) {
+  const actor = await validateRole(adminId, ['super_admin', 'admin']);
+  await dbConnect();
+  
+  const user = await User.findByIdAndUpdate(targetUserId, { status: newStatus }, { new: true });
+  if (user) {
+    await logAction(actor, 'TOGGLE_USER_STATUS', 'User', targetUserId, `Set status to: ${newStatus}`);
+  }
+  revalidatePath('/admin/users');
+  return JSON.parse(JSON.stringify(user));
+}
+
 /**
  * PRODUCT ACTIONS
  */

@@ -39,8 +39,10 @@ import {
 import { getAllUsers, toggleUserStatus } from '@/lib/actions/admin-actions';
 import dayjs from 'dayjs';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
 
 export default function UsersManagement() {
+  const { user } = useUser();
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -71,9 +73,10 @@ export default function UsersManagement() {
   }, []);
 
   const handleStatusChange = async (userId: string, currentStatus: string) => {
+    if (!user) return;
     try {
       const newStatus = currentStatus === 'active' ? 'disabled' : 'active';
-      await toggleUserStatus('current-admin-id', userId, newStatus);
+      await toggleUserStatus(user.uid, userId, newStatus);
       setUsers((prev: any) => prev.map((u: any) => u._id === userId ? { ...u, status: newStatus } : u));
       toast({ title: "Account Updated", description: `Collector status changed to ${newStatus}.` });
     } catch (e) {
@@ -198,7 +201,7 @@ export default function UsersManagement() {
         </Tooltip>
       )
     }
-  ], [theme.palette]);
+  ], [theme.palette, user]);
 
   if (!mounted) return null;
 

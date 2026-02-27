@@ -4,14 +4,16 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Box, Typography, Paper, Chip, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Visibility, FileDownload, Save } from '@mui/icons-material';
+import { Visibility, FileDownload } from '@mui/icons-material';
 import { getAllOrders, updateOrderStatus } from '@/lib/actions/admin-actions';
 import dayjs from 'dayjs';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
 
 const STATUS_OPTIONS = ['Placed', 'Crafting', 'Developing', 'Packed', 'Dispatched', 'Delivered', 'cancelled', 'refunded'];
 
 export default function OrdersManagement() {
+  const { user } = useUser();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -35,8 +37,9 @@ export default function OrdersManagement() {
   }, []);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
+    if (!user) return;
     try {
-      await updateOrderStatus('current-admin', id, newStatus);
+      await updateOrderStatus(user.uid, id, newStatus);
       toast({ title: "Status Updated", description: `Order is now marked as ${newStatus}.` });
       setOrders((prev: any) => prev.map((o: any) => o._id === id ? { ...o, status: newStatus } : o));
     } catch (e) {
@@ -121,7 +124,7 @@ export default function OrdersManagement() {
         </Tooltip>
       )
     }
-  ], []);
+  ], [user]);
 
   if (!mounted) {
     return (
