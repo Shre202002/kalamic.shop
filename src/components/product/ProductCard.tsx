@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -19,7 +20,7 @@ interface ProductCardProps {
   name: string;
   price: number;
   originalPrice?: number;
-  image: string;
+  image: string | { url: string; alt: string; is_primary: boolean };
   rating: number;
   tag?: string;
   description?: string;
@@ -32,6 +33,8 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
   const firestore = useFirestore();
   const router = useRouter();
   const [isFavorited, setIsFavorited] = useState(isInitiallyFavorited);
+
+  const displayImage = typeof image === 'string' ? image : (image?.url || 'https://placehold.co/600x800?text=Kalamic');
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -48,43 +51,21 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
       cartId: user.uid,
       name,
       priceAtAddToCart: price,
-      imageUrl: image,
+      imageUrl: displayImage,
       quantity: 1,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     }, { merge: true });
 
-    // Track Analytics
     await trackProductAction(id, 'cart_add_count');
-
-    toast({
-      title: "Added to cart",
-      description: `${name} has been added to your shopping bag.`,
-    });
+    toast({ title: "Added to cart", description: `${name} has been added to your shopping bag.` });
   };
 
   const handleBuyNow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) {
-      toast({ title: "Please sign in", description: "You need an account to checkout." });
-      return;
-    }
-
-    const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
-    await setDoc(cartItemRef, {
-      id,
-      productVariantId: id,
-      cartId: user.uid,
-      name,
-      priceAtAddToCart: price,
-      imageUrl: image,
-      quantity: 1,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-
-    router.push('/checkout');
+    await handleAddToCart(e);
+    if (user) router.push('/checkout');
   };
 
   const handleAddToWishlist = async (e: React.MouseEvent) => {
@@ -101,12 +82,8 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
       if (isFavorited) {
         setIsFavorited(false);
         await deleteDoc(wishlistItemRef);
-        // Untrack Analytics
         await untrackWishlistAction(id);
-        toast({
-          title: "Removed from wishlist",
-          description: `${name} has been removed from your favorites.`,
-        });
+        toast({ title: "Removed from wishlist" });
       } else {
         setIsFavorited(true);
         await setDoc(wishlistItemRef, {
@@ -116,20 +93,15 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
           slug,
           name,
           price,
-          imageUrl: image,
+          imageUrl: displayImage,
           addedAt: new Date().toISOString()
         }, { merge: true });
 
-        // Track Analytics
         await trackProductAction(id, 'wishlist_count');
-
-        toast({
-          title: "Saved to wishlist",
-          description: `${name} is now in your favorites.`,
-        });
+        toast({ title: "Saved to wishlist" });
       }
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Could not update favorites." });
+      toast({ variant: "destructive", title: "Error updating favorites." });
     }
   };
 
@@ -141,14 +113,14 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
       <CardContent className="p-4 pb-0 relative">
         <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-muted">
           <Image
-            src={image || 'https://placehold.co/600x800?text=Kalamic'}
+            src={displayImage}
             alt={name || 'Ceramic Piece'}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, 33vw"
           />
           {tag && (
-            <Badge className="absolute top-3 left-3 bg-primary text-white hover:bg-primary border-none text-[10px] font-bold px-3 py-1 rounded-lg">
+            <Badge className="absolute top-3 left-3 bg-primary text-white border-none text-[10px] font-bold px-3 py-1 rounded-lg">
               {tag}
             </Badge>
           )}
@@ -184,13 +156,13 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
         <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="outline"
-            className="h-10 rounded-xl border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 active:scale-95 text-xs font-bold gap-2"
+            className="h-10 rounded-xl border-primary text-primary hover:bg-primary hover:text-white text-xs font-bold gap-2"
             onClick={handleAddToCart}
           >
             <ShoppingBag className="h-3.5 w-3.5" /> Bag
           </Button>
           <Button 
-            className="h-10 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all duration-300 active:scale-95 text-xs font-bold gap-2 shadow-lg shadow-primary/20"
+            className="h-10 rounded-xl bg-primary text-white hover:bg-primary/90 text-xs font-bold gap-2 shadow-lg shadow-primary/20"
             onClick={handleBuyNow}
           >
             <Zap className="h-3.5 w-3.5" /> Buy

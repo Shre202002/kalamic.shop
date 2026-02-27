@@ -3,12 +3,11 @@
 
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
-import Product from '@/lib/models/Product';
+import KalamicProduct from '@/lib/models/KalamicProduct';
 import AdminLog from '@/lib/models/AdminLog';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { revalidatePath } from 'next/cache';
 import dayjs from 'dayjs';
-import { products as baselineProducts } from '@/data/product';
 
 /**
  * CORE PERMISSION ENGINE
@@ -17,7 +16,6 @@ async function validateRole(adminId: string, allowedRoles: string[]) {
   await dbConnect();
   const user = await User.findOne({ firebaseId: adminId });
   
-  // Permanent Super Admin Override for specific email
   if (user?.email === 'sriyanshgupta24@gmail.com') return user;
 
   if (!user || !allowedRoles.includes(user.role)) {
@@ -69,17 +67,6 @@ export async function updateAdminRole(superAdminId: string, targetUserId: string
   revalidatePath('/admin/settings');
 }
 
-export async function removeAdminAccess(superAdminId: string, targetUserId: string) {
-  const actor = await validateRole(superAdminId, ['super_admin']);
-  await dbConnect();
-  
-  const user = await User.findByIdAndUpdate(targetUserId, { role: 'buyer' });
-  if (user) {
-    await logAction(actor, 'REVOKE_ACCESS', 'User', targetUserId, `Revoked admin privileges for ${user.email}`);
-  }
-  revalidatePath('/admin/settings');
-}
-
 export async function toggleUserStatus(adminId: string, targetUserId: string, newStatus: string) {
   const actor = await validateRole(adminId, ['super_admin', 'admin']);
   await dbConnect();
@@ -93,12 +80,12 @@ export async function toggleUserStatus(adminId: string, targetUserId: string, ne
 }
 
 /**
- * PRODUCT ACTIONS
+ * KALAMIC PRODUCT ACTIONS
  */
 export async function getAdminProducts() {
   try {
     await dbConnect();
-    const products = await Product.find({ is_deleted: { $ne: true } }).sort({ visibility_priority: -1, createdAt: -1 }).lean();
+    const products = await KalamicProduct.find({ is_deleted: { $ne: true } }).sort({ visibility_priority: -1, createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(products));
   } catch (error) {
     console.error("[ADMIN] Failed to fetch products:", error);
@@ -112,16 +99,17 @@ export async function saveProduct(adminId: string, productData: any) {
   
   const isNew = !productData._id;
   
-  // Data Sanitization for Mongoose Schema
+  // Strict Schema Normalization
   const cleanedData = {
     ...productData,
+    slug: productData.slug.toLowerCase().trim(),
     price: Number(productData.price) || 0,
     compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
     stock: Number(productData.stock) || 0,
     updated_by_admin: adminId,
     images: (productData.images || []).map((img: any) => ({
-      url: typeof img === 'string' ? img : (img.url || ""),
-      alt: typeof img === 'string' ? "" : (img.alt || ""),
+      url: img.url,
+      alt: img.alt || '',
       is_primary: !!img.is_primary
     })).filter((img: any) => img.url),
     specifications: (productData.specifications || []).filter((s: any) => s.key && s.value),
@@ -132,105 +120,66 @@ export async function saveProduct(adminId: string, productData: any) {
         width: Number(productData.shipping?.package_dimensions_cm?.width) || 0,
         height: Number(productData.shipping?.package_dimensions_cm?.height) || 0
       }
+    },
+    seo: {
+      meta_title: productData.seo?.meta_title || '',
+      meta_description: productData.seo?.meta_description || '',
+      meta_keywords: Array.isArray(productData.seo?.meta_keywords) ? productData.seo.meta_keywords : []
     }
   };
 
-  let saved;
+  // Validate Slug Uniqueness manually before insert if new
   if (isNew) {
+    const existing = await KalamicProduct.findOne({ slug: cleanedData.slug });
+    if (existing) throw new Error("A product with this slug already exists.");
+    
     cleanedData.created_by_admin = adminId;
     cleanedData.analytics = { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 };
-    saved = await Product.create(cleanedData);
-    await logAction(actor, 'CREATE_PRODUCT', 'Product', saved._id.toString(), `Created: ${saved.name}`);
+  }
+
+  let saved;
+  if (isNew) {
+    saved = await KalamicProduct.create(cleanedData);
+    await logAction(actor, 'CREATE_PRODUCT', 'KalamicProduct', saved._id.toString(), `Created: ${saved.name}`);
   } else {
-    saved = await Product.findByIdAndUpdate(productData._id, cleanedData, { new: true });
-    await logAction(actor, 'UPDATE_PRODUCT', 'Product', productData._id, `Updated: ${saved.name}`);
+    saved = await KalamicProduct.findByIdAndUpdate(productData._id, cleanedData, { new: true, runValidators: true });
+    await logAction(actor, 'UPDATE_PRODUCT', 'KalamicProduct', productData._id, `Updated: ${saved.name}`);
   }
 
   revalidatePath('/admin/products');
   revalidatePath(`/products/${saved.slug}`);
-  revalidatePath(`/products/${saved._id}`);
   revalidatePath('/');
   
   return JSON.parse(JSON.stringify(saved));
 }
 
-export async function seedInitialCatalog(adminId: string) {
-  const actor = await validateRole(adminId, ['super_admin']);
-  await dbConnect();
-  
-  try {
-    // Clear and restore
-    await Product.deleteMany({});
-    
-    const preparedData = baselineProducts.map(p => ({
-      ...p,
-      created_by_admin: adminId,
-      analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
-    }));
-
-    const results = await Product.insertMany(preparedData);
-    
-    await logAction(actor, 'RESTORE_CATALOG', 'Product', 'multi', `Restored ${results.length} pieces to collection.`);
-    revalidatePath('/admin/products');
-    revalidatePath('/');
-    
-    return { success: true, count: results.length };
-  } catch (error: any) {
-    console.error("[ADMIN] Seed failed:", error);
-    throw new Error(`Catalog restoration failed: ${error.message}`);
-  }
-}
-
 export async function toggleProductVisibility(adminId: string, productId: string, isActive: boolean) {
   const actor = await validateRole(adminId, ['super_admin', 'admin']);
   await dbConnect();
-  await Product.findByIdAndUpdate(productId, { is_active: isActive });
-  await logAction(actor, 'TOGGLE_VISIBILITY', 'Product', productId, `Set visibility: ${isActive}`);
+  await KalamicProduct.findByIdAndUpdate(productId, { is_active: isActive, updated_by_admin: adminId });
+  await logAction(actor, 'TOGGLE_VISIBILITY', 'KalamicProduct', productId, `Set visibility: ${isActive}`);
+  revalidatePath('/admin/products');
+}
+
+export async function toggleProductFeatured(adminId: string, productId: string, isFeatured: boolean) {
+  const actor = await validateRole(adminId, ['super_admin', 'admin']);
+  await dbConnect();
+  await KalamicProduct.findByIdAndUpdate(productId, { is_featured: isFeatured, updated_by_admin: adminId });
+  await logAction(actor, 'TOGGLE_FEATURED', 'KalamicProduct', productId, `Set featured: ${isFeatured}`);
   revalidatePath('/admin/products');
 }
 
 export async function deleteProduct(adminId: string, productId: string) {
   const actor = await validateRole(adminId, ['super_admin']);
   await dbConnect();
-  await Product.findByIdAndUpdate(productId, { is_deleted: true });
-  await logAction(actor, 'ARCHIVE_PRODUCT', 'Product', productId, 'Moved to archive');
+  await KalamicProduct.findByIdAndUpdate(productId, { is_deleted: true, updated_by_admin: adminId });
+  await logAction(actor, 'ARCHIVE_PRODUCT', 'KalamicProduct', productId, 'Moved to archive');
   revalidatePath('/admin/products');
 }
 
 /**
- * ORDER ACTIONS
+ * DASHBOARD STATS
  */
-export async function getAllOrders() {
-  await dbConnect();
-  return JSON.parse(JSON.stringify(await OrderedItem.find().sort({ created_at: -1 }).lean()));
-}
-
-export async function updateOrderStatus(adminId: string, orderId: string, status: string) {
-  const actor = await validateRole(adminId, ['super_admin', 'admin']);
-  await dbConnect();
-  const order = await OrderedItem.findByIdAndUpdate(orderId, { status });
-  if (order) await logAction(actor, 'UPDATE_ORDER_STATUS', 'OrderedItem', order.order_number, `Status set to: ${status}`);
-  revalidatePath('/admin/orders');
-}
-
-/**
- * DIRECTORY & LOGS
- */
-export async function getAllUsers() {
-  await dbConnect();
-  return JSON.parse(JSON.stringify(await User.find().sort({ createdAt: -1 }).lean()));
-}
-
-export async function getAdminLogs() {
-  await dbConnect();
-  return JSON.parse(JSON.stringify(await AdminLog.find().sort({ timestamp: -1 }).limit(100).lean()));
-}
-
-export async function getAdmins() {
-  await dbConnect();
-  return JSON.parse(JSON.stringify(await User.find({ role: { $in: ['super_admin', 'admin', 'support'] } }).lean()));
-}
-
 export async function getAdminDashboardStats() {
   await dbConnect();
   try {

@@ -42,14 +42,15 @@ import {
   LocalShipping,
   SettingsSuggest,
   HistoryEdu,
-  CloudSync as RestoreIcon
+  Visibility as ViewIcon,
+  ShoppingBag as OrderIcon
 } from '@mui/icons-material';
 import { 
   getAdminProducts, 
   toggleProductVisibility, 
+  toggleProductFeatured,
   deleteProduct,
-  saveProduct,
-  seedInitialCatalog
+  saveProduct
 } from '@/lib/actions/admin-actions';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
@@ -57,10 +58,7 @@ import { useUser } from '@/firebase';
 const DEFAULT_SPECS = [
   { key: "Material", value: "" },
   { key: "Finish", value: "" },
-  { key: "Color", value: "" },
-  { key: "Size", value: "" },
-  { key: "Weight", value: "" },
-  { key: "Usage", value: "" }
+  { key: "Dimensions", value: "" }
 ];
 
 const INITIAL_PRODUCT = {
@@ -68,6 +66,7 @@ const INITIAL_PRODUCT = {
   slug: '',
   short_description: '',
   description: '',
+  category_id: '', // Note: In a real app, this would be a selection from a categories collection
   price: 0,
   compare_at_price: undefined,
   stock: 0,
@@ -98,7 +97,6 @@ export default function ProductsManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
   const theme = useTheme();
@@ -124,31 +122,23 @@ export default function ProductsManagement() {
 
   const handleOpenDialog = (product?: any) => {
     if (product) {
-      // DEEP NORMALIZATION: Ensures local state has all nested schema paths
-      const normalizedProduct = {
+      // Normalization for the complex Kalamic schema
+      setEditingProduct({
         ...INITIAL_PRODUCT,
         ...product,
-        images: Array.isArray(product.images) && product.images.length 
-          ? product.images.map((img: any) => typeof img === 'string' ? { url: img, alt: '', is_primary: false } : { ...img })
-          : INITIAL_PRODUCT.images,
-        specifications: Array.isArray(product.specifications) && product.specifications.length 
-          ? product.specifications.map((s: any) => ({ ...s }))
-          : INITIAL_PRODUCT.specifications,
+        images: product.images?.length ? product.images.map((i: any) => ({ ...i })) : INITIAL_PRODUCT.images,
+        specifications: product.specifications?.length ? product.specifications.map((s: any) => ({ ...s })) : INITIAL_PRODUCT.specifications,
         shipping: {
           ...INITIAL_PRODUCT.shipping,
-          ...(product.shipping || {}),
-          package_dimensions_cm: {
-            ...INITIAL_PRODUCT.shipping.package_dimensions_cm,
-            ...(product.shipping?.package_dimensions_cm || {})
-          }
+          ...product.shipping,
+          package_dimensions_cm: { ...INITIAL_PRODUCT.shipping.package_dimensions_cm, ...product.shipping?.package_dimensions_cm }
         },
         seo: {
           ...INITIAL_PRODUCT.seo,
-          ...(product.seo || {}),
+          ...product.seo,
           meta_keywords: Array.isArray(product.seo?.meta_keywords) ? [...product.seo.meta_keywords] : []
         }
-      };
-      setEditingProduct(normalizedProduct);
+      });
     } else {
       setEditingProduct({ ...INITIAL_PRODUCT, slug: `piece-${Date.now()}` });
     }
@@ -156,44 +146,35 @@ export default function ProductsManagement() {
     setDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setEditingProduct(null);
-  };
-
   const handleSaveProduct = async () => {
     if (!user) return;
-    if (!editingProduct.name || !editingProduct.slug || !editingProduct.description) {
-      toast({ variant: "destructive", title: "Validation Error", description: "Name, Slug, and Narrative are mandatory." });
+    
+    // Validations
+    if (!editingProduct.name || !editingProduct.slug || !editingProduct.description || !editingProduct.category_id) {
+      toast({ variant: "destructive", title: "Validation Error", description: "Name, Slug, Category, and Description are mandatory." });
       return;
+    }
+
+    if (editingProduct.compare_at_price && Number(editingProduct.compare_at_price) <= Number(editingProduct.price)) {
+      toast({ variant: "destructive", title: "Price Error", description: "Compare price must be greater than current price." });
+      return;
+    }
+
+    const hasPrimary = editingProduct.images.some((img: any) => img.is_primary);
+    if (!hasPrimary && editingProduct.images.length > 0) {
+      editingProduct.images[0].is_primary = true;
     }
 
     setIsSaving(true);
     try {
       await saveProduct(user.uid, editingProduct);
-      toast({ title: "Masterpiece Saved", description: "The artisan catalog has been synchronized." });
-      handleCloseDialog();
+      toast({ title: "Masterpiece Saved", description: "The Kalamic catalog has been updated." });
+      setDialogOpen(false);
       load();
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save Failed", description: error.message });
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleRestoreCatalog = async () => {
-    if (!user) return;
-    if (!confirm("This will overwrite the current collection with baseline artisan pieces. Proceed?")) return;
-    
-    setIsRestoring(true);
-    try {
-      await seedInitialCatalog(user.uid);
-      toast({ title: "Catalog Restored", description: "Artisan baseline pieces have been re-populated." });
-      load();
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Restoration Failed", description: error.message });
-    } finally {
-      setIsRestoring(false);
     }
   };
 
@@ -208,9 +189,20 @@ export default function ProductsManagement() {
     }
   };
 
+  const handleToggleFeatured = async (id: string, current: boolean) => {
+    if (!user) return;
+    try {
+      await toggleProductFeatured(user.uid, id, !current);
+      setProducts((prev: any) => prev.map((p: any) => p._id === id ? { ...p, is_featured: !current } : p));
+      toast({ title: "Featured Status Updated" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!user) return;
-    if (!confirm("Are you sure? This piece will be moved to the archive.")) return;
+    if (!confirm("Move this piece to archive? it will be hidden from storefront.")) return;
     try {
       await deleteProduct(user.uid, id);
       setProducts((prev) => prev.filter((p: any) => p._id !== id));
@@ -219,6 +211,98 @@ export default function ProductsManagement() {
       toast({ variant: "destructive", title: "Deletion Failed" });
     }
   };
+
+  const columns: GridColDef[] = useMemo(() => [
+    {
+      field: 'images',
+      headerName: 'Preview',
+      width: 80,
+      renderCell: (params) => {
+        const primary = params.value?.find((img: any) => img.is_primary) || params.value?.[0];
+        return (
+          <Avatar variant="rounded" src={primary?.url || ''} sx={{ width: 44, height: 44, bgcolor: 'background.default', border: '1px solid divider' }}>
+            <ImageIcon />
+          </Avatar>
+        );
+      }
+    },
+    { 
+      field: 'name', 
+      headerName: 'Artisan Piece', 
+      flex: 1,
+      minWidth: 200,
+      renderCell: (params) => (
+        <Box sx={{ py: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 800 }}>{params.value}</Typography>
+          <Typography variant="caption" color="text.disabled">{params.row.sku || params.row.slug}</Typography>
+        </Box>
+      )
+    },
+    { 
+      field: 'price', 
+      headerName: 'Price', 
+      width: 110,
+      renderCell: (params) => `₹${(params.value ?? 0).toLocaleString()}`
+    },
+    { 
+      field: 'stock', 
+      headerName: 'Stock', 
+      width: 90,
+      renderCell: (params) => (
+        <Chip label={params.value ?? 0} size="small" color={(params.value ?? 0) > 5 ? 'success' : 'warning'} sx={{ fontWeight: 800 }} />
+      )
+    },
+    { 
+      field: 'analytics', 
+      headerName: 'Stats', 
+      width: 150,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', height: '100%' }}>
+          <Tooltip title="Views">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <ViewIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+              <Typography variant="caption" sx={{ fontWeight: 700 }}>{params.value?.total_views || 0}</Typography>
+            </Box>
+          </Tooltip>
+          <Tooltip title="Orders">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <OrderIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+              <Typography variant="caption" sx={{ fontWeight: 700 }}>{params.value?.total_orders || 0}</Typography>
+            </Box>
+          </Tooltip>
+        </Box>
+      )
+    },
+    { 
+      field: 'is_active', 
+      headerName: 'Live', 
+      width: 80,
+      renderCell: (params) => (
+        <Switch checked={!!params.value} size="small" onChange={() => handleToggleVisibility(params.row._id, !!params.value)} />
+      )
+    },
+    { 
+      field: 'is_featured', 
+      headerName: 'Star', 
+      width: 80,
+      renderCell: (params) => (
+        <Switch checked={!!params.value} size="small" color="secondary" onChange={() => handleToggleFeatured(params.row._id, !!params.value)} />
+      )
+    },
+    {
+      field: 'actions',
+      headerName: '',
+      width: 100,
+      sortable: false,
+      align: 'right',
+      renderCell: (params) => (
+        <Box>
+          <IconButton size="small" onClick={() => handleOpenDialog(params.row)}><Edit fontSize="small" /></IconButton>
+          <IconButton size="small" color="error" onClick={() => handleDelete(params.row._id)}><Delete fontSize="small" /></IconButton>
+        </Box>
+      )
+    }
+  ], [user]);
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery) return products;
@@ -230,89 +314,17 @@ export default function ProductsManagement() {
     );
   }, [products, searchQuery]);
 
-  const columns: GridColDef[] = useMemo(() => [
-    {
-      field: 'images',
-      headerName: 'Preview',
-      width: 80,
-      renderCell: (params) => {
-        const primaryImg = Array.isArray(params.value) ? (params.value.find((img: any) => img.is_primary) || params.value[0]) : null;
-        const url = typeof primaryImg === 'string' ? primaryImg : (primaryImg?.url || '');
-        return (
-          <Avatar variant="rounded" src={url} sx={{ width: 44, height: 44, bgcolor: 'background.default', border: '1px solid divider' }} />
-        );
-      }
-    },
-    { 
-      field: 'name', 
-      headerName: 'Artisan Piece', 
-      flex: 1,
-      minWidth: 250,
-      renderCell: (params) => (
-        <Box sx={{ py: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 800 }}>{params.value}</Typography>
-          <Typography variant="caption" color="text.disabled">{params.row.sku || params.row.slug}</Typography>
-        </Box>
-      )
-    },
-    { 
-      field: 'price', 
-      headerName: 'Price', 
-      width: 120,
-      renderCell: (params) => `₹${(params.value ?? 0).toLocaleString()}`
-    },
-    { 
-      field: 'stock', 
-      headerName: 'Stock', 
-      width: 100,
-      renderCell: (params) => (
-        <Chip label={params.value ?? 0} size="small" color={(params.value ?? 0) > 5 ? 'success' : 'warning'} sx={{ fontWeight: 800 }} />
-      )
-    },
-    { 
-      field: 'is_active', 
-      headerName: 'Live', 
-      width: 100,
-      renderCell: (params) => (
-        <Switch checked={!!params.value} size="small" onChange={() => handleToggleVisibility(params.row._id, !!params.value)} />
-      )
-    },
-    {
-      field: 'actions',
-      headerName: '',
-      width: 120,
-      sortable: false,
-      align: 'right',
-      renderCell: (params) => (
-        <Box>
-          <IconButton size="small" onClick={() => handleOpenDialog(params.row)}><Edit fontSize="small" /></IconButton>
-          <IconButton size="small" color="error" onClick={() => handleDelete(params.row._id)}><Delete fontSize="small" /></IconButton>
-        </Box>
-      )
-    }
-  ], [products, user]);
-
   if (!mounted) return null;
 
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'flex-end' }, mb: 5, gap: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 900, mb: 1 }}>Artisan Inventory</Typography>
-          <Typography variant="body2" color="text.secondary">Unified command center for the handcrafted collection.</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 900, mb: 1 }}>Kalamic Catalog</Typography>
+          <Typography variant="body2" color="text.secondary">Manage handcrafted masterpieces and track their studio performance.</Typography>
         </Box>
         
         <Box sx={{ display: 'flex', gap: 2, width: { xs: '100%', md: 'auto' } }}>
-          <Tooltip title="Restore Baseline Catalog">
-            <IconButton 
-              onClick={handleRestoreCatalog} 
-              disabled={isRestoring}
-              sx={{ bgcolor: 'white', border: '1px solid rgba(0,0,0,0.1)' }}
-            >
-              {isRestoring ? <CircularProgress size={20} /> : <RestoreIcon />}
-            </IconButton>
-          </Tooltip>
-
           <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'white', px: 2, borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)', flex: 1 }}>
             <Search sx={{ color: 'text.disabled', mr: 1, fontSize: 20 }} />
             <InputBase
@@ -343,14 +355,14 @@ export default function ProductsManagement() {
       </Paper>
 
       {editingProduct && (
-        <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth fullScreen={isMobile}>
+        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
           <DialogTitle sx={{ p: 3, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: 1, borderColor: 'divider' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 900 }}>{editingProduct._id ? 'Refine Masterpiece' : 'New Creation'}</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 900 }}>{editingProduct._id ? 'Refine Creation' : 'New Ceramic Piece'}</Typography>
                 <Typography variant="caption" color="text.secondary">{editingProduct.slug}</Typography>
               </Box>
-              <IconButton onClick={handleCloseDialog} size="small"><Close /></IconButton>
+              <IconButton onClick={() => setDialogOpen(false)} size="small"><Close /></IconButton>
             </Box>
           </DialogTitle>
 
@@ -359,7 +371,6 @@ export default function ProductsManagement() {
               <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="scrollable">
                 <Tab icon={<HistoryEdu fontSize="small" />} iconPosition="start" label="General" />
                 <Tab icon={<ImageIcon fontSize="small" />} iconPosition="start" label="Media" />
-                <Tab icon={<InventoryIcon fontSize="small" />} iconPosition="start" label="Inventory" />
                 <Tab icon={<SettingsSuggest fontSize="small" />} iconPosition="start" label="Specs" />
                 <Tab icon={<LocalShipping fontSize="small" />} iconPosition="start" label="Shipping" />
                 <Tab icon={<SeoIcon fontSize="small" />} iconPosition="start" label="SEO" />
@@ -370,17 +381,25 @@ export default function ProductsManagement() {
               {activeTab === 0 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={8}>
-                    <TextField fullWidth label="Name" value={editingProduct.name} onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})} sx={{ mb: 3 }} />
-                    <TextField fullWidth label="Slug" value={editingProduct.slug} onChange={(e) => setEditingProduct({...editingProduct, slug: e.target.value})} sx={{ mb: 3 }} />
+                    <TextField fullWidth label="Product Name *" value={editingProduct.name} onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})} sx={{ mb: 3 }} />
+                    <TextField fullWidth label="URL Slug (lowercase) *" value={editingProduct.slug} onChange={(e) => setEditingProduct({...editingProduct, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} sx={{ mb: 3 }} />
+                    <TextField fullWidth label="Category ID *" value={editingProduct.category_id} onChange={(e) => setEditingProduct({...editingProduct, category_id: e.target.value})} sx={{ mb: 3 }} />
                     <TextField fullWidth multiline rows={2} label="Short Hook" value={editingProduct.short_description} onChange={(e) => setEditingProduct({...editingProduct, short_description: e.target.value})} sx={{ mb: 3 }} />
-                    <TextField fullWidth multiline rows={4} label="Detailed Narrative" value={editingProduct.description} onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})} />
+                    <TextField fullWidth multiline rows={4} label="Detailed Narrative *" value={editingProduct.description} onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})} />
                   </Grid>
                   <Grid item xs={12} md={4}>
-                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: alpha(theme.palette.secondary.main, 0.02) }}>
+                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: alpha(theme.palette.secondary.main, 0.02), mb: 3 }}>
+                      <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 800 }}>Pricing & Stock</Typography>
+                      <TextField fullWidth type="number" label="Price (₹)" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: parseFloat(e.target.value) || 0})} sx={{ mb: 2 }} />
+                      <TextField fullWidth type="number" label="Compare Price (₹)" value={editingProduct.compare_at_price || ''} onChange={(e) => setEditingProduct({...editingProduct, compare_at_price: e.target.value === '' ? undefined : parseFloat(e.target.value)})} sx={{ mb: 2 }} />
+                      <TextField fullWidth type="number" label="Stock Quantity" value={editingProduct.stock} onChange={(e) => setEditingProduct({...editingProduct, stock: parseInt(e.target.value) || 0})} sx={{ mb: 2 }} />
+                      <TextField fullWidth label="SKU" value={editingProduct.sku || ''} onChange={(e) => setEditingProduct({...editingProduct, sku: e.target.value})} />
+                    </Paper>
+                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
                       <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 800 }}>Visibility</Typography>
                       <FormControlLabel control={<Switch checked={!!editingProduct.is_active} onChange={(e) => setEditingProduct({...editingProduct, is_active: e.target.checked})} />} label="Live in Shop" />
                       <FormControlLabel control={<Switch checked={!!editingProduct.is_featured} onChange={(e) => setEditingProduct({...editingProduct, is_featured: e.target.checked})} />} label="Featured Piece" />
-                      <TextField fullWidth type="number" label="Sort Priority" value={editingProduct.visibility_priority} onChange={(e) => setEditingProduct({...editingProduct, visibility_priority: parseInt(e.target.value) || 0})} sx={{ mt: 2 }} />
+                      <TextField fullWidth type="number" label="Priority Weight" value={editingProduct.visibility_priority} onChange={(e) => setEditingProduct({...editingProduct, visibility_priority: parseInt(e.target.value) || 0})} sx={{ mt: 2 }} />
                     </Paper>
                   </Grid>
                 </Grid>
@@ -388,108 +407,91 @@ export default function ProductsManagement() {
 
               {activeTab === 1 && (
                 <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>At least one image URL is required. Mark one as Primary.</Typography>
                   {(editingProduct.images || []).map((img: any, idx: number) => (
                     <Paper key={idx} variant="outlined" sx={{ p: 3, mb: 2, borderRadius: 3 }}>
                       <Grid container spacing={2} alignItems="center">
                         <Grid item xs={12} md={8}>
-                          <TextField 
-                            fullWidth 
-                            label="Image URL" 
-                            size="small" 
-                            value={img.url || ''} 
-                            onChange={(e) => {
-                              const newImgs = [...(editingProduct.images || [])];
-                              newImgs[idx] = { ...newImgs[idx], url: e.target.value };
-                              setEditingProduct({...editingProduct, images: newImgs});
-                            }} 
-                            sx={{ mb: 2 }} 
-                          />
-                          <TextField 
-                            fullWidth 
-                            label="Alt Text" 
-                            size="small" 
-                            value={img.alt || ''} 
-                            onChange={(e) => {
-                              const newImgs = [...(editingProduct.images || [])];
-                              newImgs[idx] = { ...newImgs[idx], alt: e.target.value };
-                              setEditingProduct({...editingProduct, images: newImgs});
-                            }} 
-                          />
+                          <TextField fullWidth label="Image URL" size="small" value={img.url} onChange={(e) => {
+                            const newImgs = [...editingProduct.images];
+                            newImgs[idx].url = e.target.value;
+                            setEditingProduct({...editingProduct, images: newImgs});
+                          }} sx={{ mb: 2 }} />
+                          <TextField fullWidth label="Alt Text" size="small" value={img.alt} onChange={(e) => {
+                            const newImgs = [...editingProduct.images];
+                            newImgs[idx].alt = e.target.value;
+                            setEditingProduct({...editingProduct, images: newImgs});
+                          }} />
                         </Grid>
                         <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
                           <FormControlLabel control={<Checkbox checked={!!img.is_primary} onChange={() => {
-                            const newImgs = (editingProduct.images || []).map((i: any, ii: number) => ({ ...i, is_primary: ii === idx }));
+                            const newImgs = editingProduct.images.map((i: any, ii: number) => ({ ...i, is_primary: ii === idx }));
                             setEditingProduct({...editingProduct, images: newImgs});
                           }} />} label="Primary" />
-                          <Button color="error" size="small" onClick={() => setEditingProduct({...editingProduct, images: (editingProduct.images || []).filter((_: any, ii: number) => ii !== idx)})}>Remove</Button>
+                          <Button color="error" size="small" onClick={() => setEditingProduct({...editingProduct, images: editingProduct.images.filter((_: any, ii: number) => ii !== idx)})}>Remove</Button>
                         </Grid>
                       </Grid>
                     </Paper>
                   ))}
-                  <Button startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...(editingProduct.images || []), { url: '', alt: '', is_primary: false }]})}>Add Image</Button>
+                  <Button startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...editingProduct.images, { url: '', alt: '', is_primary: false }]})}>Add Media</Button>
                 </Box>
               )}
 
               {activeTab === 2 && (
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
-                    <TextField fullWidth type="number" label="Price (₹)" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: parseFloat(e.target.value) || 0})} sx={{ mb: 3 }} />
-                    <TextField fullWidth type="number" label="Compare Price (₹)" value={editingProduct.compare_at_price || ''} onChange={(e) => setEditingProduct({...editingProduct, compare_at_price: e.target.value === '' ? undefined : parseFloat(e.target.value)})} />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField fullWidth label="SKU" value={editingProduct.sku} onChange={(e) => setEditingProduct({...editingProduct, sku: e.target.value})} sx={{ mb: 3 }} />
-                    <TextField fullWidth type="number" label="Stock" value={editingProduct.stock} onChange={(e) => setEditingProduct({...editingProduct, stock: parseInt(e.target.value) || 0})} />
+                <Grid container spacing={2}>
+                  {(editingProduct.specifications || []).map((spec: any, idx: number) => (
+                    <Grid item xs={12} md={6} key={idx} sx={{ display: 'flex', gap: 1 }}>
+                      <TextField fullWidth label="Key" value={spec.key} onChange={(e) => {
+                        const s = [...editingProduct.specifications];
+                        s[idx].key = e.target.value;
+                        setEditingProduct({...editingProduct, specifications: s});
+                      }} />
+                      <TextField fullWidth label="Value" value={spec.value} onChange={(e) => {
+                        const s = [...editingProduct.specifications];
+                        s[idx].value = e.target.value;
+                        setEditingProduct({...editingProduct, specifications: s});
+                      }} />
+                      <IconButton color="error" onClick={() => setEditingProduct({...editingProduct, specifications: editingProduct.specifications.filter((_: any, ii: number) => ii !== idx)})}>
+                        <Close fontSize="small" />
+                      </IconButton>
+                    </Grid>
+                  ))}
+                  <Grid item xs={12}>
+                    <Button startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, specifications: [...editingProduct.specifications, { key: '', value: '' }]})}>Add Spec</Button>
                   </Grid>
                 </Grid>
               )}
 
               {activeTab === 3 && (
-                <Grid container spacing={2}>
-                  {(editingProduct.specifications || []).map((spec: any, idx: number) => (
-                    <Grid item xs={12} md={6} key={idx}>
-                      <TextField 
-                        fullWidth 
-                        label={spec.key} 
-                        value={spec.value || ''} 
-                        onChange={(e) => {
-                          const newSpecs = [...(editingProduct.specifications || [])];
-                          newSpecs[idx] = { ...newSpecs[idx], value: e.target.value };
-                          setEditingProduct({...editingProduct, specifications: newSpecs});
-                        }} 
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-              )}
-
-              {activeTab === 4 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={4}>
-                    <TextField fullWidth type="number" label="Weight (kg)" value={editingProduct.shipping?.weight_kg || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...(editingProduct.shipping || {}), weight_kg: parseFloat(e.target.value) || 0}})} />
+                    <TextField fullWidth type="number" label="Weight (kg)" value={editingProduct.shipping?.weight_kg || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, weight_kg: parseFloat(e.target.value) || 0}})} />
                   </Grid>
                   <Grid item xs={12} md={8}>
                     <Box sx={{ display: 'flex', gap: 2 }}>
-                      <TextField label="Length (cm)" value={editingProduct.shipping?.package_dimensions_cm?.length || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...(editingProduct.shipping || {}), package_dimensions_cm: {...(editingProduct.shipping?.package_dimensions_cm || {}), length: parseFloat(e.target.value) || 0}}})} />
-                      <TextField label="Width (cm)" value={editingProduct.shipping?.package_dimensions_cm?.width || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...(editingProduct.shipping || {}), package_dimensions_cm: {...(editingProduct.shipping?.package_dimensions_cm || {}), width: parseFloat(e.target.value) || 0}}})} />
-                      <TextField label="Height (cm)" value={editingProduct.shipping?.package_dimensions_cm?.height || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...(editingProduct.shipping || {}), package_dimensions_cm: {...(editingProduct.shipping?.package_dimensions_cm || {}), height: parseFloat(e.target.value) || 0}}})} />
+                      <TextField fullWidth label="Length (cm)" value={editingProduct.shipping?.package_dimensions_cm?.length || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, length: parseFloat(e.target.value) || 0}}})} />
+                      <TextField fullWidth label="Width (cm)" value={editingProduct.shipping?.package_dimensions_cm?.width || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, width: parseFloat(e.target.value) || 0}}})} />
+                      <TextField fullWidth label="Height (cm)" value={editingProduct.shipping?.package_dimensions_cm?.height || 0} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, height: parseFloat(e.target.value) || 0}}})} />
                     </Box>
                   </Grid>
                 </Grid>
               )}
 
-              {activeTab === 5 && (
+              {activeTab === 4 && (
                 <Box>
-                  <TextField fullWidth label="SEO Title" value={editingProduct.seo?.meta_title || ''} onChange={(e) => setEditingProduct({...editingProduct, seo: {...(editingProduct.seo || {}), meta_title: e.target.value}})} sx={{ mb: 3 }} />
-                  <TextField fullWidth multiline rows={3} label="SEO Description" value={editingProduct.seo?.meta_description || ''} onChange={(e) => setEditingProduct({...editingProduct, seo: {...(editingProduct.seo || {}), meta_description: e.target.value}})} sx={{ mb: 3 }} />
-                  <TextField fullWidth label="Keywords (comma separated)" value={(editingProduct.seo?.meta_keywords || []).join(', ')} onChange={(e) => setEditingProduct({...editingProduct, seo: {...(editingProduct.seo || {}), meta_keywords: e.target.value.split(',').map(k => k.trim())}})} />
+                  <TextField fullWidth label="SEO Meta Title" value={editingProduct.seo?.meta_title || ''} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_title: e.target.value}})} sx={{ mb: 3 }} />
+                  <TextField fullWidth multiline rows={3} label="SEO Meta Description" value={editingProduct.seo?.meta_description || ''} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_description: e.target.value}})} sx={{ mb: 3 }} />
+                  <TextField fullWidth label="Keywords (comma separated)" value={(editingProduct.seo?.meta_keywords || []).join(', ')} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_keywords: e.target.value.split(',').map(k => k.trim())}})} />
                 </Box>
               )}
             </Box>
           </DialogContent>
 
-          <DialogActions sx={{ p: 3, bgcolor: alpha(theme.palette.divider, 0.02), borderTop: 1, borderColor: 'divider' }}>
-            <Button onClick={handleCloseDialog} color="inherit">Discard</Button>
-            <Button variant="contained" startIcon={isSaving ? <CircularProgress size={20} /> : <Save />} onClick={handleSaveProduct} disabled={isSaving}>Save Masterpiece</Button>
+          <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
+            <Button onClick={() => setDialogOpen(false)} color="inherit">Discard</Button>
+            <Button variant="contained" startIcon={isSaving ? <CircularProgress size={20} /> : <Save />} onClick={handleSaveProduct} disabled={isSaving}>
+              Save Masterpiece
+            </Button>
           </DialogActions>
         </Dialog>
       )}
