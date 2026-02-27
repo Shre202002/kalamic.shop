@@ -62,8 +62,8 @@ export interface IProduct extends Document {
     meta_keywords: string[];
   };
 
-  created_by_admin?: string; // String to allow Firebase UIDs
-  updated_by_admin?: string; // String to allow Firebase UIDs
+  created_by_admin?: string; 
+  updated_by_admin?: string; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -128,7 +128,6 @@ const ProductSchema: Schema = new Schema({
   updated_by_admin: { type: String }
 }, { timestamps: true });
 
-// Optimize search for discovery
 ProductSchema.index({ name: 'text', description: 'text', tags: 'text' });
 
 export default mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);

@@ -122,7 +122,7 @@ export default function ProductsManagement() {
 
   const handleOpenDialog = (product?: any) => {
     if (product) {
-      // Deep normalization to ensure all nested objects exist for the controlled inputs
+      // DEEP NORMALIZATION: Ensures local state has all nested schema paths
       const normalizedProduct = {
         ...INITIAL_PRODUCT,
         ...product,
@@ -161,12 +161,13 @@ export default function ProductsManagement() {
 
   const handleSaveProduct = async () => {
     if (!editingProduct.name || !editingProduct.slug || !editingProduct.description) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Name, Slug and Description are required." });
+      toast({ variant: "destructive", title: "Validation Error", description: "Name, Slug, and Narrative are mandatory." });
       return;
     }
 
     setIsSaving(true);
     try {
+      // SERVER HANDSHAKE
       await saveProduct('current-admin', editingProduct);
       toast({ title: "Masterpiece Saved", description: "The artisan catalog has been synchronized." });
       handleCloseDialog();
@@ -189,7 +190,7 @@ export default function ProductsManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure? This piece will be archived.")) return;
+    if (!confirm("Are you sure? This piece will be moved to the archive.")) return;
     try {
       await deleteProduct('current-admin', id);
       setProducts((prev) => prev.filter((p: any) => p._id !== id));
@@ -199,12 +200,12 @@ export default function ProductsManagement() {
     }
   };
 
-  const handleSeedCatalog = async () => {
-    if (!confirm("Restore baseline collection? This recreates the dropped collection.")) return;
+  const handleRestoreCatalog = async () => {
+    if (!confirm("Re-sync artisan baseline? This will populate the 5 core handcrafted pieces.")) return;
     setIsSeeding(true);
     try {
       await seedInitialCatalog('current-admin');
-      toast({ title: "Catalog Restored", description: "The baseline handcrafted pieces are now live." });
+      toast({ title: "Catalog Restored", description: "Baseline collection is now live." });
       load();
     } catch (e) {
       toast({ variant: "destructive", title: "Restoration Failed" });
@@ -292,7 +293,7 @@ export default function ProductsManagement() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 5, gap: 3 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 900, mb: 1 }}>Artisan Inventory</Typography>
-          <Typography variant="body2" color="text.secondary">Management hub for your structured ceramic collection.</Typography>
+          <Typography variant="body2" color="text.secondary">Unified command center for the handcrafted collection.</Typography>
         </Box>
         
         <Box sx={{ display: 'flex', gap: 2 }}>
@@ -306,8 +307,8 @@ export default function ProductsManagement() {
             />
           </Box>
 
-          <Tooltip title="Restore Dropped Collection">
-            <IconButton onClick={handleSeedCatalog} disabled={isSeeding} sx={{ bgcolor: 'white', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3 }}>
+          <Tooltip title="Restore Artisan Baseline">
+            <IconButton onClick={handleRestoreCatalog} disabled={isSeeding} sx={{ bgcolor: 'white', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 3 }}>
               {isSeeding ? <CircularProgress size={20} /> : <CloudSync />}
             </IconButton>
           </Tooltip>
@@ -336,7 +337,7 @@ export default function ProductsManagement() {
           <DialogTitle sx={{ p: 3, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: 1, borderColor: 'divider' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 900 }}>{editingProduct._id ? 'Edit Masterpiece' : 'New Creation'}</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 900 }}>{editingProduct._id ? 'Refine Masterpiece' : 'New Creation'}</Typography>
                 <Typography variant="caption" color="text.secondary">{editingProduct.slug}</Typography>
               </Box>
               <IconButton onClick={handleCloseDialog} size="small"><Close /></IconButton>

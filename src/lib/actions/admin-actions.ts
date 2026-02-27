@@ -28,7 +28,8 @@ async function logAction(adminId: string, action: string, type: string, entityId
 }
 
 /**
- * Restore the baseline handcrafted collection if the collection was dropped.
+ * Restore the baseline handcrafted collection if needed.
+ * This ensures the 5 core products match the user's provided data.
  */
 export async function seedInitialCatalog(adminId: string) {
   await dbConnect();
@@ -48,7 +49,6 @@ export async function seedInitialCatalog(adminId: string) {
         ],
         price: 1499,
         compare_at_price: 1999,
-        currency: "INR",
         stock: 5,
         sku: "MS-001",
         is_active: true,
@@ -68,8 +68,7 @@ export async function seedInitialCatalog(adminId: string) {
           meta_title: "Mor Stambh Ceramic Pillar – Handmade Temple Decor",
           meta_description: "Buy handmade ceramic Mor Stambh pillar for temple and festive decor.",
           meta_keywords: ["mor stambh", "ceramic pillar", "temple decor"]
-        },
-        analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
+        }
       },
       {
         _id: new mongoose.Types.ObjectId("699026a8ae873e1fa69cb18b"),
@@ -82,7 +81,6 @@ export async function seedInitialCatalog(adminId: string) {
         images: [{ url: "https://i.imgur.com/CjkQ8p3.png", alt: "Ceramic Mirror Front", is_primary: true }],
         price: 999,
         compare_at_price: 2599,
-        currency: "INR",
         stock: 5,
         sku: "CM-001",
         is_active: true,
@@ -101,8 +99,7 @@ export async function seedInitialCatalog(adminId: string) {
           meta_title: "Handmade Ceramic Mirror – Decorative Wall Mirror",
           meta_description: "Premium handcrafted ceramic mirror for elegant home interiors.",
           meta_keywords: ["ceramic mirror", "handmade mirror", "wall decor"]
-        },
-        analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
+        }
       },
       {
         _id: new mongoose.Types.ObjectId("699026a8ae873e1fa69cb18c"),
@@ -115,7 +112,6 @@ export async function seedInitialCatalog(adminId: string) {
         images: [{ url: "https://i.imgur.com/CjkQ8p3.png", alt: "Ceramic Frame Front", is_primary: true }],
         price: 699,
         compare_at_price: 999,
-        currency: "INR",
         stock: 13,
         sku: "CF-001",
         is_active: true,
@@ -133,8 +129,7 @@ export async function seedInitialCatalog(adminId: string) {
           meta_title: "Customized Ceramic Photo Frame – Handmade Gift",
           meta_description: "Buy personalized ceramic photo frame for gifting and decor.",
           meta_keywords: ["ceramic frame", "custom gift", "photo decor"]
-        },
-        analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
+        }
       },
       {
         _id: new mongoose.Types.ObjectId("699026a8ae873e1fa69cb18e"),
@@ -147,7 +142,6 @@ export async function seedInitialCatalog(adminId: string) {
         images: [{ url: "https://i.imgur.com/QkkCTmA.png", alt: "Mandala Front", is_primary: true }],
         price: 2499,
         compare_at_price: 4999,
-        currency: "INR",
         stock: 5,
         sku: "MW-001",
         is_active: true,
@@ -166,8 +160,7 @@ export async function seedInitialCatalog(adminId: string) {
           meta_title: "Handmade Ceramic Mandala Wheel – Temple Decor",
           meta_description: "Golden ceramic mandala wheel with Laddu Gopal design.",
           meta_keywords: ["mandala wheel", "ceramic decor", "temple decor"]
-        },
-        analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
+        }
       },
       {
         _id: new mongoose.Types.ObjectId("699026a8ae873e1fa69cb18d"),
@@ -180,7 +173,6 @@ export async function seedInitialCatalog(adminId: string) {
         images: [{ url: "https://i.imgur.com/CKp5j5S.png", alt: "Magnet Front", is_primary: true }],
         price: 299,
         compare_at_price: 399,
-        currency: "INR",
         stock: 5,
         sku: "FM-001",
         is_active: true,
@@ -198,15 +190,14 @@ export async function seedInitialCatalog(adminId: string) {
           meta_title: "Handmade Ceramic Fridge Magnet – Floral Motif",
           meta_description: "Decorative ceramic fridge magnets for gifting and decor.",
           meta_keywords: ["ceramic magnet", "handmade gift", "fridge decor"]
-        },
-        analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
+        }
       }
     ];
 
     await Product.deleteMany({});
     await Product.insertMany(products);
     
-    await logAction(adminId, 'RESTORE_CATALOG', 'Product', 'all', 'Restored dropped collection with artisan baseline.');
+    await logAction(adminId, 'RESTORE_CATALOG', 'Product', 'all', 'Restored artisan catalog with baseline collection.');
     
     revalidatePath('/admin/products');
     revalidatePath('/products');
@@ -227,12 +218,16 @@ export async function getAdminProducts() {
   return JSON.parse(JSON.stringify(products));
 }
 
+/**
+ * Core CRUD Action: Saves a product masterpiece.
+ * Handles deep data normalization and strict schema enforcement.
+ */
 export async function saveProduct(adminId: string, productData: any) {
   await dbConnect();
   try {
     const isNew = !productData._id;
     
-    // Explicit cleaning to ensure schema compliance and numeric conversion
+    // EXPLICIT SANITIZATION: Ensures nested objects match the Mongoose schema exactly.
     const cleanedData = {
       name: String(productData.name || ""),
       slug: String(productData.slug || ""),
@@ -276,7 +271,7 @@ export async function saveProduct(adminId: string, productData: any) {
         created_by_admin: adminId,
         updated_by_admin: adminId
       });
-      await logAction(adminId, 'CREATE_PRODUCT', 'Product', savedProduct._id.toString(), `Created piece: ${savedProduct.name}`);
+      await logAction(adminId, 'CREATE_PRODUCT', 'Product', savedProduct._id.toString(), `Created: ${savedProduct.name}`);
     } else {
       savedProduct = await Product.findByIdAndUpdate(
         productData._id,
@@ -284,9 +279,10 @@ export async function saveProduct(adminId: string, productData: any) {
         { new: true, runValidators: true }
       );
       if (!savedProduct) throw new Error("Product not found");
-      await logAction(adminId, 'UPDATE_PRODUCT', 'Product', productData._id, `Updated piece: ${savedProduct.name}`);
+      await logAction(adminId, 'UPDATE_PRODUCT', 'Product', productData._id, `Updated: ${savedProduct.name}`);
     }
 
+    // INSTANT STOREFRONT SYNC
     revalidatePath('/admin/products');
     revalidatePath(`/products/${savedProduct.slug}`);
     revalidatePath('/products');
@@ -310,7 +306,7 @@ export async function toggleProductVisibility(adminId: string, productId: string
 export async function deleteProduct(adminId: string, productId: string) {
   await dbConnect();
   await Product.findByIdAndUpdate(productId, { is_deleted: true, is_active: false });
-  await logAction(adminId, 'SOFT_DELETE', 'Product', productId, 'Moved to archived pieces');
+  await logAction(adminId, 'SOFT_DELETE', 'Product', productId, 'Moved to archive');
   revalidatePath('/admin/products');
 }
 
@@ -322,7 +318,7 @@ export async function getAllOrders() {
 export async function updateOrderStatus(adminId: string, orderId: string, status: string) {
   await dbConnect();
   const order = await OrderedItem.findByIdAndUpdate(orderId, { status });
-  if (order) await logAction(adminId, 'UPDATE_ORDER_STATUS', 'OrderedItem', order.order_number, `Status set to ${status}`);
+  if (order) await logAction(adminId, 'UPDATE_ORDER_STATUS', 'OrderedItem', order.order_number, `Status: ${status}`);
   revalidatePath('/admin/orders');
 }
 
