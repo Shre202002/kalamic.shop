@@ -21,7 +21,7 @@ import {
   Chip
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Visibility, Close, MapPin, ContactPhone, Mail } from '@mui/icons-material';
+import { Visibility, Close, LocationOn, ContactPhone, Mail } from '@mui/icons-material';
 import { getAllUsers, toggleUserStatus } from '@/lib/actions/admin-actions';
 import dayjs from 'dayjs';
 
@@ -173,7 +173,7 @@ export default function UsersManagement() {
 
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <MapPin color="primary" fontSize="small" />
+                <LocationOn color="primary" fontSize="small" />
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Shipping Destination</Typography>
               </Box>
               <Box sx={{ ml: 4 }}>
