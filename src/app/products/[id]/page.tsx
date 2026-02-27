@@ -8,16 +8,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Card } from '@/components/ui/card';
 import { 
   ShoppingCart, 
   Heart, 
@@ -25,24 +16,19 @@ import {
   Star, 
   Truck, 
   ShieldCheck, 
-  Undo2, 
   Loader2, 
   ChevronRight,
-  Package,
-  MessageSquare,
   Zap,
   Info
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { getProductById, getFeaturedProducts, trackProductAction, untrackWishlistAction, incrementProductViews } from '@/lib/actions/products';
-import { getProductReviews, submitReview } from '@/lib/actions/reviews';
+import { getProductReviews } from '@/lib/actions/reviews';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 import { ProductCard } from '@/components/product/ProductCard';
 import Link from 'next/link';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 export default function ProductDetailPage() {
@@ -67,10 +53,6 @@ export default function ProductDetailPage() {
   const { data: wishlistDoc } = useDoc(wishlistDocQuery);
   const isFavorited = !!wishlistDoc;
 
-  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
-
   useEffect(() => {
     async function loadData() {
       try {
@@ -79,9 +61,7 @@ export default function ProductDetailPage() {
         
         if (data) {
           setProduct(data);
-          
-          // Increment views via Server Action (atomic $inc)
-          incrementProductViews(data._id);
+          incrementProductViews(data._id); // Server-side increment
 
           const [featured, reviewData] = await Promise.all([
             getFeaturedProducts(),
@@ -115,311 +95,137 @@ export default function ProductDetailPage() {
       priceAtAddToCart: product.price ?? 0,
       imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || `https://picsum.photos/seed/${id}/600/600`,
       quantity: 1,
-      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     }, { merge: true });
 
     trackProductAction(id, 'cart_add_count');
-
-    toast({ title: "Added to cart", description: `${product.name} has been added to your shopping bag.` });
-  };
-
-  const handleBuyNow = async () => {
-    await handleAddToCart();
-    if (user) router.push('/checkout');
+    toast({ title: "Added to cart", description: `${product.name} has been added to your bag.` });
   };
 
   const handleAddToWishlist = async () => {
     if (!user || !firestore) {
-      toast({ title: "Please sign in", description: "You need an account to save favorites." });
+      toast({ title: "Please sign in" });
       return;
     }
 
     const productId = product._id;
     const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', productId);
     
-    try {
-      if (isFavorited) {
-        await deleteDoc(wishlistItemRef);
-        untrackWishlistAction(productId);
-        toast({ title: "Removed from favorites" });
-      } else {
-        await setDoc(wishlistItemRef, {
-          id: productId,
-          productId,
-          wishlistId: user.uid,
-          slug: product.slug,
-          name: product.name,
-          price: product.price ?? 0,
-          imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || `https://picsum.photos/seed/${productId}/600/600`,
-          addedAt: new Date().toISOString()
-        }, { merge: true });
-
-        trackProductAction(productId, 'wishlist_count');
-        toast({ title: "Saved to wishlist" });
-      }
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Could not update favorites." });
-    }
-  };
-
-  const handleShare = async () => {
-    const shareData = {
-      title: `Kalamic | ${product.name}`,
-      text: product.short_description || `Check out this handcrafted ${product.name} from Kalamic!`,
-      url: window.location.href,
-    };
-
-    try {
-      trackProductAction(product._id, 'share_count');
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        toast({ title: "Link Copied!" });
-      }
-    } catch (err) { console.error("Share error:", err); }
-  };
-
-  const handleSubmitReview = async () => {
-    if (!user) return;
-    if (!newReview.comment.trim()) {
-      toast({ variant: "destructive", title: "Review Required" });
-      return;
-    }
-
-    setIsSubmittingReview(true);
-    try {
-      const review = await submitReview({
-        productId: product._id,
-        userId: user.uid,
-        userName: user.displayName || user.email?.split('@')[0] || 'Anonymous Collector',
-        userAvatar: user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`,
-        rating: newReview.rating,
-        comment: newReview.comment
+    if (isFavorited) {
+      await deleteDoc(wishlistItemRef);
+      untrackWishlistAction(productId);
+      toast({ title: "Removed from favorites" });
+    } else {
+      await setDoc(wishlistItemRef, {
+        id: productId,
+        productId,
+        name: product.name,
+        price: product.price ?? 0,
+        imageUrl: product.images?.[0]?.url,
+        addedAt: new Date().toISOString()
       });
-
-      setReviews([review, ...reviews]);
-      setIsReviewDialogOpen(false);
-      setNewReview({ rating: 5, comment: '' });
-      toast({ title: "Review Submitted" });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error submitting review" });
-    } finally {
-      setIsSubmittingReview(false);
+      trackProductAction(productId, 'wishlist_count');
+      toast({ title: "Saved to wishlist" });
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <h1 className="text-2xl font-bold text-primary mb-4">Piece Not Found</h1>
-          <Button onClick={() => router.push('/products')}>Back to Catalog</Button>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+  if (!product) return <div className="p-20 text-center"><h1 className="text-2xl font-bold">Piece Not Found</h1><Button onClick={() => router.push('/products')}>Return to Shop</Button></div>;
 
   const images = (product.images || []).map((img: any) => img.url);
-  if (images.length === 0) images.push('https://placehold.co/800x800?text=Kalamic');
-  const currentImageUrl = images[selectedImage] || images[0];
-
-  const averageRating = reviews.length > 0 
-    ? parseFloat((reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)) 
-    : (product.averageRating || 4.8);
+  const currentImageUrl = images[selectedImage] || 'https://placehold.co/800x800?text=Kalamic';
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* SEO Head Injection via standard Next.js Head is usually done in layout, 
-          but we can output metadata here if it's a server component. 
-          Since it's client, we rely on the component rendering. */}
       <Navbar />
-      <main className="flex-1 py-4 md:py-8">
+      <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-7xl">
-          <nav className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-6 overflow-x-auto whitespace-nowrap">
-            <Link href="/" className="hover:text-primary transition-colors">Home</Link>
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
+            <Link href="/" className="hover:text-primary">Home</Link>
             <ChevronRight className="h-3 w-3" />
-            <Link href="/products" className="hover:text-primary transition-colors">Collection</Link>
+            <Link href="/products" className="hover:text-primary">Collection</Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="text-primary font-medium truncate">{product.name}</span>
+            <span className="text-primary truncate">{product.name}</span>
           </nav>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 relative">
-            {/* Gallery */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-16">
             <div className="lg:col-span-5 space-y-4">
-              <div className="lg:sticky lg:top-24">
-                <div className="relative aspect-square rounded-2xl md:rounded-3xl overflow-hidden bg-white shadow-lg border border-primary/5">
-                  <Image src={currentImageUrl} alt={product.name} fill className="object-cover" priority />
-                  {product.compare_at_price && (
-                    <Badge className="absolute top-4 left-4 bg-destructive text-destructive-foreground">SALE</Badge>
-                  )}
-                </div>
-                {images.length > 1 && (
-                  <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide">
-                    {images.map((img: string, i: number) => (
-                      <button 
-                        key={i} 
-                        onClick={() => setSelectedImage(i)} 
-                        className={`relative min-w-[80px] h-[80px] rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${selectedImage === i ? 'border-primary ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
-                      >
-                        <Image src={img} alt={`${product.name} ${i + 1}`} fill className="object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl border border-primary/5">
+                <Image src={currentImageUrl} alt={product.name} fill className="object-cover" priority />
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {images.map((img: string, i: number) => (
+                  <button key={i} onClick={() => setSelectedImage(i)} className={cn("relative min-w-[80px] h-[80px] rounded-xl overflow-hidden border-2 transition-all", selectedImage === i ? "border-primary scale-105" : "border-transparent opacity-60")}>
+                    <Image src={img} alt={product.name} fill className="object-cover" />
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Info */}
             <div className="lg:col-span-4 space-y-6">
               <div className="space-y-2">
-                <p className="text-xs font-bold text-accent uppercase tracking-widest">{product.tags?.[0] || 'Handcrafted'}</p>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-primary leading-tight">{product.name}</h1>
-                <div className="flex items-center gap-4 py-1">
-                  <div className="flex items-center bg-green-50 px-2 py-0.5 rounded border border-green-100">
-                    <span className="text-sm font-bold text-green-700 mr-1">{averageRating}</span>
-                    <Star className="h-3 w-3 fill-green-700 text-green-700" />
-                  </div>
-                  <span className="text-sm text-muted-foreground font-medium">
-                    {reviews.length || product.reviewCount || 0} Ratings
-                  </span>
+                <Badge variant="outline" className="text-accent uppercase tracking-widest">{product.tags?.[0] || 'Handcrafted'}</Badge>
+                <h1 className="text-3xl font-black text-primary tracking-tight">{product.name}</h1>
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 fill-accent text-accent" />
+                  <span className="font-bold">{product.averageRating || 4.8}</span>
+                  <span className="text-muted-foreground text-sm">({product.reviewCount || 0} reviews)</span>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-primary">₹{(product.price ?? 0).toLocaleString()}</span>
-                  {product.compare_at_price && (
-                    <>
-                      <span className="text-lg text-muted-foreground line-through">₹{product.compare_at_price.toLocaleString()}</span>
-                      <Badge variant="outline" className="text-green-600 border-green-600">
-                        {Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)}% OFF
-                      </Badge>
-                    </>
-                  )}
-                </div>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase">Inclusive of all taxes</p>
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-black text-primary">₹{product.price.toLocaleString()}</span>
+                {product.compare_at_price && (
+                  <span className="text-xl text-muted-foreground line-through">₹{product.compare_at_price.toLocaleString()}</span>
+                )}
               </div>
 
-              {product.short_description && (
-                <p className="text-sm italic text-muted-foreground border-l-4 border-accent pl-4 py-1 bg-accent/5 rounded-r-lg">
-                  {product.short_description}
-                </p>
-              )}
+              <p className="text-muted-foreground leading-relaxed italic border-l-4 border-accent pl-4 py-2 bg-accent/5 rounded-r-xl">
+                {product.short_description || product.description.slice(0, 100) + '...'}
+              </p>
 
-              <div className="space-y-3">
-                <h3 className="font-bold text-primary flex items-center gap-2"><Info className="h-4 w-4" /> Description</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{product.description}</p>
+              <div className="space-y-4">
+                <h3 className="font-black text-primary flex items-center gap-2"><Info className="h-4 w-4" /> The Artisan Narrative</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{product.description}</p>
               </div>
 
-              {/* Specs Loop Render */}
               {product.specifications?.length > 0 && (
-                <section className="space-y-4 pt-4">
-                  <h3 className="font-bold text-primary">Specifications</h3>
+                <div className="space-y-3 pt-4">
+                  <h3 className="font-bold text-primary">Technical Specs</h3>
                   <div className="grid grid-cols-1 gap-2">
-                    {product.specifications.map((spec: any, i: number) => (
-                      <div key={i} className="flex justify-between border-b border-muted/20 pb-2">
-                        <span className="text-xs font-bold text-muted-foreground uppercase">{spec.key}</span>
-                        <span className="text-xs font-medium text-primary">{spec.value}</span>
+                    {product.specifications.map((s: any, i: number) => (
+                      <div key={i} className="flex justify-between border-b pb-2">
+                        <span className="text-xs font-bold text-muted-foreground uppercase">{s.key}</span>
+                        <span className="text-xs font-bold text-primary">{s.value}</span>
                       </div>
                     ))}
                   </div>
-                </section>
+                </div>
               )}
             </div>
 
-            {/* Sidebar Checkout */}
             <div className="lg:col-span-3">
-              <div className="lg:sticky lg:top-24 space-y-4">
-                <Card className="border-none shadow-xl rounded-2xl overflow-hidden bg-white">
-                  <div className="p-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`h-2.5 w-2.5 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-orange-500'}`} />
-                        <span className="text-sm font-bold text-primary">{product.stock > 0 ? `In Stock (${product.stock})` : 'Crafting Soon'}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <Button onClick={handleAddToCart} disabled={product.stock <= 0} className="w-full h-12 bg-primary text-white hover:bg-primary/90 font-bold rounded-xl shadow-lg">
-                        <ShoppingCart className="mr-2 h-5 w-5" /> Add to Bag
-                      </Button>
-                      <Button onClick={handleBuyNow} disabled={product.stock <= 0} variant="outline" className="w-full h-12 border-primary text-primary hover:bg-primary/5 font-bold rounded-xl">
-                        <Zap className="mr-2 h-5 w-5 fill-current" /> Buy It Now
-                      </Button>
-                    </div>
-
-                    <div className="pt-4 space-y-3 text-xs">
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <Truck className="h-4 w-4 text-accent" />
-                        <span>Weight: <b>{product.shipping?.weight_kg || 0}kg</b></span>
-                      </div>
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <ShieldCheck className="h-4 w-4 text-accent" />
-                        <span>Authentic Handcrafted Piece</span>
-                      </div>
-                    </div>
-
-                    <Separator className="opacity-50" />
-                    
-                    <div className="flex items-center justify-center gap-2 pt-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleAddToWishlist} 
-                        className={cn(
-                          "text-xs font-bold gap-2 rounded-full",
-                          isFavorited ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-primary"
-                        )}
-                      >
-                        <Heart className={cn("h-4 w-4", isFavorited && "fill-current")} /> {isFavorited ? 'Favorited' : 'Wishlist'}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={handleShare} className="text-xs font-bold gap-2 rounded-full text-muted-foreground hover:text-primary">
-                        <Share2 className="h-4 w-4" /> Share
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </div>
+              <Card className="p-6 space-y-6 rounded-3xl shadow-xl border-none sticky top-24">
+                <div className="flex items-center justify-between">
+                  <div className={cn("h-3 w-3 rounded-full animate-pulse", product.stock > 0 ? "bg-green-500" : "bg-orange-500")} />
+                  <span className="text-sm font-bold">{product.stock > 0 ? `Artisan Stock: ${product.stock}` : 'Crafting Now'}</span>
+                </div>
+                <div className="space-y-3">
+                  <Button onClick={handleAddToCart} disabled={product.stock <= 0} className="w-full h-14 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/20">Add to Bag</Button>
+                  <Button onClick={() => { handleAddToCart(); router.push('/checkout'); }} disabled={product.stock <= 0} variant="outline" className="w-full h-14 border-primary text-primary font-black rounded-2xl">Buy It Now</Button>
+                </div>
+                <div className="space-y-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3"><Truck className="h-4 w-4 text-accent" /> FragileCare™ Shipping: {product.shipping?.weight_kg || 0}kg</div>
+                  <div className="flex items-center gap-3"><ShieldCheck className="h-4 w-4 text-accent" /> Authentic Studio Original</div>
+                </div>
+                <Separator />
+                <div className="flex justify-center gap-4">
+                  <Button variant="ghost" onClick={handleAddToWishlist} className={cn("text-xs font-bold", isFavorited && "text-red-500")}><Heart className={cn("mr-2 h-4 w-4", isFavorited && "fill-current")} /> {isFavorited ? 'Favorited' : 'Wishlist'}</Button>
+                  <Button variant="ghost" onClick={() => { navigator.clipboard.writeText(window.location.href); toast({ title: "Link Copied" }); }} className="text-xs font-bold"><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+                </div>
+              </Card>
             </div>
           </div>
-
-          {/* Related */}
-          <section className="space-y-8 pt-12 border-t">
-            <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-accent fill-accent" />
-              <h2 className="text-2xl font-bold text-primary">Artisan Treasures You Might Love</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {relatedProducts.map(related => (
-                <ProductCard 
-                  key={related._id} 
-                  id={related._id} 
-                  slug={related.slug} 
-                  name={related.name} 
-                  price={related.price} 
-                  image={related.images?.find((img: any) => img.is_primary)?.url || related.images?.[0]?.url || 'https://placehold.co/400x400'} 
-                  rating={related.averageRating || 4.8} 
-                  tag={related.tags?.[0] || "Artisan"} 
-                />
-              ))}
-            </div>
-          </section>
         </div>
       </main>
       <Footer />

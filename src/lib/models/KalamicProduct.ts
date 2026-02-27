@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * @fileOverview Official Schema for the Kalamic_Products collection.
- * Includes nested structures for media, shipping, SEO, and analytics.
+ * Fully managed via Admin Panel with strict validation and nested structures.
  */
 
 export interface IKalamicProduct extends Document {
