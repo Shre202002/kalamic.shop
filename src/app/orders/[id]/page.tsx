@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -91,7 +92,7 @@ export default function OrderDetailPage() {
     );
   }
 
-  const currentStatusIndex = STATUS_STEPS.findIndex(step => step.id === order.orderStatus.toLowerCase());
+  const currentStatusIndex = STATUS_STEPS.findIndex(step => step.id === (order.orderStatus || '').toLowerCase());
   const displayStatusIndex = currentStatusIndex === -1 ? 0 : currentStatusIndex;
 
   return (
@@ -118,21 +119,21 @@ export default function OrderDetailPage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-3xl md:text-5xl font-black text-primary tracking-tighter">Order {order.id}</h1>
                   <Badge className="bg-accent text-accent-foreground uppercase text-[10px] font-black tracking-widest px-4 py-1.5 rounded-full shadow-sm">
-                    {order.orderStatus}
+                    {order.orderStatus || 'Pending'}
                   </Badge>
                 </div>
                 <p className="text-muted-foreground font-semibold flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Acquired on {new Date(order.orderDate).toLocaleDateString('en-IN', { 
+                  Acquired on {order.orderDate ? new Date(order.orderDate).toLocaleDateString('en-IN', { 
                     day: 'numeric', 
                     month: 'long', 
                     year: 'numeric' 
-                  })}
+                  }) : 'N/A'}
                 </p>
               </div>
               <div className="bg-white p-6 rounded-3xl border shadow-xl flex flex-col md:items-end">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Total Acquisition Value</p>
-                <p className="text-4xl font-black text-primary tracking-tighter">₹{order.totalAmount.toLocaleString()}</p>
+                <p className="text-4xl font-black text-primary tracking-tighter">₹{(order.totalAmount ?? 0).toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -254,7 +255,7 @@ export default function OrderDetailPage() {
                         <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-[2rem] overflow-hidden bg-muted flex-shrink-0 shadow-2xl border-4 border-white group-hover:scale-105 transition-transform duration-500">
                           <Image 
                             src={item.imageUrl || `https://picsum.photos/seed/${item.id}/400/400`} 
-                            alt={item.name} 
+                            alt={item.name || 'Ceramic Piece'} 
                             fill 
                             className="object-cover" 
                           />
@@ -265,7 +266,7 @@ export default function OrderDetailPage() {
                           </h3>
                           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
                             <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest">
-                              Quantity: <span className="text-primary">{item.quantity}</span>
+                              Quantity: <span className="text-primary">{item.quantity ?? 1}</span>
                             </p>
                             <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest rounded-lg border-primary/10">
                               Artisan SKU: {item.productVariantId?.slice(-6).toUpperCase() || 'UNQ-TR-01'}
@@ -274,7 +275,7 @@ export default function OrderDetailPage() {
                         </div>
                         <div className="text-center sm:text-right">
                           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Price per Piece</p>
-                          <p className="text-2xl font-black text-primary">₹{item.priceAtOrder.toLocaleString()}</p>
+                          <p className="text-2xl font-black text-primary">₹{(item.priceAtOrder ?? 0).toLocaleString()}</p>
                         </div>
                       </div>
                     ))}
@@ -300,17 +301,17 @@ export default function OrderDetailPage() {
                         <UserIcon className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-black text-primary leading-none mb-1">{order.shippingDetails?.fullName}</p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{order.shippingDetails?.phone}</p>
+                        <p className="text-sm font-black text-primary leading-none mb-1">{order.shippingDetails?.fullName || 'Anonymous Collector'}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{order.shippingDetails?.phone || 'No phone provided'}</p>
                       </div>
                     </div>
                     
                     <Separator className="opacity-10" />
                     
                     <p className="text-sm text-muted-foreground leading-relaxed font-medium italic">
-                      "{order.shippingDetails?.address},<br />
+                      "{order.shippingDetails?.address || 'Address details missing'},<br />
                       {order.shippingDetails?.landmark && <span>{order.shippingDetails.landmark}, </span>}
-                      {order.shippingDetails?.city}, {order.shippingDetails?.state} - {order.shippingDetails?.zip}"
+                      {order.shippingDetails?.city || 'City'}, {order.shippingDetails?.state || 'State'} - {order.shippingDetails?.zip || 'Zip'}"
                     </p>
                   </div>
                 </CardContent>
@@ -327,11 +328,11 @@ export default function OrderDetailPage() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
                       <span className="text-muted-foreground">Original Value</span>
-                      <span className="text-primary">₹{(order.totalAmount - order.shippingCost).toLocaleString()}</span>
+                      <span className="text-primary">₹{( (order.totalAmount ?? 0) - (order.shippingCost ?? 0) ).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
                       <span className="text-muted-foreground">FragileCare™ Shipping</span>
-                      <span className="text-accent">₹{order.shippingCost.toLocaleString()}</span>
+                      <span className="text-accent">₹{(order.shippingCost ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-green-600">
                       <span>Artisan Discount</span>
@@ -343,7 +344,7 @@ export default function OrderDetailPage() {
                   
                   <div className="flex justify-between items-end py-2">
                     <span className="text-lg font-black text-primary uppercase tracking-tighter">Net Total</span>
-                    <span className="text-3xl font-black text-primary tracking-tighter">₹{order.totalAmount.toLocaleString()}</span>
+                    <span className="text-3xl font-black text-primary tracking-tighter">₹{(order.totalAmount ?? 0).toLocaleString()}</span>
                   </div>
 
                   <div className="pt-4">

@@ -47,7 +47,7 @@ export default function AdminDashboard() {
     loadData();
   }, []);
 
-  if (!stats) return <LinearProgress color="primary" />;
+  if (!stats || !charts) return <LinearProgress color="primary" />;
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -55,16 +55,39 @@ export default function AdminDashboard() {
       
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Revenue" value={`₹${stats.revenue.toLocaleString()}`} icon={<AttachMoney />} color="primary" trend="12%" />
+          <StatCard 
+            title="Total Revenue" 
+            value={`₹${(stats.revenue ?? 0).toLocaleString()}`} 
+            icon={<AttachMoney />} 
+            color="primary" 
+            trend="12%" 
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Orders" value={stats.orders} icon={<ShoppingCart />} color="secondary" trend="8%" />
+          <StatCard 
+            title="Total Orders" 
+            value={(stats.orders ?? 0).toLocaleString()} 
+            icon={<ShoppingCart />} 
+            color="secondary" 
+            trend="8%" 
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Active Users" value={stats.activeUsers} icon={<People />} color="info" trend="5%" />
+          <StatCard 
+            title="Active Users" 
+            value={(stats.activeUsers ?? 0).toLocaleString()} 
+            icon={<People />} 
+            color="info" 
+            trend="5%" 
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Pending Acquisitions" value={stats.pendingOrders} icon={<TrendingUp />} color="warning" />
+          <StatCard 
+            title="Pending Acquisitions" 
+            value={(stats.pendingOrders ?? 0).toLocaleString()} 
+            icon={<TrendingUp />} 
+            color="warning" 
+          />
         </Grid>
       </Grid>
 
@@ -73,8 +96,8 @@ export default function AdminDashboard() {
           <Paper sx={{ p: 3, height: 400 }}>
             <Typography variant="h6" gutterBottom>Sales Journey (Last 7 Days)</Typography>
             <LineChart
-              xAxis={[{ data: charts.sales.map((s: any) => s.day), scaleType: 'point' }]}
-              series={[{ data: charts.sales.map((s: any) => s.value), color: '#EA781E', area: true }]}
+              xAxis={[{ data: (charts.sales || []).map((s: any) => s.day), scaleType: 'point' }]}
+              series={[{ data: (charts.sales || []).map((s: any) => s.value || 0), color: '#EA781E', area: true }]}
               height={300}
             />
           </Paper>
@@ -83,8 +106,8 @@ export default function AdminDashboard() {
           <Paper sx={{ p: 3, height: 400 }}>
             <Typography variant="h6" gutterBottom>Collector Growth</Typography>
             <BarChart
-              xAxis={[{ scaleType: 'band', data: charts.users.map((u: any) => u.month) }]}
-              series={[{ data: charts.users.map((u: any) => u.count), color: '#ECC444' }]}
+              xAxis={[{ scaleType: 'band', data: (charts.users || []).map((u: any) => u.month) }]}
+              series={[{ data: (charts.users || []).map((u: any) => u.count || 0), color: '#ECC444' }]}
               height={300}
             />
           </Paper>

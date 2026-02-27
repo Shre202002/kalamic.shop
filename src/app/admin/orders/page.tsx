@@ -58,7 +58,7 @@ export default function OrdersManagement() {
       field: 'totalAmount', 
       headerName: 'Amount', 
       width: 120,
-      renderCell: (params) => `₹${params.value.toLocaleString()}`
+      renderCell: (params) => `₹${(params.value ?? 0).toLocaleString()}`
     },
     { 
       field: 'orderStatus', 
@@ -66,7 +66,7 @@ export default function OrdersManagement() {
       width: 150,
       renderCell: (params) => (
         <Chip 
-          label={params.value} 
+          label={params.value || 'pending'} 
           size="small" 
           color={params.value === 'delivered' ? 'success' : 'warning'} 
           sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.65rem' }}
@@ -77,7 +77,7 @@ export default function OrdersManagement() {
       field: 'createdAt', 
       headerName: 'Date', 
       width: 180,
-      renderCell: (params) => dayjs(params.value).format('DD MMM YYYY, HH:mm')
+      renderCell: (params) => params.value ? dayjs(params.value).format('DD MMM YYYY, HH:mm') : 'N/A'
     },
     {
       field: 'actions',

@@ -130,7 +130,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
         <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-muted">
           <Image
             src={image}
-            alt={name}
+            alt={name || 'Ceramic Piece'}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, 33vw"
@@ -154,7 +154,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
 
       <CardContent className="p-5 flex-1 flex flex-col">
         <h3 className="text-lg font-bold text-primary leading-tight line-clamp-2 mb-1 group-hover:text-accent transition-colors duration-300">
-          {name}
+          {name || 'Handcrafted Piece'}
         </h3>
         {description && (
           <p className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed">
@@ -163,7 +163,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
         )}
         
         <div className="mt-auto flex items-baseline gap-2 mb-4">
-          <span className="text-xl font-extrabold text-primary">₹{price.toLocaleString()}</span>
+          <span className="text-xl font-extrabold text-primary">₹{(price ?? 0).toLocaleString()}</span>
           {originalPrice && (
             <span className="text-sm text-muted-foreground line-through opacity-50">₹{originalPrice.toLocaleString()}</span>
           )}

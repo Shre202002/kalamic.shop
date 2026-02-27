@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -353,7 +354,7 @@ export default function CheckoutPage() {
                           <p className="text-base font-black text-primary truncate">{item.name}</p>
                           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Qty: {item.quantity}</p>
                         </div>
-                        <p className="text-lg font-black text-primary">₹{(item.priceAtAddToCart * item.quantity).toLocaleString()}</p>
+                        <p className="text-lg font-black text-primary">₹{( (item.priceAtAddToCart || 0) * item.quantity).toLocaleString()}</p>
                       </div>
                     ))}
                   </div>
@@ -361,23 +362,23 @@ export default function CheckoutPage() {
                   <div className="space-y-4">
                     <div className="flex justify-between text-sm font-bold uppercase tracking-widest">
                       <span className="text-muted-foreground">Subtotal</span>
-                      <span className="text-primary">₹{subtotal.toLocaleString()}</span>
+                      <span className="text-primary">₹{(subtotal ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm font-bold uppercase tracking-widest">
                       <span className="text-muted-foreground">Shipping</span>
-                      <span className="text-accent">₹{shipping.toLocaleString()}</span>
+                      <span className="text-accent">₹{(shipping ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
                   <Separator className="opacity-30" />
                   <div className="flex justify-between items-end">
                     <span className="text-xl font-black text-primary uppercase tracking-tighter">Total</span>
                     <div className="text-right">
-                      <p className="text-4xl font-black text-primary tracking-tighter">₹{total.toLocaleString()}</p>
+                      <p className="text-4xl font-black text-primary tracking-tighter">₹{(total ?? 0).toLocaleString()}</p>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Inclusive of taxes</p>
                     </div>
                   </div>
                   <Button onClick={handlePlaceOrder} disabled={isProcessing} className="w-full h-20 rounded-[2rem] bg-primary text-white hover:bg-primary/90 text-2xl font-black shadow-2xl shadow-primary/20 transition-all active:scale-95 mt-6">
-                    {isProcessing ? <><Loader2 className="mr-3 h-8 w-8 animate-spin" /> Securing...</> : <><CheckCircle2 className="mr-3 h-8 w-8" /> Pay ₹{total.toLocaleString()}</>}
+                    {isProcessing ? <><Loader2 className="mr-3 h-8 w-8 animate-spin" /> Securing...</> : <><CheckCircle2 className="mr-3 h-8 w-8" /> Pay ₹{(total ?? 0).toLocaleString()}</>}
                   </Button>
                 </CardContent>
               </Card>
