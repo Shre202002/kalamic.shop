@@ -98,86 +98,40 @@ export default function LoginPage() {
     }
   };
 
+  /**
+   * Temporarily disabled - OTP Login Section
+   */
   const handleRequestEmailOtp = async () => {
-    if (!email) {
-      toast({ variant: "destructive", title: "Email Required", description: "Please enter your email." });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await sendOtp(email);
-      setOtpSent(true);
-      toast({ title: "Email OTP Sent", description: "Please check your inbox." });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Delivery Error", description: err.message });
-    } finally {
-      setIsLoading(false);
-    }
+    // Feature temporarily disabled
+    toast({ title: "Maintenance", description: "Email OTP login is temporarily offline." });
+    return;
   };
 
+  /**
+   * Temporarily disabled - OTP Login Section
+   */
   const handleVerifyEmailOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpCode || otpCode.length !== 6 || !email) return;
-
-    setIsLoading(true);
-    try {
-      const result = await verifyOtp(email, otpCode);
-      if (result.success) {
-        // Deterministic shadow password for OTP bridge
-        const shadowPassword = `KAL_OTP_SEC_${email.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-        
-        try {
-          await initiateEmailSignIn(auth, email, shadowPassword);
-        } catch (signInErr: any) {
-          // If user doesn't exist, create them
-          if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
-             await initiateEmailSignUp(auth, email, shadowPassword);
-          } else {
-             throw signInErr;
-          }
-        }
-      } else {
-        setIsLoading(false);
-        toast({ variant: "destructive", title: "Verification Failed", description: result.message });
-      }
-    } catch (err: any) {
-      setIsLoading(false);
-      if (err.message && !err.code) {
-        toast({ variant: "destructive", title: "Error", description: err.message });
-      }
-    }
+    // Feature temporarily disabled
+    return;
   };
 
+  /**
+   * Temporarily disabled - OTP Login Section
+   */
   const handleRequestPhoneOtp = async () => {
-    if (!phoneNumber) {
-      toast({ variant: "destructive", title: "Number Required", description: "Please enter your phone number." });
-      return;
-    }
-
-    if (!recaptchaVerifier) {
-      toast({ variant: "destructive", title: "Security Error", description: "reCAPTCHA is still initializing. Please wait." });
-      return;
-    }
-
-    setIsLoading(true);
-    const success = await initiatePhoneSignIn(auth, phoneNumber, recaptchaVerifier);
-    if (success) {
-      setOtpSent(true);
-      toast({ title: "SMS Sent", description: "A verification code has been sent to your phone." });
-    }
-    setIsLoading(false);
+    // Feature temporarily disabled
+    toast({ title: "Maintenance", description: "Phone OTP login is temporarily offline." });
+    return;
   };
 
+  /**
+   * Temporarily disabled - OTP Login Section
+   */
   const handleVerifyPhoneOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpCode || otpCode.length !== 6) return;
-
-    setIsLoading(true);
-    const success = await confirmPhoneCode(otpCode);
-    if (!success) {
-      setIsLoading(false);
-    }
+    // Feature temporarily disabled
+    return;
   };
 
   return (
@@ -205,19 +159,23 @@ export default function LoginPage() {
             <Tabs value={authMethod} onValueChange={(v) => setAuthMethod(v as any)} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/20 p-1 rounded-xl">
                 <TabsTrigger value="password" disabled={isLoading} className="rounded-lg font-bold text-xs">Password</TabsTrigger>
+                
+                {/* Email OTP - Temporarily disabled */}
                 <TabsTrigger 
                   value="email-otp" 
-                  disabled={isLoading || !isLogin} 
-                  className="rounded-lg font-bold text-xs"
+                  disabled={true} 
+                  className="rounded-lg font-bold text-xs opacity-50 cursor-not-allowed"
                 >
-                  Email
+                  Email (Offline)
                 </TabsTrigger>
+
+                {/* Phone OTP - Temporarily disabled */}
                 <TabsTrigger 
                   value="phone" 
-                  disabled={isLoading || !isLogin} 
-                  className="rounded-lg font-bold text-xs"
+                  disabled={true} 
+                  className="rounded-lg font-bold text-xs opacity-50 cursor-not-allowed"
                 >
-                  Phone
+                  Phone (Offline)
                 </TabsTrigger>
               </TabsList>
 
@@ -260,119 +218,18 @@ export default function LoginPage() {
                 </form>
               </TabsContent>
 
+              {/* Temporarily disabled Email OTP Content */}
               <TabsContent value="email-otp">
-                {!otpSent ? (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="otp-email" className="ml-1">Email Address</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                        <Input 
-                          id="otp-email" 
-                          type="email" 
-                          placeholder="artisan@example.com" 
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required 
-                          className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
-                        />
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={handleRequestEmailOtp} 
-                      className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20" 
-                      disabled={isLoading}
-                    >
-                      {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                      Send Email Code
-                    </Button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleVerifyEmailOtp} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="otp" className="ml-1">Enter 6-Digit Code</Label>
-                      <div className="relative">
-                        <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                        <Input 
-                          id="otp" 
-                          type="text" 
-                          maxLength={6}
-                          placeholder="000000" 
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value)}
-                          required 
-                          className="pl-14 h-14 text-center text-2xl tracking-[0.5em] font-black rounded-xl"
-                        />
-                      </div>
-                      <p className="text-xs text-center text-muted-foreground">Sent to {email}</p>
-                    </div>
-                    <Button type="submit" className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20" disabled={isLoading}>
-                      {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                      Verify & Continue
-                    </Button>
-                    <Button variant="ghost" onClick={() => setOtpSent(false)} className="w-full" disabled={isLoading}>
-                      Resend Code
-                    </Button>
-                  </form>
-                )}
+                <div className="p-4 text-center text-muted-foreground text-sm">
+                  Email verification login is currently undergoing maintenance.
+                </div>
               </TabsContent>
 
+              {/* Temporarily disabled Phone OTP Content */}
               <TabsContent value="phone">
-                {!otpSent ? (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phoneNumber" className="ml-1">Phone Number (with +)</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                        <Input 
-                          id="phoneNumber" 
-                          type="tel" 
-                          placeholder="+919876543210" 
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          required 
-                          className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground italic">Must start with + country code</p>
-                    </div>
-                    <Button 
-                      onClick={handleRequestPhoneOtp} 
-                      className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20" 
-                      disabled={isLoading}
-                    >
-                      {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                      Send SMS Code
-                    </Button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleVerifyPhoneOtp} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone-otp" className="ml-1">Enter 6-Digit Code</Label>
-                      <div className="relative">
-                        <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                        <Input 
-                          id="phone-otp" 
-                          type="text" 
-                          maxLength={6}
-                          placeholder="000000" 
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value)}
-                          required 
-                          className="pl-14 h-14 text-center text-2xl tracking-[0.5em] font-black rounded-xl"
-                        />
-                      </div>
-                      <p className="text-xs text-center text-muted-foreground">Sent to {phoneNumber}</p>
-                    </div>
-                    <Button type="submit" className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20" disabled={isLoading}>
-                      {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                      Verify & Continue
-                    </Button>
-                    <Button variant="ghost" onClick={() => setOtpSent(false)} className="w-full" disabled={isLoading}>
-                      Resend Code
-                    </Button>
-                  </form>
-                )}
+                <div className="p-4 text-center text-muted-foreground text-sm">
+                  Phone verification login is currently undergoing maintenance.
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>
