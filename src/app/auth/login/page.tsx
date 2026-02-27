@@ -5,17 +5,17 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useUser, errorEmitter } from '@/firebase';
 import { initiateEmailSignIn, initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { sendOtp, verifyOtp } from '@/lib/actions/otp-actions';
-import { verifyUserEmail, getProfile } from '@/lib/actions/user-actions';
+import { verifyUserEmail } from '@/lib/actions/user-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from ' @/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Lock, ShieldCheck, Key, AlertCircle, LogOut } from 'lucide-react';
+import { Loader2, Mail, Lock, ShieldCheck, Key } from 'lucide-react';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,40 +25,18 @@ export default function LoginPage() {
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDbVerified, setIsDbVerified] = useState<boolean | null>(null);
-  const [wasOtpValidated, setWasOtpValidated] = useState(false);
   
   const auth = useAuth();
   const { user } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
+  // Redirect to profile as soon as a Firebase user exists
   useEffect(() => {
-    async function checkVerification() {
-      if (user) {
-        const profile = await getProfile(user.uid);
-        let verified = profile?.emailVerified || false;
-
-        // If they just logged in via OTP, auto-verify them in DB if not already done
-        if (wasOtpValidated && !verified) {
-          try {
-            await verifyUserEmail(user.uid, user.email || email);
-            verified = true;
-          } catch (e) {
-            console.error("Auto-verification failed after OTP login", e);
-          }
-        }
-
-        setIsDbVerified(verified);
-        if (verified) {
-          router.push('/profile');
-        }
-      } else {
-        setIsDbVerified(null);
-      }
+    if (user) {
+      router.push('/profile');
     }
-    checkVerification();
-  }, [user, router, wasOtpValidated, email]);
+  }, [user, router]);
 
   useEffect(() => {
     const handleLoginError = (err: { code: string; message: string }) => {
@@ -88,7 +66,6 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email || !password) return;
     setIsLoading(true);
-    setWasOtpValidated(false); // Reset OTP flag
     if (isLogin) {
       initiateEmailSignIn(auth, email, password);
     } else {
@@ -97,15 +74,14 @@ export default function LoginPage() {
   };
 
   const handleRequestOtp = async () => {
-    const targetEmail = email || user?.email;
-    if (!targetEmail) {
+    if (!email) {
       toast({ variant: "destructive", title: "Email Required", description: "Please enter your email to receive an OTP." });
       return;
     }
 
     setIsLoading(true);
     try {
-      await sendOtp(targetEmail);
+      await sendOtp(email);
       setOtpSent(true);
       toast({ title: "OTP Sent", description: "Please check your inbox for the 6-digit code." });
     } catch (err: any) {
@@ -117,24 +93,15 @@ export default function LoginPage() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetEmail = email || user?.email;
-    if (!otpCode || otpCode.length !== 6 || !targetEmail) return;
+    if (!otpCode || otpCode.length !== 6 || !email) return;
 
     setIsLoading(true);
     try {
-      const result = await verifyOtp(targetEmail, otpCode);
+      const result = await verifyOtp(email, otpCode);
       if (result.success) {
-        setWasOtpValidated(true);
-        if (user) {
-          await verifyUserEmail(user.uid, targetEmail);
-          setIsDbVerified(true);
-          toast({ title: "Email Verified", description: "Welcome to the Kalamic collection!" });
-          router.push('/profile');
-        } else {
-          // Direct OTP Login flow using a secure deterministic password
-          const defaultPassword = `OTP_SECURE_${targetEmail.split('@')[0]}_KALAMIC`;
-          initiateEmailSignIn(auth, targetEmail, defaultPassword);
-        }
+        // Direct OTP Login flow using a secure deterministic password
+        const defaultPassword = `OTP_SECURE_${email.split('@')[0]}_KALAMIC`;
+        initiateEmailSignIn(auth, email, defaultPassword);
       } else {
         setIsLoading(false);
         toast({ variant: "destructive", title: "Verification Failed", description: result.message });
@@ -144,89 +111,6 @@ export default function LoginPage() {
       toast({ variant: "destructive", title: "Error", description: err.message });
     }
   };
-
-  const handleSignOut = () => {
-    auth.signOut();
-    setOtpSent(false);
-    setEmail('');
-    setPassword('');
-    setOtpCode('');
-    setWasOtpValidated(false);
-  };
-
-  if (user && isDbVerified === false) {
-    return (
-      <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center p-4 py-12">
-          <Card className="w-full max-w-md shadow-2xl border-none rounded-[2.5rem] overflow-hidden bg-white">
-            <CardHeader className="space-y-2 p-8 text-center bg-accent/5">
-              <div className="mx-auto h-16 w-16 rounded-3xl bg-accent/10 flex items-center justify-center text-accent mb-2">
-                <Mail className="h-8 w-8" />
-              </div>
-              <CardTitle className="text-3xl font-black text-primary">Verify Your Email</CardTitle>
-              <CardDescription className="text-sm font-medium">
-                Enter the 6-digit code sent to <span className="font-bold text-primary">{user.email}</span> to continue your artisan journey.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-8 space-y-6">
-              {!otpSent ? (
-                <div className="space-y-4">
-                  <div className="bg-muted/10 p-4 rounded-2xl flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      OTP verification ensures the security of your artisan acquisitions and delivery profile.
-                    </p>
-                  </div>
-                  <Button 
-                    onClick={handleRequestOtp} 
-                    className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Key className="mr-2 h-5 w-5" />}
-                    Send Verification OTP
-                  </Button>
-                </div>
-              ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="verify-otp">Enter 6-Digit Code</Label>
-                    <Input 
-                      id="verify-otp" 
-                      type="text" 
-                      maxLength={6}
-                      placeholder="000000" 
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      required 
-                      className="h-14 text-center text-2xl tracking-[0.5em] font-black rounded-xl"
-                    />
-                  </div>
-                  <Button type="submit" className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Start Exploring"}
-                  </Button>
-                  <Button variant="ghost" onClick={() => setOtpSent(false)} className="w-full text-xs" disabled={isLoading}>
-                    Resend Code
-                  </Button>
-                </form>
-              )}
-            </CardContent>
-            <CardFooter className="p-8 pt-0 flex flex-col gap-4">
-              <Separator className="opacity-50" />
-              <Button 
-                variant="ghost" 
-                className="w-full text-destructive font-bold hover:bg-destructive/5" 
-                onClick={handleSignOut}
-              >
-                <LogOut className="mr-2 h-4 w-4" /> Use a Different Account
-              </Button>
-            </CardFooter>
-          </Card>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">

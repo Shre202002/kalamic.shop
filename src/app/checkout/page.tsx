@@ -44,18 +44,22 @@ export default function CheckoutPage() {
     paymentMethod: 'card'
   });
 
-  // Strict verification check (OTP based via DB)
+  // Strict profile and verification enforcement
   useEffect(() => {
     async function checkVerify() {
       if (!isUserLoading && user) {
         const profile = await getProfile(user.uid);
-        if (!profile || !profile.emailVerified) {
+        
+        const isComplete = profile?.firstName && profile?.lastName && profile?.phone && profile?.address && profile?.city && profile?.pincode;
+        const isVerified = profile?.emailVerified;
+
+        if (!isVerified || !isComplete) {
           toast({
             variant: "destructive",
-            title: "Verification Required",
-            description: "Please verify your email via OTP before proceeding to checkout.",
+            title: "Collector Profile Incomplete",
+            description: "Please verify your email and complete your delivery details in the workspace first.",
           });
-          router.push('/auth/login');
+          router.push('/profile');
         }
       } else if (!isUserLoading && !user) {
         router.push('/auth/login');
@@ -71,42 +75,31 @@ export default function CheckoutPage() {
 
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
-  // Profile fetching for auto-fill
+  // Auto-fill from DB
   useEffect(() => {
     async function loadUserData() {
       if (!user) return;
       try {
         const profile = await getProfile(user.uid);
-
-        if (!profile || !profile.firstName || !profile.lastName || !profile.phone || !profile.address) {
-           toast({
-             variant: "destructive",
-             title: "Profile Incomplete",
-             description: "Please complete your delivery profile to proceed with checkout.",
-           });
-           router.push('/profile');
-           return;
-        }
-
         if (profile) {
           setFormData(prev => ({
             ...prev,
             fullName: `${profile.firstName} ${profile.lastName}`.trim(),
             email: user.email || '',
-            phone: profile.phone,
-            address: profile.address,
+            phone: profile.phone || '',
+            address: profile.address || '',
             landmark: profile.landmark || '',
-            city: profile.city,
-            state: profile.state,
-            zip: profile.pincode,
+            city: profile.city || '',
+            state: profile.state || '',
+            zip: profile.pincode || '',
           }));
         }
       } catch (err) {
-        console.error("Error fetching user data for checkout:", err);
+        console.error("Error fetching auto-fill data:", err);
       }
     }
     loadUserData();
-  }, [user, router, toast]);
+  }, [user]);
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
   const shipping = cartItems && cartItems.length > 0 ? 150 : 0;
@@ -190,23 +183,6 @@ export default function CheckoutPage() {
         <Navbar />
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!user || !cartItems?.length) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <ShoppingBag className="h-16 w-16 text-muted-foreground opacity-20 mb-4" />
-          <h1 className="text-2xl font-bold text-primary">Your bag is empty</h1>
-          <p className="text-muted-foreground mb-8">Add some artisan treasures to your bag before checking out.</p>
-          <Button asChild className="rounded-xl h-12 px-8">
-            <Link href="/products">Browse Collection</Link>
-          </Button>
         </main>
         <Footer />
       </div>
@@ -345,7 +321,7 @@ export default function CheckoutPage() {
                 </CardHeader>
                 <CardContent className="p-8 pt-0 space-y-6">
                   <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
-                    {cartItems.map((item) => (
+                    {cartItems?.map((item) => (
                       <div key={item.id} className="flex gap-4 items-center">
                         <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-muted flex-shrink-0">
                           <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
