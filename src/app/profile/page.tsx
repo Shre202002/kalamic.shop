@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -45,7 +44,6 @@ export default function ProfilePage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   
-  // Email verification state
   const [emailOtpCode, setEmailOtpCode] = useState('');
   const [isEmailOtpSent, setIsEmailOtpSent] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
@@ -106,7 +104,6 @@ export default function ProfilePage() {
     loadData();
   }, [user]);
 
-  // Handle Email Verification
   const handleSendEmailOtp = async () => {
     if (!user?.email) return;
     setIsVerifyingEmail(true);
@@ -161,9 +158,8 @@ export default function ProfilePage() {
     }
   };
 
-  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.state && formData.city && formData.pincode && formData.landmark);
+  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.pincode);
   const isEmailVerified = profile?.emailVerified;
-  // Phone verification is now optional for "Fully Verified" status
   const isFullyVerified = isProfileComplete && isEmailVerified;
 
   const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : 2024;
@@ -205,7 +201,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {(!isFullyVerified) && (
+          {!isFullyVerified && (
             <Card className="bg-destructive/5 border-destructive/30 border-2 rounded-[2.5rem] overflow-hidden shadow-xl animate-in zoom-in-95 duration-500">
               <CardContent className="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8">
                 <div className="h-20 w-20 rounded-[2rem] bg-destructive/10 flex items-center justify-center text-destructive flex-shrink-0 border border-destructive/20 shadow-inner">
@@ -232,7 +228,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <CardTitle className="text-3xl font-black text-primary">Collector Profile</CardTitle>
-                      <CardDescription className="text-base">Enter the credentials we use for artisan certificates and delivery.</CardDescription>
+                      <CardDescription className="text-base">Enter the credentials we use for delivery.</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -257,39 +253,35 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone *</Label>
-                          <div className="space-y-3">
-                            <div className="relative">
-                              <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
-                              <Input required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} placeholder="+91 XXXXX XXXXX" className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
-                            </div>
+                          <div className="relative">
+                            <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
+                            <Input required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} placeholder="+91 XXXXX XXXXX" className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                           </div>
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Authenticated Email</Label>
-                          <div className="space-y-3">
-                            <div className="relative">
-                              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
-                              <Input disabled value={user?.email || ''} className="pl-14 rounded-2xl h-14 border-muted/30 bg-muted/20 text-lg font-medium pr-24" />
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
-                                {isEmailVerified ? (
-                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                ) : (
-                                  <Button type="button" size="sm" variant="ghost" className="text-[10px] font-bold text-accent" onClick={handleSendEmailOtp}>Verify</Button>
-                                )}
-                              </div>
+                          <div className="relative">
+                            <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
+                            <Input disabled value={user?.email || ''} className="pl-14 rounded-2xl h-14 border-muted/30 bg-muted/20 text-lg font-medium pr-24" />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              {isEmailVerified ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <Button type="button" size="sm" variant="ghost" className="text-[10px] font-bold text-accent" onClick={handleSendEmailOtp}>Verify</Button>
+                              )}
                             </div>
-                            {!isEmailVerified && isEmailOtpSent && (
-                              <div className="flex items-center gap-2 animate-in slide-in-from-top-2 bg-accent/5 p-3 rounded-2xl border border-accent/20">
-                                <div className="relative flex-1">
-                                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-accent/50 z-10" />
-                                  <Input placeholder="6-digit OTP" maxLength={6} value={emailOtpCode} onChange={(e) => setEmailOtpCode(e.target.value)} className="pl-14 h-10 rounded-xl font-bold tracking-[0.2em] text-center" />
-                                </div>
-                                <Button type="button" size="sm" className="h-10 rounded-xl px-6" onClick={handleVerifyEmailOtp} disabled={isVerifyingEmail}>
-                                  {isVerifyingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
-                                </Button>
-                              </div>
-                            )}
                           </div>
+                          {!isEmailVerified && isEmailOtpSent && (
+                            <div className="flex items-center gap-2 mt-2 animate-in slide-in-from-top-2 bg-accent/5 p-3 rounded-2xl border border-accent/20">
+                              <div className="relative flex-1">
+                                <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-accent/50 z-10" />
+                                <Input placeholder="OTP" maxLength={6} value={emailOtpCode} onChange={(e) => setEmailOtpCode(e.target.value)} className="pl-14 h-10 rounded-xl font-bold text-center tracking-widest" />
+                              </div>
+                              <Button type="button" size="sm" onClick={handleVerifyEmailOtp} disabled={isVerifyingEmail}>
+                                {isVerifyingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm"}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -302,33 +294,23 @@ export default function ProfilePage() {
                         <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Street Address *</Label>
                         <div className="relative">
                           <Home className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
-                          <Input required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="House No, Street Name, Block" className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium pr-6" />
+                          <Input required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="House No, Street Name" className="pl-14 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City / Township *</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City *</Label>
                           <Input required value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} placeholder="Jaipur" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                         </div>
-                        <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">State / Region *</Label>
-                          <Input required value={formData.state} onChange={(e) => setFormData({...formData, state: e.target.value})} placeholder="Rajasthan" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Pincode *</Label>
                           <Input required value={formData.pincode} onChange={(e) => setFormData({...formData, pincode: e.target.value})} placeholder="302001" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
                         </div>
-                        <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Nearest Craft Landmark *</Label>
-                          <Input required value={formData.landmark} onChange={(e) => setFormData({...formData, landmark: e.target.value})} placeholder="e.g. Near City Palace" className="pl-6 rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-[#FAF4EB]/20 text-lg font-medium" />
-                        </div>
                       </div>
                     </div>
 
-                    <div className="flex justify-end pt-4">
-                      <Button type="submit" disabled={isUpdating} className="bg-primary text-white px-12 h-16 rounded-[1.5rem] text-lg font-black shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all active:scale-95">
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={isUpdating} className="bg-primary text-white px-12 h-16 rounded-[1.5rem] text-lg font-black shadow-2xl shadow-primary/20 transition-all active:scale-95">
                         {isUpdating ? <Loader2 className="mr-3 h-6 w-6 animate-spin" /> : null}
                         Save Artisan Settings
                       </Button>
@@ -350,51 +332,17 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-between p-5 rounded-3xl bg-[#FAF4EB]/50 border-2 border-primary/5">
                     <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Auth Status</span>
                     {isFullyVerified ? (
-                      <Badge className="bg-green-500 hover:bg-green-600 px-3 py-1 text-[10px] font-bold">VERIFIED</Badge>
+                      <Badge className="bg-green-500 px-3 py-1 text-[10px] font-bold">VERIFIED</Badge>
                     ) : (
                       <Badge variant="destructive" className="px-3 py-1 text-[10px] font-bold">PENDING</Badge>
                     )}
                   </div>
-                  <div className="flex items-center justify-between p-5 rounded-3xl bg-[#FAF4EB]/50 border-2 border-primary/5">
-                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loyalty Level</span>
-                    <span className="text-sm font-black text-primary italic">Silver Artisan</span>
-                  </div>
                 </div>
                 <Separator className="my-8 opacity-50" />
-                <Button variant="ghost" className="w-full h-16 rounded-[1.5rem] text-muted-foreground hover:text-destructive hover:bg-destructive/5 border-2 border-dashed border-muted transition-all font-black text-base group" onClick={() => auth.signOut()}>
-                  <LogOut className="mr-3 h-5 w-5 group-hover:translate-x-1 transition-transform" /> Sign Out from Studio
+                <Button variant="ghost" className="w-full h-16 rounded-[1.5rem] text-muted-foreground hover:text-destructive hover:bg-destructive/5 border-2 border-dashed border-muted font-black" onClick={() => auth.signOut()}>
+                  <LogOut className="mr-3 h-5 w-5" /> Sign Out from Studio
                 </Button>
               </Card>
-
-              <div className="grid grid-cols-1 gap-6">
-                 <Link href="/orders" className="group">
-                    <Card className="bg-primary text-white rounded-[2.5rem] p-8 hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
-                      <div className="flex justify-between items-center mb-6 relative z-10">
-                        <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm">
-                          <Package className="h-6 w-6" />
-                        </div>
-                        <span className="text-4xl font-black tracking-tighter">{orders.length}</span>
-                      </div>
-                      <p className="font-black text-xl relative z-10">Artisan Acquisitions</p>
-                      <p className="text-xs opacity-60 mt-1 uppercase tracking-widest">Track your orders</p>
-                    </Card>
-                 </Link>
-                 
-                 <Link href="/wishlist" className="group">
-                    <Card className="bg-accent text-accent-foreground rounded-[2.5rem] p-8 hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
-                      <div className="absolute bottom-0 right-0 w-32 h-32 bg-black/5 rounded-full -mr-16 -mb-16 group-hover:scale-150 transition-transform duration-700" />
-                      <div className="flex justify-between items-center mb-6 relative z-10">
-                        <div className="h-12 w-12 rounded-2xl bg-black/5 flex items-center justify-center backdrop-blur-sm">
-                          <Heart className="h-6 w-6" />
-                        </div>
-                        <span className="text-4xl font-black tracking-tighter">{wishlistCount}</span>
-                      </div>
-                      <p className="font-black text-xl relative z-10">Saved Treasures</p>
-                      <p className="text-[10px] opacity-60 mt-1 uppercase tracking-widest">Your curated wishlist</p>
-                    </Card>
-                 </Link>
-              </div>
             </div>
           </div>
         </div>

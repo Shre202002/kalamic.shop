@@ -54,20 +54,17 @@ export default function CheckoutPage() {
     paymentMethod: 'card'
   });
 
-  // Verification of profile status
   useEffect(() => {
     async function checkVerify() {
       if (!isUserLoading && user) {
         const profile = await getProfile(user.uid);
-        
         const isComplete = profile?.firstName && profile?.lastName && profile?.phone && profile?.address && profile?.city && profile?.pincode;
-        const isVerified = profile?.emailVerified;
-
-        if (!isVerified || !isComplete) {
+        
+        if (!isComplete) {
           toast({
             variant: "destructive",
             title: "Collector Profile Incomplete",
-            description: "Please verify your email and complete your delivery details in your workspace first.",
+            description: "Please complete your delivery details in your workspace first.",
           });
           router.push('/profile');
         }
@@ -85,7 +82,6 @@ export default function CheckoutPage() {
 
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
-  // Auto-fill from Profile
   useEffect(() => {
     async function loadUserData() {
       if (!user) return;
@@ -123,7 +119,6 @@ export default function CheckoutPage() {
     if (!user || !firestore || !cartItems) return;
     
     const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
-    
     await updateDoc(orderRef, {
       orderStatus: 'placed',
       paymentId: paymentId,
@@ -156,7 +151,7 @@ export default function CheckoutPage() {
       const orderId = `KAL-${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
       const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
 
-      const orderData = {
+      await setDoc(orderRef, {
         id: orderId,
         userId: user.uid,
         orderDate: new Date().toISOString(),
@@ -167,9 +162,7 @@ export default function CheckoutPage() {
         shippingDetails: { ...formData },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      };
-
-      await setDoc(orderRef, orderData);
+      });
 
       const itemPromises = cartItems.map(async (item) => {
         const orderItemRef = doc(firestore, 'users', user.uid, 'orders', orderId, 'items', item.id);
@@ -192,28 +185,22 @@ export default function CheckoutPage() {
         customerDetails: {
           customerId: user.uid,
           customerPhone: formData.phone.replace(/\D/g, '').slice(-10),
-          customerEmail: user.email || 'guest@kalamic.shop',
+          customerEmail: user.email || 'collector@kalamic.shop',
           customerName: formData.fullName,
         }
       });
 
       if (result.isMock) {
-        toast({
-          title: "Mock Mode Active",
-          description: "No real transaction will occur. Simulating successful acquisition...",
-        });
-        
+        toast({ title: "Mock Mode Active", description: "Simulating successful artisan transaction..." });
         setTimeout(async () => {
           const verification = await verifyCashfreePayment(orderId);
-          if (verification.success) {
-            await finalizeOrder(orderId, verification.paymentId);
-          }
+          if (verification.success) await finalizeOrder(orderId, verification.paymentId);
         }, 2000);
         return;
       }
 
       if (!cashfreeLoaded) {
-        toast({ variant: "destructive", title: "System Error", description: "Payment SDK failed to load. Please refresh." });
+        toast({ variant: "destructive", title: "System Error", description: "Payment SDK failed to load." });
         setIsProcessing(false);
         return;
       }
@@ -231,32 +218,22 @@ export default function CheckoutPage() {
           setIsProcessing(false);
           return;
         }
-
-        if (sdkResult.redirect) return;
-
         if (sdkResult.paymentDetails) {
           setIsProcessing(true);
           const verification = await verifyCashfreePayment(orderId);
-          
           if (verification.success) {
             await finalizeOrder(orderId, verification.paymentId);
           } else {
-            toast({ 
-              variant: "destructive", 
-              title: "Verification Pending", 
-              description: "We are waiting for final confirmation from the payment gateway." 
-            });
             router.push('/orders');
           }
         }
       });
 
     } catch (error: any) {
-      console.error("Payment initiation failed:", error);
       toast({
         variant: "destructive",
         title: "Secure Checkout Failed",
-        description: error.message || "Encountered an error connecting to our payment partner.",
+        description: error.message || "Error connecting to our payment partner.",
       });
       setIsProcessing(false);
     }
@@ -274,10 +251,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
       <Navbar />
-      <Script 
-        src="https://sdk.cashfree.com/js/v3/cashfree.js" 
-        onLoad={() => setCashfreeLoaded(true)}
-      />
+      <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" onLoad={() => setCashfreeLoaded(true)} />
       
       <main className="flex-1 py-8 md:py-16">
         <div className="container mx-auto px-4 max-w-6xl">
@@ -309,56 +283,25 @@ export default function CheckoutPage() {
                 <CardContent className="p-10 pt-4 space-y-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Name</Label>
-                    <Input 
-                      id="fullName" 
-                      name="fullName" 
-                      value={formData.fullName} 
-                      onChange={handleInputChange} 
-                      className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6"
-                    />
+                    <Input name="fullName" value={formData.fullName} onChange={handleInputChange} className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Street Address</Label>
-                    <Input 
-                      id="address" 
-                      name="address" 
-                      value={formData.address} 
-                      onChange={handleInputChange} 
-                      className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6"
-                    />
+                    <Input name="address" value={formData.address} onChange={handleInputChange} className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6" />
                   </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City</Label>
-                      <Input 
-                        id="city" 
-                        name="city" 
-                        value={formData.city} 
-                        onChange={handleInputChange} 
-                        className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6"
-                      />
+                      <Input name="city" value={formData.city} onChange={handleInputChange} className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">ZIP / Pincode</Label>
-                      <Input 
-                        id="zip" 
-                        name="zip" 
-                        value={formData.zip} 
-                        onChange={handleInputChange} 
-                        className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6"
-                      />
+                      <Input name="zip" value={formData.zip} onChange={handleInputChange} className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone (For SMS Tracking)</Label>
-                    <Input 
-                      id="phone" 
-                      name="phone" 
-                      placeholder="+91XXXXXXXXXX"
-                      value={formData.phone} 
-                      onChange={handleInputChange} 
-                      className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6"
-                    />
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone</Label>
+                    <Input name="phone" placeholder="+91XXXXXXXXXX" value={formData.phone} onChange={handleInputChange} className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6" />
                   </div>
                 </CardContent>
               </Card>
@@ -374,17 +317,10 @@ export default function CheckoutPage() {
                   <CardDescription className="text-base">Choose your method of acquisition.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-10 pt-4 space-y-8">
-                  <RadioGroup 
-                    defaultValue="card" 
-                    onValueChange={(v) => setFormData({...formData, paymentMethod: v})}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-6"
-                  >
+                  <RadioGroup defaultValue="card" onValueChange={(v) => setFormData({...formData, paymentMethod: v})} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <RadioGroupItem value="card" id="card" className="peer sr-only" />
-                      <Label
-                        htmlFor="card"
-                        className="flex flex-col items-center justify-center rounded-[2rem] border-2 border-muted bg-white p-8 hover:bg-primary/5 hover:border-primary/20 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary cursor-pointer transition-all h-full"
-                      >
+                      <Label htmlFor="card" className="flex flex-col items-center justify-center rounded-[2rem] border-2 border-muted bg-white p-8 hover:bg-primary/5 hover:border-primary/20 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary cursor-pointer transition-all h-full">
                         <CreditCard className="mb-4 h-8 w-8 text-primary" />
                         <span className="text-lg font-black text-primary">Secure Online</span>
                         <span className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest">Cards, UPI, Banking</span>
@@ -394,7 +330,7 @@ export default function CheckoutPage() {
                   <div className="p-6 bg-[#FAF4EB] rounded-[1.5rem] border border-dashed border-primary/20 flex gap-4 items-start">
                     <AlertTriangle className="h-6 w-6 text-accent flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-muted-foreground leading-relaxed italic">
-                      Note: You will be redirected to a secure Cashfree environment to complete your transaction. Your order will be confirmed once verification is received.
+                      Note: You will be redirected to a secure Cashfree environment to complete your transaction.
                     </p>
                   </div>
                 </CardContent>
@@ -415,53 +351,34 @@ export default function CheckoutPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-base font-black text-primary truncate">{item.name}</p>
-                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Quantity: {item.quantity}</p>
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Qty: {item.quantity}</p>
                         </div>
                         <p className="text-lg font-black text-primary">₹{(item.priceAtAddToCart * item.quantity).toLocaleString()}</p>
                       </div>
                     ))}
                   </div>
-
                   <Separator className="opacity-30" />
-
                   <div className="space-y-4">
                     <div className="flex justify-between text-sm font-bold uppercase tracking-widest">
                       <span className="text-muted-foreground">Subtotal</span>
                       <span className="text-primary">₹{subtotal.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm font-bold uppercase tracking-widest">
-                      <span className="text-muted-foreground">FragileCare™ Shipping</span>
+                      <span className="text-muted-foreground">Shipping</span>
                       <span className="text-accent">₹{shipping.toLocaleString()}</span>
                     </div>
                   </div>
-
                   <Separator className="opacity-30" />
-
                   <div className="flex justify-between items-end">
-                    <span className="text-xl font-black text-primary uppercase tracking-tighter">Total Amount</span>
+                    <span className="text-xl font-black text-primary uppercase tracking-tighter">Total</span>
                     <div className="text-right">
                       <p className="text-4xl font-black text-primary tracking-tighter">₹{total.toLocaleString()}</p>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Inclusive of taxes</p>
                     </div>
                   </div>
-
-                  <Button 
-                    onClick={handlePlaceOrder} 
-                    disabled={isProcessing}
-                    className="w-full h-20 rounded-[2rem] bg-primary text-white hover:bg-primary/90 text-2xl font-black shadow-2xl shadow-primary/20 transition-all active:scale-95 mt-6"
-                  >
-                    {isProcessing ? (
-                      <><Loader2 className="mr-3 h-8 w-8 animate-spin" /> Securing...</>
-                    ) : (
-                      <><CheckCircle2 className="mr-3 h-8 w-8" /> Pay ₹{total.toLocaleString()}</>
-                    )}
+                  <Button onClick={handlePlaceOrder} disabled={isProcessing} className="w-full h-20 rounded-[2rem] bg-primary text-white hover:bg-primary/90 text-2xl font-black shadow-2xl shadow-primary/20 transition-all active:scale-95 mt-6">
+                    {isProcessing ? <><Loader2 className="mr-3 h-8 w-8 animate-spin" /> Securing...</> : <><CheckCircle2 className="mr-3 h-8 w-8" /> Pay ₹{total.toLocaleString()}</>}
                   </Button>
-                  
-                  <div className="flex items-center justify-center gap-2 opacity-40">
-                    <div className="h-px bg-muted flex-1" />
-                    <p className="text-[8px] font-black uppercase tracking-[0.3em]">Verified Artisan Transaction</p>
-                    <div className="h-px bg-muted flex-1" />
-                  </div>
                 </CardContent>
               </Card>
             </div>
