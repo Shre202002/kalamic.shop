@@ -51,7 +51,7 @@ export async function getAdminDashboardStats() {
     WishlistItem.countDocuments()
   ]);
 
-  return {
+  const stats = {
     revenue: totalRevenue[0]?.total || 0,
     orders: totalOrders,
     users: totalUsers,
@@ -60,6 +60,8 @@ export async function getAdminDashboardStats() {
     wishlistActivity: wishlistStats,
     conversionRate: totalUsers > 0 ? ((totalOrders / totalUsers) * 100).toFixed(1) : 0
   };
+
+  return JSON.parse(JSON.stringify(stats));
 }
 
 /**
@@ -81,15 +83,20 @@ export async function getDashboardChartData() {
     { $group: { _id: "$category_id", count: { $sum: 1 } } }
   ]);
 
-  return {
+  const data = {
     sales: salesTrend.map(s => ({ day: s._id, value: s.amount })),
-    categories: categoryDistribution.map(c => ({ label: c._id || 'Uncategorized', value: c.count })),
+    categories: categoryDistribution.map(c => ({ 
+      label: c._id ? String(c._id) : 'Uncategorized', 
+      value: c.count 
+    })),
     users: [
       { month: 'Jan', count: 12 },
       { month: 'Feb', count: 34 },
       { month: 'Mar', count: 56 },
     ]
   };
+
+  return JSON.parse(JSON.stringify(data));
 }
 
 /**
