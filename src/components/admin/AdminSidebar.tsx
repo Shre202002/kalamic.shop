@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Drawer, 
   List, 
@@ -27,15 +27,17 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useUser, useAuth } from '@/firebase';
+import { getProfile } from '@/lib/actions/user-actions';
 
 const drawerWidth = 240;
 
 const MENU_ITEMS = [
-  { text: 'Overview', icon: <DashboardIcon />, href: '/admin/dashboard' },
-  { text: 'Orders', icon: <OrdersIcon />, href: '/admin/orders' },
-  { text: 'Collectors', icon: <UsersIcon />, href: '/admin/users' },
-  { text: 'Inventory', icon: <ProductsIcon />, href: '/admin/products' },
-  { text: 'Analytics', icon: <AnalyticsIcon />, href: '/admin/analytics' },
+  { text: 'Overview', icon: <DashboardIcon />, href: '/admin/dashboard', roles: ['super_admin', 'admin', 'support'] },
+  { text: 'Orders', icon: <OrdersIcon />, href: '/admin/orders', roles: ['super_admin', 'admin', 'support'] },
+  { text: 'Collectors', icon: <UsersIcon />, href: '/admin/users', roles: ['super_admin', 'admin'] },
+  { text: 'Inventory', icon: <ProductsIcon />, href: '/admin/products', roles: ['super_admin', 'admin'] },
+  { text: 'Analytics', icon: <AnalyticsIcon />, href: '/admin/analytics', roles: ['super_admin', 'admin'] },
 ];
 
 interface AdminSidebarProps {
@@ -47,6 +49,19 @@ export function AdminSidebar({ mobileOpen, handleDrawerToggle }: AdminSidebarPro
   const pathname = usePathname();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { user } = useUser();
+  const auth = useAuth();
+  const [role, setRole] = useState<string>('user');
+
+  useEffect(() => {
+    async function fetchRole() {
+      if (user) {
+        const profile = await getProfile(user.uid);
+        setRole(profile?.role || 'user');
+      }
+    }
+    fetchRole();
+  }, [user]);
 
   const drawerContent = (
     <>
@@ -57,7 +72,7 @@ export function AdminSidebar({ mobileOpen, handleDrawerToggle }: AdminSidebarPro
       </Toolbar>
       <Box sx={{ overflow: 'auto', mt: 2 }}>
         <List sx={{ px: 2 }}>
-          {MENU_ITEMS.map((item) => (
+          {MENU_ITEMS.filter(item => item.roles.includes(role)).map((item) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton 
                 component={Link} 
@@ -76,21 +91,29 @@ export function AdminSidebar({ mobileOpen, handleDrawerToggle }: AdminSidebarPro
             </ListItem>
           ))}
         </List>
+        
         <Divider sx={{ my: 2, mx: 2 }} />
+        
         <List sx={{ px: 2 }}>
+          {role === 'super_admin' && (
+            <ListItem disablePadding>
+              <ListItemButton 
+                component={Link} 
+                href="/admin/settings" 
+                selected={pathname === '/admin/settings'}
+                sx={{ borderRadius: 2 }}
+                onClick={isMobile ? handleDrawerToggle : undefined}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}><SettingsIcon /></ListItemIcon>
+                <ListItemText primary="Governance" primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }} />
+              </ListItemButton>
+            </ListItem>
+          )}
           <ListItem disablePadding>
             <ListItemButton 
-              component={Link} 
-              href="/admin/settings" 
-              sx={{ borderRadius: 2 }}
-              onClick={isMobile ? handleDrawerToggle : undefined}
+              onClick={() => auth.signOut()}
+              sx={{ borderRadius: 2, color: 'error.main' }}
             >
-              <ListItemIcon sx={{ minWidth: 40 }}><SettingsIcon /></ListItemIcon>
-              <ListItemText primary="Settings" primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }} />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding>
-            <ListItemButton sx={{ borderRadius: 2, color: 'error.main' }}>
               <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}><LogoutIcon /></ListItemIcon>
               <ListItemText primary="Logout" primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }} />
             </ListItemButton>
@@ -105,7 +128,6 @@ export function AdminSidebar({ mobileOpen, handleDrawerToggle }: AdminSidebarPro
       component="nav"
       sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
     >
-      {/* Mobile Drawer */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -119,7 +141,6 @@ export function AdminSidebar({ mobileOpen, handleDrawerToggle }: AdminSidebarPro
         {drawerContent}
       </Drawer>
 
-      {/* Desktop Drawer */}
       <Drawer
         variant="permanent"
         sx={{
