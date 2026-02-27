@@ -16,10 +16,13 @@ export async function getProfile(firebaseId: string) {
   await dbConnect();
   try {
     const user = await User.findOne({ firebaseId }).lean();
+    
+    // Auto-elevate the specific Super Admin email if it matches
     if (user && user.email === PERMANENT_SUPER_ADMIN && user.role !== 'super_admin') {
       await User.updateOne({ _id: user._id }, { role: 'super_admin' });
       user.role = 'super_admin';
     }
+    
     return user ? JSON.parse(JSON.stringify(user)) : null;
   } catch (error) {
     console.error("Error fetching profile:", error);
@@ -35,6 +38,8 @@ export async function getOrCreateProfile(firebaseId: string, email?: string | nu
   await dbConnect();
   try {
     const cleanEmail = email?.trim().toLowerCase();
+    
+    // Role determination: Hardcoded override for Super Admin
     const role = cleanEmail === PERMANENT_SUPER_ADMIN ? 'super_admin' : 'buyer';
     
     // Construct base update object
@@ -57,7 +62,7 @@ export async function getOrCreateProfile(firebaseId: string, email?: string | nu
       { new: true, upsert: true }
     ).lean();
     
-    // Safety check for role elevation on newly created profile
+    // Safety check for role elevation on newly created or existing profile
     if (user && user.email === PERMANENT_SUPER_ADMIN && user.role !== 'super_admin') {
       const elevated = await User.findOneAndUpdate(
         { firebaseId },
@@ -100,7 +105,7 @@ export async function updateProfile(firebaseId: string, data: any) {
   try {
     const user = await User.findOneAndUpdate(
       { firebaseId },
-      { $set: { ...data } },
+      { $set: { ...data, updatedAt: new Date() } },
       { new: true, upsert: true, runValidators: true }
     ).lean();
     return JSON.parse(JSON.stringify(user));

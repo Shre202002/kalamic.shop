@@ -32,8 +32,17 @@ export function Navbar() {
   useEffect(() => {
     async function fetchRole() {
       if (user) {
+        // Instant check for the Super Admin email before DB fetch
+        if (user.email === 'sriyanshgupta24@gmail.com') {
+          setUserRole('super_admin');
+        }
+        
         const profile = await getProfile(user.uid);
-        setUserRole(profile?.role || 'buyer');
+        if (profile) {
+          setUserRole(profile.role || 'buyer');
+        }
+      } else {
+        setUserRole('buyer');
       }
     }
     fetchRole();
@@ -58,6 +67,7 @@ export function Navbar() {
     auth.signOut();
   };
 
+  // DASHBOARD VISIBILITY: Only for super_admin, admin, and support
   const isAdmin = ['super_admin', 'admin', 'support'].includes(userRole);
 
   return (
@@ -173,19 +183,22 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
+                
+                {/* ADMIN PANEL: Visible to Super Admin, Admin, and Support */}
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator className="opacity-50" />
                     <DropdownMenuGroup>
                       <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-primary/5 focus:text-primary">
                         <Link href="/admin/dashboard" className="flex items-center w-full">
-                          <LayoutDashboard className="mr-3 h-4 w-4 opacity-70" />
-                          <span className="text-sm font-semibold">Admin Panel</span>
+                          <LayoutDashboard className="mr-3 h-4 w-4 opacity-70 text-accent" />
+                          <span className="text-sm font-bold text-accent">Admin Panel</span>
                         </Link>
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
                   </>
                 )}
+                
                 <DropdownMenuSeparator className="opacity-50" />
                 <DropdownMenuItem onClick={handleSignOut} className="rounded-xl cursor-pointer p-3 text-destructive focus:bg-destructive/10 focus:text-destructive font-bold">
                   <LogOut className="mr-3 h-4 w-4" /> Sign Out
