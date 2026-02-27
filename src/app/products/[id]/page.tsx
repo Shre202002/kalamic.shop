@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -30,7 +29,8 @@ import {
   ChevronRight,
   Package,
   MessageSquare,
-  Zap
+  Zap,
+  User as UserIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -57,14 +57,12 @@ export default function ProductDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   
-  // Analytics tracking (run once when product loads)
   useEffect(() => {
     if (product?._id) {
       trackProductAction(product._id, 'total_views');
     }
   }, [product?._id]);
 
-  // Firestore Wishlist State
   const wishlistDocQuery = useMemoFirebase(() => {
     const id = product?._id || product?.id;
     if (!firestore || !user || !id) return null;
@@ -74,7 +72,6 @@ export default function ProductDetailPage() {
   const { data: wishlistDoc } = useDoc(wishlistDocQuery);
   const isFavorited = !!wishlistDoc;
 
-  // Review Form State
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
@@ -117,14 +114,13 @@ export default function ProductDetailPage() {
       productVariantId: id,
       cartId: user.uid,
       name: product.name,
-      priceAtAddToCart: product.price,
+      priceAtAddToCart: product.price ?? 0,
       imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || `https://picsum.photos/seed/${id}/600/600`,
       quantity: 1,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     }, { merge: true });
 
-    // Track Analytics
     trackProductAction(id, 'cart_add_count');
 
     toast({
@@ -146,7 +142,7 @@ export default function ProductDetailPage() {
       productVariantId: id,
       cartId: user.uid,
       name: product.name,
-      priceAtAddToCart: product.price,
+      priceAtAddToCart: product.price ?? 0,
       imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || `https://picsum.photos/seed/${id}/600/600`,
       quantity: 1,
       createdAt: serverTimestamp(),
@@ -168,7 +164,6 @@ export default function ProductDetailPage() {
     try {
       if (isFavorited) {
         await deleteDoc(wishlistItemRef);
-        // Untrack Analytics
         untrackWishlistAction(productId);
         toast({
           title: "Removed from favorites",
@@ -181,12 +176,11 @@ export default function ProductDetailPage() {
           wishlistId: user.uid,
           slug: product.slug,
           name: product.name,
-          price: product.price,
+          price: product.price ?? 0,
           imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || `https://picsum.photos/seed/${productId}/600/600`,
           addedAt: new Date().toISOString()
         }, { merge: true });
 
-        // Track Analytics
         trackProductAction(productId, 'wishlist_count');
 
         toast({
@@ -211,16 +205,30 @@ export default function ProductDetailPage() {
     };
 
     try {
-      // Track Share Analytics
       trackProductAction(product._id, 'share_count');
 
       if (navigator.share) {
         await navigator.share(shareData);
+      } else if (navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          toast({
+            title: "Link Copied!",
+            description: "Product link copied to clipboard.",
+          });
+        } catch (clipboardErr) {
+          console.warn("Clipboard access denied:", clipboardErr);
+          toast({
+            variant: "destructive",
+            title: "Action Restricted",
+            description: "Browser policy blocked clipboard access. Please manually copy the URL.",
+          });
+        }
       } else {
-        await navigator.clipboard.writeText(window.location.href);
         toast({
-          title: "Link Copied!",
-          description: "Product link copied to clipboard.",
+          variant: "destructive",
+          title: "Share Unavailable",
+          description: "Sharing features are not supported by your current browser.",
         });
       }
     } catch (err) {
@@ -283,7 +291,6 @@ export default function ProductDetailPage() {
     );
   }
 
-  // Filter out empty URLs to prevent next/image errors
   const images = (product.images || [])
     .filter((img: any) => img.url && img.url.trim() !== "")
     .map((img: any) => img.url);
@@ -292,6 +299,9 @@ export default function ProductDetailPage() {
     images.push(`https://placehold.co/800x800?text=${encodeURIComponent(product.name)}`);
   }
     
+  const validSelectedImage = Math.min(selectedImage, images.length - 1);
+  const currentImageUrl = images[validSelectedImage] || images[0];
+
   const reviewCount = reviews.length;
   const averageRating = reviewCount > 0 
     ? parseFloat((reviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount).toFixed(1)) 
@@ -315,7 +325,7 @@ export default function ProductDetailPage() {
               <div className="lg:sticky lg:top-24">
                 <div className="relative aspect-square rounded-2xl md:rounded-3xl overflow-hidden bg-white shadow-lg border border-primary/5">
                   <Image 
-                    src={images[selectedImage % images.length]} 
+                    src={currentImageUrl} 
                     alt={product.name} 
                     fill 
                     className="object-cover animate-fade-in" 
@@ -331,7 +341,7 @@ export default function ProductDetailPage() {
                       <button 
                         key={i} 
                         onClick={() => setSelectedImage(i)} 
-                        className={`relative min-w-[80px] h-[80px] rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${selectedImage === i ? 'border-primary ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                        className={`relative min-w-[80px] h-[80px] rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${validSelectedImage === i ? 'border-primary ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
                       >
                         <Image src={img} alt={`${product.name} ${i + 1}`} fill className="object-cover" />
                       </button>
@@ -390,7 +400,7 @@ export default function ProductDetailPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className={`h-2.5 w-2.5 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-orange-500'}`} />
-                        <span className="text-sm font-bold text-primary">{product.stock > 0 ? 'Available Now' : 'Limited Edition'}</span>
+                        <span className="text-sm font-bold text-primary">{(product.stock ?? 0) > 0 ? 'Available Now' : 'Limited Edition'}</span>
                       </div>
                       <Badge variant="outline" className="text-[10px] font-bold border-accent text-accent">FAST SHIP</Badge>
                     </div>
@@ -581,7 +591,7 @@ export default function ProductDetailPage() {
                       id={related._id} 
                       slug={related.slug} 
                       name={related.name} 
-                      price={related.price} 
+                      price={related.price ?? 0} 
                       image={related.images?.find((img: any) => img.is_primary)?.url || related.images?.[0]?.url || 'https://placehold.co/200x200'} 
                       rating={related.averageRating || 4.8} 
                       tag={related.tags?.[0] || "Artisan"} 

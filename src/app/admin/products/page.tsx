@@ -11,7 +11,7 @@ import {
   Skeleton, 
   Button, 
   Avatar, 
-  Switch,
+  Switch, 
   alpha,
   useTheme,
   useMediaQuery,
@@ -97,7 +97,6 @@ export default function ProductsManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
   
-  // CRUD Dialog State
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -127,7 +126,27 @@ export default function ProductsManagement() {
 
   const handleOpenDialog = (product?: any) => {
     if (product) {
-      setEditingProduct({ ...product });
+      // Ensure nested objects exist to prevent map/access errors
+      const normalizedProduct = {
+        ...INITIAL_PRODUCT,
+        ...product,
+        images: product.images?.length ? product.images : INITIAL_PRODUCT.images,
+        specifications: product.specifications?.length ? product.specifications : INITIAL_PRODUCT.specifications,
+        shipping: {
+          ...INITIAL_PRODUCT.shipping,
+          ...(product.shipping || {}),
+          package_dimensions_cm: {
+            ...INITIAL_PRODUCT.shipping.package_dimensions_cm,
+            ...(product.shipping?.package_dimensions_cm || {})
+          }
+        },
+        seo: {
+          ...INITIAL_PRODUCT.seo,
+          ...(product.seo || {}),
+          meta_keywords: product.seo?.meta_keywords || []
+        }
+      };
+      setEditingProduct(normalizedProduct);
     } else {
       setEditingProduct({ ...INITIAL_PRODUCT, slug: `piece-${Date.now()}` });
     }
@@ -255,7 +274,7 @@ export default function ProductsManagement() {
         <Chip 
           label={params.value ?? 0} 
           size="small" 
-          color={params.value > 5 ? 'success' : 'warning'} 
+          color={(params.value ?? 0) > 5 ? 'success' : 'warning'} 
           variant={params.value === 0 ? 'filled' : 'outlined'}
           sx={{ fontWeight: 800, fontSize: '0.7rem', height: 24, borderRadius: '6px' }}
         />
@@ -392,7 +411,6 @@ export default function ProductsManagement() {
         />
       </Paper>
 
-      {/* CRUD DIALOG */}
       {editingProduct && (
         <Dialog 
           open={dialogOpen} 
@@ -440,21 +458,20 @@ export default function ProductsManagement() {
             </Box>
 
             <Box sx={{ p: 4, maxHeight: isMobile ? 'calc(100vh - 180px)' : 600, overflowY: 'auto' }}>
-              {/* Tab 0: General Info */}
               {activeTab === 0 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={8}>
                     <TextField 
                       fullWidth 
                       label="Piece Name" 
-                      value={editingProduct.name}
+                      value={editingProduct.name || ''}
                       onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
                       sx={{ mb: 3 }}
                     />
                     <TextField 
                       fullWidth 
                       label="URL Slug" 
-                      value={editingProduct.slug}
+                      value={editingProduct.slug || ''}
                       onChange={(e) => setEditingProduct({...editingProduct, slug: e.target.value})}
                       sx={{ mb: 3 }}
                     />
@@ -464,7 +481,7 @@ export default function ProductsManagement() {
                       rows={2} 
                       label="Short Hook" 
                       placeholder="Catchy 1-sentence description"
-                      value={editingProduct.short_description}
+                      value={editingProduct.short_description || ''}
                       onChange={(e) => setEditingProduct({...editingProduct, short_description: e.target.value})}
                       sx={{ mb: 3 }}
                     />
@@ -473,7 +490,7 @@ export default function ProductsManagement() {
                       multiline 
                       rows={4} 
                       label="Detailed Narrative" 
-                      value={editingProduct.description}
+                      value={editingProduct.description || ''}
                       onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})}
                     />
                   </Grid>
@@ -481,12 +498,12 @@ export default function ProductsManagement() {
                     <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: alpha(theme.palette.secondary.main, 0.02) }}>
                       <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 800 }}>Catalog Status</Typography>
                       <FormControlLabel
-                        control={<Switch checked={editingProduct.is_active} onChange={(e) => setEditingProduct({...editingProduct, is_active: e.target.checked})} />}
+                        control={<Switch checked={!!editingProduct.is_active} onChange={(e) => setEditingProduct({...editingProduct, is_active: e.target.checked})} />}
                         label="Visible in Shop"
                         sx={{ mb: 1, display: 'block' }}
                       />
                       <FormControlLabel
-                        control={<Switch checked={editingProduct.is_featured} onChange={(e) => setEditingProduct({...editingProduct, is_featured: e.target.checked})} />}
+                        control={<Switch checked={!!editingProduct.is_featured} onChange={(e) => setEditingProduct({...editingProduct, is_featured: e.target.checked})} />}
                         label="Featured in Spotlight"
                         sx={{ mb: 2, display: 'block' }}
                       />
@@ -494,8 +511,8 @@ export default function ProductsManagement() {
                         fullWidth 
                         type="number" 
                         label="Display Priority" 
-                        value={editingProduct.visibility_priority}
-                        onChange={(e) => setEditingProduct({...editingProduct, visibility_priority: parseInt(e.target.value)})}
+                        value={editingProduct.visibility_priority ?? 0}
+                        onChange={(e) => setEditingProduct({...editingProduct, visibility_priority: parseInt(e.target.value) || 0})}
                         helperText="Higher numbers appear first"
                       />
                     </Paper>
@@ -503,11 +520,10 @@ export default function ProductsManagement() {
                 </Grid>
               )}
 
-              {/* Tab 1: Media */}
               {activeTab === 1 && (
                 <Box>
                   <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 800 }}>Product Imagery</Typography>
-                  {editingProduct.images.map((img: any, idx: number) => (
+                  {(editingProduct.images || []).map((img: any, idx: number) => (
                     <Paper key={idx} variant="outlined" sx={{ p: 3, mb: 2, borderRadius: 3, position: 'relative' }}>
                       <Grid container spacing={2} alignItems="center">
                         <Grid item xs={12} md={8}>
@@ -515,9 +531,9 @@ export default function ProductsManagement() {
                             fullWidth 
                             label="Image URL" 
                             size="small" 
-                            value={img.url}
+                            value={img.url || ''}
                             onChange={(e) => {
-                              const newImgs = [...editingProduct.images];
+                              const newImgs = [...(editingProduct.images || [])];
                               newImgs[idx].url = e.target.value;
                               setEditingProduct({...editingProduct, images: newImgs});
                             }}
@@ -527,9 +543,9 @@ export default function ProductsManagement() {
                             fullWidth 
                             label="Alt Text" 
                             size="small" 
-                            value={img.alt}
+                            value={img.alt || ''}
                             onChange={(e) => {
-                              const newImgs = [...editingProduct.images];
+                              const newImgs = [...(editingProduct.images || [])];
                               newImgs[idx].alt = e.target.value;
                               setEditingProduct({...editingProduct, images: newImgs});
                             }}
@@ -537,13 +553,13 @@ export default function ProductsManagement() {
                         </Grid>
                         <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
                           <FormControlLabel
-                            control={<Checkbox checked={img.is_primary} onChange={(e) => {
-                              const newImgs = editingProduct.images.map((i: any, iidx: number) => ({ ...i, is_primary: iidx === idx }));
+                            control={<Checkbox checked={!!img.is_primary} onChange={(e) => {
+                              const newImgs = (editingProduct.images || []).map((i: any, iidx: number) => ({ ...i, is_primary: iidx === idx }));
                               setEditingProduct({...editingProduct, images: newImgs});
                             }} />}
                             label="Primary Image"
                           />
-                          {editingProduct.images.length > 1 && (
+                          {(editingProduct.images?.length > 1) && (
                             <Button color="error" size="small" onClick={() => {
                               const newImgs = editingProduct.images.filter((_: any, iidx: number) => iidx !== idx);
                               setEditingProduct({...editingProduct, images: newImgs});
@@ -553,13 +569,12 @@ export default function ProductsManagement() {
                       </Grid>
                     </Paper>
                   ))}
-                  <Button startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...editingProduct.images, { url: '', alt: '', is_primary: false }]})}>
+                  <Button startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...(editingProduct.images || []), { url: '', alt: '', is_primary: false }]})}>
                     Add Image Layer
                   </Button>
                 </Box>
               )}
 
-              {/* Tab 2: Pricing & Inventory */}
               {activeTab === 2 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
@@ -569,16 +584,16 @@ export default function ProductsManagement() {
                         fullWidth 
                         type="number" 
                         label="Selling Price (₹)" 
-                        value={editingProduct.price}
-                        onChange={(e) => setEditingProduct({...editingProduct, price: parseFloat(e.target.value)})}
+                        value={editingProduct.price ?? 0}
+                        onChange={(e) => setEditingProduct({...editingProduct, price: parseFloat(e.target.value) || 0})}
                         sx={{ mb: 3 }}
                       />
                       <TextField 
                         fullWidth 
                         type="number" 
                         label="Compare at Price (₹)" 
-                        value={editingProduct.compare_at_price}
-                        onChange={(e) => setEditingProduct({...editingProduct, compare_at_price: parseFloat(e.target.value)})}
+                        value={editingProduct.compare_at_price ?? 0}
+                        onChange={(e) => setEditingProduct({...editingProduct, compare_at_price: parseFloat(e.target.value) || 0})}
                       />
                     </Paper>
                   </Grid>
@@ -588,7 +603,7 @@ export default function ProductsManagement() {
                       <TextField 
                         fullWidth 
                         label="Artisan SKU" 
-                        value={editingProduct.sku}
+                        value={editingProduct.sku || ''}
                         onChange={(e) => setEditingProduct({...editingProduct, sku: e.target.value})}
                         sx={{ mb: 3 }}
                       />
@@ -596,25 +611,24 @@ export default function ProductsManagement() {
                         fullWidth 
                         type="number" 
                         label="Available Stock" 
-                        value={editingProduct.stock}
-                        onChange={(e) => setEditingProduct({...editingProduct, stock: parseInt(e.target.value)})}
+                        value={editingProduct.stock ?? 0}
+                        onChange={(e) => setEditingProduct({...editingProduct, stock: parseInt(e.target.value) || 0})}
                       />
                     </Paper>
                   </Grid>
                 </Grid>
               )}
 
-              {/* Tab 3: Specifications */}
               {activeTab === 3 && (
                 <Grid container spacing={2}>
-                  {editingProduct.specifications.map((spec: any, idx: number) => (
+                  {(editingProduct.specifications || []).map((spec: any, idx: number) => (
                     <Grid item xs={12} md={6} key={idx}>
                       <TextField 
                         fullWidth 
-                        label={spec.key} 
-                        value={spec.value}
+                        label={spec.key || `Spec ${idx+1}`} 
+                        value={spec.value || ''}
                         onChange={(e) => {
-                          const newSpecs = [...editingProduct.specifications];
+                          const newSpecs = [...(editingProduct.specifications || [])];
                           newSpecs[idx].value = e.target.value;
                           setEditingProduct({...editingProduct, specifications: newSpecs});
                         }}
@@ -624,7 +638,6 @@ export default function ProductsManagement() {
                 </Grid>
               )}
 
-              {/* Tab 4: Logistics */}
               {activeTab === 4 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={4}>
@@ -632,10 +645,10 @@ export default function ProductsManagement() {
                       fullWidth 
                       type="number" 
                       label="Weight (kg)" 
-                      value={editingProduct.shipping.weight_kg}
+                      value={editingProduct.shipping?.weight_kg ?? 0}
                       onChange={(e) => setEditingProduct({
                         ...editingProduct, 
-                        shipping: { ...editingProduct.shipping, weight_kg: parseFloat(e.target.value) }
+                        shipping: { ...editingProduct.shipping, weight_kg: parseFloat(e.target.value) || 0 }
                       })}
                     />
                   </Grid>
@@ -646,12 +659,15 @@ export default function ProductsManagement() {
                         type="number" 
                         label="L" 
                         size="small"
-                        value={editingProduct.shipping.package_dimensions_cm.length}
+                        value={editingProduct.shipping?.package_dimensions_cm?.length ?? 0}
                         onChange={(e) => setEditingProduct({
                           ...editingProduct,
                           shipping: { 
                             ...editingProduct.shipping, 
-                            package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, length: parseFloat(e.target.value) } 
+                            package_dimensions_cm: { 
+                              ...(editingProduct.shipping?.package_dimensions_cm || {}), 
+                              length: parseFloat(e.target.value) || 0 
+                            } 
                           }
                         })}
                       />
@@ -659,12 +675,15 @@ export default function ProductsManagement() {
                         type="number" 
                         label="W" 
                         size="small"
-                        value={editingProduct.shipping.package_dimensions_cm.width}
+                        value={editingProduct.shipping?.package_dimensions_cm?.width ?? 0}
                         onChange={(e) => setEditingProduct({
                           ...editingProduct,
                           shipping: { 
                             ...editingProduct.shipping, 
-                            package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, width: parseFloat(e.target.value) } 
+                            package_dimensions_cm: { 
+                              ...(editingProduct.shipping?.package_dimensions_cm || {}), 
+                              width: parseFloat(e.target.value) || 0 
+                            } 
                           }
                         })}
                       />
@@ -672,12 +691,15 @@ export default function ProductsManagement() {
                         type="number" 
                         label="H" 
                         size="small"
-                        value={editingProduct.shipping.package_dimensions_cm.height}
+                        value={editingProduct.shipping?.package_dimensions_cm?.height ?? 0}
                         onChange={(e) => setEditingProduct({
                           ...editingProduct,
                           shipping: { 
                             ...editingProduct.shipping, 
-                            package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, height: parseFloat(e.target.value) } 
+                            package_dimensions_cm: { 
+                              ...(editingProduct.shipping?.package_dimensions_cm || {}), 
+                              height: parseFloat(e.target.value) || 0 
+                            } 
                           }
                         })}
                       />
@@ -686,16 +708,15 @@ export default function ProductsManagement() {
                 </Grid>
               )}
 
-              {/* Tab 5: SEO */}
               {activeTab === 5 && (
                 <Box>
                   <TextField 
                     fullWidth 
                     label="Search Title" 
-                    value={editingProduct.seo.meta_title}
+                    value={editingProduct.seo?.meta_title || ''}
                     onChange={(e) => setEditingProduct({
                       ...editingProduct,
-                      seo: { ...editingProduct.seo, meta_title: e.target.value }
+                      seo: { ...(editingProduct.seo || {}), meta_title: e.target.value }
                     })}
                     sx={{ mb: 3 }}
                   />
@@ -704,20 +725,23 @@ export default function ProductsManagement() {
                     multiline 
                     rows={3} 
                     label="Search Description" 
-                    value={editingProduct.seo.meta_description}
+                    value={editingProduct.seo?.meta_description || ''}
                     onChange={(e) => setEditingProduct({
                       ...editingProduct,
-                      seo: { ...editingProduct.seo, meta_description: e.target.value }
+                      seo: { ...(editingProduct.seo || {}), meta_description: e.target.value }
                     })}
                     sx={{ mb: 3 }}
                   />
                   <TextField 
                     fullWidth 
                     label="Keywords (Comma separated)" 
-                    value={editingProduct.seo.meta_keywords.join(', ')}
+                    value={(editingProduct.seo?.meta_keywords || []).join(', ')}
                     onChange={(e) => setEditingProduct({
                       ...editingProduct,
-                      seo: { ...editingProduct.seo, meta_keywords: e.target.value.split(',').map(k => k.trim()) }
+                      seo: { 
+                        ...(editingProduct.seo || {}), 
+                        meta_keywords: e.target.value.split(',').map(k => k.trim()).filter(Boolean) 
+                      }
                     })}
                   />
                 </Box>
