@@ -8,6 +8,7 @@ import AdminLog from '@/lib/models/AdminLog';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { revalidatePath } from 'next/cache';
 import dayjs from 'dayjs';
+import { products as baselineProducts } from '@/data/product';
 
 /**
  * CORE PERMISSION ENGINE
@@ -15,6 +16,10 @@ import dayjs from 'dayjs';
 async function validateRole(adminId: string, allowedRoles: string[]) {
   await dbConnect();
   const user = await User.findOne({ firebaseId: adminId });
+  
+  // Permanent Super Admin Override for specific email
+  if (user?.email === 'sriyanhsgupta24@gmail.com') return user;
+
   if (!user || !allowedRoles.includes(user.role)) {
     throw new Error(`Unauthorized: Role '${user?.role || 'user'}' lacks permission.`);
   }
@@ -79,9 +84,14 @@ export async function removeAdminAccess(superAdminId: string, targetUserId: stri
  * PRODUCT ACTIONS
  */
 export async function getAdminProducts() {
-  await dbConnect();
-  const products = await Product.find({ is_deleted: { $ne: true } }).sort({ visibility_priority: -1, createdAt: -1 }).lean();
-  return JSON.parse(JSON.stringify(products));
+  try {
+    await dbConnect();
+    const products = await Product.find({ is_deleted: { $ne: true } }).sort({ visibility_priority: -1, createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(products));
+  } catch (error) {
+    console.error("[ADMIN] Failed to fetch products:", error);
+    return [];
+  }
 }
 
 export async function saveProduct(adminId: string, productData: any) {
@@ -89,21 +99,34 @@ export async function saveProduct(adminId: string, productData: any) {
   await dbConnect();
   
   const isNew = !productData._id;
+  
+  // Data Sanitization for Mongoose Schema
   const cleanedData = {
     ...productData,
     price: Number(productData.price) || 0,
+    compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
     stock: Number(productData.stock) || 0,
     updated_by_admin: adminId,
     images: (productData.images || []).map((img: any) => ({
       url: typeof img === 'string' ? img : (img.url || ""),
       alt: typeof img === 'string' ? "" : (img.alt || ""),
       is_primary: !!img.is_primary
-    }))
+    })).filter((img: any) => img.url),
+    specifications: (productData.specifications || []).filter((s: any) => s.key && s.value),
+    shipping: {
+      weight_kg: Number(productData.shipping?.weight_kg) || 0,
+      package_dimensions_cm: {
+        length: Number(productData.shipping?.package_dimensions_cm?.length) || 0,
+        width: Number(productData.shipping?.package_dimensions_cm?.width) || 0,
+        height: Number(productData.shipping?.package_dimensions_cm?.height) || 0
+      }
+    }
   };
 
   let saved;
   if (isNew) {
     cleanedData.created_by_admin = adminId;
+    cleanedData.analytics = { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 };
     saved = await Product.create(cleanedData);
     await logAction(actor, 'CREATE_PRODUCT', 'Product', saved._id.toString(), `Created: ${saved.name}`);
   } else {
@@ -113,7 +136,37 @@ export async function saveProduct(adminId: string, productData: any) {
 
   revalidatePath('/admin/products');
   revalidatePath(`/products/${saved.slug}`);
+  revalidatePath(`/products/${saved._id}`);
+  revalidatePath('/');
+  
   return JSON.parse(JSON.stringify(saved));
+}
+
+export async function seedInitialCatalog(adminId: string) {
+  const actor = await validateRole(adminId, ['super_admin']);
+  await dbConnect();
+  
+  try {
+    // Clear and restore
+    await Product.deleteMany({});
+    
+    const preparedData = baselineProducts.map(p => ({
+      ...p,
+      created_by_admin: adminId,
+      analytics: { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 }
+    }));
+
+    const results = await Product.insertMany(preparedData);
+    
+    await logAction(actor, 'RESTORE_CATALOG', 'Product', 'multi', `Restored ${results.length} pieces to collection.`);
+    revalidatePath('/admin/products');
+    revalidatePath('/');
+    
+    return { success: true, count: results.length };
+  } catch (error: any) {
+    console.error("[ADMIN] Seed failed:", error);
+    throw new Error(`Catalog restoration failed: ${error.message}`);
+  }
 }
 
 export async function toggleProductVisibility(adminId: string, productId: string, isActive: boolean) {

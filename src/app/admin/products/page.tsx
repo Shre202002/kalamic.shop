@@ -41,15 +41,18 @@ import {
   Language as SeoIcon,
   LocalShipping,
   SettingsSuggest,
-  HistoryEdu
+  HistoryEdu,
+  CloudSync as RestoreIcon
 } from '@mui/icons-material';
 import { 
   getAdminProducts, 
   toggleProductVisibility, 
   deleteProduct,
-  saveProduct
+  saveProduct,
+  seedInitialCatalog
 } from '@/lib/actions/admin-actions';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
 
 const DEFAULT_SPECS = [
   { key: "Material", value: "" },
@@ -86,6 +89,7 @@ const INITIAL_PRODUCT = {
 };
 
 export default function ProductsManagement() {
+  const { user } = useUser();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,6 +98,7 @@ export default function ProductsManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
   const theme = useTheme();
@@ -157,6 +162,7 @@ export default function ProductsManagement() {
   };
 
   const handleSaveProduct = async () => {
+    if (!user) return;
     if (!editingProduct.name || !editingProduct.slug || !editingProduct.description) {
       toast({ variant: "destructive", title: "Validation Error", description: "Name, Slug, and Narrative are mandatory." });
       return;
@@ -164,8 +170,7 @@ export default function ProductsManagement() {
 
     setIsSaving(true);
     try {
-      // SERVER HANDSHAKE
-      await saveProduct('current-admin', editingProduct);
+      await saveProduct(user.uid, editingProduct);
       toast({ title: "Masterpiece Saved", description: "The artisan catalog has been synchronized." });
       handleCloseDialog();
       load();
@@ -176,9 +181,26 @@ export default function ProductsManagement() {
     }
   };
 
-  const handleToggleVisibility = async (id: string, current: boolean) => {
+  const handleRestoreCatalog = async () => {
+    if (!user) return;
+    if (!confirm("This will overwrite the current collection with baseline artisan pieces. Proceed?")) return;
+    
+    setIsRestoring(true);
     try {
-      await toggleProductVisibility('current-admin', id, !current);
+      await seedInitialCatalog(user.uid);
+      toast({ title: "Catalog Restored", description: "Artisan baseline pieces have been re-populated." });
+      load();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Restoration Failed", description: error.message });
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  const handleToggleVisibility = async (id: string, current: boolean) => {
+    if (!user) return;
+    try {
+      await toggleProductVisibility(user.uid, id, !current);
       setProducts((prev: any) => prev.map((p: any) => p._id === id ? { ...p, is_active: !current } : p));
       toast({ title: "Visibility Updated" });
     } catch (e) {
@@ -187,9 +209,10 @@ export default function ProductsManagement() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!user) return;
     if (!confirm("Are you sure? This piece will be moved to the archive.")) return;
     try {
-      await deleteProduct('current-admin', id);
+      await deleteProduct(user.uid, id);
       setProducts((prev) => prev.filter((p: any) => p._id !== id));
       toast({ title: "Piece Archived" });
     } catch (e) {
@@ -267,7 +290,7 @@ export default function ProductsManagement() {
         </Box>
       )
     }
-  ], [products]);
+  ], [products, user]);
 
   if (!mounted) return null;
 
@@ -280,6 +303,16 @@ export default function ProductsManagement() {
         </Box>
         
         <Box sx={{ display: 'flex', gap: 2, width: { xs: '100%', md: 'auto' } }}>
+          <Tooltip title="Restore Baseline Catalog">
+            <IconButton 
+              onClick={handleRestoreCatalog} 
+              disabled={isRestoring}
+              sx={{ bgcolor: 'white', border: '1px solid rgba(0,0,0,0.1)' }}
+            >
+              {isRestoring ? <CircularProgress size={20} /> : <RestoreIcon />}
+            </IconButton>
+          </Tooltip>
+
           <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'white', px: 2, borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)', flex: 1 }}>
             <Search sx={{ color: 'text.disabled', mr: 1, fontSize: 20 }} />
             <InputBase
@@ -359,23 +392,36 @@ export default function ProductsManagement() {
                     <Paper key={idx} variant="outlined" sx={{ p: 3, mb: 2, borderRadius: 3 }}>
                       <Grid container spacing={2} alignItems="center">
                         <Grid item xs={12} md={8}>
-                          <TextField fullWidth label="Image URL" size="small" value={img.url} onChange={(e) => {
-                            const newImgs = [...editingProduct.images];
-                            newImgs[idx] = { ...newImgs[idx], url: e.target.value };
-                            setEditingProduct({...editingProduct, images: newImgs});
-                          }} sx={{ mb: 2 }} />
-                          <TextField fullWidth label="Alt Text" size="small" value={img.alt} onChange={(e) => {
-                            const newImgs = [...editingProduct.images];
-                            newImgs[idx] = { ...newImgs[idx], alt: e.target.value };
-                            setEditingProduct({...editingProduct, images: newImgs});
-                          }} />
+                          <TextField 
+                            fullWidth 
+                            label="Image URL" 
+                            size="small" 
+                            value={img.url || ''} 
+                            onChange={(e) => {
+                              const newImgs = [...(editingProduct.images || [])];
+                              newImgs[idx] = { ...newImgs[idx], url: e.target.value };
+                              setEditingProduct({...editingProduct, images: newImgs});
+                            }} 
+                            sx={{ mb: 2 }} 
+                          />
+                          <TextField 
+                            fullWidth 
+                            label="Alt Text" 
+                            size="small" 
+                            value={img.alt || ''} 
+                            onChange={(e) => {
+                              const newImgs = [...(editingProduct.images || [])];
+                              newImgs[idx] = { ...newImgs[idx], alt: e.target.value };
+                              setEditingProduct({...editingProduct, images: newImgs});
+                            }} 
+                          />
                         </Grid>
                         <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
                           <FormControlLabel control={<Checkbox checked={!!img.is_primary} onChange={() => {
-                            const newImgs = editingProduct.images.map((i: any, ii: number) => ({ ...i, is_primary: ii === idx }));
+                            const newImgs = (editingProduct.images || []).map((i: any, ii: number) => ({ ...i, is_primary: ii === idx }));
                             setEditingProduct({...editingProduct, images: newImgs});
                           }} />} label="Primary" />
-                          <Button color="error" size="small" onClick={() => setEditingProduct({...editingProduct, images: editingProduct.images.filter((_: any, ii: number) => ii !== idx)})}>Remove</Button>
+                          <Button color="error" size="small" onClick={() => setEditingProduct({...editingProduct, images: (editingProduct.images || []).filter((_: any, ii: number) => ii !== idx)})}>Remove</Button>
                         </Grid>
                       </Grid>
                     </Paper>
@@ -401,11 +447,16 @@ export default function ProductsManagement() {
                 <Grid container spacing={2}>
                   {(editingProduct.specifications || []).map((spec: any, idx: number) => (
                     <Grid item xs={12} md={6} key={idx}>
-                      <TextField fullWidth label={spec.key} value={spec.value} onChange={(e) => {
-                        const newSpecs = [...editingProduct.specifications];
-                        newSpecs[idx] = { ...newSpecs[idx], value: e.target.value };
-                        setEditingProduct({...editingProduct, specifications: newSpecs});
-                      }} />
+                      <TextField 
+                        fullWidth 
+                        label={spec.key} 
+                        value={spec.value || ''} 
+                        onChange={(e) => {
+                          const newSpecs = [...(editingProduct.specifications || [])];
+                          newSpecs[idx] = { ...newSpecs[idx], value: e.target.value };
+                          setEditingProduct({...editingProduct, specifications: newSpecs});
+                        }} 
+                      />
                     </Grid>
                   ))}
                 </Grid>
