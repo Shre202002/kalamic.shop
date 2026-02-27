@@ -45,7 +45,7 @@ export default function LoginPage() {
       try {
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
-          callback: (response: any) => {
+          callback: () => {
             console.log('reCAPTCHA verified');
           }
         });
@@ -58,11 +58,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     const handleLoginError = (err: { code: string; message: string }) => {
-      // Don't stop loading if we are in the middle of an OTP fallback check
-      // This listener can be noisy during our custom fallback logic
+      // Ignore errors that we handle via the OTP bridge fallback
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        // We handle these specifically in handleVerifyEmailOtp
-        return;
+        if (authMethod === 'email-otp') return;
       }
 
       setIsLoading(false);
@@ -85,7 +83,7 @@ export default function LoginPage() {
 
     errorEmitter.on('login-error', handleLoginError);
     return () => errorEmitter.off('login-error', handleLoginError);
-  }, [toast]);
+  }, [toast, authMethod]);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,18 +122,19 @@ export default function LoginPage() {
     try {
       const result = await verifyOtp(email, otpCode);
       if (result.success) {
-        // For OTP login, use a consistent secret password derived from the unique email
-        const safePrefix = email.trim().toLowerCase().replace(/[@.]/g, '_');
-        const defaultPassword = `OTP_SEC_KAL_PRO_${safePrefix}`;
+        // Step 1: Successful DB verification.
+        // Step 2: Bridge to Firebase Auth using a deterministic shadow password.
+        const shadowPassword = `KAL_OTP_SEC_${email.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
         
         try {
-          await initiateEmailSignIn(auth, email, defaultPassword);
-        } catch (error: any) {
-          // Both user-not-found and invalid-credential could mean the account needs to be created
-          if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-            await initiateEmailSignUp(auth, email, defaultPassword);
+          // Attempt Sign In first
+          await initiateEmailSignIn(auth, email, shadowPassword);
+        } catch (signInErr: any) {
+          // If user doesn't exist, Create Account (Sign Up)
+          if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
+             await initiateEmailSignUp(auth, email, shadowPassword);
           } else {
-            throw error;
+             throw signInErr;
           }
         }
       } else {
@@ -203,11 +202,7 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="p-8">
-            <Tabs value={authMethod} onValueChange={(v) => {
-              setAuthMethod(v as any);
-              setOtpSent(false);
-              setOtpCode('');
-            }} className="w-full">
+            <Tabs value={authMethod} onValueChange={(v) => setAuthMethod(v as any)} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/20 p-1 rounded-xl">
                 <TabsTrigger value="password" disabled={isLoading} className="rounded-lg font-bold text-xs">Password</TabsTrigger>
                 <TabsTrigger 
