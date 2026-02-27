@@ -18,7 +18,8 @@ import {
   Button, 
   Grid, 
   Divider,
-  Chip
+  Chip,
+  Skeleton
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Visibility, Close, LocationOn, ContactPhone, Mail } from '@mui/icons-material';
@@ -35,17 +36,26 @@ export default function UsersManagement() {
   useEffect(() => {
     setMounted(true);
     async function load() {
-      const data = await getAllUsers();
-      setUsers(data);
-      setLoading(false);
+      try {
+        const data = await getAllUsers();
+        setUsers(data);
+      } catch (error) {
+        console.error("Failed to load users:", error);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
 
   const handleStatusChange = async (userId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'disabled' : 'active';
-    await toggleUserStatus('current-admin-id', userId, newStatus);
-    setUsers((prev: any) => prev.map((u: any) => u._id === userId ? { ...u, status: newStatus } : u));
+    try {
+      const newStatus = currentStatus === 'active' ? 'disabled' : 'active';
+      await toggleUserStatus('current-admin-id', userId, newStatus);
+      setUsers((prev: any) => prev.map((u: any) => u._id === userId ? { ...u, status: newStatus } : u));
+    } catch (e) {
+      console.error("Status update failed:", e);
+    }
   };
 
   const handleOpenDetails = (user: any) => {
@@ -60,10 +70,12 @@ export default function UsersManagement() {
       width: 250,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.light' }}>{params.row.firstName?.[0]}</Avatar>
+          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.light' }}>
+            {(params.row.firstName || params.row.email || '?')[0].toUpperCase()}
+          </Avatar>
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
-              {params.row.firstName} {params.row.lastName}
+              {params.row.firstName ? `${params.row.firstName} ${params.row.lastName || ''}` : 'New Collector'}
             </Typography>
             <Typography variant="caption" color="text.secondary">{params.row.email}</Typography>
           </Box>
@@ -83,8 +95,8 @@ export default function UsersManagement() {
         />
       )
     },
-    { field: 'phone', headerName: 'Contact', width: 150 },
-    { field: 'city', headerName: 'City', width: 120 },
+    { field: 'phone', headerName: 'Contact', width: 150, renderCell: (params) => params.value || 'N/A' },
+    { field: 'city', headerName: 'City', width: 120, renderCell: (params) => params.value || 'N/A' },
     { 
       field: 'status', 
       headerName: 'Account Status', 
@@ -117,20 +129,22 @@ export default function UsersManagement() {
     }
   ], []);
 
-  if (!mounted) return null;
+  if (!mounted) return <Box sx={{ p: 3 }}><Skeleton variant="rectangular" height={600} /></Box>;
 
   return (
-    <Box sx={{ height: 600, width: '100%' }}>
+    <Box sx={{ flexGrow: 1 }}>
       <Typography variant="h4" sx={{ mb: 3 }}>Collector Directory</Typography>
-      <Paper>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
         <DataGrid
           rows={users}
           getRowId={(row) => row._id}
           columns={columns}
           loading={loading}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+          pageSizeOptions={[10, 25, 50]}
           sx={{ border: 'none' }}
           autoHeight
+          disableRowSelectionOnClick
         />
       </Paper>
 
@@ -145,11 +159,11 @@ export default function UsersManagement() {
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar sx={{ width: 48, height: 48, bgcolor: 'primary.main' }}>
-              {selectedUser?.firstName?.[0]}
+              {(selectedUser?.firstName || selectedUser?.email || '?')[0].toUpperCase()}
             </Avatar>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                {selectedUser?.firstName} {selectedUser?.lastName}
+                {selectedUser?.firstName ? `${selectedUser.firstName} ${selectedUser.lastName || ''}` : 'Collector Profile'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 ID: {selectedUser?.firebaseId || 'N/A'}
@@ -177,13 +191,21 @@ export default function UsersManagement() {
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Shipping Destination</Typography>
               </Box>
               <Box sx={{ ml: 4 }}>
-                <Typography variant="body2">{selectedUser?.address || 'No address recorded'}</Typography>
-                <Typography variant="body2">
-                  {selectedUser?.city}, {selectedUser?.state} - {selectedUser?.pincode}
-                </Typography>
-                {selectedUser?.landmark && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                    Landmark: {selectedUser.landmark}
+                {selectedUser?.address ? (
+                  <>
+                    <Typography variant="body2">{selectedUser.address}</Typography>
+                    <Typography variant="body2">
+                      {selectedUser.city}, {selectedUser.state} - {selectedUser.pincode}
+                    </Typography>
+                    {selectedUser.landmark && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                        Landmark: {selectedUser.landmark}
+                      </Typography>
+                    )}
+                  </>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    No delivery address recorded yet.
                   </Typography>
                 )}
               </Box>
@@ -206,7 +228,7 @@ export default function UsersManagement() {
                 <Grid item xs={6}>
                   <Typography variant="caption" color="text.secondary">Joined Date</Typography>
                   <Typography variant="body2">
-                    {selectedUser?.createdAt ? dayjs(selectedUser.createdAt).format('DD MMM YYYY') : 'N/A'}
+                    {selectedUser?.createdAt ? dayjs(selectedUser.createdAt).format('DD MMM YYYY') : 'Recently'}
                   </Typography>
                 </Grid>
               </Grid>

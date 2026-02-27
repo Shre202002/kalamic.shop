@@ -45,7 +45,7 @@ export async function getAdminDashboardStats() {
   ] = await Promise.all([
     Order.aggregate([{ $group: { _id: null, total: { $sum: "$totalAmount" } } }]),
     Order.countDocuments(),
-    User.countDocuments({ role: { $in: ['user', 'buyer'] } }),
+    User.countDocuments(), // Total users regardless of role for KPI
     User.countDocuments({ lastLogin: { $gte: sevenDaysAgo } }),
     Order.countDocuments({ orderStatus: { $in: ['pending', 'placed', 'pending_payment'] } }),
     WishlistItem.countDocuments()
@@ -117,10 +117,11 @@ export async function updateOrderStatus(adminId: string, orderId: string, status
 
 /**
  * User Management Actions
+ * Updated to show ALL users without role filtering.
  */
 export async function getAllUsers() {
   await dbConnect();
-  const users = await User.find({ role: { $in: ['user', 'buyer'] } }).sort({ createdAt: -1 }).lean();
+  const users = await User.find().sort({ createdAt: -1 }).lean();
   return JSON.parse(JSON.stringify(users));
 }
 
