@@ -140,7 +140,7 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!user) return;
     
-    // Validate all fields
+    // Validate all fields are present
     const requiredFields = ['firstName', 'lastName', 'phone', 'address', 'city', 'state', 'pincode', 'landmark'];
     const missing = requiredFields.filter(f => !formData[f as keyof typeof formData]);
     
@@ -179,6 +179,7 @@ export default function ProfilePage() {
   const isEmailVerified = profile?.emailVerified;
   const isFullyVerified = isProfileComplete && isEmailVerified;
 
+  // Dynamic Member Since Year from DB
   const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : 2024;
 
   if (isUserLoading || isLoadingData) {

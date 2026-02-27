@@ -21,6 +21,7 @@ export async function getProfile(firebaseId: string) {
 
 /**
  * Marks a user's email as verified in MongoDB.
+ * This is the source of truth for verification in the app.
  */
 export async function verifyUserEmail(firebaseId: string, email: string) {
   await dbConnect();
@@ -39,6 +40,7 @@ export async function verifyUserEmail(firebaseId: string, email: string) {
 
 /**
  * Updates or creates the user profile with integrated address details.
+ * All fields are forced as required for a "Verified Collector".
  */
 export async function updateProfile(firebaseId: string, data: { 
   email: string,

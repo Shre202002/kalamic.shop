@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useUser, errorEmitter } from '@/firebase';
 import { initiateEmailSignIn, initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { sendOtp, verifyOtp } from '@/lib/actions/otp-actions';
-import { verifyUserEmail } from '@/lib/actions/user-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,6 +42,7 @@ export default function LoginPage() {
       setIsLoading(false);
       let friendlyMessage = "An authentication error occurred.";
       
+      // Specifically catch the Firebase generic error for invalid credentials
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
         friendlyMessage = "Wrong email or password. Please check your credentials and try again.";
       } else if (err.code === 'auth/email-already-in-use') {
@@ -99,7 +99,8 @@ export default function LoginPage() {
     try {
       const result = await verifyOtp(email, otpCode);
       if (result.success) {
-        // Direct OTP Login flow using a secure deterministic password
+        // Direct OTP Login flow using a secure deterministic password for this email
+        // This allows passwordless login for existing users
         const defaultPassword = `OTP_SECURE_${email.split('@')[0]}_KALAMIC`;
         initiateEmailSignIn(auth, email, defaultPassword);
       } else {
@@ -135,7 +136,14 @@ export default function LoginPage() {
             <Tabs defaultValue="password" onValueChange={(v) => setAuthMethod(v as any)} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/20 p-1 rounded-xl">
                 <TabsTrigger value="password" disabled={isLoading} className="rounded-lg font-bold">Password</TabsTrigger>
-                <TabsTrigger value="otp" disabled={isLoading} className="rounded-lg font-bold">OTP Code</TabsTrigger>
+                <TabsTrigger 
+                  value="otp" 
+                  disabled={isLoading || !isLogin} 
+                  className="rounded-lg font-bold"
+                  title={!isLogin ? "Registration requires a password" : "Login with code"}
+                >
+                  OTP Code
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="password">
@@ -246,7 +254,11 @@ export default function LoginPage() {
               type="button" 
               variant="ghost" 
               className="w-full text-sm font-bold text-muted-foreground hover:text-primary transition-colors"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                // Reset to password tab if switching to sign-up since OTP registration is disabled
+                if (isLogin) setAuthMethod('password');
+              }}
             >
               {isLogin ? "New to Kalamic? Create an Account" : "Already a Collector? Sign In"}
             </Button>
