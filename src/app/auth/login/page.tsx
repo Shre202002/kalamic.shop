@@ -46,7 +46,8 @@ export default function LoginPage() {
       try {
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
-          callback: () => {
+          callback: (response: any) => {
+            // reCAPTCHA solved, allow signInWithPhoneNumber.
             console.log('reCAPTCHA verified');
           }
         });
@@ -60,16 +61,18 @@ export default function LoginPage() {
   useEffect(() => {
     const handleLoginError = (err: { code: string; message: string }) => {
       setIsLoading(false);
-      let friendlyMessage = "An authentication error occurred.";
+      let friendlyMessage = err.message || "An authentication error occurred.";
       
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
         friendlyMessage = "Wrong credentials. Please check and try again.";
       } else if (err.code === 'auth/email-already-in-use') {
         friendlyMessage = "An account with this email already exists.";
       } else if (err.code === 'auth/invalid-phone-number') {
-        friendlyMessage = "Invalid phone number format. Please use +[country code][number].";
+        friendlyMessage = "Invalid format. Use +[country code][number] (e.g., +919876543210).";
       } else if (err.code === 'auth/too-many-requests') {
         friendlyMessage = "Too many attempts. Please try again later.";
+      } else if (err.code === 'auth/quota-exceeded') {
+        friendlyMessage = "SMS quota exceeded. Please contact support or try a different method.";
       } else if (err.code === 'auth/captcha-check-failed') {
         friendlyMessage = "Security check failed. Please refresh and try again.";
       }
@@ -122,8 +125,6 @@ export default function LoginPage() {
     try {
       const result = await verifyOtp(email, otpCode);
       if (result.success) {
-        // Fallback login for email OTP (usually handled by linking or primary OTP provider)
-        // In this app, we default to password-based accounts for simplicity
         const defaultPassword = `OTP_SECURE_${email.split('@')[0]}_KALAMIC`;
         initiateEmailSignIn(auth, email, defaultPassword);
       } else {
@@ -137,8 +138,13 @@ export default function LoginPage() {
   };
 
   const handleRequestPhoneOtp = async () => {
-    if (!phoneNumber || !recaptchaVerifier) {
-      toast({ variant: "destructive", title: "Error", description: "Please enter a valid phone number and wait for security check." });
+    if (!phoneNumber) {
+      toast({ variant: "destructive", title: "Number Required", description: "Please enter your phone number." });
+      return;
+    }
+
+    if (!recaptchaVerifier) {
+      toast({ variant: "destructive", title: "Security Error", description: "reCAPTCHA is still initializing. Please wait a moment." });
       return;
     }
 
@@ -160,13 +166,14 @@ export default function LoginPage() {
     if (!success) {
       setIsLoading(false);
     }
-    // If success, the onAuthStateChanged in FirebaseProvider will handle the redirect
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
       <Navbar />
+      {/* Container for invisible reCAPTCHA */}
       <div id="recaptcha-container"></div>
+      
       <main className="flex-1 flex items-center justify-center p-4 py-12 md:py-20">
         <Card className="w-full max-w-md shadow-2xl border-none rounded-[2.5rem] overflow-hidden bg-white">
           <CardHeader className="space-y-2 p-8 text-center bg-primary/5">
@@ -306,20 +313,20 @@ export default function LoginPage() {
                 {!otpSent ? (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phoneNumber">Phone Number</Label>
+                      <Label htmlFor="phoneNumber">Phone Number (with +)</Label>
                       <div className="relative">
                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input 
                           id="phoneNumber" 
                           type="tel" 
-                          placeholder="+91 98765 43210" 
+                          placeholder="+919876543210" 
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
                           required 
                           className="pl-12 h-12 rounded-xl"
                         />
                       </div>
-                      <p className="text-[10px] text-muted-foreground italic">Use international format: +[country code][number]</p>
+                      <p className="text-[10px] text-muted-foreground italic">Must start with + country code (e.g., +91 for India)</p>
                     </div>
                     <Button 
                       onClick={handleRequestPhoneOtp} 

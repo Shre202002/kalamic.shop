@@ -10,8 +10,7 @@ import {
 } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 
-// We store the confirmation result globally (or in a stateful way in the component) 
-// to allow the second step of verification.
+// We store the confirmation result globally to allow the second step of verification.
 let phoneConfirmationResult: ConfirmationResult | null = null;
 
 /** Initiate anonymous sign-in (non-blocking). */
@@ -37,9 +36,9 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
 }
 
 /** 
- * Initiate Phone Sign-In.
+ * Initiate Phone Sign-In (Real Firebase Phone Auth).
  * @param authInstance The Firebase Auth instance.
- * @param phoneNumber The phone number in E.164 format (e.g., +16505550101).
+ * @param phoneNumber The phone number in E.164 format (e.g., +919876543210).
  * @param appVerifier The RecaptchaVerifier instance.
  */
 export async function initiatePhoneSignIn(
@@ -48,6 +47,16 @@ export async function initiatePhoneSignIn(
   appVerifier: RecaptchaVerifier
 ): Promise<boolean> {
   try {
+    // Validate number format (E.164)
+    if (!phoneNumber.startsWith('+')) {
+      errorEmitter.emit('login-error', { 
+        code: 'auth/invalid-phone-number', 
+        message: 'Phone number must start with + followed by country code (e.g., +91...)' 
+      });
+      return false;
+    }
+
+    console.log(`[AUTH] Initiating Firebase Phone Auth for: ${phoneNumber}`);
     phoneConfirmationResult = await signInWithPhoneNumber(authInstance, phoneNumber, appVerifier);
     return true;
   } catch (err: any) {
