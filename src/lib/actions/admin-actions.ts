@@ -108,7 +108,7 @@ export async function seedInitialCatalog(adminId: string) {
         slug: "peacock_embrace_frame",
         short_description: "Personalized handmade ceramic photo frame.",
         description: "Personalized ceramic photo frame with lovely cultural designs – perfect for gifting and home decor.",
-        category_id: new mongoose.Types.ObjectId("699026a8ae873e1fa69cb189"),
+        category_id: new mongoose.Types.ObjectId("699026a7ae873e1fa69cb189"),
         tags: ["photo frame", "customized", "ceramic", "gift"],
         images: [{ url: "https://i.imgur.com/CjkQ8p3.png", alt: "Ceramic Frame Front", is_primary: true }],
         price: 699,
@@ -169,7 +169,7 @@ export async function seedInitialCatalog(adminId: string) {
         slug: "ceramic_fridge_magnet",
         short_description: "Cute handmade ceramic fridge magnet set.",
         description: "Cute set of handmade ceramic fridge magnets with traditional Indian patterns. Perfect for gifting and kitchen decor.",
-        category_id: new mongoose.Types.ObjectId("699026a8ae873e1fa69cb189"),
+        category_id: new mongoose.Types.ObjectId("699026a7ae873e1fa69cb189"),
         tags: ["gifts", "magnet", "handmade", "ceramic"],
         images: [{ url: "https://i.imgur.com/CKp5j5S.png", alt: "Magnet Front", is_primary: true }],
         price: 299,
@@ -337,4 +337,89 @@ export async function getAdminLogs() {
 export async function getAdmins() {
   await dbConnect();
   return JSON.parse(JSON.stringify(await User.find({ role: { $in: ['admin', 'super_admin'] } }).lean()));
+}
+
+/**
+ * Analytics & Dashboard Data
+ */
+export async function getAdminDashboardStats() {
+  await dbConnect();
+  try {
+    const [revenueData, orderCount, activeUsers, pendingOrders, totalUsers] = await Promise.all([
+      OrderedItem.aggregate([
+        { $match: { payment_status: 'paid' } },
+        { $group: { _id: null, total: { $sum: '$total_amount' } } }
+      ]),
+      OrderedItem.countDocuments(),
+      User.countDocuments({ status: 'active' }),
+      OrderedItem.countDocuments({ status: { $in: ['Placed', 'Crafting', 'Developing'] } }),
+      User.countDocuments()
+    ]);
+
+    const wishlistTotal = await Product.aggregate([
+      { $group: { _id: null, total: { $sum: '$analytics.wishlist_count' } } }
+    ]);
+
+    return {
+      revenue: revenueData[0]?.total || 0,
+      orders: orderCount,
+      activeUsers,
+      users: totalUsers,
+      pendingOrders,
+      conversionRate: totalUsers > 0 ? ((orderCount / totalUsers) * 100).toFixed(1) : 0,
+      wishlistActivity: wishlistTotal[0]?.total || 0
+    };
+  } catch (error) {
+    console.error("Dashboard stats error:", error);
+    return { revenue: 0, orders: 0, activeUsers: 0, users: 0, pendingOrders: 0, conversionRate: 0, wishlistActivity: 0 };
+  }
+}
+
+export async function getDashboardChartData() {
+  await dbConnect();
+  try {
+    // 7 day sales trend
+    const last7Days = Array.from({ length: 7 }, (_, i) => dayjs().subtract(6 - i, 'day').format('YYYY-MM-DD'));
+    const salesData = await OrderedItem.aggregate([
+      { $match: { created_at: { $gte: dayjs().subtract(7, 'day').toDate() } } },
+      { $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$created_at" } },
+          total: { $sum: "$total_amount" }
+      }}
+    ]);
+
+    const salesChart = last7Days.map(day => ({
+      day: dayjs(day).format('DD MMM'),
+      value: salesData.find(s => s._id === day)?.total || 0
+    }));
+
+    // User growth (simplified aggregation)
+    const monthlyUsers = await User.aggregate([
+      { $group: {
+          _id: { $dateToString: { format: "%b", date: "$createdAt" } },
+          count: { $sum: 1 }
+      }},
+      { $limit: 6 }
+    ]);
+
+    const categoryDistribution = [
+      { id: 0, value: 45, label: 'Temple Decor' },
+      { id: 1, value: 25, label: 'Wall Art' },
+      { id: 2, value: 20, label: 'Custom Gifts' },
+      { id: 3, value: 10, label: 'Accents' },
+    ];
+
+    return {
+      sales: salesChart,
+      users: monthlyUsers.length > 0 ? monthlyUsers.map(u => ({ month: u._id, count: u.count })) : [
+        { month: 'Jan', count: 0 },
+        { month: 'Feb', count: 0 },
+        { month: 'Mar', count: 0 }
+      ],
+      categories: categoryDistribution
+    };
+  } catch (error) {
+    console.error("Chart data error:", error);
+    return { sales: [], users: [], categories: [] };
+  }
 }
