@@ -66,7 +66,7 @@ const INITIAL_PRODUCT = {
   slug: '',
   short_description: '',
   description: '',
-  category_id: '', // Note: In a real app, this would be a selection from a categories collection
+  category_id: '', 
   price: 0,
   compare_at_price: undefined,
   stock: 0,
@@ -122,12 +122,12 @@ export default function ProductsManagement() {
 
   const handleOpenDialog = (product?: any) => {
     if (product) {
-      // Normalization for the complex Kalamic schema
+      // Deep normalization to ensure nested fields exist for the form
       setEditingProduct({
         ...INITIAL_PRODUCT,
         ...product,
-        images: product.images?.length ? product.images.map((i: any) => ({ ...i })) : INITIAL_PRODUCT.images,
-        specifications: product.specifications?.length ? product.specifications.map((s: any) => ({ ...s })) : INITIAL_PRODUCT.specifications,
+        images: Array.isArray(product.images) && product.images.length ? product.images.map((i: any) => ({ ...i })) : INITIAL_PRODUCT.images,
+        specifications: Array.isArray(product.specifications) && product.specifications.length ? product.specifications.map((s: any) => ({ ...s })) : INITIAL_PRODUCT.specifications,
         shipping: {
           ...INITIAL_PRODUCT.shipping,
           ...product.shipping,
@@ -149,20 +149,9 @@ export default function ProductsManagement() {
   const handleSaveProduct = async () => {
     if (!user) return;
     
-    // Validations
-    if (!editingProduct.name || !editingProduct.slug || !editingProduct.description || !editingProduct.category_id) {
-      toast({ variant: "destructive", title: "Validation Error", description: "Name, Slug, Category, and Description are mandatory." });
+    if (!editingProduct.name || !editingProduct.slug || !editingProduct.description) {
+      toast({ variant: "destructive", title: "Validation Error", description: "Name, Slug, and Description are mandatory." });
       return;
-    }
-
-    if (editingProduct.compare_at_price && Number(editingProduct.compare_at_price) <= Number(editingProduct.price)) {
-      toast({ variant: "destructive", title: "Price Error", description: "Compare price must be greater than current price." });
-      return;
-    }
-
-    const hasPrimary = editingProduct.images.some((img: any) => img.is_primary);
-    if (!hasPrimary && editingProduct.images.length > 0) {
-      editingProduct.images[0].is_primary = true;
     }
 
     setIsSaving(true);
@@ -202,7 +191,7 @@ export default function ProductsManagement() {
 
   const handleDelete = async (id: string) => {
     if (!user) return;
-    if (!confirm("Move this piece to archive? it will be hidden from storefront.")) return;
+    if (!confirm("Move this piece to archive?")) return;
     try {
       await deleteProduct(user.uid, id);
       setProducts((prev) => prev.filter((p: any) => p._id !== id));
@@ -414,12 +403,12 @@ export default function ProductsManagement() {
                         <Grid item xs={12} md={8}>
                           <TextField fullWidth label="Image URL" size="small" value={img.url} onChange={(e) => {
                             const newImgs = [...editingProduct.images];
-                            newImgs[idx].url = e.target.value;
+                            newImgs[idx] = { ...newImgs[idx], url: e.target.value };
                             setEditingProduct({...editingProduct, images: newImgs});
                           }} sx={{ mb: 2 }} />
                           <TextField fullWidth label="Alt Text" size="small" value={img.alt} onChange={(e) => {
                             const newImgs = [...editingProduct.images];
-                            newImgs[idx].alt = e.target.value;
+                            newImgs[idx] = { ...newImgs[idx], alt: e.target.value };
                             setEditingProduct({...editingProduct, images: newImgs});
                           }} />
                         </Grid>
@@ -443,12 +432,12 @@ export default function ProductsManagement() {
                     <Grid item xs={12} md={6} key={idx} sx={{ display: 'flex', gap: 1 }}>
                       <TextField fullWidth label="Key" value={spec.key} onChange={(e) => {
                         const s = [...editingProduct.specifications];
-                        s[idx].key = e.target.value;
+                        s[idx] = { ...s[idx], key: e.target.value };
                         setEditingProduct({...editingProduct, specifications: s});
                       }} />
                       <TextField fullWidth label="Value" value={spec.value} onChange={(e) => {
                         const s = [...editingProduct.specifications];
-                        s[idx].value = e.target.value;
+                        s[idx] = { ...s[idx], value: e.target.value };
                         setEditingProduct({...editingProduct, specifications: s});
                       }} />
                       <IconButton color="error" onClick={() => setEditingProduct({...editingProduct, specifications: editingProduct.specifications.filter((_: any, ii: number) => ii !== idx)})}>

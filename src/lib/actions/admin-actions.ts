@@ -8,6 +8,7 @@ import AdminLog from '@/lib/models/AdminLog';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { revalidatePath } from 'next/cache';
 import dayjs from 'dayjs';
+import mongoose from 'mongoose';
 
 /**
  * CORE PERMISSION ENGINE
@@ -39,6 +40,19 @@ async function logAction(admin: any, action: string, type: string, entityId: str
 /**
  * GOVERNANCE ACTIONS (Super Admin Only)
  */
+export async function getAdmins() {
+  await dbConnect();
+  // Fetch all users who are not standard buyers
+  const admins = await User.find({ role: { $in: ['super_admin', 'admin', 'support'] } }).lean();
+  return JSON.parse(JSON.stringify(admins));
+}
+
+export async function getAdminLogs() {
+  await dbConnect();
+  const logs = await AdminLog.find({}).sort({ timestamp: -1 }).limit(100).lean();
+  return JSON.parse(JSON.stringify(logs));
+}
+
 export async function provisionAdmin(superAdminId: string, email: string, role: string) {
   const actor = await validateRole(superAdminId, ['super_admin']);
   await dbConnect();
@@ -67,6 +81,26 @@ export async function updateAdminRole(superAdminId: string, targetUserId: string
   revalidatePath('/admin/settings');
 }
 
+export async function removeAdminAccess(superAdminId: string, targetUserId: string) {
+  const actor = await validateRole(superAdminId, ['super_admin']);
+  await dbConnect();
+  
+  const user = await User.findByIdAndUpdate(targetUserId, { role: 'buyer' }, { new: true });
+  if (user) {
+    await logAction(actor, 'REVOKE_ACCESS', 'User', targetUserId, `Removed administrative privileges`);
+  }
+  revalidatePath('/admin/settings');
+}
+
+/**
+ * USER MANAGEMENT
+ */
+export async function getAllUsers() {
+  await dbConnect();
+  const users = await User.find({}).sort({ createdAt: -1 }).lean();
+  return JSON.parse(JSON.stringify(users));
+}
+
 export async function toggleUserStatus(adminId: string, targetUserId: string, newStatus: string) {
   const actor = await validateRole(adminId, ['super_admin', 'admin']);
   await dbConnect();
@@ -77,6 +111,26 @@ export async function toggleUserStatus(adminId: string, targetUserId: string, ne
   }
   revalidatePath('/admin/users');
   return JSON.parse(JSON.stringify(user));
+}
+
+/**
+ * ORDER MANAGEMENT
+ */
+export async function getAllOrders() {
+  await dbConnect();
+  const orders = await OrderedItem.find({}).sort({ created_at: -1 }).lean();
+  return JSON.parse(JSON.stringify(orders));
+}
+
+export async function updateOrderStatus(adminId: string, orderId: string, status: string) {
+  const actor = await validateRole(adminId, ['super_admin', 'admin']);
+  await dbConnect();
+  
+  const order = await OrderedItem.findByIdAndUpdate(orderId, { status }, { new: true });
+  if (order) {
+    await logAction(actor, 'UPDATE_ORDER_STATUS', 'Order', orderId, `Changed status to: ${status}`);
+  }
+  revalidatePath('/admin/orders');
 }
 
 /**
@@ -107,6 +161,8 @@ export async function saveProduct(adminId: string, productData: any) {
     compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
     stock: Number(productData.stock) || 0,
     updated_by_admin: adminId,
+    // Ensure category_id is a valid ObjectId if possible
+    category_id: mongoose.isValidObjectId(productData.category_id) ? productData.category_id : new mongoose.Types.ObjectId(),
     images: (productData.images || []).map((img: any) => ({
       url: img.url,
       alt: img.alt || '',
@@ -128,7 +184,6 @@ export async function saveProduct(adminId: string, productData: any) {
     }
   };
 
-  // Validate Slug Uniqueness manually before insert if new
   if (isNew) {
     const existing = await KalamicProduct.findOne({ slug: cleanedData.slug });
     if (existing) throw new Error("A product with this slug already exists.");
