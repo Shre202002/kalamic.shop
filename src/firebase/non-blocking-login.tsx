@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Auth,
@@ -21,18 +22,23 @@ export function initiateAnonymousSignIn(authInstance: Auth): void {
 }
 
 /** Initiate email/password sign-up (non-blocking). */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
-  createUserWithEmailAndPassword(authInstance, email, password)
-    .catch(err => {
-      errorEmitter.emit('login-error', { code: err.code, message: err.message });
-    });
+export async function initiateEmailSignUp(authInstance: Auth, email: string, password: string): Promise<void> {
+  try {
+    await createUserWithEmailAndPassword(authInstance, email, password);
+  } catch (err: any) {
+    errorEmitter.emit('login-error', { code: err.code, message: err.message });
+    throw err;
+  }
 }
 
 /** Initiate email/password sign-in (non-blocking). */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
-  signInWithEmailAndPassword(authInstance, email, password).catch(err => {
+export async function initiateEmailSignIn(authInstance: Auth, email: string, password: string): Promise<void> {
+  try {
+    await signInWithEmailAndPassword(authInstance, email, password);
+  } catch (err: any) {
     errorEmitter.emit('login-error', { code: err.code, message: err.message });
-  });
+    throw err;
+  }
 }
 
 /** 

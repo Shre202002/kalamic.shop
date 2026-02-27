@@ -10,13 +10,14 @@ import { sendEmail } from '@/lib/email';
  */
 async function generateAndStoreOtp(identifier: string) {
   await dbConnect();
+  const cleanIdentifier = identifier.trim().toLowerCase();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
   // We use the email field of the Otp model as a generic identifier
-  await Otp.deleteMany({ email: identifier });
+  await Otp.deleteMany({ email: cleanIdentifier });
   await Otp.create({
-    email: identifier,
+    email: cleanIdentifier,
     code,
     expiresAt,
   });
@@ -28,12 +29,13 @@ async function generateAndStoreOtp(identifier: string) {
  * Sends an OTP via SMTP for email verification.
  */
 export async function sendOtp(email: string) {
-  console.log(`[AUTH] Requesting Email OTP for: ${email}`);
-  const code = await generateAndStoreOtp(email);
+  const cleanEmail = email.trim().toLowerCase();
+  console.log(`[AUTH] Requesting Email OTP for: ${cleanEmail}`);
+  const code = await generateAndStoreOtp(cleanEmail);
 
   try {
     await sendEmail({
-      to: email,
+      to: cleanEmail,
       subject: "Kalamic Artisan Shop - Verification Code",
       text: `Your 6-digit verification code is: ${code}. It will expire in 5 minutes.`,
       html: `
@@ -63,12 +65,13 @@ export async function sendOtp(email: string) {
  * In production, you would use Twilio, MessageBird, or similar.
  */
 export async function sendPhoneOtp(phone: string) {
-  console.log(`[AUTH] Requesting Phone OTP for: ${phone}`);
-  const code = await generateAndStoreOtp(phone);
+  const cleanPhone = phone.trim();
+  console.log(`[AUTH] Requesting Phone OTP for: ${cleanPhone}`);
+  const code = await generateAndStoreOtp(cleanPhone);
 
   // SIMULATION: Log to console instead of sending real SMS
   console.log(`\n--------------------------------------`);
-  console.log(`[SIMULATED SMS] TO: ${phone}`);
+  console.log(`[SIMULATED SMS] TO: ${cleanPhone}`);
   console.log(`[SIMULATED SMS] CODE: ${code}`);
   console.log(`--------------------------------------\n`);
 
@@ -83,15 +86,18 @@ export async function sendPhoneOtp(phone: string) {
  */
 export async function verifyOtp(identifier: string, code: string) {
   await dbConnect();
+  const cleanIdentifier = identifier.trim().toLowerCase();
+  const cleanCode = code.trim();
+
   try {
-    const otpRecord = await Otp.findOne({ email: identifier }).sort({ createdAt: -1 });
+    const otpRecord = await Otp.findOne({ email: cleanIdentifier }).sort({ createdAt: -1 });
 
     if (!otpRecord) return { success: false, message: "No active verification code found." };
     if (new Date() > otpRecord.expiresAt) {
       await Otp.deleteOne({ _id: otpRecord._id });
       return { success: false, message: "Code has expired." };
     }
-    if (otpRecord.code !== code) {
+    if (otpRecord.code !== cleanCode) {
       await Otp.updateOne({ _id: otpRecord._id }, { $inc: { attempts: 1 } });
       return { success: false, message: "Incorrect code." };
     }
@@ -99,6 +105,7 @@ export async function verifyOtp(identifier: string, code: string) {
     await Otp.deleteOne({ _id: otpRecord._id });
     return { success: true };
   } catch (error: any) {
+    console.error("[OTP] Verification error:", error);
     throw new Error("Verification failed.");
   }
 }

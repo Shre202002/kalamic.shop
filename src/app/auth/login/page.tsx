@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -47,7 +48,6 @@ export default function LoginPage() {
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: (response: any) => {
-            // reCAPTCHA solved, allow signInWithPhoneNumber.
             console.log('reCAPTCHA verified');
           }
         });
@@ -125,15 +125,29 @@ export default function LoginPage() {
     try {
       const result = await verifyOtp(email, otpCode);
       if (result.success) {
-        const defaultPassword = `OTP_SECURE_${email.split('@')[0]}_KALAMIC`;
-        initiateEmailSignIn(auth, email, defaultPassword);
+        // For OTP login, use a consistent secret password derived from email
+        const defaultPassword = `OTP_SEC_KAL_${email.trim().toLowerCase().split('@')[0]}`;
+        
+        // Try sign in, if it fails (likely new user), try sign up
+        try {
+          await initiateEmailSignIn(auth, email, defaultPassword);
+        } catch (error: any) {
+          if (error.code === 'auth/user-not-found') {
+            await initiateEmailSignUp(auth, email, defaultPassword);
+          } else {
+            throw error;
+          }
+        }
       } else {
         setIsLoading(false);
         toast({ variant: "destructive", title: "Verification Failed", description: result.message });
       }
     } catch (err: any) {
       setIsLoading(false);
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      // Firebase errors are handled by errorEmitter, only handle verifyOtp errors here
+      if (err.message && !err.code) {
+        toast({ variant: "destructive", title: "Error", description: err.message });
+      }
     }
   };
 
@@ -171,7 +185,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
       <Navbar />
-      {/* Container for invisible reCAPTCHA */}
       <div id="recaptcha-container"></div>
       
       <main className="flex-1 flex items-center justify-center p-4 py-12 md:py-20">
@@ -191,7 +204,7 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="p-8">
-            <Tabs defaultValue="password" onValueChange={(v) => {
+            <Tabs value={authMethod} onValueChange={(v) => {
               setAuthMethod(v as any);
               setOtpSent(false);
               setOtpCode('');
@@ -376,8 +389,10 @@ export default function LoginPage() {
               variant="ghost" 
               className="w-full text-sm font-bold text-muted-foreground hover:text-primary transition-colors"
               onClick={() => {
-                setIsLogin(!isLogin);
-                if (isLogin) setAuthMethod('password');
+                const nextIsLogin = !isLogin;
+                setIsLogin(nextIsLogin);
+                // If switching to Sign Up, always use password method
+                if (!nextIsLogin) setAuthMethod('password');
               }}
             >
               {isLogin ? "New to Kalamic? Create an Account" : "Already a Collector? Sign In"}
