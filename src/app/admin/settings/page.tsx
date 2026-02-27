@@ -38,6 +38,7 @@ import dayjs from 'dayjs';
 import { useToast } from '@/hooks/use-toast';
 
 const ROLES = ['super_admin', 'admin', 'support'];
+const PERMANENT_SUPER_ADMIN_EMAIL = 'sriyanshgupta24@gmail.com';
 
 export default function SettingsPage() {
   const theme = useTheme();
@@ -110,7 +111,7 @@ export default function SettingsPage() {
 
   if (isLoading) return <Box sx={{ p: 4 }}>Loading Governance Hub...</Box>;
 
-  if (currentUserProfile?.role !== 'super_admin') {
+  if (currentUserProfile?.role !== 'super_admin' && currentUserProfile?.email !== PERMANENT_SUPER_ADMIN_EMAIL) {
     return (
       <Box sx={{ p: 10, textAlign: 'center' }}>
         <Shield sx={{ fontSize: 80, color: 'error.light', mb: 2 }} />
@@ -161,13 +162,13 @@ export default function SettingsPage() {
                       value={admin.role}
                       onChange={(e) => handleRoleChange(admin._id, e.target.value)}
                       sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.8rem' }}
-                      disabled={admin.email === 'sriyanhsgupta24@gmail.com'}
+                      disabled={admin.email === PERMANENT_SUPER_ADMIN_EMAIL}
                     >
                       {ROLES.map(r => <MenuItem key={r} value={r} sx={{ fontSize: '0.8rem', fontWeight: 600 }}>{r.toUpperCase()}</MenuItem>)}
                     </Select>
                   </FormControl>
 
-                  {admin.email !== 'sriyanhsgupta24@gmail.com' && (
+                  {admin.email !== PERMANENT_SUPER_ADMIN_EMAIL && (
                     <Button 
                       fullWidth 
                       variant="outlined" 

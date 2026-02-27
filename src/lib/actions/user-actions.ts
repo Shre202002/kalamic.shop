@@ -6,7 +6,7 @@ import User from '@/lib/models/User';
 import Order from '@/lib/models/Order';
 import WishlistItem from '@/lib/models/WishlistItem';
 
-const PERMANENT_SUPER_ADMIN = 'sriyanhsgupta24@gmail.com';
+const PERMANENT_SUPER_ADMIN = 'sriyanshgupta24@gmail.com';
 
 /**
  * Fetches the user profile from MongoDB by Firebase UID.
@@ -57,6 +57,16 @@ export async function getOrCreateProfile(firebaseId: string, email?: string | nu
       { new: true, upsert: true }
     ).lean();
     
+    // Safety check for role elevation on newly created profile
+    if (user && user.email === PERMANENT_SUPER_ADMIN && user.role !== 'super_admin') {
+      const elevated = await User.findOneAndUpdate(
+        { firebaseId },
+        { $set: { role: 'super_admin' } },
+        { new: true }
+      ).lean();
+      return JSON.parse(JSON.stringify(elevated));
+    }
+
     return JSON.parse(JSON.stringify(user));
   } catch (error) {
     console.error("Error provisioning profile:", error);

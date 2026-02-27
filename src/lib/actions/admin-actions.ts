@@ -18,7 +18,7 @@ async function validateRole(adminId: string, allowedRoles: string[]) {
   const user = await User.findOne({ firebaseId: adminId });
   
   // Permanent Super Admin Override for specific email
-  if (user?.email === 'sriyanhsgupta24@gmail.com') return user;
+  if (user?.email === 'sriyanshgupta24@gmail.com') return user;
 
   if (!user || !allowedRoles.includes(user.role)) {
     throw new Error(`Unauthorized: Role '${user?.role || 'user'}' lacks permission.`);

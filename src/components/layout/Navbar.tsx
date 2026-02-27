@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut, Settings, CreditCard, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { getProfile } from '@/lib/actions/user-actions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,9 +24,20 @@ import {
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string>('buyer');
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
+
+  useEffect(() => {
+    async function fetchRole() {
+      if (user) {
+        const profile = await getProfile(user.uid);
+        setUserRole(profile?.role || 'buyer');
+      }
+    }
+    fetchRole();
+  }, [user]);
 
   const cartQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -45,6 +57,8 @@ export function Navbar() {
   const handleSignOut = () => {
     auth.signOut();
   };
+
+  const isAdmin = ['super_admin', 'admin', 'support'].includes(userRole);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b">
@@ -159,19 +173,19 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
-                <DropdownMenuSeparator className="opacity-50" />
-                <DropdownMenuGroup>
-                   <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-primary/5 focus:text-primary">
-                    <Link href="/admin/dashboard" className="flex items-center w-full">
-                      <LayoutDashboard className="mr-3 h-4 w-4 opacity-70" />
-                      <span className="text-sm font-semibold">Admin Panel</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-xl cursor-pointer p-3 focus:bg-primary/5 focus:text-primary opacity-50 cursor-not-allowed">
-                    <CreditCard className="mr-3 h-4 w-4 opacity-70" />
-                    <span className="text-sm font-semibold">Billing (Coming Soon)</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator className="opacity-50" />
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-primary/5 focus:text-primary">
+                        <Link href="/admin/dashboard" className="flex items-center w-full">
+                          <LayoutDashboard className="mr-3 h-4 w-4 opacity-70" />
+                          <span className="text-sm font-semibold">Admin Panel</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </>
+                )}
                 <DropdownMenuSeparator className="opacity-50" />
                 <DropdownMenuItem onClick={handleSignOut} className="rounded-xl cursor-pointer p-3 text-destructive focus:bg-destructive/10 focus:text-destructive font-bold">
                   <LogOut className="mr-3 h-4 w-4" /> Sign Out
