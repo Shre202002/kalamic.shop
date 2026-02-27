@@ -1,9 +1,26 @@
 
 'use client';
 
-import React from 'react';
-import { Box, CssBaseline, ThemeProvider, createTheme, Toolbar, AppBar, IconButton, Typography, Avatar, Badge } from '@mui/material';
-import { Notifications as NotificationsIcon, Search as SearchIcon } from '@mui/icons-material';
+import React, { useState } from 'react';
+import { 
+  Box, 
+  CssBaseline, 
+  ThemeProvider, 
+  createTheme, 
+  Toolbar, 
+  AppBar, 
+  IconButton, 
+  Typography, 
+  Avatar, 
+  Badge,
+  useMediaQuery,
+  useTheme
+} from '@mui/material';
+import { 
+  Notifications as NotificationsIcon, 
+  Search as SearchIcon,
+  Menu as MenuIcon 
+} from '@mui/icons-material';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 
 const adminTheme = createTheme({
@@ -32,16 +49,46 @@ const adminTheme = createTheme({
 });
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
   return (
     <ThemeProvider theme={adminTheme}>
       <Box sx={{ display: 'flex' }}>
         <CssBaseline />
-        <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: 'white', color: 'text.primary', boxShadow: 'none', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+        <AppBar 
+          position="fixed" 
+          sx={{ 
+            zIndex: (theme) => theme.zIndex.drawer + 1, 
+            bgcolor: 'white', 
+            color: 'text.primary', 
+            boxShadow: 'none', 
+            borderBottom: '1px solid rgba(0,0,0,0.08)' 
+          }}
+        >
           <Toolbar sx={{ justifyContent: 'space-between' }}>
-            <Typography variant="h6" noWrap component="div" sx={{ display: { xs: 'none', sm: 'block' } }}>
-              Control Hub
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {isMobile && (
+                <IconButton
+                  color="inherit"
+                  aria-label="open drawer"
+                  edge="start"
+                  onClick={handleDrawerToggle}
+                  sx={{ mr: 2 }}
+                >
+                  <MenuIcon />
+                </IconButton>
+              )}
+              <Typography variant="h6" noWrap component="div">
+                Control Hub
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
               <IconButton><SearchIcon /></IconButton>
               <IconButton>
                 <Badge badgeContent={4} color="error">
@@ -52,8 +99,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Box>
           </Toolbar>
         </AppBar>
-        <AdminSidebar />
-        <Box component="main" sx={{ flexGrow: 1, p: 3, bgcolor: 'background.default', minHeight: '100vh' }}>
+        
+        <AdminSidebar 
+          mobileOpen={mobileOpen} 
+          handleDrawerToggle={handleDrawerToggle} 
+        />
+
+        <Box 
+          component="main" 
+          sx={{ 
+            flexGrow: 1, 
+            p: { xs: 2, sm: 3 }, 
+            bgcolor: 'background.default', 
+            minHeight: '100vh',
+            width: { md: `calc(100% - 240px)` }
+          }}
+        >
           <Toolbar />
           {children}
         </Box>

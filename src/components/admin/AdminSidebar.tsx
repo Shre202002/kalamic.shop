@@ -12,7 +12,9 @@ import {
   Toolbar, 
   Typography, 
   Divider,
-  Box
+  Box,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { 
   Dashboard as DashboardIcon, 
@@ -31,23 +33,23 @@ const drawerWidth = 240;
 const MENU_ITEMS = [
   { text: 'Overview', icon: <DashboardIcon />, href: '/admin/dashboard' },
   { text: 'Orders', icon: <OrdersIcon />, href: '/admin/orders' },
-  { text: 'Customers', icon: <UsersIcon />, href: '/admin/users' },
+  { text: 'Collectors', icon: <UsersIcon />, href: '/admin/users' },
   { text: 'Inventory', icon: <ProductsIcon />, href: '/admin/products' },
   { text: 'Analytics', icon: <AnalyticsIcon />, href: '/admin/analytics' },
 ];
 
-export function AdminSidebar() {
-  const pathname = usePathname();
+interface AdminSidebarProps {
+  mobileOpen: boolean;
+  handleDrawerToggle: () => void;
+}
 
-  return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box', borderRight: '1px solid rgba(0,0,0,0.08)' },
-      }}
-    >
+export function AdminSidebar({ mobileOpen, handleDrawerToggle }: AdminSidebarProps) {
+  const pathname = usePathname();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const drawerContent = (
+    <>
       <Toolbar>
         <Typography variant="h6" sx={{ fontWeight: 900, color: 'primary.main', letterSpacing: -1 }}>
           KALAMIC ADMIN
@@ -61,6 +63,7 @@ export function AdminSidebar() {
                 component={Link} 
                 href={item.href}
                 selected={pathname === item.href}
+                onClick={isMobile ? handleDrawerToggle : undefined}
                 sx={{ 
                   borderRadius: 2,
                   '&.Mui-selected': { bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } },
@@ -76,7 +79,12 @@ export function AdminSidebar() {
         <Divider sx={{ my: 2, mx: 2 }} />
         <List sx={{ px: 2 }}>
           <ListItem disablePadding>
-            <ListItemButton component={Link} href="/admin/settings" sx={{ borderRadius: 2 }}>
+            <ListItemButton 
+              component={Link} 
+              href="/admin/settings" 
+              sx={{ borderRadius: 2 }}
+              onClick={isMobile ? handleDrawerToggle : undefined}
+            >
               <ListItemIcon sx={{ minWidth: 40 }}><SettingsIcon /></ListItemIcon>
               <ListItemText primary="Settings" primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }} />
             </ListItemButton>
@@ -89,6 +97,39 @@ export function AdminSidebar() {
           </ListItem>
         </List>
       </Box>
-    </Drawer>
+    </>
+  );
+
+  return (
+    <Box
+      component="nav"
+      sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+    >
+      {/* Mobile Drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      {/* Desktop Drawer */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: 'none', md: 'block' },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: '1px solid rgba(0,0,0,0.08)' },
+        }}
+        open
+      >
+        {drawerContent}
+      </Drawer>
+    </Box>
   );
 }
