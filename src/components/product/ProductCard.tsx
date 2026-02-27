@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState } from 'react';
@@ -107,11 +106,11 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
 
   return (
     <Card 
-      className="group border-none shadow-md hover:shadow-2xl transition-all duration-500 rounded-[2.5rem] overflow-hidden bg-white cursor-pointer h-full flex flex-col"
+      className="group border-none shadow-sm hover:shadow-2xl transition-all duration-500 rounded-[1.5rem] overflow-hidden bg-white cursor-pointer h-full flex flex-col"
       onClick={() => router.push(`/products/${slug || id}`)}
     >
       <CardContent className="p-4 pb-0 relative">
-        <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden bg-muted shadow-inner">
+        <div className="relative aspect-[4/5] rounded-[1rem] overflow-hidden bg-[#F6F1E9] shadow-inner">
           <Image
             src={displayImage}
             alt={name || 'Ceramic Piece'}
@@ -129,47 +128,42 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
           <button 
             onClick={handleAddToWishlist}
             className={cn(
-              "absolute top-4 right-4 p-2.5 rounded-2xl backdrop-blur-md transition-all duration-300 shadow-xl z-10",
+              "absolute top-4 right-4 p-2.5 rounded-lg backdrop-blur-md transition-all duration-300 shadow-xl z-10",
               isFavorited ? "bg-white scale-110" : "bg-white/80 opacity-0 group-hover:opacity-100 hover:bg-white"
             )}
           >
-            <Heart className={cn("h-3.5 w-3.5 transition-colors", isFavorited ? "fill-red-500 text-red-500" : "text-primary")} />
+            <Heart className={cn("h-3.5 w-3.5 transition-colors", isFavorited ? "fill-primary text-primary" : "text-[#2E2E2E]")} />
           </button>
         </div>
       </CardContent>
 
       <CardContent className="p-5 flex-1 flex flex-col">
-        <div className="flex items-center gap-1 text-accent mb-1.5">
+        <div className="flex items-center gap-1 text-[#6F8A7A] mb-1.5">
           {[1,2,3,4,5].map(i => <Star key={i} className={cn("h-3 w-3", i <= Math.round(rating) ? "fill-current" : "opacity-20")} />)}
-          <span className="text-[9px] font-black text-muted-foreground ml-1">{rating || 4.8}</span>
+          <span className="text-[9px] font-black text-[#6B6B6B] ml-1">{rating || 4.8}</span>
         </div>
         
-        <h3 className="text-lg font-black text-primary tracking-tight leading-tight line-clamp-2 mb-1.5 group-hover:text-accent transition-colors duration-300">
+        <h3 className="text-lg font-black text-[#2E2E2E] tracking-tight leading-tight line-clamp-2 mb-1.5 group-hover:text-primary transition-colors duration-300">
           {name || 'Handcrafted Piece'}
         </h3>
-        {description && (
-          <p className="text-[10px] text-muted-foreground line-clamp-2 mb-3 leading-relaxed font-medium">
-            {description}
-          </p>
-        )}
         
         <div className="mt-auto flex items-baseline gap-2 mb-4">
           <span className="text-xl font-black text-primary tracking-tight">₹{(price ?? 0).toLocaleString()}</span>
           {originalPrice && (
-            <span className="text-xs text-muted-foreground line-through opacity-40 font-bold">₹{originalPrice.toLocaleString()}</span>
+            <span className="text-xs text-[#9A9A9A] line-through decoration-[#9A9A9A]/50 font-bold">₹{originalPrice.toLocaleString()}</span>
           )}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="outline"
-            className="h-10 rounded-2xl border-primary/20 text-primary hover:bg-primary/5 text-[10px] font-black gap-1.5 transition-all active:scale-95"
+            className="h-10 rounded-lg border-primary/20 text-primary hover:bg-primary/5 text-[10px] font-black gap-1.5 transition-all active:scale-95"
             onClick={handleAddToCart}
           >
             <ShoppingBag className="h-3.5 w-3.5" /> Bag
           </Button>
           <Button 
-            className="h-10 rounded-2xl bg-primary text-white hover:bg-primary/90 text-[10px] font-black gap-1.5 shadow-xl shadow-primary/20 transition-all active:scale-95"
+            className="h-10 rounded-lg bg-primary text-white hover:bg-[#A95C2B] text-[10px] font-black gap-1.5 shadow-xl shadow-primary/20 transition-all active:scale-95"
             onClick={handleBuyNow}
           >
             <Zap className="h-3.5 w-3.5" /> Buy

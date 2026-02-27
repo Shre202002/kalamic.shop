@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -25,15 +24,15 @@ import { AdminSidebar } from '@/components/admin/AdminSidebar';
 
 const adminTheme = createTheme({
   palette: {
-    primary: { main: '#EA781E' },
-    secondary: { main: '#8B9689' },
-    background: { default: '#F8F9FA' }
+    primary: { main: '#C97A40' }, // Terracotta
+    secondary: { main: '#6F8A7A' }, // Muted Sage
+    background: { default: '#F6F1E9' } // Soft Cream
   },
   typography: {
     fontFamily: 'Inter, sans-serif',
     fontSize: 13,
-    h4: { fontWeight: 800, fontSize: '1.75rem' },
-    h6: { fontWeight: 700, fontSize: '1rem' }
+    h4: { fontWeight: 800, fontSize: '1.5rem' },
+    h6: { fontWeight: 700, fontSize: '0.9rem' }
   },
   components: {
     MuiButton: {
