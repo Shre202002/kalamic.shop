@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { getProductById, getProductBySlug, getFeaturedProducts } from '@/lib/actions/products';
+import { getProductById, getFeaturedProducts, trackProductAction, untrackWishlistAction } from '@/lib/actions/products';
 import { getProductReviews, submitReview } from '@/lib/actions/reviews';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
@@ -76,16 +76,18 @@ export default function ProductDetailPage() {
     async function loadData() {
       try {
         const id = params.id as string;
-        let data = await getProductById(id);
-        if (!data) data = await getProductBySlug(id);
+        const data = await getProductById(id);
         
         if (data) {
           setProduct(data);
+          // Track View Analytics
+          trackProductAction(data._id, 'total_views');
+          
           const [featured, reviewData] = await Promise.all([
             getFeaturedProducts(),
-            getProductReviews(data._id || data.id)
+            getProductReviews(data._id)
           ]);
-          setRelatedProducts(featured.filter((p: any) => (p._id || p.id) !== (data._id || data.id)).slice(0, 4));
+          setRelatedProducts(featured.filter((p: any) => p._id !== data._id).slice(0, 4));
           setReviews(reviewData);
         }
       } catch (error) {
@@ -103,19 +105,22 @@ export default function ProductDetailPage() {
       return;
     }
 
-    const id = product._id || product.id;
+    const id = product._id;
     const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
     await setDoc(cartItemRef, {
       id,
       productVariantId: id,
-      cartId: user.uid, // Required by Firestore rules
+      cartId: user.uid,
       name: product.name,
       priceAtAddToCart: product.price,
-      imageUrl: product.images?.[0] || `https://picsum.photos/seed/${id}/600/600`,
+      imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || `https://picsum.photos/seed/${id}/600/600`,
       quantity: 1,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     }, { merge: true });
+
+    // Track Analytics
+    trackProductAction(id, 'cart_add_count');
 
     toast({
       title: "Added to cart",
@@ -129,15 +134,15 @@ export default function ProductDetailPage() {
       return;
     }
 
-    const id = product._id || product.id;
+    const id = product._id;
     const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
     await setDoc(cartItemRef, {
       id,
       productVariantId: id,
-      cartId: user.uid, // Required by Firestore rules
+      cartId: user.uid,
       name: product.name,
       priceAtAddToCart: product.price,
-      imageUrl: product.images?.[0] || `https://picsum.photos/seed/${id}/600/600`,
+      imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || `https://picsum.photos/seed/${id}/600/600`,
       quantity: 1,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -152,27 +157,32 @@ export default function ProductDetailPage() {
       return;
     }
 
-    const productId = product._id || product.id;
+    const productId = product._id;
     const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', productId);
     
     try {
       if (isFavorited) {
         await deleteDoc(wishlistItemRef);
+        // Untrack Analytics
+        untrackWishlistAction(productId);
         toast({
-          title: "Removed from wishlist",
+          title: "Removed from favorites",
           description: `${product.name} has been removed from your favorites.`,
         });
       } else {
         await setDoc(wishlistItemRef, {
           id: productId,
           productId,
-          wishlistId: user.uid, // Required by rules
+          wishlistId: user.uid,
           slug: product.slug,
           name: product.name,
           price: product.price,
-          imageUrl: product.images?.[0] || `https://picsum.photos/seed/${productId}/600/600`,
+          imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || `https://picsum.photos/seed/${productId}/600/600`,
           addedAt: new Date().toISOString()
         }, { merge: true });
+
+        // Track Analytics
+        trackProductAction(productId, 'wishlist_count');
 
         toast({
           title: "Saved to wishlist",
@@ -196,6 +206,9 @@ export default function ProductDetailPage() {
     };
 
     try {
+      // Track Share Analytics
+      trackProductAction(product._id, 'share_count');
+
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
@@ -220,7 +233,7 @@ export default function ProductDetailPage() {
     setIsSubmittingReview(true);
     try {
       const review = await submitReview({
-        productId: product._id || product.id,
+        productId: product._id,
         userId: user.uid,
         userName: user.displayName || user.email?.split('@')[0] || 'Anonymous Artisan',
         userAvatar: user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`,
@@ -265,7 +278,10 @@ export default function ProductDetailPage() {
     );
   }
 
-  const images = product.images?.length > 0 ? product.images : [`https://picsum.photos/seed/${product.slug}/800/800`];
+  const images = product.images?.length > 0 
+    ? product.images.map((img: any) => img.url) 
+    : [`https://picsum.photos/seed/${product.slug}/800/800`];
+    
   const reviewCount = reviews.length;
   const averageRating = reviewCount > 0 
     ? parseFloat((reviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount).toFixed(1)) 
@@ -344,25 +360,6 @@ export default function ProductDetailPage() {
                   {product.short_description}
                 </p>
               )}
-
-              <div className="space-y-3">
-                <h3 className="font-bold text-primary flex items-center gap-2">
-                  <Package className="h-4 w-4 text-accent" /> Product Highlights
-                </h3>
-                <ul className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
-                  {product.tags && product.tags.length > 0 ? product.tags.map((tag: string, i: number) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-accent" /> {tag}
-                    </li>
-                  )) : (
-                    <>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Genuine Indian Ceramic</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Kiln-fired for durability</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Hand-painted heritage motifs</li>
-                    </>
-                  )}
-                </ul>
-              </div>
 
               <div className="space-y-3 pt-2">
                 <h3 className="font-bold text-primary">Description</h3>
@@ -443,11 +440,11 @@ export default function ProductDetailPage() {
               <section className="space-y-6">
                 <h2 className="text-2xl font-bold text-primary border-b pb-2">Technical Specifications</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                  {product.technical_details ? (
-                    Object.entries(product.technical_details).map(([key, value]) => (
-                      <div key={key} className="flex justify-between border-b border-muted/30 py-2">
-                        <span className="text-sm font-bold text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
-                        <span className="text-sm text-primary font-medium">{String(value)}</span>
+                  {product.specifications?.length > 0 ? (
+                    product.specifications.map((spec: any, i: number) => (
+                      <div key={i} className="flex justify-between border-b border-muted/30 py-2">
+                        <span className="text-sm font-bold text-muted-foreground capitalize">{spec.key}</span>
+                        <span className="text-sm text-primary font-medium">{spec.value || 'N/A'}</span>
                       </div>
                     ))
                   ) : (
@@ -564,12 +561,12 @@ export default function ProductDetailPage() {
                 <div className="grid grid-cols-1 gap-6">
                   {relatedProducts.map(related => (
                     <ProductCard 
-                      key={related._id || related.id} 
-                      id={related._id || related.id} 
+                      key={related._id} 
+                      id={related._id} 
                       slug={related.slug} 
                       name={related.name} 
                       price={related.price} 
-                      image={related.images?.[0] || 'https://placehold.co/200x200'} 
+                      image={related.images?.find((img: any) => img.is_primary)?.url || related.images?.[0]?.url || 'https://placehold.co/200x200'} 
                       rating={related.averageRating || 4.8} 
                       tag={related.tags?.[0] || "Artisan"} 
                     />

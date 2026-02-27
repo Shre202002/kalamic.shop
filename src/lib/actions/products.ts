@@ -5,12 +5,15 @@ import dbConnect from '@/lib/db';
 import Product from '@/lib/models/Product';
 
 /**
- * Fetches all active products from the database.
+ * Fetches all non-deleted, active products.
  */
 export async function getProducts() {
   await dbConnect();
   try {
-    const products = await Product.find({ is_active: true }).sort({ createdAt: -1 }).lean();
+    const products = await Product.find({ 
+      is_active: true, 
+      is_deleted: { $ne: true } 
+    }).sort({ visibility_priority: -1, createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(products));
   } catch (error) {
     console.error("Error fetching all products:", error);
@@ -19,12 +22,16 @@ export async function getProducts() {
 }
 
 /**
- * Fetches featured products (currently first 4 active products).
+ * Fetches featured products for the storefront.
  */
 export async function getFeaturedProducts() {
   await dbConnect();
   try {
-    const products = await Product.find({ is_active: true }).limit(4).lean();
+    const products = await Product.find({ 
+      is_active: true, 
+      is_featured: true,
+      is_deleted: { $ne: true } 
+    }).limit(8).lean();
     return JSON.parse(JSON.stringify(products));
   } catch (error) {
     console.error("Error fetching featured products:", error);
@@ -33,32 +40,58 @@ export async function getFeaturedProducts() {
 }
 
 /**
- * Fetches a single product by its MongoDB ID.
+ * Fetches a single product by MongoDB ID or slug.
  */
 export async function getProductById(id: string) {
-  if (!id || id.length !== 24) return null; // Basic MongoID check
+  if (!id) return null;
   await dbConnect();
   try {
-    const product = await Product.findById(id).lean();
-    if (!product) return null;
-    return JSON.parse(JSON.stringify(product));
+    // Attempt ID find first (24 char check)
+    let product = null;
+    if (id.length === 24) {
+      product = await Product.findOne({ _id: id, is_deleted: { $ne: true } }).lean();
+    }
+    
+    if (!product) {
+      product = await Product.findOne({ slug: id, is_deleted: { $ne: true } }).lean();
+    }
+
+    return product ? JSON.parse(JSON.stringify(product)) : null;
   } catch (error) {
-    console.error("Error fetching product by ID:", error);
+    console.error("Error fetching product:", error);
     return null;
   }
 }
 
-/**
- * Fetches a single product by its slug.
- */
 export async function getProductBySlug(slug: string) {
+  return getProductById(slug);
+}
+
+/**
+ * Atomic increment for product analytics.
+ */
+export async function trackProductAction(productId: string, field: 'wishlist_count' | 'share_count' | 'total_views' | 'cart_add_count') {
   await dbConnect();
   try {
-    const product = await Product.findOne({ slug }).lean();
-    if (!product) return null;
-    return JSON.parse(JSON.stringify(product));
+    const updateField = `analytics.${field}`;
+    await Product.findByIdAndUpdate(productId, {
+      $inc: { [updateField]: 1 }
+    });
   } catch (error) {
-    console.error("Error fetching product by slug:", error);
-    return null;
+    console.error(`[ANALYTICS] Failed to track ${field} for product ${productId}:`, error);
+  }
+}
+
+/**
+ * Decrement wishlist count.
+ */
+export async function untrackWishlistAction(productId: string) {
+  await dbConnect();
+  try {
+    await Product.findByIdAndUpdate(productId, {
+      $inc: { 'analytics.wishlist_count': -1 }
+    });
+  } catch (error) {
+    console.error(`[ANALYTICS] Failed to untrack wishlist for product ${productId}:`, error);
   }
 }
