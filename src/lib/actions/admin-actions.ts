@@ -141,25 +141,31 @@ export async function saveProduct(adminId: string, productData: any) {
   await dbConnect();
   try {
     const isNew = !productData._id;
-    let savedProduct;
-
-    // Ensure numeric fields are correctly typed and handle nested structure
+    
+    // Explicitly rebuild the data structure to match the schema and prevent "Cast to embedded failed" errors
+    // This ensures that strings are never passed where objects are expected
     const cleanedData = {
-      ...productData,
+      name: String(productData.name || ""),
+      slug: String(productData.slug || ""),
+      short_description: String(productData.short_description || ""),
+      description: String(productData.description || ""),
       price: Number(productData.price) || 0,
-      compare_at_price: productData.compare_at_price && productData.compare_at_price !== "" 
-        ? Number(productData.compare_at_price) 
-        : undefined,
+      compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
       stock: Number(productData.stock) || 0,
+      sku: String(productData.sku || ""),
+      is_active: productData.is_active !== undefined ? !!productData.is_active : true,
+      is_featured: !!productData.is_featured,
       visibility_priority: Number(productData.visibility_priority) || 0,
-      images: (productData.images || []).map((img: any) => ({
-        url: img.url || "",
-        alt: img.alt || "",
-        is_primary: !!img.is_primary
-      })),
+      images: (productData.images || []).map((img: any) => {
+        // Handle legacy strings or objects
+        const url = typeof img === 'string' ? img : (img.url || "");
+        const alt = typeof img === 'string' ? "" : (img.alt || "");
+        const is_primary = typeof img === 'string' ? false : !!img.is_primary;
+        return { url, alt, is_primary };
+      }),
       specifications: (productData.specifications || []).map((spec: any) => ({
-        key: spec.key || "",
-        value: spec.value || ""
+        key: String(spec.key || ""),
+        value: String(spec.value || "")
       })),
       shipping: {
         weight_kg: Number(productData.shipping?.weight_kg) || 0,
@@ -170,12 +176,15 @@ export async function saveProduct(adminId: string, productData: any) {
         }
       },
       seo: {
-        meta_title: productData.seo?.meta_title || "",
-        meta_description: productData.seo?.meta_description || "",
-        meta_keywords: Array.isArray(productData.seo?.meta_keywords) ? productData.seo.meta_keywords : []
+        meta_title: String(productData.seo?.meta_title || ""),
+        meta_description: String(productData.seo?.meta_description || ""),
+        meta_keywords: Array.isArray(productData.seo?.meta_keywords) 
+          ? productData.seo.meta_keywords.map(String) 
+          : []
       }
     };
 
+    let savedProduct;
     if (isNew) {
       savedProduct = await Product.create({
         ...cleanedData,
@@ -184,13 +193,13 @@ export async function saveProduct(adminId: string, productData: any) {
       });
       await logAction(adminId, 'CREATE_PRODUCT', 'Product', savedProduct._id.toString(), `Created piece: ${savedProduct.name}`);
     } else {
-      const { _id, ...updateData } = cleanedData;
       savedProduct = await Product.findByIdAndUpdate(
-        _id,
-        { ...updateData, updated_by_admin: adminId },
+        productData._id,
+        { ...cleanedData, updated_by_admin: adminId },
         { new: true, runValidators: true }
       );
-      await logAction(adminId, 'UPDATE_PRODUCT', 'Product', _id, `Updated piece: ${savedProduct.name}`);
+      if (!savedProduct) throw new Error("Product not found for update");
+      await logAction(adminId, 'UPDATE_PRODUCT', 'Product', productData._id, `Updated piece: ${savedProduct.name}`);
     }
 
     // Seamlessly update caches for real-time storefront updates
@@ -202,7 +211,7 @@ export async function saveProduct(adminId: string, productData: any) {
     return JSON.parse(JSON.stringify(savedProduct));
   } catch (error: any) {
     console.error("Save Product Error:", error);
-    throw new Error(error.message || "Failed to save product");
+    throw new Error(error.message || "Failed to save masterpiece to catalog.");
   }
 }
 

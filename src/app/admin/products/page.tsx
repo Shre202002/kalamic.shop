@@ -130,8 +130,11 @@ export default function ProductsManagement() {
       const normalizedProduct = {
         ...INITIAL_PRODUCT,
         ...product,
-        images: Array.isArray(product.images) && product.images.length 
-          ? product.images.map((img: any) => typeof img === 'string' ? { url: img, alt: '', is_primary: false } : { ...img })
+        images: Array.isArray(product.images) 
+          ? product.images.map((img: any) => {
+              if (typeof img === 'string') return { url: img, alt: '', is_primary: false };
+              return { ...img, url: img.url || '', alt: img.alt || '', is_primary: !!img.is_primary };
+            })
           : INITIAL_PRODUCT.images,
         specifications: Array.isArray(product.specifications) && product.specifications.length 
           ? product.specifications.map((s: any) => ({ ...s }))
@@ -536,11 +539,10 @@ export default function ProductsManagement() {
                             fullWidth 
                             label="Image URL" 
                             size="small" 
-                            value={typeof img === 'string' ? img : (img.url || '')}
+                            value={img.url || ''}
                             onChange={(e) => {
                               const newImgs = [...(editingProduct.images || [])];
-                              const currentImg = typeof newImgs[idx] === 'string' ? { url: newImgs[idx], alt: '', is_primary: false } : newImgs[idx];
-                              newImgs[idx] = { ...currentImg, url: e.target.value };
+                              newImgs[idx] = { ...newImgs[idx], url: e.target.value };
                               setEditingProduct({...editingProduct, images: newImgs});
                             }}
                             sx={{ mb: 2 }}
@@ -552,8 +554,7 @@ export default function ProductsManagement() {
                             value={img.alt || ''}
                             onChange={(e) => {
                               const newImgs = [...(editingProduct.images || [])];
-                              const currentImg = typeof newImgs[idx] === 'string' ? { url: newImgs[idx], alt: '', is_primary: false } : newImgs[idx];
-                              newImgs[idx] = { ...currentImg, alt: e.target.value };
+                              newImgs[idx] = { ...newImgs[idx], alt: e.target.value };
                               setEditingProduct({...editingProduct, images: newImgs});
                             }}
                           />
@@ -561,10 +562,10 @@ export default function ProductsManagement() {
                         <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
                           <FormControlLabel
                             control={<Checkbox checked={!!img.is_primary} onChange={(e) => {
-                              const newImgs = (editingProduct.images || []).map((i: any, iidx: number) => {
-                                const currentI = typeof i === 'string' ? { url: i, alt: '', is_primary: false } : i;
-                                return { ...currentI, is_primary: iidx === idx };
-                              });
+                              const newImgs = (editingProduct.images || []).map((i: any, iidx: number) => ({
+                                ...i,
+                                is_primary: iidx === idx
+                              }));
                               setEditingProduct({...editingProduct, images: newImgs});
                             }} />}
                             label="Primary Image"
