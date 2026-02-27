@@ -232,7 +232,7 @@ export default function LoginPage() {
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                       <Input 
                         id="email" 
                         type="email" 
@@ -240,21 +240,21 @@ export default function LoginPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required 
-                        className="pl-12 h-12 rounded-xl"
+                        className="pl-14 h-12 rounded-xl"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Secret Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                      <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                       <Input 
                         id="password" 
                         type="password" 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required 
-                        className="pl-12 h-12 rounded-xl"
+                        className="pl-14 h-12 rounded-xl"
                       />
                     </div>
                   </div>
@@ -271,7 +271,7 @@ export default function LoginPage() {
                     <div className="space-y-2">
                       <Label htmlFor="otp-email">Email Address</Label>
                       <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input 
                           id="otp-email" 
                           type="email" 
@@ -279,7 +279,7 @@ export default function LoginPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required 
-                          className="pl-12 h-12 rounded-xl"
+                          className="pl-14 h-12 rounded-xl"
                         />
                       </div>
                     </div>
@@ -297,7 +297,7 @@ export default function LoginPage() {
                     <div className="space-y-2">
                       <Label htmlFor="otp">Enter 6-Digit Code</Label>
                       <div className="relative">
-                        <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                        <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input 
                           id="otp" 
                           type="text" 
@@ -306,7 +306,7 @@ export default function LoginPage() {
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
                           required 
-                          className="pl-12 h-14 text-center text-2xl tracking-[0.5em] font-black rounded-xl"
+                          className="pl-14 h-14 text-center text-2xl tracking-[0.5em] font-black rounded-xl"
                         />
                       </div>
                       <p className="text-xs text-center text-muted-foreground">Sent to {email}</p>
@@ -328,7 +328,7 @@ export default function LoginPage() {
                     <div className="space-y-2">
                       <Label htmlFor="phoneNumber">Phone Number (with +)</Label>
                       <div className="relative">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                        <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input 
                           id="phoneNumber" 
                           type="tel" 
@@ -336,7 +336,7 @@ export default function LoginPage() {
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
                           required 
-                          className="pl-12 h-12 rounded-xl"
+                          className="pl-14 h-12 rounded-xl"
                         />
                       </div>
                       <p className="text-[10px] text-muted-foreground italic">Must start with + country code (e.g., +91 for India)</p>
@@ -355,7 +355,7 @@ export default function LoginPage() {
                     <div className="space-y-2">
                       <Label htmlFor="phone-otp">Enter 6-Digit Code</Label>
                       <div className="relative">
-                        <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                        <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input 
                           id="phone-otp" 
                           type="text" 
@@ -364,7 +364,7 @@ export default function LoginPage() {
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
                           required 
-                          className="pl-12 h-14 text-center text-2xl tracking-[0.5em] font-black rounded-xl"
+                          className="pl-14 h-14 text-center text-2xl tracking-[0.5em] font-black rounded-xl"
                         />
                       </div>
                       <p className="text-xs text-center text-muted-foreground">Sent to {phoneNumber}</p>
@@ -389,10 +389,10 @@ export default function LoginPage() {
               variant="ghost" 
               className="w-full text-sm font-bold text-muted-foreground hover:text-primary transition-colors"
               onClick={() => {
-                const nextIsLogin = !isLogin;
-                setIsLogin(nextIsLogin);
-                // If switching to Sign Up, always use password method
-                if (!nextIsLogin) setAuthMethod('password');
+                setIsLogin(!isLogin);
+                setAuthMethod('password'); // Always reset to password tab when toggling mode
+                setOtpSent(false);
+                setOtpCode('');
               }}
             >
               {isLogin ? "New to Kalamic? Create an Account" : "Already a Collector? Sign In"}
