@@ -4,6 +4,7 @@
 /**
  * @fileOverview Server actions for Cashfree Payment Gateway integration.
  * Handles secure order creation and payment verification.
+ * Includes a Mock Mode fallback for prototyping when credentials are missing.
  */
 
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
@@ -16,7 +17,6 @@ const BASE_URL = CASHFREE_ENV === 'production'
 
 /**
  * Creates a Cashfree order and returns the payment_session_id.
- * This is called on the server to keep secret keys safe.
  */
 export async function createCashfreeOrder(data: {
   orderId: string;
@@ -29,8 +29,14 @@ export async function createCashfreeOrder(data: {
     customerName: string;
   };
 }) {
+  // If credentials are missing, enter Mock Mode for prototyping
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    throw new Error('Cashfree credentials are not configured in environment variables.');
+    console.warn('[CASHFREE] Missing credentials. Entering Mock Mode for testing.');
+    return {
+      paymentSessionId: `mock_session_${Math.random().toString(36).substring(7)}`,
+      orderId: data.orderId,
+      isMock: true
+    };
   }
 
   try {
@@ -68,6 +74,7 @@ export async function createCashfreeOrder(data: {
     return {
       paymentSessionId: result.payment_session_id,
       orderId: result.order_id,
+      isMock: false
     };
   } catch (error: any) {
     console.error('[CASHFREE] Error:', error);
@@ -79,8 +86,14 @@ export async function createCashfreeOrder(data: {
  * Verifies the status of a Cashfree order on the server.
  */
 export async function verifyCashfreePayment(orderId: string) {
+  // Handle Mock Verification
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    throw new Error('Cashfree credentials are not configured.');
+    return {
+      success: true,
+      status: 'PAID',
+      paymentId: `mock_pay_${Math.random().toString(36).substring(7)}`,
+      isMock: true
+    };
   }
 
   try {
@@ -100,14 +113,13 @@ export async function verifyCashfreePayment(orderId: string) {
       throw new Error('Failed to verify payment with Cashfree');
     }
 
-    // Check if the order status is 'PAID' or 'ACTIVE' (if checking immediately)
-    // We strictly look for PAID for order finalization
     const isPaid = result.order_status === 'PAID';
     
     return {
       success: isPaid,
       status: result.order_status,
       paymentId: result.cf_order_id || result.order_id,
+      isMock: false
     };
   } catch (error: any) {
     console.error('[CASHFREE] Verification Error:', error);

@@ -121,6 +121,31 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  /**
+   * Finalizes the order after payment verification
+   */
+  const finalizeOrder = async (orderId: string, paymentId: string) => {
+    if (!user || !firestore || !cartItems) return;
+    
+    const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
+    
+    // Update Order to 'placed'
+    await updateDoc(orderRef, {
+      orderStatus: 'placed',
+      paymentId: paymentId,
+      updatedAt: serverTimestamp()
+    });
+
+    // Clear Cart items
+    const clearPromises = cartItems.map(item => 
+      deleteDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id))
+    );
+    await Promise.all(clearPromises);
+
+    toast({ title: "Acquisition Successful!", description: `Order ID: ${orderId} has been confirmed.` });
+    router.push(`/orders/${orderId}`);
+  };
+
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length || !firestore) return;
     
@@ -131,11 +156,6 @@ export default function CheckoutPage() {
         title: "Incomplete Details",
         description: "Please ensure all shipping fields are completed for a safe delivery.",
       });
-      return;
-    }
-
-    if (!cashfreeLoaded) {
-      toast({ variant: "destructive", title: "System Error", description: "Payment gateway is initializing. Please wait." });
       return;
     }
 
@@ -176,7 +196,7 @@ export default function CheckoutPage() {
       await Promise.all(itemPromises);
 
       // 2. Request Secure Session from Server
-      const { paymentSessionId } = await createCashfreeOrder({
+      const result = await createCashfreeOrder({
         orderId,
         orderAmount: total,
         orderCurrency: 'INR',
@@ -188,47 +208,52 @@ export default function CheckoutPage() {
         }
       });
 
-      // 3. Launch Cashfree SDK
+      // 3. Handle Mock Mode or Real Checkout
+      if (result.isMock) {
+        toast({
+          title: "Mock Mode Active",
+          description: "API keys missing. Simulating successful transaction for testing purposes...",
+        });
+        
+        // Simulate a small delay for "payment processing"
+        setTimeout(async () => {
+          const verification = await verifyCashfreePayment(orderId);
+          if (verification.success) {
+            await finalizeOrder(orderId, verification.paymentId);
+          }
+        }, 2000);
+        return;
+      }
+
+      // 4. Launch Real Cashfree SDK
+      if (!cashfreeLoaded) {
+        toast({ variant: "destructive", title: "System Error", description: "Payment gateway SDK failed to load." });
+        setIsProcessing(false);
+        return;
+      }
+
       const cashfree = new window.Cashfree({
         mode: process.env.NEXT_PUBLIC_CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
       });
 
       cashfree.checkout({
-        paymentSessionId,
+        paymentSessionId: result.paymentSessionId,
         redirectTarget: "_self" 
-      }).then(async (result: any) => {
-        if (result.error) {
-          toast({ variant: "destructive", title: "Payment Failed", description: result.error.message });
+      }).then(async (sdkResult: any) => {
+        if (sdkResult.error) {
+          toast({ variant: "destructive", title: "Payment Failed", description: sdkResult.error.message });
           setIsProcessing(false);
           return;
         }
 
-        if (result.redirect) {
-          // Logic will continue on return URL
-          return;
-        }
+        if (sdkResult.redirect) return;
 
-        // 4. Client-side Success: Verify on Server immediately
-        if (result.paymentDetails) {
+        if (sdkResult.paymentDetails) {
           setIsProcessing(true);
           const verification = await verifyCashfreePayment(orderId);
           
           if (verification.success) {
-            // Update Order to 'placed'
-            await updateDoc(orderRef, {
-              orderStatus: 'placed',
-              paymentId: verification.paymentId,
-              updatedAt: serverTimestamp()
-            });
-
-            // Clear Cart items
-            const clearPromises = cartItems.map(item => 
-              deleteDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id))
-            );
-            await Promise.all(clearPromises);
-
-            toast({ title: "Acquisition Successful!", description: `Order ID: ${orderId} has been confirmed.` });
-            router.push(`/orders/${orderId}`);
+            await finalizeOrder(orderId, verification.paymentId);
           } else {
             toast({ 
               variant: "destructive", 
@@ -436,7 +461,7 @@ export default function CheckoutPage() {
 
                   <Button 
                     onClick={handlePlaceOrder} 
-                    disabled={isProcessing || !cashfreeLoaded}
+                    disabled={isProcessing}
                     className="w-full h-20 rounded-[2rem] bg-primary text-white hover:bg-primary/90 text-2xl font-black shadow-2xl shadow-primary/20 transition-all active:scale-95 mt-6"
                   >
                     {isProcessing ? (
