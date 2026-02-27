@@ -45,7 +45,7 @@ export async function getAdminDashboardStats() {
   ] = await Promise.all([
     Order.aggregate([{ $group: { _id: null, total: { $sum: "$totalAmount" } } }]),
     Order.countDocuments(),
-    User.countDocuments({ role: 'user' }),
+    User.countDocuments({ role: { $in: ['user', 'buyer'] } }),
     User.countDocuments({ lastLogin: { $gte: sevenDaysAgo } }),
     Order.countDocuments({ orderStatus: { $in: ['pending', 'placed', 'pending_payment'] } }),
     WishlistItem.countDocuments()
@@ -120,7 +120,7 @@ export async function updateOrderStatus(adminId: string, orderId: string, status
  */
 export async function getAllUsers() {
   await dbConnect();
-  const users = await User.find({ role: 'user' }).sort({ createdAt: -1 }).lean();
+  const users = await User.find({ role: { $in: ['user', 'buyer'] } }).sort({ createdAt: -1 }).lean();
   return JSON.parse(JSON.stringify(users));
 }
 

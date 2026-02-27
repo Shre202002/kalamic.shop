@@ -14,7 +14,7 @@ export interface IUser extends Document {
   landmark: string;
   emailVerified: boolean;
   phoneVerified: boolean;
-  role: 'super_admin' | 'admin' | 'support' | 'user';
+  role: 'super_admin' | 'admin' | 'support' | 'buyer' | 'user';
   status: 'active' | 'disabled';
   lastLogin: Date;
   createdAt: Date;
@@ -36,8 +36,8 @@ const UserSchema: Schema = new Schema({
   phoneVerified: { type: Boolean, default: false },
   role: { 
     type: String, 
-    enum: ['super_admin', 'admin', 'support', 'user'], 
-    default: 'user' 
+    enum: ['super_admin', 'admin', 'support', 'buyer', 'user'], 
+    default: 'buyer' 
   },
   status: {
     type: String,
