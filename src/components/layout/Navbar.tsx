@@ -81,9 +81,9 @@ export function Navbar() {
             </SheetTrigger>
             <SheetContent side="left" className="w-[300px] p-0">
               <SheetHeader className="p-6 border-b text-left">
-                <SheetTitle className="text-2xl font-bold text-primary">Kalamic</SheetTitle>
+                <SheetTitle className="text-2xl font-display font-bold text-primary">Kalamic</SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col p-4">
+              <nav className="flex flex-col p-4 font-body">
                 <Link href="/" className="flex items-center justify-between p-4 text-lg font-medium border-b hover:text-primary transition-colors">Home</Link>
                 {navLinks.map((link) => (
                   <Link
@@ -101,15 +101,15 @@ export function Navbar() {
         </div>
 
         <Link href="/" className="flex items-center gap-2 group">
-          <span className="text-2xl md:text-3xl font-black text-primary tracking-tighter group-hover:scale-105 transition-transform">Kalamic</span>
+          <span className="text-2xl md:text-3xl font-display font-black text-primary tracking-tighter group-hover:scale-105 transition-transform">Kalamic</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-10">
+        <nav className="hidden md:flex items-center gap-10 font-body">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
               href={link.href} 
-              className="text-xs font-black uppercase tracking-[0.2em] transition-all hover:text-primary opacity-60 hover:opacity-100"
+              className="text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:text-primary opacity-60 hover:opacity-100"
             >
               {link.name}
             </Link>
@@ -136,7 +136,7 @@ export function Navbar() {
             <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 text-primary">
               <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-accent text-accent-foreground border-2 border-white text-[10px] font-black">
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-accent text-accent-foreground border-2 border-white text-[10px] font-body font-black border-none">
                   {cartItemCount}
                 </Badge>
               )}
@@ -149,13 +149,13 @@ export function Navbar() {
                 <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/5 p-0.5 border-2 border-transparent focus-visible:ring-accent">
                   <Avatar className="h-8 w-8 border shadow-sm">
                     <AvatarImage src={user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                    <AvatarFallback className="bg-primary/10 text-primary font-body font-bold text-xs">
                       {user.email?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-primary/10">
+              <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-primary/10 font-body">
                 <DropdownMenuLabel className="font-normal p-3">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-bold leading-none text-primary">{user.displayName || 'Artisan Collector'}</p>
@@ -206,7 +206,7 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <Link href="/auth/login">
-              <Button className="hidden sm:flex bg-primary text-white font-black h-10 px-6 rounded-xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+              <Button className="hidden sm:flex bg-primary text-white font-body font-black h-10 px-6 rounded-xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-xs">
                 Sign In
               </Button>
               <Button variant="ghost" size="icon" className="sm:hidden text-primary">
@@ -218,7 +218,7 @@ export function Navbar() {
       </div>
 
       {isSearchOpen && (
-        <div className="absolute top-16 left-0 w-full p-6 bg-white border-b animate-in fade-in slide-in-from-top-2 duration-300 shadow-xl">
+        <div className="absolute top-16 left-0 w-full p-6 bg-white border-b animate-in fade-in slide-in-from-top-2 duration-300 shadow-xl font-body">
           <div className="container mx-auto flex gap-4">
             <div className="relative flex-1 group">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />

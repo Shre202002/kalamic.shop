@@ -120,7 +120,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
           />
           {tag && (
             <div className="absolute top-4 left-4">
-              <Badge className="bg-primary text-white border-none text-[9px] font-black px-3 py-1 rounded-full shadow-lg">
+              <Badge className="bg-primary text-white border-none text-[9px] font-body font-black px-3 py-1 rounded-full shadow-lg">
                 {tag}
               </Badge>
             </div>
@@ -137,13 +137,13 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
         </div>
       </CardContent>
 
-      <CardContent className="p-5 flex-1 flex flex-col">
+      <CardContent className="p-5 flex-1 flex flex-col font-body">
         <div className="flex items-center gap-1 text-[#6F8A7A] mb-1.5">
           {[1,2,3,4,5].map(i => <Star key={i} className={cn("h-3 w-3", i <= Math.round(rating) ? "fill-current" : "opacity-20")} />)}
           <span className="text-[9px] font-black text-[#6B6B6B] ml-1">{rating || 4.8}</span>
         </div>
         
-        <h3 className="text-lg font-black text-[#2E2E2E] tracking-tight leading-tight line-clamp-2 mb-1.5 group-hover:text-primary transition-colors duration-300">
+        <h3 className="text-lg font-display font-black text-[#2E2E2E] tracking-tight leading-tight line-clamp-2 mb-1.5 group-hover:text-primary transition-colors duration-300">
           {name || 'Handcrafted Piece'}
         </h3>
         

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -42,11 +41,11 @@ export default function ProductsPage() {
           {/* Header Section */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-8">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-accent font-bold text-[10px] uppercase tracking-widest">
+              <div className="flex items-center gap-2 text-accent font-body font-bold text-[10px] uppercase tracking-widest">
                 <Package className="h-4 w-4" /> The Collection
               </div>
-              <h1 className="text-3xl md:text-5xl font-extrabold text-primary tracking-tight">Kalamic Catalog</h1>
-              <p className="text-sm md:text-base text-muted-foreground max-w-lg leading-relaxed">
+              <h1 className="text-3xl md:text-5xl font-display text-primary tracking-tight">Kalamic Catalog</h1>
+              <p className="text-sm md:text-base text-muted-foreground max-w-lg leading-relaxed font-body">
                 Discover our curated selection of premium handcrafted ceramic treasures for your space.
               </p>
             </div>
@@ -56,7 +55,7 @@ export default function ProductsPage() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input 
                   placeholder="Search the collection..." 
-                  className="pl-14 h-12 rounded-2xl bg-white border-none shadow-lg focus-visible:ring-2 focus-visible:ring-accent transition-all text-base"
+                  className="pl-14 h-12 rounded-2xl bg-white border-none shadow-lg focus-visible:ring-2 focus-visible:ring-accent transition-all text-base font-body"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -71,7 +70,7 @@ export default function ProductsPage() {
           {isLoading ? (
             <div className="flex flex-col justify-center items-center py-32 space-y-4">
               <Loader2 className="h-10 w-10 text-primary animate-spin" />
-              <p className="text-muted-foreground font-medium">Revealing artisan treasures...</p>
+              <p className="text-muted-foreground font-body font-medium">Revealing artisan treasures...</p>
             </div>
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
@@ -91,11 +90,11 @@ export default function ProductsPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-32 bg-white rounded-[40px] shadow-sm border border-dashed border-primary/20 px-8">
+            <div className="text-center py-32 bg-white rounded-[40px] shadow-sm border border-dashed border-primary/20 px-8 font-body">
               <div className="h-20 w-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Search className="h-8 w-8 text-muted-foreground opacity-30" />
               </div>
-              <h2 className="text-xl font-bold text-primary">No masterpieces found</h2>
+              <h2 className="text-xl font-display font-bold text-primary">No masterpieces found</h2>
               <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">We couldn't find any ceramic pieces matching "{searchQuery}". Try a different keyword.</p>
               <Button 
                 variant="link" 

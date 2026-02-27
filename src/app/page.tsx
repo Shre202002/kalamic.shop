@@ -77,16 +77,16 @@ export default function Home() {
             <div className="max-w-3xl space-y-8 animate-in slide-in-from-bottom-8 duration-700 ease-out">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full border border-primary/20">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">New Artisan Drops Live</span>
+                <span className="text-[10px] font-body font-black uppercase tracking-[0.2em] text-primary">New Artisan Drops Live</span>
               </div>
               
               <div className="space-y-4">
-                <h1 className="text-4xl md:text-7xl font-black text-foreground tracking-tighter leading-[0.95]">
-                  Elevate Your <br /> 
-                  Home With <br />
-                  <span className="text-primary underline decoration-primary/10">Ceramic Art</span>.
+                <h1 className="text-4xl md:text-7xl font-display text-foreground tracking-tighter leading-[1.1] md:leading-[1.1]">
+                  Elevate Your <br className="hidden md:block" /> 
+                  Home With <br className="hidden md:block" />
+                  <span className="text-primary underline decoration-primary/10 italic">Ceramic Art</span>.
                 </h1>
-                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl font-medium">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl font-body font-medium">
                   Crafted with devotion, designed for elegance. Discover India's finest handcrafted ceramic collection.
                 </p>
               </div>
@@ -95,7 +95,7 @@ export default function Home() {
                 <Button 
                   asChild 
                   size="lg" 
-                  className="bg-primary hover:bg-[#A95C2B] text-white text-lg h-16 px-10 rounded-lg shadow-2xl shadow-primary/20 active:scale-95 transition-all"
+                  className="bg-primary hover:bg-[#A95C2B] text-white text-lg h-16 px-10 rounded-lg shadow-2xl shadow-primary/20 active:scale-95 transition-all font-body font-bold"
                 >
                   <Link href="/products">
                     Shop Collection <ShoppingBag className="ml-3 h-5 w-5" />
@@ -105,7 +105,7 @@ export default function Home() {
                   asChild 
                   variant="outline" 
                   size="lg" 
-                  className="border-primary text-primary hover:bg-primary/5 text-lg h-16 px-10 rounded-lg transition-all"
+                  className="border-primary text-primary hover:bg-primary/5 text-lg h-16 px-10 rounded-lg transition-all font-body font-bold"
                 >
                   <Link href="#featured">
                     Explore Best Sellers
@@ -125,7 +125,7 @@ export default function Home() {
                   <div className="flex items-center gap-1 text-primary">
                     {[1,2,3,4,5].map(i => <Star key={i} className="h-3 w-3 fill-current" />)}
                   </div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Trusted by 2,000+ Collectors</p>
+                  <p className="text-[10px] font-body font-black uppercase tracking-widest text-muted-foreground">Trusted by 2,000+ Collectors</p>
                 </div>
               </div>
             </div>
@@ -142,7 +142,7 @@ export default function Home() {
                 { icon: Truck, title: "Pan India Delivery", sub: "Safe Kiln to Door" },
                 { icon: PackageCheck, title: "Safe Packaging", sub: "FragileCare™ Guaranteed" }
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-4 group">
+                <div key={i} className="flex items-center gap-4 group font-body">
                   <div className="h-12 w-12 rounded-lg bg-[#E5EFEA] flex items-center justify-center text-[#6F8A7A] group-hover:bg-[#6F8A7A] group-hover:text-white transition-all duration-500">
                     <item.icon className="h-6 w-6" />
                   </div>
@@ -161,12 +161,12 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-[0.25em]">
+                <div className="flex items-center gap-2 text-primary font-body font-black text-[10px] uppercase tracking-[0.25em]">
                   <TrendingUp className="h-4 w-4" /> The Artisan Collection
                 </div>
-                <h2 className="text-3xl md:text-5xl font-black text-[#2E2E2E] tracking-tighter leading-none">Best Selling Pieces</h2>
+                <h2 className="text-3xl md:text-5xl font-display text-[#2E2E2E] tracking-tighter leading-none">Best Selling Pieces</h2>
               </div>
-              <Button asChild variant="link" className="text-primary font-black uppercase tracking-widest text-xs p-0 group">
+              <Button asChild variant="link" className="text-primary font-body font-black uppercase tracking-widest text-xs p-0 group">
                 <Link href="/products" className="flex items-center gap-2">
                   View Full Catalog <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
@@ -207,21 +207,21 @@ export default function Home() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 relative z-10">
                 <div className="lg:col-span-5 space-y-8">
                   <div className="space-y-4">
-                    <Badge className="bg-[#E8DFC9] text-[#2E2E2E] rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest shadow-lg">
+                    <Badge className="bg-[#E8DFC9] text-[#2E2E2E] rounded-full px-4 py-1 text-[10px] font-body font-black uppercase tracking-widest shadow-lg border-none">
                       Community Favorites
                     </Badge>
-                    <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-[0.95]">
+                    <h2 className="text-3xl md:text-5xl font-display text-white tracking-tighter leading-[1.1]">
                       Most Loved <br /> by Collectors
                     </h2>
-                    <p className="text-white/80 text-base font-medium leading-relaxed">
+                    <p className="text-white/80 text-base font-body font-medium leading-relaxed">
                       Pieces that have found their space in homes across India. Curated by popularity.
                     </p>
                   </div>
                   
-                  <div className="space-y-6 pt-4">
+                  <div className="space-y-6 pt-4 font-body">
                     {trendingProducts.map((p, i) => (
                       <div key={p._id} className="flex items-center gap-4 text-white/90 group cursor-pointer" onClick={() => window.location.href = `/products/${p.slug}`}>
-                        <span className="text-2xl font-black text-white/30 italic">0{i+1}</span>
+                        <span className="text-2xl font-display text-white/30 italic">0{i+1}</span>
                         <div className="flex-1 border-b border-white/10 pb-4 flex justify-between items-center group-hover:border-white transition-colors">
                           <span className="font-bold text-base">{p.name}</span>
                           <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -246,8 +246,8 @@ export default function Home() {
                     <div className="absolute inset-0 bg-gradient-to-t from-[#2E2E2E]/60 to-transparent" />
                     <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
                       <div className="space-y-1">
-                        <p className="text-white font-black text-xl tracking-tight">Kalamic Mor Stambh</p>
-                        <p className="text-[#E8DFC9] font-bold text-[10px] uppercase tracking-widest">Our #1 Gift Selection</p>
+                        <p className="text-white font-display text-2xl tracking-tight">Kalamic Mor Stambh</p>
+                        <p className="text-[#E8DFC9] font-body font-bold text-[10px] uppercase tracking-widest">Our #1 Gift Selection</p>
                       </div>
                       <Button asChild size="icon" className="h-12 w-12 rounded-lg bg-[#E8DFC9] text-[#2E2E2E] shadow-xl">
                         <Link href="/products/mor_stambh"><ArrowRight /></Link>
@@ -266,13 +266,13 @@ export default function Home() {
             <div className="bg-[#E8DFC9] rounded-[2rem] p-12 md:p-24 text-center space-y-8 relative overflow-hidden group shadow-xl">
               <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-[0.02] transition-opacity" />
               <div className="max-w-2xl mx-auto space-y-4 relative z-10">
-                <h2 className="text-3xl md:text-6xl font-black text-foreground tracking-tighter leading-[0.9]">
-                  Start Your <br /> Artisan Journey.
+                <h2 className="text-3xl md:text-6xl font-display text-foreground tracking-tighter leading-[1.1]">
+                  Start Your <br className="md:hidden" /> Artisan Journey.
                 </h2>
-                <p className="text-primary text-base font-bold uppercase tracking-widest">Free Shipping on your first order</p>
+                <p className="text-primary text-base font-body font-bold uppercase tracking-widest">Free Shipping on your first order</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4 relative z-10">
-                <Button asChild size="lg" className="bg-primary hover:bg-[#A95C2B] text-white h-14 px-12 rounded-lg shadow-2xl text-lg font-black hover:scale-105 transition-transform">
+                <Button asChild size="lg" className="bg-primary hover:bg-[#A95C2B] text-white h-14 px-12 rounded-lg shadow-2xl text-lg font-body font-black hover:scale-105 transition-transform">
                   <Link href="/products">Shop All Masterpieces</Link>
                 </Button>
               </div>
@@ -286,7 +286,7 @@ export default function Home() {
         "md:hidden fixed bottom-6 left-6 right-6 z-50 transition-all duration-500 translate-y-20 opacity-0",
         showStickyCta && "translate-y-0 opacity-100"
       )}>
-        <Button asChild size="lg" className="w-full h-14 rounded-lg bg-primary text-white shadow-2xl font-black text-base">
+        <Button asChild size="lg" className="w-full h-14 rounded-lg bg-primary text-white shadow-2xl font-body font-black text-base">
           <Link href="/products">Shop The Collection — ₹1,499+</Link>
         </Button>
       </div>
