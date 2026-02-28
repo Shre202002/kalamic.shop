@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -235,7 +236,7 @@ export default function ProductDetailPage() {
         uploadedImages.push({ url: result.url, alt: `Collector photo of ${product.name}` });
       }
 
-      await submitReview({
+      const response = await submitReview({
         productId: product._id,
         userId: user.uid,
         userName: user.displayName || user.email?.split('@')[0] || "Collector",
@@ -245,16 +246,19 @@ export default function ProductDetailPage() {
         images: uploadedImages
       });
       
-      // Clear form
-      setReviewComment('');
-      setReviewFiles([]);
-      setReviewPreviews([]);
-      setReviewRating(5);
-      
-      // Reload all data
-      await loadData();
-      
-      toast({ title: "Review Shared", description: "Your feedback has been immortalized." });
+      if (response.success) {
+        // Clear form
+        setReviewComment('');
+        setReviewFiles([]);
+        setReviewPreviews([]);
+        setReviewRating(5);
+        
+        // Reload all data and refresh cache
+        await loadData();
+        router.refresh();
+        
+        toast({ title: "Feedback Saved", description: "Your experience has been immortalized in our archive." });
+      }
     } catch (error: any) {
       toast({ variant: "destructive", title: "Submission Failed", description: error.message });
     } finally {
@@ -609,5 +613,25 @@ export default function ProductDetailPage() {
       </div>
       <Footer />
     </div>
+  );
+}
+
+function UserIcon(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
   );
 }
