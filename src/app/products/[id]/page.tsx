@@ -19,6 +19,9 @@ import {
 import { 
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Carousel,
@@ -606,6 +609,10 @@ export default function ProductDetailPage() {
       {/* Lightbox Dialog */}
       <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-black/90 flex items-center justify-center overflow-hidden rounded-[2rem]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Gallery Preview</DialogTitle>
+            <DialogDescription>Viewing product image in full screen</DialogDescription>
+          </DialogHeader>
           {selectedImage && (
             <div className="relative w-full h-full min-h-[80vh] flex items-center justify-center">
               <Image 
@@ -643,5 +650,25 @@ export default function ProductDetailPage() {
 
       <Footer />
     </div>
+  );
+}
+
+function UserIcon(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
   );
 }
