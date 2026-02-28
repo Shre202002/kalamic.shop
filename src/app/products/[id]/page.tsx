@@ -1,7 +1,6 @@
-
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -9,31 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi
-} from "@/components/ui/carousel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { 
   ShoppingCart, 
   Heart, 
@@ -54,12 +32,15 @@ import {
   Maximize2,
   MessageCircle,
   HelpCircle,
-  Hammer
+  Hammer,
+  Camera,
+  X
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { getProductById, trackProductAction, untrackWishlistAction, incrementProductViews } from '@/lib/actions/products';
 import { getProductReviews, submitReview } from '@/lib/actions/reviews';
+import { uploadToImageKit } from '@/lib/actions/upload-actions';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 import Link from 'next/link';
@@ -72,6 +53,7 @@ export default function ProductDetailPage() {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [product, setProduct] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -82,11 +64,14 @@ export default function ProductDetailPage() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isSliderPaused, setIsSliderPaused] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   
   // UI State
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [reviewFiles, setReviewFiles] = useState<File[]>([]);
+  const [reviewPreviews, setReviewPreviews] = useState<string[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
 
   // Wishlist Doc Connection
@@ -99,21 +84,17 @@ export default function ProductDetailPage() {
   const { data: wishlistDoc } = useDoc(wishlistDocRef);
   const isFavorited = !!wishlistDoc;
 
-  // Track scroll for sticky bar
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 600);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Auto-slider logic
   useEffect(() => {
     if (!product?.images?.length || isSliderPaused) return;
-
     const interval = setInterval(() => {
       setActiveImageIndex((prev) => (prev + 1) % product.images.length);
     }, 4000);
-
     return () => clearInterval(interval);
   }, [product, isSliderPaused]);
 
@@ -122,11 +103,9 @@ export default function ProductDetailPage() {
       try {
         const id = params.id as string;
         const data = await getProductById(id);
-        
         if (data) {
           setProduct(data);
           incrementProductViews(data._id);
-
           const reviewData = await getProductReviews(data._id);
           setReviews(reviewData);
         }
@@ -144,7 +123,6 @@ export default function ProductDetailPage() {
       toast({ title: "Please sign in", description: "You need an account to add items to your cart." });
       return;
     }
-
     const id = product._id;
     const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
     await setDoc(cartItemRef, {
@@ -157,7 +135,6 @@ export default function ProductDetailPage() {
       quantity: 1,
       updatedAt: serverTimestamp(),
     }, { merge: true });
-
     trackProductAction(id, 'cart_add_count');
     toast({ title: "Added to cart", description: `${product.name} has been added to your bag.` });
   };
@@ -172,10 +149,8 @@ export default function ProductDetailPage() {
       toast({ title: "Please sign in", description: "You need an account to save pieces." });
       return;
     }
-
     const productId = product._id;
     const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', productId);
-    
     try {
       if (isFavorited) {
         await deleteDoc(wishlistItemRef);
@@ -216,6 +191,27 @@ export default function ProductDetailPage() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + reviewFiles.length > 3) {
+      toast({ variant: "destructive", title: "Limit Exceeded", description: "You can upload a maximum of 3 photos." });
+      return;
+    }
+    const newFiles = [...reviewFiles, ...files];
+    setReviewFiles(newFiles);
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setReviewPreviews([...reviewPreviews, ...newPreviews]);
+  };
+
+  const removeFile = (index: number) => {
+    const newFiles = [...reviewFiles];
+    newFiles.splice(index, 1);
+    setReviewFiles(newFiles);
+    const newPreviews = [...reviewPreviews];
+    newPreviews.splice(index, 1);
+    setReviewPreviews(newPreviews);
+  };
+
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !product) return;
@@ -223,17 +219,29 @@ export default function ProductDetailPage() {
 
     setIsSubmittingReview(true);
     try {
+      const uploadedImages = [];
+      for (const file of reviewFiles) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const result = await uploadToImageKit(formData);
+        uploadedImages.push({ url: result.url, alt: `Collector photo of ${product.name}` });
+      }
+
       await submitReview({
         productId: product._id,
         userId: user.uid,
         userName: user.displayName || user.email?.split('@')[0] || "Collector",
+        userAvatar: user.photoURL || undefined,
         rating: reviewRating,
-        comment: reviewComment
+        reviewText: reviewComment,
+        images: uploadedImages
       });
       
       const updatedReviews = await getProductReviews(product._id);
       setReviews(updatedReviews);
       setReviewComment('');
+      setReviewFiles([]);
+      setReviewPreviews([]);
       toast({ title: "Review Shared", description: "Your feedback has been immortalized." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Submission Failed", description: error.message });
@@ -245,22 +253,19 @@ export default function ProductDetailPage() {
   if (isLoading) return <div className="min-h-screen flex flex-col items-center justify-center bg-background"><Loader2 className="animate-spin text-primary h-10 w-10" /><p className="mt-4 text-primary font-bold uppercase tracking-widest text-[10px]">Curation in Progress...</p></div>;
   if (!product) return <div className="p-20 text-center bg-background min-h-screen flex flex-col items-center justify-center"><h1 className="text-3xl font-display font-semibold text-primary mb-6">Piece Not Found</h1><Button asChild className="rounded-2xl h-12 px-8 font-body"><Link href="/products">Return to Shop</Link></Button></div>;
 
-  const discountPercent = product.compare_at_price ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) : 0;
-  const highlights = product.specifications?.slice(0, 3) || [];
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
   const activeImage = galleryImages[activeImageIndex] || galleryImages[0];
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      
       <main className="flex-1">
         <div className="container mx-auto px-4 max-w-7xl pt-6 md:pt-12">
           {/* Breadcrumbs */}
           <nav className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-8">
-            <Link href="/" className="hover:text-primary transition-colors shrink-0 text-muted-foreground">Home</Link>
+            <Link href="/" className="hover:text-primary transition-colors shrink-0">Home</Link>
             <ChevronRight className="h-3 w-3 shrink-0" />
-            <Link href="/products" className="hover:text-primary transition-colors shrink-0 text-muted-foreground">Catalog</Link>
+            <Link href="/products" className="hover:text-primary transition-colors shrink-0">Catalog</Link>
             <ChevronRight className="h-3 w-3 shrink-0" />
             <span className="text-primary truncate">{product.name}</span>
           </nav>
@@ -280,69 +285,29 @@ export default function ProductDetailPage() {
                       "absolute inset-0 transition-opacity duration-1000 ease-in-out cursor-zoom-in",
                       activeImageIndex === idx ? "opacity-100 z-10" : "opacity-0 z-0"
                     )}
-                    onClick={() => setIsLightboxOpen(true)}
+                    onClick={() => { setLightboxImage(img.url); setIsLightboxOpen(true); }}
                   >
-                    <Image 
-                      src={img.url} 
-                      alt={img.alt || product.name} 
-                      fill 
-                      className="object-cover transition-transform duration-700 group-hover:scale-105" 
-                      priority={idx === 0}
-                    />
+                    <Image src={img.url} alt={img.alt || product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" priority={idx === 0} />
                   </div>
                 ))}
-                
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none z-20 flex items-center justify-center">
                   <Maximize2 className="text-white opacity-0 group-hover:opacity-100 transition-opacity h-10 w-10 drop-shadow-xl" />
                 </div>
-
-                {discountPercent > 0 && (
-                  <div className="absolute top-8 left-8 z-30">
-                    <Badge className="bg-primary text-white px-5 py-2.5 rounded-2xl shadow-xl font-black uppercase tracking-tighter text-sm border-none">
-                      {discountPercent}% SAVINGS
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Slider Controls Overlay */}
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2">
                   {galleryImages.map((_, idx) => (
-                    <button 
-                      key={idx} 
-                      onClick={() => setActiveImageIndex(idx)}
-                      className={cn(
-                        "h-1.5 rounded-full transition-all",
-                        activeImageIndex === idx ? "w-8 bg-primary shadow-lg" : "w-2 bg-white/50 hover:bg-white"
-                      )}
-                    />
+                    <button key={idx} onClick={() => setActiveImageIndex(idx)} className={cn("h-1.5 rounded-full transition-all", activeImageIndex === idx ? "w-8 bg-primary shadow-lg" : "w-2 bg-white/50 hover:bg-white")} />
                   ))}
                 </div>
               </div>
 
-              {/* Thumbnails below slider */}
               {galleryImages.length > 1 && (
                 <div className="px-4">
-                  <Carousel 
-                    setApi={setThumbnailApi}
-                    opts={{ align: "start", loop: true }} 
-                    className="w-full"
-                  >
+                  <Carousel setApi={setThumbnailApi} opts={{ align: "start", loop: true }} className="w-full">
                     <CarouselContent className="-ml-4">
                       {galleryImages.map((img, idx) => (
                         <CarouselItem key={idx} className="pl-4 basis-1/4 sm:basis-1/5 md:basis-1/6">
-                          <div 
-                            className={cn(
-                              "relative aspect-square rounded-2xl overflow-hidden border-2 shadow-md cursor-pointer transition-all",
-                              activeImageIndex === idx ? "border-primary scale-90 ring-4 ring-primary/10" : "border-white hover:border-primary/30"
-                            )}
-                            onClick={() => setActiveImageIndex(idx)}
-                          >
-                            <Image 
-                              src={img.url} 
-                              alt={img.alt || `Angle ${idx + 1}`} 
-                              fill 
-                              className="object-cover"
-                            />
+                          <div className={cn("relative aspect-square rounded-2xl overflow-hidden border-2 shadow-md cursor-pointer transition-all", activeImageIndex === idx ? "border-primary scale-90 ring-4 ring-primary/10" : "border-white hover:border-primary/30")} onClick={() => setActiveImageIndex(idx)}>
+                            <Image src={img.url} alt={img.alt || `Angle ${idx + 1}`} fill className="object-cover" />
                           </div>
                         </CarouselItem>
                       ))}
@@ -352,34 +317,10 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Right: Premium Information Stack */}
+            {/* Right: Information */}
             <div className="lg:col-span-5 space-y-10">
               <div className="space-y-6">
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-4 py-2 rounded-2xl text-[10px] font-black tracking-[0.1em] uppercase">
-                    <Star className="h-3 w-3 fill-current" />
-                    {product.analytics?.average_rating || 4.8} / 5.0
-                  </div>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-l pl-4 border-border">
-                    {reviews.length} Collector Verified Reviews
-                  </span>
-                </div>
-                
                 <h1 className="text-[32px] md:text-[52px] font-display font-semibold text-primary tracking-tight leading-[1.05]">{product.name}</h1>
-                
-                <div className="flex items-center gap-3 flex-wrap">
-                  <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest text-muted-foreground rounded-xl border-border px-3 py-1">
-                    SKU: {product.sku || 'KAL-ART-001'}
-                  </Badge>
-                  <div className={cn(
-                    "flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-xl border",
-                    product.stock > 0 ? "bg-green-50 text-green-600 border-green-100" : "bg-red-50 text-red-600 border-red-100"
-                  )}>
-                    {product.stock > 0 ? <CheckCircle2 className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                    {product.stock > 5 ? "In Artisan Studio" : product.stock > 0 ? `Only ${product.stock} Left` : "Out of Stock"}
-                  </div>
-                </div>
-
                 <div className="flex items-baseline gap-5 py-4">
                   <span className="text-4xl md:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
                   {product.compare_at_price && (
@@ -389,170 +330,60 @@ export default function ProductDetailPage() {
                     </div>
                   )}
                 </div>
-
-                <p className="text-base text-muted-foreground leading-relaxed font-medium">
-                  {product.short_description || "A masterfully handcrafted ceramic creation, breathing tradition and elegance into your modern sanctuary."}
-                </p>
-              </div>
-
-              {/* Highlights Strip - Enhanced Responsiveness */}
-              {highlights.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border border-border rounded-3xl overflow-hidden shadow-sm">
-                  {highlights.map((h: any, i: number) => (
-                    <div key={i} className="bg-white p-4 text-center flex flex-col justify-center min-h-[80px]">
-                      <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">{h.key}</p>
-                      <p className="text-xs font-bold text-primary leading-tight px-2">{h.value}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Premium CTA Stack */}
-              <div className="space-y-4 pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button 
-                    onClick={handleAddToCart} 
-                    disabled={product.stock <= 0} 
-                    className="h-16 rounded-[1.5rem] bg-primary text-white font-black text-lg shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all tracking-tight active:scale-95 border-none"
-                  >
-                    <ShoppingCart className="mr-3 h-6 w-6" /> Add to Bag
-                  </Button>
-                  <Button 
-                    onClick={handleBuyNow} 
-                    disabled={product.stock <= 0}
-                    className="h-16 rounded-[1.5rem] bg-[#1E1E1E] text-white font-black text-lg shadow-2xl hover:bg-black hover:scale-[1.02] transition-all tracking-tight active:scale-95 border-none"
-                  >
-                    <Zap className="mr-3 h-6 w-6" /> Buy Now
-                  </Button>
+                  <Button onClick={handleAddToCart} className="h-16 rounded-[1.5rem] bg-primary text-white font-black text-lg shadow-2xl">Add to Bag</Button>
+                  <Button onClick={handleBuyNow} className="h-16 rounded-[1.5rem] bg-[#1E1E1E] text-white font-black text-lg shadow-2xl">Buy Now</Button>
                 </div>
-                
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button 
-                    asChild
-                    variant="outline"
-                    className="h-16 rounded-[1.5rem] border-2 border-primary/20 text-primary font-black hover:bg-primary/5 hover:border-primary active:scale-95 transition-all"
-                  >
-                    <Link href={`https://wa.me/916387562920?text=Hi, I am interested in ${encodeURIComponent(product.name)}`} target="_blank">
-                      <MessageCircle className="mr-3 h-6 w-6" /> Enquire Now
-                    </Link>
-                  </Button>
-                  <Button 
-                    onClick={handleShare}
-                    variant="outline"
-                    className="h-16 rounded-[1.5rem] border-2 border-border text-muted-foreground font-black hover:text-primary hover:border-primary active:scale-95 transition-all"
-                  >
-                    <Share2 className="mr-3 h-6 w-6" /> Share Piece
-                  </Button>
+                  <Button asChild variant="outline" className="h-16 rounded-[1.5rem] border-2 border-primary/20 text-primary font-black"><Link href={`https://wa.me/916387562920?text=Hi, I am interested in ${encodeURIComponent(product.name)}`} target="_blank">Enquire Now</Link></Button>
+                  <Button onClick={handleShare} variant="outline" className="h-16 rounded-[1.5rem] border-2 border-border text-muted-foreground font-black">Share Piece</Button>
                 </div>
               </div>
-
-              {/* Trust Indicators */}
               <div className="grid grid-cols-3 gap-4 pt-2">
                 <div className="flex flex-col items-center text-center gap-2">
-                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-primary/60">
-                    <ShieldCheck className="h-5 w-5" />
-                  </div>
+                  <ShieldCheck className="h-5 w-5 text-primary/60" />
                   <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Secure SSL</p>
                 </div>
                 <div className="flex flex-col items-center text-center gap-2">
-                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-primary/60">
-                    <MapPin className="h-5 w-5" />
-                  </div>
+                  <MapPin className="h-5 w-5 text-primary/60" />
                   <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Pan India</p>
                 </div>
-                <button 
-                  onClick={handleAddToWishlist}
-                  className="flex flex-col items-center text-center gap-2 group outline-none"
-                >
-                  <div className={cn(
-                    "h-10 w-10 rounded-full transition-all flex items-center justify-center shadow-inner",
-                    isFavorited ? "bg-primary/10 text-primary" : "bg-muted text-primary/60 group-hover:bg-primary/5"
-                  )}>
+                <button onClick={handleAddToWishlist} className="flex flex-col items-center text-center gap-2 group outline-none">
+                  <div className={cn("h-10 w-10 rounded-full transition-all flex items-center justify-center", isFavorited ? "bg-primary/10 text-primary" : "bg-muted text-primary/60 group-hover:bg-primary/5")}>
                     <Heart className={cn("h-5 w-5", isFavorited && "fill-current")} />
                   </div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">
-                    {isFavorited ? "In Wishlist" : "Wishlist"}
-                  </p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">{isFavorited ? "In Wishlist" : "Wishlist"}</p>
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Detailed Artisan Narrative & Specs Tabs */}
-          <section className="mb-20">
-            <Tabs defaultValue="narrative" className="w-full">
-              <TabsList className="flex w-full h-auto bg-transparent border-b border-border p-0 gap-4 md:gap-8 mb-12 overflow-x-auto scrollbar-hide">
-                <TabsTrigger value="narrative" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:text-primary transition-all whitespace-nowrap">Artisan Narrative</TabsTrigger>
-                <TabsTrigger value="specs" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:text-primary transition-all whitespace-nowrap">Technical Specs</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="narrative" className="animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                  <div className="space-y-6">
-                    <h3 className="text-3xl font-display font-semibold text-primary">Behind the Craft</h3>
-                    <p className="text-lg text-muted-foreground leading-relaxed italic whitespace-pre-wrap">
-                      {product.description}
-                    </p>
-                  </div>
-                  <div className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white bg-white">
-                    <Image 
-                      src="https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?q=80&w=1000" 
-                      alt="Artisan Process" 
-                      fill 
-                      className="object-cover"
-                      data-ai-hint="pottery workshop"
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="specs" className="animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-6 bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-border">
-                  {product.specifications?.map((s: any, i: number) => (
-                    <div key={i} className="flex justify-between items-center py-4 border-b border-border/50">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.key}</span>
-                      <span className="text-sm font-bold text-primary">{s.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </section>
-
-          {/* STANDALONE SECTION: FragileCare™ Shipping */}
+          {/* FragileCare Section */}
           <section className="mb-32">
             <div className="text-center space-y-4 mb-16">
               <h2 className="text-[32px] md:text-[48px] font-display font-semibold text-primary tracking-tight">FragileCare™ Shipping</h2>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] max-w-md mx-auto">Expert Logistics for Handcrafted Masterpieces</p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:shadow-2xl">
-                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                  <Scale className="h-6 w-6" />
-                </div>
+              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4">
+                <Scale className="h-6 w-6 text-primary" />
                 <h4 className="text-lg font-bold text-primary uppercase tracking-widest text-xs">Weight Metrics</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG for safe transit balancing and shock prevention.</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG.</p>
               </div>
-              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:shadow-2xl">
-                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                  <Box className="h-6 w-6" />
-                </div>
+              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4">
+                <Box className="h-6 w-6 text-primary" />
                 <h4 className="text-lg font-bold text-primary uppercase tracking-widest text-xs">Package Profile</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Box Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'} x {product.shipping?.package_dimensions_cm?.width || '30'} x {product.shipping?.package_dimensions_cm?.height || '15'} CM. Precision fit for maximum protection.
-                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'}x{product.shipping?.package_dimensions_cm?.width || '30'}x{product.shipping?.package_dimensions_cm?.height || '15'} CM.</p>
               </div>
-              <div className="p-8 md:p-10 rounded-[3rem] bg-primary text-white shadow-xl border-none space-y-4 transition-all hover:shadow-primary/30">
-                <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center shadow-lg">
-                  <Truck className="h-6 w-6" />
-                </div>
-                <h4 className="text-lg font-bold uppercase tracking-widest text-xs">FragileCare™ Priority</h4>
-                <p className="text-sm opacity-80 leading-relaxed">Every ceramic treasure is encased in reinforced honeycomb padding and shock-absorbent layers for its long-distance voyage.</p>
+              <div className="p-8 md:p-10 rounded-[3rem] bg-primary text-white shadow-xl space-y-4">
+                <Truck className="h-6 w-6" />
+                <h4 className="text-lg font-bold uppercase tracking-widest text-xs text-white">FragileCare™ Priority</h4>
+                <p className="text-sm opacity-80 leading-relaxed text-white">Every ceramic treasure is encased in reinforced honeycomb padding.</p>
               </div>
             </div>
           </section>
 
-          {/* STANDALONE SECTION: Collector Experiences (Reviews) */}
+          {/* Reviews Section */}
           <section className="mb-32">
             <div className="text-center space-y-4 mb-16">
               <h2 className="text-[32px] md:text-[48px] font-display font-semibold text-primary tracking-tight">Collector Experiences</h2>
@@ -560,7 +391,6 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-              {/* Review Sidebar / Summary */}
               <div className="lg:col-span-4 space-y-8">
                 <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border sticky top-28">
                   <h3 className="text-xl font-black text-primary mb-8 flex items-center gap-3">
@@ -582,15 +412,7 @@ export default function ProductDetailPage() {
                         <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Artisan Rating</Label>
                         <div className="flex gap-2">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => setReviewRating(star)}
-                              className={cn(
-                                "h-10 w-10 rounded-xl flex items-center justify-center transition-all shadow-sm",
-                                reviewRating >= star ? "bg-primary text-white shadow-primary/20" : "bg-muted text-muted-foreground"
-                              )}
-                            >
+                            <button key={star} type="button" onClick={() => setReviewRating(star)} className={cn("h-10 w-10 rounded-xl flex items-center justify-center transition-all shadow-sm", reviewRating >= star ? "bg-primary text-white" : "bg-muted text-muted-foreground")}>
                               <Star className={cn("h-5 w-5", reviewRating >= star && "fill-current")} />
                             </button>
                           ))}
@@ -598,35 +420,42 @@ export default function ProductDetailPage() {
                       </div>
                       <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Collector Feedback</Label>
-                        <textarea
-                          required
-                          value={reviewComment}
-                          onChange={(e) => setReviewComment(e.target.value)}
-                          placeholder="Describe the texture, the intricate patterns..."
-                          className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none shadow-inner"
-                        />
+                        <textarea required value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder="Describe the texture, the intricate patterns..." className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none shadow-inner" />
                       </div>
-                      <Button 
-                        type="submit" 
-                        disabled={isSubmittingReview} 
-                        className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] border-none"
-                      >
+                      
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Artisan Photos (Max 3)</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {reviewPreviews.map((preview, i) => (
+                            <div key={i} className="relative h-20 w-20 rounded-xl overflow-hidden border border-border group">
+                              <img src={preview} className="h-full w-full object-cover" />
+                              <button type="button" onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
+                            </div>
+                          ))}
+                          {reviewPreviews.length < 3 && (
+                            <button type="button" onClick={() => fileInputRef.current?.click()} className="h-20 w-20 rounded-xl border-2 border-dashed border-primary/20 flex flex-col items-center justify-center text-primary/40 hover:bg-primary/5 transition-all">
+                              <Camera className="h-6 w-6" />
+                              <span className="text-[8px] font-black uppercase mt-1">Upload</span>
+                            </button>
+                          )}
+                        </div>
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
+                      </div>
+
+                      <Button type="submit" disabled={isSubmittingReview} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl">
                         {isSubmittingReview ? <Loader2 className="animate-spin h-5 w-5" /> : "Post Experience"}
                       </Button>
                     </form>
                   ) : (
                     <div className="p-8 rounded-[2rem] bg-muted/50 border border-dashed border-border text-center space-y-6">
                       <Lock className="mx-auto h-8 w-8 text-primary opacity-20" />
-                      <p className="text-[10px] font-black text-muted-foreground uppercase leading-relaxed tracking-widest px-4">Sign in to share your collector experience.</p>
-                      <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-12 hover:bg-primary hover:text-white transition-all">
-                        <Link href="/auth/login">Join the Community</Link>
-                      </Button>
+                      <p className="text-[10px] font-black text-muted-foreground uppercase leading-relaxed tracking-widest">Sign in to share your experience.</p>
+                      <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-12"><Link href="/auth/login">Join the Community</Link></Button>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Reviews Feed */}
               <div className="lg:col-span-8 space-y-8">
                 {reviews.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -634,27 +463,35 @@ export default function ProductDetailPage() {
                       <div key={idx} className="p-8 rounded-[3rem] bg-white shadow-sm border border-border space-y-6 transition-all hover:shadow-xl group">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black shadow-inner group-hover:scale-110 transition-transform">
-                              {review.user_name?.charAt(0).toUpperCase() || 'C'}
+                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black">
+                              {review.user_avatar ? <img src={review.user_avatar} className="h-full w-full object-cover rounded-2xl" /> : review.user_name?.charAt(0).toUpperCase()}
                             </div>
                             <div>
                               <p className="text-sm font-black text-primary flex items-center gap-2">
                                 {review.user_name || 'Collector'}
-                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                {review.is_verified_purchase && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                               </p>
                               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{dayjs(review.createdAt).format('DD MMM YYYY')}</p>
                             </div>
                           </div>
                           <div className="flex gap-0.5 text-primary">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} className={cn("h-3.5 w-3.5", i < review.rating ? "fill-current" : "opacity-20")} />
-                            ))}
+                            {[...Array(5)].map((_, i) => <Star key={i} className={cn("h-3.5 w-3.5", i < review.rating ? "fill-current" : "opacity-20")} />)}
                           </div>
                         </div>
-                        <Separator className="opacity-10" />
+                        
                         <p className="text-sm font-medium text-muted-foreground leading-relaxed italic">
-                          "{review.comment}"
+                          "{review.review_text || review.comment}"
                         </p>
+
+                        {review.review_images?.length > 0 && (
+                          <div className={cn("grid gap-2", review.review_images.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+                            {review.review_images.map((img: any, i: number) => (
+                              <div key={i} className="relative aspect-video rounded-2xl overflow-hidden cursor-zoom-in border border-border/50" onClick={() => { setLightboxImage(img.url); setIsLightboxOpen(true); }}>
+                                <Image src={`${img.url}?tr=w-400,q-80,f-webp`} alt={img.alt || 'Review photo'} fill className="object-cover hover:scale-110 transition-transform duration-500" />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -662,132 +499,36 @@ export default function ProductDetailPage() {
                   <div className="text-center py-24 bg-white rounded-[4rem] border border-dashed border-border shadow-inner">
                     <MessageSquare className="mx-auto h-16 w-16 text-primary opacity-10 mb-6" />
                     <p className="text-2xl font-display font-semibold text-primary/60">Be the first to share your verdict</p>
-                    <p className="text-xs font-medium text-muted-foreground/60 mt-2 max-w-xs mx-auto">Help other connoisseurs discover the magic behind this masterpiece.</p>
                   </div>
                 )}
               </div>
             </div>
           </section>
-
-          {/* Artisan Branding Section */}
-          <section className="mb-32 py-16 md:py-24 bg-primary/[0.03] rounded-[4rem] px-8 md:px-20 border border-primary/5 shadow-inner">
-            <div className="max-w-4xl mx-auto text-center space-y-8">
-              <div className="h-20 w-20 mx-auto rounded-3xl bg-primary flex items-center justify-center text-white shadow-2xl">
-                <Hammer className="h-10 w-10" />
-              </div>
-              <h2 className="text-[32px] md:text-[48px] font-display font-semibold text-primary tracking-tight">Handcrafted Heritage</h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                At Kalamic, every piece is more than just home decor; it's a labor of love from India's master artisans. 
-                Using centuries-old molding and firing techniques, we ensure that no two pieces are identical, giving you a truly unique masterpiece for your sanctuary.
-              </p>
-              <div className="flex flex-wrap justify-center gap-6 md:gap-10 pt-4">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">100% Authentic</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Fair Wages</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Eco-Friendly Clay</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* FAQ Section - Product Specific */}
-          {product.faqs && product.faqs.length > 0 && (
-            <section className="mb-32 max-w-4xl mx-auto space-y-12">
-              <div className="text-center space-y-2 px-4">
-                <h2 className="text-[28px] md:text-[40px] font-display font-semibold text-primary tracking-tight">Curiosity Corner</h2>
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Collector FAQ for this specific piece</p>
-              </div>
-              
-              <Accordion type="single" collapsible className="w-full space-y-4">
-                {product.faqs.map((faq: any, idx: number) => (
-                  <AccordionItem key={idx} value={`faq-${idx}`} className="border-none">
-                    <AccordionTrigger className="p-6 md:p-8 rounded-[2rem] bg-white shadow-md hover:no-underline data-[state=open]:rounded-b-none border border-border group transition-all outline-none">
-                      <span className="flex items-center gap-4 text-left font-bold text-primary group-data-[state=open]:text-primary/80 text-sm md:text-base">
-                        <HelpCircle className="h-5 w-5 shrink-0 opacity-40" /> {faq.question}
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent className="p-6 md:p-8 pt-2 bg-white rounded-b-[2rem] text-sm text-muted-foreground leading-relaxed border-t border-border/50 shadow-md">
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </section>
-          )}
         </div>
       </main>
 
-      {/* Lightbox Dialog */}
+      {/* Lightbox */}
       <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-black/95 flex items-center justify-center overflow-hidden rounded-[2.5rem]">
           <DialogHeader className="sr-only">
-            <DialogTitle>Artisan Detail View</DialogTitle>
-            <DialogDescription>High resolution examination of {product.name}</DialogDescription>
+            <DialogTitle>Detail View</DialogTitle>
+            <DialogDescription>High resolution examination</DialogDescription>
           </DialogHeader>
           <div className="relative w-full h-full min-h-[85vh] flex items-center justify-center">
-            <Image 
-              src={activeImage.url} 
-              alt={activeImage.alt || product.name} 
-              fill 
-              className="object-contain"
-              priority
-            />
-            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 px-6 md:px-10 py-4 md:py-5 bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/20 text-white text-center shadow-2xl mx-4">
-              <p className="text-lg md:text-xl font-display font-bold">{product.name}</p>
-              <p className="text-[9px] md:text-[10px] font-black opacity-60 uppercase tracking-[0.3em] mt-2">{activeImage.alt || 'Artisan Focus'}</p>
-            </div>
+            {lightboxImage && <Image src={lightboxImage} alt="Large preview" fill className="object-contain" priority />}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Mobile Sticky CTA Bar */}
-      <div className={cn(
-        "lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-2xl border-t border-border z-50 shadow-[0_-15px_50px_rgba(0,0,0,0.15)] transition-transform duration-500 rounded-t-[2rem]",
-        isScrolled ? "translate-y-0" : "translate-y-full"
-      )}>
+      <div className={cn("lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-2xl border-t border-border z-50 transition-transform duration-500 rounded-t-[2rem]", isScrolled ? "translate-y-0" : "translate-y-full")}>
         <div className="flex items-center gap-6">
           <div className="shrink-0 pl-2">
-            <p className="text-[10px] font-black text-primary/50 uppercase tracking-widest mb-0.5">Value</p>
             <p className="text-2xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</p>
           </div>
-          <Button 
-            onClick={handleAddToCart} 
-            disabled={product.stock <= 0}
-            className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-base shadow-xl shadow-primary/20 active:scale-95 transition-all border-none"
-          >
-            <ShoppingCart className="mr-2 h-5 w-5" /> Add to Bag
-          </Button>
+          <Button onClick={handleAddToCart} className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-base">Add to Bag</Button>
         </div>
       </div>
-
       <Footer />
     </div>
-  );
-}
-
-function UserIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
   );
 }

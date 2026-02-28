@@ -3,15 +3,29 @@
 import dbConnect from '@/lib/db';
 import Review from '@/lib/models/Review';
 import KalamicProduct from '@/lib/models/KalamicProduct';
+import Order from '@/lib/models/Order';
 import { revalidatePath } from 'next/cache';
 
 /**
- * Fetches all reviews for a specific product.
+ * Checks if a user has actually purchased the product to mark as verified.
+ */
+async function checkVerifiedPurchase(userId: string, productId: string) {
+  await dbConnect();
+  const order = await Order.findOne({ 
+    userId, 
+    'items.productId': productId,
+    orderStatus: { $in: ['placed', 'delivered', 'dispatched'] }
+  });
+  return !!order;
+}
+
+/**
+ * Fetches all approved reviews for a specific product.
  */
 export async function getProductReviews(productId: string) {
   await dbConnect();
   try {
-    const reviews = await Review.find({ product_id: productId }).sort({ createdAt: -1 }).lean();
+    const reviews = await Review.find({ product_id: productId, status: 'approved' }).sort({ createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(reviews));
   } catch (error) {
     console.error("Error fetching reviews:", error);
@@ -26,37 +40,55 @@ export async function submitReview(data: {
   productId: string;
   userId: string;
   userName: string;
+  userAvatar?: string;
   rating: number;
-  comment: string;
+  reviewText: string;
+  images?: Array<{ url: string; alt: string }>;
 }) {
   await dbConnect();
   try {
-    // 1. Check for existing review (Backend validation)
+    // 1. Check for existing review
     const existing = await Review.findOne({ product_id: data.productId, user_id: data.userId });
     if (existing) {
       throw new Error("You have already shared your feedback for this piece.");
     }
 
-    // 2. Create the review
+    // 2. Check verified status
+    const isVerified = await checkVerifiedPurchase(data.userId, data.productId);
+
+    // 3. Create the review
     const newReview = await Review.create({
       product_id: data.productId,
       user_id: data.userId,
       user_name: data.userName,
+      user_avatar: data.userAvatar,
       rating: data.rating,
-      comment: data.comment
+      review_text: data.reviewText,
+      review_images: data.images || [],
+      is_verified_purchase: isVerified,
+      status: 'approved' // Auto-approve for this prototype
     });
 
-    // 3. Update Product Stats
-    const allReviews = await Review.find({ product_id: data.productId });
-    const totalRating = allReviews.reduce((acc, r) => acc + r.rating, 0);
-    const avg = totalRating / allReviews.length;
-
-    await KalamicProduct.findByIdAndUpdate(data.productId, {
-      $set: { 
-        'analytics.average_rating': parseFloat(avg.toFixed(1)),
-        'analytics.review_count': allReviews.length
+    // 4. Atomic Aggregate Calculation
+    const stats = await Review.aggregate([
+      { $match: { product_id: data.productId, status: 'approved' } },
+      { 
+        $group: {
+          _id: '$product_id',
+          avgRating: { $avg: '$rating' },
+          count: { $sum: 1 }
+        }
       }
-    });
+    ]);
+
+    if (stats.length > 0) {
+      await KalamicProduct.findByIdAndUpdate(data.productId, {
+        $set: { 
+          'analytics.average_rating': parseFloat(stats[0].avgRating.toFixed(1)),
+          'analytics.review_count': stats[0].count
+        }
+      });
+    }
 
     revalidatePath(`/products/${data.productId}`);
     return { success: true, review: JSON.parse(JSON.stringify(newReview)) };
