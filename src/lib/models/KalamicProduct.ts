@@ -31,6 +31,10 @@ export interface IKalamicProduct extends Document {
     key: string;
     value: string;
   }>;
+  faqs: Array<{
+    question: string;
+    answer: string;
+  }>;
   shipping: {
     weight_kg: number;
     package_dimensions_cm: {
@@ -90,6 +94,10 @@ const KalamicProductSchema: Schema = new Schema({
   specifications: [{
     key: { type: String, required: true },
     value: { type: String, default: '' }
+  }],
+  faqs: [{
+    question: { type: String, required: true },
+    answer: { type: String, required: true }
   }],
   shipping: {
     weight_kg: { type: Number, default: 0 },

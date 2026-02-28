@@ -162,6 +162,7 @@ export async function saveProduct(adminId: string, productData: any) {
     category_id: mongoose.isValidObjectId(productData.category_id) ? productData.category_id : new mongoose.Types.ObjectId(),
     images: validatedImages,
     specifications: (productData.specifications || []).filter((s: any) => s.key && s.value),
+    faqs: (productData.faqs || []).filter((f: any) => f.question && f.answer),
     shipping: {
       weight_kg: Number(productData.shipping?.weight_kg) || 0,
       package_dimensions_cm: {

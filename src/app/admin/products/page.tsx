@@ -47,7 +47,8 @@ import {
   ShoppingBag as OrderIcon,
   Favorite as WishIcon,
   Star as StarIcon,
-  CloudUpload
+  CloudUpload,
+  QuestionAnswer as FaqIcon
 } from '@mui/icons-material';
 import { 
   getAdminProducts, 
@@ -75,6 +76,7 @@ const INITIAL_PRODUCT = {
   visibility_priority: 0,
   images: [{ url: '', alt: '', is_primary: true }],
   specifications: [{ key: "Material", value: "" }, { key: "Finish", value: "" }],
+  faqs: [{ question: "", answer: "" }],
   shipping: {
     weight_kg: 0,
     package_dimensions_cm: { length: 0, width: 0, height: 0 }
@@ -134,6 +136,7 @@ export default function ProductsManagement() {
         analytics: { ...INITIAL_PRODUCT.analytics, ...product.analytics },
         images: Array.isArray(product.images) && product.images.length ? product.images.map((i: any) => ({ ...i })) : INITIAL_PRODUCT.images,
         specifications: Array.isArray(product.specifications) && product.specifications.length ? product.specifications.map((s: any) => ({ ...s })) : INITIAL_PRODUCT.specifications,
+        faqs: Array.isArray(product.faqs) && product.faqs.length ? product.faqs.map((f: any) => ({ ...f })) : INITIAL_PRODUCT.faqs,
         shipping: {
           ...INITIAL_PRODUCT.shipping,
           ...product.shipping,
@@ -381,6 +384,7 @@ export default function ProductsManagement() {
               <Tab icon={<HistoryEdu fontSize="small" />} label="General" />
               <Tab icon={<ImageIcon fontSize="small" />} label="Media" />
               <Tab icon={<SettingsSuggest fontSize="small" />} label="Specs" />
+              <Tab icon={<FaqIcon fontSize="small" />} label="FAQs" />
               <Tab icon={<LocalShipping fontSize="small" />} label="Shipping" />
               <Tab icon={<SeoIcon fontSize="small" />} label="SEO" />
             </Tabs>
@@ -530,6 +534,27 @@ export default function ProductsManagement() {
               )}
 
               {activeTab === 3 && (
+                <Box>
+                  <Typography variant="caption" sx={{ display: 'block', mb: 2, color: 'text.secondary', fontWeight: 700 }}>PRODUCT-SPECIFIC FAQS</Typography>
+                  {(editingProduct.faqs || []).map((faq: any, idx: number) => (
+                    <Paper key={idx} variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 3 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                        <Typography variant="caption" fontWeight={800} color="primary">FAQ #{idx + 1}</Typography>
+                        <IconButton size="small" color="error" onClick={() => setEditingProduct({...editingProduct, faqs: editingProduct.faqs.filter((_: any, ii: number) => ii !== idx)})}><Delete fontSize="small" /></IconButton>
+                      </Box>
+                      <TextField fullWidth label="Question" value={faq.question} onChange={(e) => {
+                        const next = [...editingProduct.faqs]; next[idx].question = e.target.value; setEditingProduct({...editingProduct, faqs: next});
+                      }} sx={{ mb: 2 }} />
+                      <TextField fullWidth multiline rows={2} label="Answer" value={faq.answer} onChange={(e) => {
+                        const next = [...editingProduct.faqs]; next[idx].answer = e.target.value; setEditingProduct({...editingProduct, faqs: next});
+                      }} />
+                    </Paper>
+                  ))}
+                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, faqs: [...editingProduct.faqs, { question: '', answer: '' }]})}>Add FAQ</Button>
+                </Box>
+              )}
+
+              {activeTab === 4 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12}><Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>FRAGILECARE™ LOGISTICS</Typography></Grid>
                   <Grid item xs={12} md={4}><TextField fullWidth type="number" label="Weight (kg)" value={editingProduct.shipping?.weight_kg} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, weight_kg: parseFloat(e.target.value)}})} /></Grid>
@@ -539,7 +564,7 @@ export default function ProductsManagement() {
                 </Grid>
               )}
 
-              {activeTab === 4 && (
+              {activeTab === 5 && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>DISCOVERY METADATA</Typography>
                   <TextField fullWidth label="Search Title" value={editingProduct.seo?.meta_title} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_title: e.target.value}})} />
