@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    // Explicitly allow workstation origins to resolve CORS/CSRF warnings in the Studio environment
+    allowedDevOrigins: [
+      '*.cloudworkstations.dev',
+      'localhost:9002'
+    ]
+  },
   images: {
     remotePatterns: [
       {

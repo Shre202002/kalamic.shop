@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -46,13 +47,11 @@ export async function uploadToImageKit(formData: FormData) {
     });
 
     // We store the URL with default transformations for optimized frontend delivery
-    // tr:w-800,q-80 provides a good balance of quality and file size
-    const baseUrl = process.env.IMAGEKIT_URL_ENDPOINT || '';
+    const baseUrl = (process.env.IMAGEKIT_URL_ENDPOINT || '').replace(/\/$/, '');
     const filePath = uploadResponse.filePath;
     
-    // Construct transformation-aware URL
-    // Format: endpoint/tr:transformation/path
-    const optimizedUrl = `${baseUrl.replace(/\/$/, '')}/tr:w-800,q-80${filePath}`;
+    // Construct transformation-aware URL: tr:w-800,q-80 ensures optimized delivery
+    const optimizedUrl = `${baseUrl}/tr:w-800,q-80${filePath}`;
 
     return { 
       success: true, 
