@@ -10,26 +10,20 @@ import { Badge } from '@/components/ui/badge';
 import { 
   ShoppingBag, 
   Sparkles, 
-  ShieldCheck, 
-  Truck, 
   Loader2, 
   ArrowRight, 
   Star, 
-  TrendingUp,
-  PackageCheck,
-  Eye
+  TrendingUp
 } from 'lucide-react';
 import Image from 'next/image';
 import { getFeaturedProducts, getTrendingProducts } from '@/lib/actions/products';
 import { useUser } from '@/firebase';
-import { cn } from '@/lib/utils';
 
 export default function Home() {
   const { user } = useUser();
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [trendingProducts, setTrendingProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showStickyCta, setShowStickyCta] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -47,12 +41,6 @@ export default function Home() {
       }
     }
     loadData();
-
-    const handleScroll = () => {
-      setShowStickyCta(window.scrollY > 600);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
@@ -60,9 +48,9 @@ export default function Home() {
       <Navbar />
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative min-h-[85vh] flex items-center overflow-hidden py-20 lg:py-0 bg-[#F6F1E9]">
+        <section className="relative min-h-[85vh] flex items-center overflow-hidden py-20 lg:py-0 bg-background">
           <div className="absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#F6F1E9] via-[#F6F1E9]/80 to-transparent z-10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-10" />
             <Image 
               src="https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?q=80&w=2000"
               alt="Handcrafted Kalamic Hero"
@@ -95,7 +83,7 @@ export default function Home() {
                 <Button 
                   asChild 
                   size="lg" 
-                  className="bg-primary hover:bg-[#A95C2B] text-white text-lg h-16 px-10 rounded-lg shadow-2xl shadow-primary/20 active:scale-95 transition-all font-body font-semibold tracking-[0.3px]"
+                  className="bg-primary hover:bg-primary/90 text-white text-lg h-16 px-10 rounded-lg shadow-2xl shadow-primary/20 active:scale-95 transition-all font-body font-semibold tracking-[0.3px]"
                 >
                   <Link href="/products">
                     Shop Collection <ShoppingBag className="ml-3 h-5 w-5" />
@@ -133,14 +121,14 @@ export default function Home() {
         </section>
 
         {/* Featured Products */}
-        <section id="featured" className="py-20 bg-[#E8DFC9]/30">
+        <section id="featured" className="py-20 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-primary font-body font-bold text-[10px] uppercase tracking-[0.25em]">
                   <TrendingUp className="h-4 w-4" /> The Artisan Collection
                 </div>
-                <h2 className="text-[24px] md:text-[32px] font-display font-semibold text-[#2E2E2E] leading-tight">Best Selling Pieces</h2>
+                <h2 className="text-[24px] md:text-[32px] font-display font-semibold text-foreground leading-tight">Best Selling Pieces</h2>
               </div>
               <Button asChild variant="link" className="text-primary font-body font-bold uppercase tracking-widest text-xs p-0 group">
                 <Link href="/products" className="flex items-center gap-2">

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -94,9 +93,6 @@ export default function LoginPage() {
     }
   };
 
-  /**
-   * Phone OTP Login Flow
-   */
   const handleRequestPhoneOtp = async () => {
     if (!phoneNumber) {
       toast({ variant: "destructive", title: "Missing Phone", description: "Please enter your phone number." });
@@ -138,7 +134,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <div id="recaptcha-container"></div>
       
@@ -164,25 +160,10 @@ export default function LoginPage() {
               setOtpSent(false);
               setOtpCode('');
             }} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/20 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted p-1 rounded-xl">
                 <TabsTrigger value="password" disabled={isLoading} className="rounded-lg font-bold text-xs">Password</TabsTrigger>
-                
-                {/* Email OTP - Temporarily disabled */}
-                <TabsTrigger 
-                  value="email-otp" 
-                  disabled={true} 
-                  className="rounded-lg font-bold text-xs opacity-50 cursor-not-allowed"
-                >
-                  Email (Offline)
-                </TabsTrigger>
-
-                <TabsTrigger 
-                  value="phone" 
-                  disabled={isLoading} 
-                  className="rounded-lg font-bold text-xs"
-                >
-                  Phone
-                </TabsTrigger>
+                <TabsTrigger value="email-otp" disabled={true} className="rounded-lg font-bold text-xs opacity-50 cursor-not-allowed">Email (Offline)</TabsTrigger>
+                <TabsTrigger value="phone" disabled={isLoading} className="rounded-lg font-bold text-xs">Phone</TabsTrigger>
               </TabsList>
 
               <TabsContent value="password">
@@ -198,7 +179,7 @@ export default function LoginPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required 
-                        className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
+                        className="pl-14 h-12 rounded-xl focus-visible:ring-primary border-border bg-background"
                       />
                     </div>
                   </div>
@@ -213,7 +194,7 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required 
-                        className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
+                        className="pl-14 h-12 rounded-xl focus-visible:ring-primary border-border bg-background"
                       />
                     </div>
                   </div>
@@ -222,12 +203,6 @@ export default function LoginPage() {
                     {isLogin ? 'Sign In' : 'Create Account'}
                   </Button>
                 </form>
-              </TabsContent>
-
-              <TabsContent value="email-otp">
-                <div className="p-4 text-center text-muted-foreground text-sm italic">
-                  Email verification login is currently undergoing maintenance.
-                </div>
               </TabsContent>
 
               <TabsContent value="phone">
@@ -245,7 +220,7 @@ export default function LoginPage() {
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(e.target.value)}
                             required 
-                            className="pl-14 h-12 rounded-xl focus-visible:ring-accent"
+                            className="pl-14 h-12 rounded-xl focus-visible:ring-primary border-border bg-background"
                           />
                         </div>
                         <p className="text-[10px] text-muted-foreground ml-1 font-bold">Must include + and country code.</p>
@@ -295,7 +270,7 @@ export default function LoginPage() {
               className="w-full text-sm font-bold text-muted-foreground hover:text-primary transition-colors"
               onClick={() => {
                 setIsLogin(!isLogin);
-                setAuthMethod('password'); // Reset to password tab by default
+                setAuthMethod('password');
                 setOtpSent(false);
                 setOtpCode('');
               }}

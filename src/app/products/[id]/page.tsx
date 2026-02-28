@@ -1,7 +1,6 @@
-
 "use client"
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -204,8 +203,8 @@ export default function ProductDetailPage() {
     }
   };
 
-  if (isLoading) return <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF4EB]"><Loader2 className="animate-spin text-primary h-10 w-10" /><p className="mt-4 text-primary font-body font-bold uppercase tracking-widest text-[10px]">Curating Piece...</p></div>;
-  if (!product) return <div className="p-20 text-center bg-[#FAF4EB] min-h-screen flex flex-col items-center justify-center"><h1 className="text-3xl font-display font-semibold text-primary mb-6">Piece Not Found</h1><Button asChild className="rounded-2xl h-12 px-8 font-body"><Link href="/products">Return to Shop</Link></Button></div>;
+  if (isLoading) return <div className="min-h-screen flex flex-col items-center justify-center bg-background"><Loader2 className="animate-spin text-primary h-10 w-10" /><p className="mt-4 text-primary font-body font-bold uppercase tracking-widest text-[10px]">Curating Piece...</p></div>;
+  if (!product) return <div className="p-20 text-center bg-background min-h-screen flex flex-col items-center justify-center"><h1 className="text-3xl font-display font-semibold text-primary mb-6">Piece Not Found</h1><Button asChild className="rounded-2xl h-12 px-8 font-body"><Link href="/products">Return to Shop</Link></Button></div>;
 
   const discountPercent = product.compare_at_price ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) : 0;
   
@@ -219,38 +218,9 @@ export default function ProductDetailPage() {
   const activeImage = galleryImages[activeImageIndex] || galleryImages[0] || { url: 'https://placehold.co/800x800?text=Kalamic', alt: 'Handcrafted Piece' };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
-      {/* SEO & Structured Data */}
-      <title>{product.seo?.meta_title || `${product.name} | Kalamic Artisan Shop`}</title>
-      <meta name="description" content={product.seo?.meta_description || product.short_description} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org/",
-            "@type": "Product",
-            "name": product.name,
-            "image": galleryImages.map(i => i.url),
-            "description": product.short_description || product.description,
-            "sku": product.sku,
-            "brand": { "@type": "Brand", "name": "Kalamic" },
-            "offers": {
-              "@type": "Offer",
-              "priceCurrency": "INR",
-              "price": product.price,
-              "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
-            },
-            "aggregateRating": {
-              "@type": "AggregateRating",
-              "ratingValue": product.analytics?.average_rating || 4.8,
-              "reviewCount": product.analytics?.review_count || reviews.length || 1
-            }
-          })
-        }}
-      />
-
       <main className="flex-1 py-6 md:py-16">
         <div className="container mx-auto px-4 max-w-7xl">
           {/* Breadcrumbs */}
@@ -291,7 +261,7 @@ export default function ProductDetailPage() {
                 )}
               </div>
 
-              {/* Auto-scrolling Thumbnails - Updates main view on click, NO lightbox */}
+              {/* Auto-scrolling Thumbnails */}
               {galleryImages.length > 1 && (
                 <div className="px-2">
                   <Carousel 
@@ -328,11 +298,11 @@ export default function ProductDetailPage() {
             <div className="lg:col-span-5 space-y-8">
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-1.5 bg-accent/10 text-accent px-3 py-1.5 rounded-full text-[10px] font-body font-black tracking-[0.1em] uppercase">
+                  <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-[10px] font-body font-black tracking-[0.1em] uppercase">
                     <Star className="h-3 w-3 fill-current" />
                     {product.analytics?.average_rating || 4.8} / 5.0
                   </div>
-                  <span className="text-[10px] font-body font-bold text-muted-foreground uppercase tracking-widest border-l pl-4 border-muted/30">
+                  <span className="text-[10px] font-body font-bold text-muted-foreground uppercase tracking-widest border-l pl-4 border-border">
                     {product.analytics?.review_count || reviews.length} Collector Reviews
                   </span>
                 </div>
@@ -340,7 +310,7 @@ export default function ProductDetailPage() {
                 <h1 className="text-[32px] md:text-[44px] font-display font-semibold text-primary tracking-tight leading-[1.1]">{product.name}</h1>
                 
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest text-muted-foreground rounded-lg">
+                  <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest text-muted-foreground rounded-lg border-border">
                     SKU: {product.sku || 'KAL-ART-001'}
                   </Badge>
                   <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/60 px-2">
@@ -353,7 +323,7 @@ export default function ProductDetailPage() {
                   {product.compare_at_price && (
                     <div className="flex flex-col">
                       <span className="text-base text-muted-foreground line-through decoration-primary/30 opacity-50">₹{product.compare_at_price.toLocaleString()}</span>
-                      <span className="text-[10px] font-black text-accent uppercase">Heritage Savings</span>
+                      <span className="text-[10px] font-black text-primary uppercase">Heritage Savings</span>
                     </div>
                   )}
                 </div>
@@ -364,13 +334,13 @@ export default function ProductDetailPage() {
               </div>
 
               {/* Engagement Indicators */}
-              <div className="flex items-center gap-6 py-4 px-6 bg-white rounded-3xl shadow-sm border border-primary/5">
+              <div className="flex items-center gap-6 py-4 px-6 bg-white rounded-3xl shadow-sm border border-border">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Eye className="h-4 w-4 text-primary/40" />
                   <span className="text-[10px] font-black uppercase">{product.analytics?.total_views || 0} views</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Heart className="h-4 w-4 text-accent/40" />
+                  <Heart className="h-4 w-4 text-primary/40" />
                   <span className="text-[10px] font-black uppercase">{product.analytics?.wishlist_count || 0} saves</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -379,7 +349,7 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <div className="p-8 rounded-[2.5rem] bg-white shadow-xl space-y-8 relative overflow-hidden">
+              <div className="p-8 rounded-[2.5rem] bg-white shadow-xl space-y-8 relative overflow-hidden border border-border">
                 <div className="space-y-4">
                   <div className={cn("inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest", stockInfo.bg, stockInfo.color)}>
                     <div className={cn("h-1.5 w-1.5 rounded-full", stockInfo.color.replace('text', 'bg'))} />
@@ -397,7 +367,7 @@ export default function ProductDetailPage() {
                     <Button 
                       onClick={handleAddToWishlist} 
                       variant="outline" 
-                      className={cn("h-16 rounded-2xl border-2 font-black transition-all tracking-tight active:scale-95", isFavorited ? "bg-red-50 border-red-100 text-red-500" : "border-muted/30 hover:border-primary")}
+                      className={cn("h-16 rounded-2xl border-2 font-black transition-all tracking-tight active:scale-95", isFavorited ? "bg-red-50 border-red-100 text-red-500" : "border-border hover:border-primary")}
                     >
                       <Heart className={cn("mr-3 h-6 w-6", isFavorited && "fill-current")} /> {isFavorited ? 'Favorited' : 'Wishlist'}
                     </Button>
@@ -412,7 +382,7 @@ export default function ProductDetailPage() {
                   >
                     <Share2 className="mr-2 h-4 w-4" /> Share Piece
                   </Button>
-                  <div className="flex items-center justify-center gap-2 bg-[#FAF4EB] rounded-xl px-4 text-[10px] font-black text-accent uppercase">
+                  <div className="flex items-center justify-center gap-2 bg-muted rounded-xl px-4 text-[10px] font-black text-primary uppercase">
                     <ShieldCheck className="h-4 w-4" /> Secure SSL
                   </div>
                 </div>
@@ -421,26 +391,26 @@ export default function ProductDetailPage() {
               {/* Tabs / Accordion for Rich Info */}
               <Accordion type="single" collapsible className="w-full space-y-4">
                 <AccordionItem value="narrative" className="border-none">
-                  <AccordionTrigger className="p-6 rounded-3xl bg-white shadow-md hover:no-underline group data-[state=open]:rounded-b-none">
+                  <AccordionTrigger className="p-6 rounded-3xl bg-white shadow-md hover:no-underline group data-[state=open]:rounded-b-none border border-border">
                     <span className="flex items-center gap-3 font-display font-semibold text-primary uppercase tracking-widest text-xs">
-                      <Info className="h-4 w-4 text-accent" /> The Artisan Narrative
+                      <Info className="h-4 w-4 text-primary" /> The Artisan Narrative
                     </span>
                   </AccordionTrigger>
-                  <AccordionContent className="p-8 pt-4 bg-white rounded-b-3xl text-sm font-body text-muted-foreground leading-relaxed italic whitespace-pre-wrap shadow-md border-t border-muted/10">
+                  <AccordionContent className="p-8 pt-4 bg-white rounded-b-3xl text-sm font-body text-muted-foreground leading-relaxed italic whitespace-pre-wrap shadow-md border-t border-border">
                     {product.description}
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="specs" className="border-none">
-                  <AccordionTrigger className="p-6 rounded-3xl bg-white shadow-md hover:no-underline data-[state=open]:rounded-b-none">
+                  <AccordionTrigger className="p-6 rounded-3xl bg-white shadow-md hover:no-underline data-[state=open]:rounded-b-none border border-border">
                     <span className="flex items-center gap-3 font-display font-semibold text-primary uppercase tracking-widest text-xs">
-                      <Package className="h-4 w-4 text-accent" /> Technical Specs
+                      <Package className="h-4 w-4 text-primary" /> Technical Specs
                     </span>
                   </AccordionTrigger>
-                  <AccordionContent className="p-8 pt-4 bg-white rounded-b-3xl font-body shadow-md border-t border-muted/10">
+                  <AccordionContent className="p-8 pt-4 bg-white rounded-b-3xl font-body shadow-md border-t border-border">
                     <div className="grid grid-cols-1 gap-4">
                       {product.specifications?.length > 0 ? product.specifications.map((s: any, i: number) => (
-                        <div key={i} className="flex justify-between items-center py-2 border-b border-muted/10 last:border-0">
+                        <div key={i} className="flex justify-between items-center py-2 border-b border-border last:border-0">
                           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.key}</span>
                           <span className="text-[11px] font-bold text-primary">{s.value}</span>
                         </div>
@@ -450,23 +420,23 @@ export default function ProductDetailPage() {
                 </AccordionItem>
 
                 <AccordionItem value="shipping" className="border-none">
-                  <AccordionTrigger className="p-6 rounded-3xl bg-white shadow-md hover:no-underline data-[state=open]:rounded-b-none">
+                  <AccordionTrigger className="p-6 rounded-3xl bg-white shadow-md hover:no-underline data-[state=open]:rounded-b-none border border-border">
                     <span className="flex items-center gap-3 font-display font-semibold text-primary uppercase tracking-widest text-xs">
-                      <Truck className="h-4 w-4 text-accent" /> FragileCare™ Shipping
+                      <Truck className="h-4 w-4 text-primary" /> FragileCare™ Shipping
                     </span>
                   </AccordionTrigger>
-                  <AccordionContent className="p-8 pt-4 bg-white rounded-b-3xl font-body shadow-md border-t border-muted/10">
+                  <AccordionContent className="p-8 pt-4 bg-white rounded-b-3xl font-body shadow-md border-t border-border">
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-2xl bg-[#FAF4EB] border space-y-1">
-                          <div className="flex items-center gap-2 text-accent">
+                        <div className="p-4 rounded-2xl bg-muted border border-border space-y-1">
+                          <div className="flex items-center gap-2 text-primary">
                             <Scale className="h-3 w-3" />
                             <span className="text-[9px] font-black uppercase tracking-widest">Gross Weight</span>
                           </div>
                           <p className="text-sm font-bold text-primary">{product.shipping?.weight_kg || '1.2'} KG</p>
                         </div>
-                        <div className="p-4 rounded-2xl bg-[#FAF4EB] border space-y-1">
-                          <div className="flex items-center gap-2 text-accent">
+                        <div className="p-4 rounded-2xl bg-muted border border-border space-y-1">
+                          <div className="flex items-center gap-2 text-primary">
                             <Box className="h-3 w-3" />
                             <span className="text-[9px] font-black uppercase tracking-widest">Dimensions</span>
                           </div>
@@ -477,8 +447,8 @@ export default function ProductDetailPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-4 p-4 rounded-2xl border-2 border-dashed border-accent/20 bg-accent/[0.02]">
-                        <MapPin className="h-5 w-5 text-accent shrink-0" />
+                      <div className="flex gap-4 p-4 rounded-2xl border-2 border-dashed border-primary/20 bg-primary/[0.02]">
+                        <MapPin className="h-5 w-5 text-primary shrink-0" />
                         <div>
                           <p className="text-xs font-bold text-primary mb-1">Pan India Delivery</p>
                           <p className="text-[10px] text-muted-foreground leading-relaxed">Pieces are dispatched within 48-72 hours after artisan inspection. Fragile-specific reinforced packaging guaranteed.</p>
@@ -493,7 +463,7 @@ export default function ProductDetailPage() {
 
           {/* Reviews Section */}
           <section className="space-y-12">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-primary/5 pb-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-muted pb-8">
               <div className="space-y-2">
                 <h2 className="text-[28px] md:text-[40px] font-display font-semibold text-primary tracking-tight">Collector Chronicles</h2>
                 <p className="text-muted-foreground font-body font-bold text-[10px] uppercase tracking-widest">Validated feedback from the Kalamic community</p>
@@ -503,7 +473,7 @@ export default function ProductDetailPage() {
                   <p className="text-3xl font-black text-primary leading-none">{product.analytics?.average_rating || 4.8}</p>
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">Studio Average</p>
                 </div>
-                <div className="h-14 w-14 rounded-2xl bg-accent flex items-center justify-center text-white shadow-2xl shadow-accent/20">
+                <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center text-white shadow-2xl shadow-primary/20">
                   <MessageSquare className="h-7 w-7" />
                 </div>
               </div>
@@ -512,10 +482,10 @@ export default function ProductDetailPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
               {/* Write a Review */}
               <div className="lg:col-span-4">
-                <Card className="border-none shadow-xl rounded-[2.5rem] bg-white sticky top-24">
+                <Card className="border-none shadow-xl rounded-[2.5rem] bg-white sticky top-24 border border-border">
                   <CardContent className="p-8 space-y-6">
                     <h3 className="text-xl font-black text-primary flex items-center gap-3">
-                      <Zap className="h-5 w-5 text-accent" /> Share Your Review
+                      <Zap className="h-5 w-5 text-primary" /> Share Your Review
                     </h3>
                     
                     {user ? (
@@ -530,7 +500,7 @@ export default function ProductDetailPage() {
                                 onClick={() => setReviewRating(star)}
                                 className={cn(
                                   "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
-                                  reviewRating >= star ? "bg-accent text-white shadow-lg" : "bg-[#FAF4EB] text-muted-foreground"
+                                  reviewRating >= star ? "bg-primary text-white shadow-lg" : "bg-muted text-muted-foreground"
                                 )}
                               >
                                 <Star className={cn("h-5 w-5", reviewRating >= star && "fill-current")} />
@@ -545,7 +515,7 @@ export default function ProductDetailPage() {
                             value={reviewComment}
                             onChange={(e) => setReviewComment(e.target.value)}
                             placeholder="Describe the texture, the patterns, and the aesthetic fit..."
-                            className="w-full h-32 p-4 rounded-2xl bg-[#FAF4EB] border-none focus:ring-2 focus:ring-accent text-sm font-medium resize-none"
+                            className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none"
                           />
                         </div>
                         <Button 
@@ -557,7 +527,7 @@ export default function ProductDetailPage() {
                         </Button>
                       </form>
                     ) : (
-                      <div className="p-8 rounded-3xl bg-muted/20 border border-dashed text-center space-y-4">
+                      <div className="p-8 rounded-3xl bg-muted border border-dashed border-border text-center space-y-4">
                         <Lock className="mx-auto h-8 w-8 text-muted-foreground opacity-30" />
                         <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed">Please sign in to share your collector experience.</p>
                         <Button asChild variant="outline" className="w-full rounded-xl border-primary text-primary font-black">
@@ -572,7 +542,7 @@ export default function ProductDetailPage() {
               {/* Review List */}
               <div className="lg:col-span-8 space-y-8">
                 {reviews.length > 0 ? reviews.map((review, idx) => (
-                  <div key={idx} className="p-8 rounded-[2.5rem] bg-white shadow-sm border border-primary/5 space-y-4 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
+                  <div key={idx} className="p-8 rounded-[2.5rem] bg-white shadow-sm border border-border space-y-4 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black">
@@ -583,7 +553,7 @@ export default function ProductDetailPage() {
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{dayjs(review.createdAt).format('DD MMM YYYY')}</p>
                         </div>
                       </div>
-                      <div className="flex gap-0.5 text-accent">
+                      <div className="flex gap-0.5 text-primary">
                         {[...Array(5)].map((_, i) => (
                           <Star key={i} className={cn("h-3.5 w-3.5", i < review.rating ? "fill-current" : "opacity-20")} />
                         ))}
@@ -595,7 +565,7 @@ export default function ProductDetailPage() {
                     </p>
                   </div>
                 )) : (
-                  <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed">
+                  <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-border">
                     <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground opacity-10 mb-4" />
                     <p className="text-lg font-display font-semibold text-muted-foreground">Be the first to share your perspective</p>
                     <p className="text-xs font-medium text-muted-foreground/60 mt-2">Acquire this piece and help other collectors decide.</p>
@@ -633,7 +603,7 @@ export default function ProductDetailPage() {
       </Dialog>
 
       {/* Mobile Sticky Add to Cart */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-border z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <p className="text-xs font-black text-primary/60 uppercase tracking-widest leading-none mb-1">Total Piece Value</p>
@@ -651,25 +621,5 @@ export default function ProductDetailPage() {
 
       <Footer />
     </div>
-  );
-}
-
-function UserIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
   );
 }
