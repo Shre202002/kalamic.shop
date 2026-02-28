@@ -98,23 +98,24 @@ export default function ProductDetailPage() {
     return () => clearInterval(interval);
   }, [product, isSliderPaused]);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const id = params.id as string;
-        const data = await getProductById(id);
-        if (data) {
-          setProduct(data);
-          incrementProductViews(data._id);
-          const reviewData = await getProductReviews(data._id);
-          setReviews(reviewData);
-        }
-      } catch (error) {
-        console.error("Error loading product:", error);
-      } finally {
-        setIsLoading(false);
+  async function loadData() {
+    try {
+      const id = params.id as string;
+      const data = await getProductById(id);
+      if (data) {
+        setProduct(data);
+        incrementProductViews(data._id);
+        const reviewData = await getProductReviews(data._id);
+        setReviews(reviewData);
       }
+    } catch (error) {
+      console.error("Error loading product:", error);
+    } finally {
+      setIsLoading(false);
     }
+  }
+
+  useEffect(() => {
     loadData();
   }, [params.id]);
 
@@ -237,12 +238,15 @@ export default function ProductDetailPage() {
         images: uploadedImages
       });
       
-      const updatedReviews = await getProductReviews(product._id);
-      setReviews(updatedReviews);
+      // Clear form
       setReviewComment('');
       setReviewFiles([]);
       setReviewPreviews([]);
       setReviewRating(5);
+      
+      // Reload all data to show new review and updated rating
+      await loadData();
+      
       toast({ title: "Review Shared", description: "Your feedback has been immortalized." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Submission Failed", description: error.message });
@@ -255,8 +259,7 @@ export default function ProductDetailPage() {
   if (!product) return <div className="p-20 text-center bg-background min-h-screen flex flex-col items-center justify-center"><h1 className="text-3xl font-display font-semibold text-primary mb-6">Piece Not Found</h1><Button asChild className="rounded-2xl h-12 px-8 font-body"><Link href="/products">Return to Shop</Link></Button></div>;
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
-  const activeImage = galleryImages[activeImageIndex] || galleryImages[0];
-
+  
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -468,7 +471,7 @@ export default function ProductDetailPage() {
                     <p className="text-6xl md:text-7xl font-black text-primary tracking-tighter">{product.analytics?.average_rating || 4.8}</p>
                     <div>
                       <div className="flex gap-1 text-primary mb-1">
-                        {[1,2,3,4,5].map(i => <Star key={i} className="h-4 w-4 fill-current" />)}
+                        {[1,2,3,4,5].map(i => <Star key={i} className={cn("h-4 w-4", i < Math.floor(product.analytics?.average_rating || 5) ? "fill-current" : "opacity-20")} />)}
                       </div>
                       <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Community Trust Score</p>
                     </div>

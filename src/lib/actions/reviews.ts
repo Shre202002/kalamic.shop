@@ -10,14 +10,19 @@ import { revalidatePath } from 'next/cache';
  * Checks if a user has actually purchased the product to mark as verified.
  */
 async function checkVerifiedPurchase(userId: string, productId: string) {
-  await dbConnect();
-  // Check against both model types for safety in this prototype environment
-  const order = await Order.findOne({ 
-    userId, 
-    'items.productId': productId,
-    orderStatus: { $in: ['placed', 'delivered', 'dispatched', 'confirmed'] }
-  });
-  return !!order;
+  try {
+    await dbConnect();
+    // Check against both model types for safety in this prototype environment
+    const order = await Order.findOne({ 
+      userId, 
+      'items.productId': productId,
+      orderStatus: { $in: ['placed', 'delivered', 'dispatched', 'confirmed', 'paid'] }
+    });
+    return !!order;
+  } catch (err) {
+    console.error("[REVIEWS] Verified purchase check failed:", err);
+    return false;
+  }
 }
 
 /**
@@ -48,6 +53,8 @@ export async function submitReview(data: {
 }) {
   await dbConnect();
   try {
+    console.log(`[REVIEWS] Submitting review for product: ${data.productId} by user: ${data.userId}`);
+
     // 1. Check for existing review
     const existing = await Review.findOne({ product_id: data.productId, user_id: data.userId });
     if (existing) {
@@ -64,7 +71,7 @@ export async function submitReview(data: {
       user_name: data.userName,
       user_avatar: data.userAvatar,
       rating: data.rating,
-      comment: data.reviewText, // Sending 'comment' as required by the model
+      comment: data.reviewText,
       review_images: data.images || [],
       is_verified_purchase: isVerified,
       status: 'approved' // Auto-approve for this prototype
@@ -83,10 +90,15 @@ export async function submitReview(data: {
     ]);
 
     if (stats.length > 0) {
+      const avg = parseFloat(stats[0].avgRating.toFixed(1));
+      const count = stats[0].count;
+      
+      console.log(`[REVIEWS] Updating product stats: Avg ${avg}, Count ${count}`);
+      
       await KalamicProduct.findByIdAndUpdate(data.productId, {
         $set: { 
-          'analytics.average_rating': parseFloat(stats[0].avgRating.toFixed(1)),
-          'analytics.review_count': stats[0].count
+          'analytics.average_rating': avg,
+          'analytics.review_count': count
         }
       });
     }
@@ -94,7 +106,7 @@ export async function submitReview(data: {
     revalidatePath(`/products/${data.productId}`);
     return { success: true, review: JSON.parse(JSON.stringify(newReview)) };
   } catch (error: any) {
-    console.error("Error submitting review:", error);
+    console.error("[REVIEWS] Submission Error:", error);
     throw new Error(error.message || "Failed to submit review");
   }
 }

@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 /**
  * @fileOverview Upgraded Schema for the Product_Reviews collection.
  * Supports media uploads, verified status, and engagement metrics.
+ * Uses String for IDs to support Firebase UIDs and flexible product references.
  */
 
 export interface IReview extends Document {
@@ -30,7 +31,7 @@ const ReviewSchema: Schema = new Schema({
   user_name: { type: String, required: true },
   user_avatar: { type: String },
   rating: { type: Number, required: true, min: 1, max: 5 },
-  comment: { type: String, required: true }, // Field name synchronized with error report
+  comment: { type: String, required: true },
   review_text: { type: String }, // Optional legacy support
   review_images: {
     type: [{
