@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -145,7 +146,8 @@ export default function ProductsManagement() {
         seo: {
           ...INITIAL_PRODUCT.seo,
           ...product.seo,
-          meta_keywords: Array.isArray(product.seo?.meta_keywords) ? [...product.seo.meta_keywords] : []
+          // If keywords is an array, it will be handled as a string in the UI logic
+          meta_keywords: Array.isArray(product.seo?.meta_keywords) ? product.seo.meta_keywords : []
         }
       });
     } else {
@@ -587,21 +589,30 @@ export default function ProductsManagement() {
               {activeTab === 5 && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>DISCOVERY METADATA</Typography>
-                  <TextField fullWidth label="Search Title" value={editingProduct.seo?.meta_title} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_title: e.target.value}})} />
+                  <TextField 
+                    fullWidth 
+                    label="Search Title" 
+                    value={editingProduct.seo?.meta_title} 
+                    onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_title: e.target.value}})} 
+                  />
                   <TextField 
                     fullWidth 
                     label="Meta Keywords (Comma separated)" 
                     placeholder="handmade, ceramic, indian decor"
-                    value={editingProduct.seo?.meta_keywords?.join(', ') || ''} 
-                    onChange={(e) => {
-                      const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k);
-                      setEditingProduct({
-                        ...editingProduct, 
-                        seo: { ...editingProduct.seo, meta_keywords: keywords }
-                      });
-                    }} 
+                    value={Array.isArray(editingProduct.seo?.meta_keywords) ? editingProduct.seo.meta_keywords.join(', ') : (editingProduct.seo?.meta_keywords || '')} 
+                    onChange={(e) => setEditingProduct({
+                      ...editingProduct, 
+                      seo: { ...editingProduct.seo, meta_keywords: e.target.value }
+                    })} 
                   />
-                  <TextField fullWidth multiline rows={3} label="Meta Description" value={editingProduct.seo?.meta_description} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_description: e.target.value}})} />
+                  <TextField 
+                    fullWidth 
+                    multiline 
+                    rows={3} 
+                    label="Meta Description" 
+                    value={editingProduct.seo?.meta_description} 
+                    onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_description: e.target.value}})} 
+                  />
                 </Box>
               )}
             </Box>

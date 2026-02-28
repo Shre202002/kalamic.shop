@@ -1,3 +1,4 @@
+
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -134,7 +135,8 @@ export async function saveProduct(adminId: string, productData: any) {
   const actor = await validateRole(adminId, ['super_admin', 'admin']);
   await dbConnect();
   
-  const { _id, ...rest } = productData;
+  // Sanitize incoming data to remove internal MongoDB fields that block updates
+  const { _id, id, createdAt, updatedAt, __v, ...rest } = productData;
   const isNew = !_id;
   
   // Strict Schema Normalization & SEO Validation
@@ -153,6 +155,17 @@ export async function saveProduct(adminId: string, productData: any) {
     throw new Error("At least one product image is required.");
   }
 
+  // Handle Meta Keywords - Support both Array and Comma-separated String
+  let keywordsArray: string[] = [];
+  if (Array.isArray(productData.seo?.meta_keywords)) {
+    keywordsArray = productData.seo.meta_keywords;
+  } else if (typeof productData.seo?.meta_keywords === 'string') {
+    keywordsArray = productData.seo.meta_keywords
+      .split(',')
+      .map((k: string) => k.trim())
+      .filter((k: string) => k.length > 0);
+  }
+
   const cleanedData: any = {
     ...rest,
     slug: productData.slug.toLowerCase().trim(),
@@ -160,7 +173,9 @@ export async function saveProduct(adminId: string, productData: any) {
     compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
     stock: Number(productData.stock) || 0,
     updated_by_admin: adminId,
-    category_id: mongoose.isValidObjectId(productData.category_id) ? productData.category_id : new mongoose.Types.ObjectId(),
+    category_id: mongoose.isValidObjectId(productData.category_id) 
+      ? new mongoose.Types.ObjectId(productData.category_id) 
+      : new mongoose.Types.ObjectId(),
     images: validatedImages,
     specifications: (productData.specifications || []).filter((s: any) => s.key && s.value),
     faqs: (productData.faqs || []).filter((f: any) => f.question && f.answer),
@@ -175,7 +190,7 @@ export async function saveProduct(adminId: string, productData: any) {
     seo: {
       meta_title: productData.seo?.meta_title || '',
       meta_description: productData.seo?.meta_description || '',
-      meta_keywords: Array.isArray(productData.seo?.meta_keywords) ? productData.seo.meta_keywords : []
+      meta_keywords: keywordsArray
     }
   };
 
@@ -186,8 +201,15 @@ export async function saveProduct(adminId: string, productData: any) {
     saved = await KalamicProduct.create(cleanedData);
     await logAction(actor, 'CREATE_PRODUCT', 'KalamicProduct', saved._id.toString(), `Created: ${saved.name}`);
   } else {
-    saved = await KalamicProduct.findByIdAndUpdate(_id, { $set: cleanedData }, { new: true });
-    if (!saved) throw new Error("Product not found.");
+    // Cast to ObjectId for reliable lookup
+    const targetId = new mongoose.Types.ObjectId(_id);
+    saved = await KalamicProduct.findByIdAndUpdate(
+      targetId, 
+      { $set: cleanedData }, 
+      { new: true, runValidators: true }
+    );
+    
+    if (!saved) throw new Error(`Product with ID ${_id} not found or update failed.`);
     await logAction(actor, 'UPDATE_PRODUCT', 'KalamicProduct', _id, `Updated: ${saved.name}`);
   }
 
