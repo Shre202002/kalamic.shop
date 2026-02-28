@@ -163,6 +163,7 @@ export default function ProductsManagement() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('folder', '/kalamic/products');
       const result = await uploadToImageKit(formData);
       
       const next = [...editingProduct.images];

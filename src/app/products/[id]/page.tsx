@@ -85,7 +85,13 @@ export default function ProductDetailPage() {
   const isFavorited = !!wishlistDoc;
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 600);
+    const handleScroll = () => {
+      if (window.scrollY > 600) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -224,6 +230,7 @@ export default function ProductDetailPage() {
       for (const file of reviewFiles) {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('folder', '/kalamic/reviews');
         const result = await uploadToImageKit(formData);
         uploadedImages.push({ url: result.url, alt: `Collector photo of ${product.name}` });
       }
@@ -244,7 +251,7 @@ export default function ProductDetailPage() {
       setReviewPreviews([]);
       setReviewRating(5);
       
-      // Reload all data to show new review and updated rating
+      // Reload all data
       await loadData();
       
       toast({ title: "Review Shared", description: "Your feedback has been immortalized." });
@@ -275,7 +282,7 @@ export default function ProductDetailPage() {
           </nav>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 mb-20 items-start">
-            {/* Left: Premium Hero Slider */}
+            {/* Left: Slider */}
             <div className="lg:col-span-7 space-y-6 lg:sticky lg:top-28 self-start">
               <div 
                 className="relative aspect-square rounded-[3rem] overflow-hidden shadow-2xl bg-white border-4 border-white group"
@@ -321,7 +328,7 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Right: Information */}
+            {/* Right: Info */}
             <div className="lg:col-span-5 space-y-10">
               <div className="space-y-6">
                 <h1 className="text-[32px] md:text-[52px] font-display font-semibold text-primary tracking-tight leading-[1.05]">{product.name}</h1>
@@ -372,7 +379,7 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Details Section */}
+          {/* Details */}
           <section className="mb-32">
             <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
               <div className="w-full lg:w-1/3 space-y-4">
@@ -405,7 +412,7 @@ export default function ProductDetailPage() {
             </div>
           </section>
 
-          {/* FragileCare Section */}
+          {/* Shipping */}
           <section className="mb-32">
             <div className="text-center space-y-4 mb-16">
               <h2 className="text-[32px] md:text-[48px] font-display font-semibold text-primary tracking-tight">FragileCare™ Shipping</h2>
@@ -430,7 +437,7 @@ export default function ProductDetailPage() {
             </div>
           </section>
 
-          {/* FAQ Section */}
+          {/* FAQ */}
           {product.faqs?.length > 0 && (
             <section className="mb-32">
               <div className="max-w-4xl mx-auto">
@@ -454,7 +461,7 @@ export default function ProductDetailPage() {
             </section>
           )}
 
-          {/* Reviews Section */}
+          {/* Reviews */}
           <section className="mb-32">
             <div className="text-center space-y-4 mb-16">
               <h2 className="text-[32px] md:text-[48px] font-display font-semibold text-primary tracking-tight">Collector Experiences</h2>

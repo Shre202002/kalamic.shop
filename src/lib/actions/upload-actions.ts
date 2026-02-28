@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -9,10 +8,11 @@ import ImageKit from 'imagekit';
 
 /**
  * Uploads a file buffer to ImageKit and returns the optimized CDN URL.
- * @param formData The multipart form data containing the 'file' entry.
+ * @param formData The multipart form data containing the 'file' entry and an optional 'folder'.
  */
 export async function uploadToImageKit(formData: FormData) {
   const file = formData.get('file') as File;
+  const folder = (formData.get('folder') as string) || '/kalamic/products';
   
   if (!file) {
     throw new Error('No file provided for upload.');
@@ -52,7 +52,7 @@ export async function uploadToImageKit(formData: FormData) {
     const uploadResponse = await imagekit.upload({
       file: buffer,
       fileName: file.name || `artisan-piece-${Date.now()}`,
-      folder: '/kalamic/products',
+      folder: folder,
       useUniqueFileName: true,
     });
 
@@ -70,7 +70,6 @@ export async function uploadToImageKit(formData: FormData) {
     };
   } catch (error: any) {
     console.error('[IMAGEKIT] Upload execution failed:', error);
-    // Return a descriptive message to the client instead of throwing a generic error
     throw new Error(error.message || 'The ImageKit server responded with an error.');
   }
 }
