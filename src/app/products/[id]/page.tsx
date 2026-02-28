@@ -1,6 +1,7 @@
+
 "use client"
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -8,8 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
 import { 
   Accordion,
   AccordionContent,
@@ -39,11 +44,9 @@ import {
   Loader2, 
   ChevronRight,
   Zap,
-  Info,
   Package,
   MessageSquare,
   Lock,
-  Eye,
   CheckCircle2,
   Box,
   Scale,
@@ -86,13 +89,14 @@ export default function ProductDetailPage() {
   const [reviewComment, setReviewComment] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
 
-  const wishlistDocQuery = useMemoFirebase(() => {
+  // Wishlist Doc Connection
+  const wishlistDocRef = useMemoFirebase(() => {
     const id = product?._id || product?.id;
     if (!firestore || !user || !id) return null;
     return doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
   }, [firestore, user, product]);
 
-  const { data: wishlistDoc } = useDoc(wishlistDocQuery);
+  const { data: wishlistDoc } = useDoc(wishlistDocRef);
   const isFavorited = !!wishlistDoc;
 
   // Track scroll for sticky bar
@@ -165,7 +169,7 @@ export default function ProductDetailPage() {
 
   const handleAddToWishlist = async () => {
     if (!user || !firestore) {
-      toast({ title: "Please sign in" });
+      toast({ title: "Please sign in", description: "You need an account to save pieces." });
       return;
     }
 
@@ -254,9 +258,9 @@ export default function ProductDetailPage() {
         <div className="container mx-auto px-4 max-w-7xl pt-6 md:pt-12">
           {/* Breadcrumbs */}
           <nav className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-8">
-            <Link href="/" className="hover:text-primary transition-colors shrink-0">Home</Link>
+            <Link href="/" className="hover:text-primary transition-colors shrink-0 text-muted-foreground">Home</Link>
             <ChevronRight className="h-3 w-3 shrink-0" />
-            <Link href="/products" className="hover:text-primary transition-colors shrink-0">Catalog</Link>
+            <Link href="/products" className="hover:text-primary transition-colors shrink-0 text-muted-foreground">Catalog</Link>
             <ChevronRight className="h-3 w-3 shrink-0" />
             <span className="text-primary truncate">{product.name}</span>
           </nav>
@@ -361,9 +365,9 @@ export default function ProductDetailPage() {
                   </span>
                 </div>
                 
-                <h1 className="text-[36px] md:text-[52px] font-display font-semibold text-primary tracking-tight leading-[1.05]">{product.name}</h1>
+                <h1 className="text-[32px] md:text-[52px] font-display font-semibold text-primary tracking-tight leading-[1.05]">{product.name}</h1>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest text-muted-foreground rounded-xl border-border px-3 py-1">
                     SKU: {product.sku || 'KAL-ART-001'}
                   </Badge>
@@ -377,7 +381,7 @@ export default function ProductDetailPage() {
                 </div>
 
                 <div className="flex items-baseline gap-5 py-4">
-                  <span className="text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
+                  <span className="text-4xl md:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
                   {product.compare_at_price && (
                     <div className="flex flex-col">
                       <span className="text-lg text-muted-foreground line-through decoration-primary/30 opacity-40">₹{product.compare_at_price.toLocaleString()}</span>
@@ -393,9 +397,9 @@ export default function ProductDetailPage() {
 
               {/* Highlights Strip */}
               {highlights.length > 0 && (
-                <div className="flex divide-x divide-border bg-white border border-border rounded-3xl p-6 shadow-sm">
+                <div className="flex divide-x divide-border bg-white border border-border rounded-3xl p-6 shadow-sm overflow-x-auto scrollbar-hide">
                   {highlights.map((h: any, i: number) => (
-                    <div key={i} className="flex-1 px-4 first:pl-0 last:pr-0 text-center">
+                    <div key={i} className="flex-1 px-4 first:pl-0 last:pr-0 text-center min-w-[100px]">
                       <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">{h.key}</p>
                       <p className="text-xs font-bold text-primary truncate">{h.value}</p>
                     </div>
@@ -403,7 +407,7 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Premium CTA Stack - 4 Buttons */}
+              {/* Premium CTA Stack */}
               <div className="space-y-4 pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Button 
@@ -456,12 +460,20 @@ export default function ProductDetailPage() {
                   </div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Pan India</p>
                 </div>
-                <div className="flex flex-col items-center text-center gap-2">
-                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-primary/60">
-                    <Heart className={cn("h-5 w-5", isFavorited && "fill-primary text-primary")} onClick={handleAddToWishlist} />
+                <button 
+                  onClick={handleAddToWishlist}
+                  className="flex flex-col items-center text-center gap-2 group outline-none"
+                >
+                  <div className={cn(
+                    "h-10 w-10 rounded-full transition-all flex items-center justify-center shadow-inner",
+                    isFavorited ? "bg-primary/10 text-primary" : "bg-muted text-primary/60 group-hover:bg-primary/5"
+                  )}>
+                    <Heart className={cn("h-5 w-5", isFavorited && "fill-current")} />
                   </div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground" onClick={handleAddToWishlist}>Wishlist</p>
-                </div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">
+                    {isFavorited ? "In Wishlist" : "Wishlist"}
+                  </p>
+                </button>
               </div>
             </div>
           </div>
@@ -469,14 +481,14 @@ export default function ProductDetailPage() {
           {/* Detailed Artisan Narrative & Specs Tabs */}
           <section className="mb-32">
             <Tabs defaultValue="narrative" className="w-full">
-              <TabsList className="flex w-full h-auto bg-transparent border-b border-border p-0 gap-8 mb-12">
-                <TabsTrigger value="narrative" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-xs font-black uppercase tracking-[0.25em] text-muted-foreground data-[state=active]:text-primary transition-all">Artisan Narrative</TabsTrigger>
-                <TabsTrigger value="specs" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-xs font-black uppercase tracking-[0.25em] text-muted-foreground data-[state=active]:text-primary transition-all">Technical Specs</TabsTrigger>
-                <TabsTrigger value="shipping" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-xs font-black uppercase tracking-[0.25em] text-muted-foreground data-[state=active]:text-primary transition-all">FragileCare™ Shipping</TabsTrigger>
-                <TabsTrigger value="reviews" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-xs font-black uppercase tracking-[0.25em] text-muted-foreground data-[state=active]:text-primary transition-all">Reviews ({reviews.length})</TabsTrigger>
+              <TabsList className="flex w-full h-auto bg-transparent border-b border-border p-0 gap-4 md:gap-8 mb-12 overflow-x-auto scrollbar-hide">
+                <TabsTrigger value="narrative" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:text-primary transition-all whitespace-nowrap">Artisan Narrative</TabsTrigger>
+                <TabsTrigger value="specs" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:text-primary transition-all whitespace-nowrap">Technical Specs</TabsTrigger>
+                <TabsTrigger value="shipping" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:text-primary transition-all whitespace-nowrap">FragileCare™ Shipping</TabsTrigger>
+                <TabsTrigger value="reviews" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:text-primary transition-all whitespace-nowrap">Reviews ({reviews.length})</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="narrative" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <TabsContent value="narrative" className="animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                   <div className="space-y-6">
                     <h3 className="text-3xl font-display font-semibold text-primary">Behind the Craft</h3>
@@ -484,7 +496,7 @@ export default function ProductDetailPage() {
                       {product.description}
                     </p>
                   </div>
-                  <div className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl">
+                  <div className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white bg-white">
                     <Image 
                       src="https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?q=80&w=1000" 
                       alt="Artisan Process" 
@@ -496,8 +508,8 @@ export default function ProductDetailPage() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="specs" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-6 bg-white p-12 rounded-[3rem] shadow-xl border border-border">
+              <TabsContent value="specs" className="animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-6 bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-border">
                   {product.specifications?.map((s: any, i: number) => (
                     <div key={i} className="flex justify-between items-center py-4 border-b border-border/50">
                       <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.key}</span>
@@ -507,17 +519,17 @@ export default function ProductDetailPage() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="shipping" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <TabsContent value="shipping" className="animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4">
-                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                  <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4">
+                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
                       <Scale className="h-6 w-6" />
                     </div>
                     <h4 className="text-lg font-bold text-primary">Weight Metrics</h4>
                     <p className="text-sm text-muted-foreground leading-relaxed">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG for safe transit balancing.</p>
                   </div>
-                  <div className="p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4">
-                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                  <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4">
+                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
                       <Box className="h-6 w-6" />
                     </div>
                     <h4 className="text-lg font-bold text-primary">Package Profile</h4>
@@ -525,8 +537,8 @@ export default function ProductDetailPage() {
                       Box Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'} x {product.shipping?.package_dimensions_cm?.width || '30'} x {product.shipping?.package_dimensions_cm?.height || '15'} CM
                     </p>
                   </div>
-                  <div className="p-10 rounded-[3rem] bg-primary text-white shadow-xl border-none space-y-4">
-                    <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                  <div className="p-8 md:p-10 rounded-[3rem] bg-primary text-white shadow-xl border-none space-y-4">
+                    <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center shadow-lg">
                       <Truck className="h-6 w-6" />
                     </div>
                     <h4 className="text-lg font-bold">FragileCare™ Priority</h4>
@@ -535,7 +547,7 @@ export default function ProductDetailPage() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="reviews" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <TabsContent value="reviews" className="animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
                   <div className="lg:col-span-4 space-y-8">
                     <div className="p-8 rounded-[2.5rem] bg-white shadow-xl border border-border">
@@ -543,7 +555,7 @@ export default function ProductDetailPage() {
                         <MessageSquare className="h-5 w-5 text-primary" /> Collector Verdict
                       </h3>
                       <div className="flex items-center gap-6 mb-8">
-                        <p className="text-6xl font-black text-primary tracking-tighter">{product.analytics?.average_rating || 4.8}</p>
+                        <p className="text-5xl md:text-6xl font-black text-primary tracking-tighter">{product.analytics?.average_rating || 4.8}</p>
                         <div>
                           <div className="flex gap-1 text-primary mb-1">
                             {[1,2,3,4,5].map(i => <Star key={i} className="h-4 w-4 fill-current" />)}
@@ -554,8 +566,8 @@ export default function ProductDetailPage() {
                       
                       {user ? (
                         <form onSubmit={handleSubmitReview} className="space-y-6">
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Your Rating</Label>
+                          <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Artisan Rating</Label>
                             <div className="flex gap-2">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <button
@@ -563,8 +575,8 @@ export default function ProductDetailPage() {
                                   type="button"
                                   onClick={() => setReviewRating(star)}
                                   className={cn(
-                                    "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
-                                    reviewRating >= star ? "bg-primary text-white shadow-lg" : "bg-muted text-muted-foreground"
+                                    "h-10 w-10 rounded-xl flex items-center justify-center transition-all shadow-sm",
+                                    reviewRating >= star ? "bg-primary text-white shadow-primary/20" : "bg-muted text-muted-foreground"
                                   )}
                                 >
                                   <Star className={cn("h-5 w-5", reviewRating >= star && "fill-current")} />
@@ -572,20 +584,20 @@ export default function ProductDetailPage() {
                               ))}
                             </div>
                           </div>
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Share Your Experience</Label>
+                          <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Collector Feedback</Label>
                             <textarea
                               required
                               value={reviewComment}
                               onChange={(e) => setReviewComment(e.target.value)}
-                              placeholder="Describe the texture, the patterns..."
-                              className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none"
+                              placeholder="Describe the texture, the intricate patterns..."
+                              className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none shadow-inner"
                             />
                           </div>
                           <Button 
                             type="submit" 
                             disabled={isSubmittingReview} 
-                            className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl"
+                            className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]"
                           >
                             {isSubmittingReview ? <Loader2 className="animate-spin h-5 w-5" /> : "Post Review"}
                           </Button>
@@ -594,7 +606,7 @@ export default function ProductDetailPage() {
                         <div className="p-6 rounded-2xl bg-muted border border-dashed border-border text-center space-y-4">
                           <Lock className="mx-auto h-6 w-6 text-muted-foreground opacity-30" />
                           <p className="text-[10px] font-black text-muted-foreground uppercase leading-relaxed tracking-widest">Sign in to share your collector experience.</p>
-                          <Button asChild variant="outline" className="w-full rounded-xl border-primary text-primary font-black text-xs">
+                          <Button asChild variant="outline" className="w-full rounded-xl border-primary text-primary font-black text-xs h-10">
                             <Link href="/auth/login">Join the Community</Link>
                           </Button>
                         </div>
@@ -607,7 +619,7 @@ export default function ProductDetailPage() {
                       <div key={idx} className="p-8 rounded-[2.5rem] bg-white shadow-sm border border-border space-y-4 transition-all hover:shadow-md">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black">
+                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black shadow-inner">
                               {review.user_name?.charAt(0).toUpperCase() || 'C'}
                             </div>
                             <div>
@@ -627,7 +639,7 @@ export default function ProductDetailPage() {
                         </p>
                       </div>
                     )) : (
-                      <div className="text-center py-24 bg-white rounded-[3rem] border border-dashed border-border">
+                      <div className="text-center py-24 bg-white rounded-[3rem] border border-dashed border-border shadow-inner">
                         <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground opacity-10 mb-4" />
                         <p className="text-lg font-display font-semibold text-muted-foreground">Be the first to share your verdict</p>
                         <p className="text-xs font-medium text-muted-foreground/60 mt-2">Help other collectors discover this masterpiece.</p>
@@ -640,7 +652,7 @@ export default function ProductDetailPage() {
           </section>
 
           {/* Artisan Branding Section */}
-          <section className="mb-32 py-20 bg-primary/[0.03] rounded-[4rem] px-8 md:px-20 border border-primary/5">
+          <section className="mb-32 py-16 md:py-24 bg-primary/[0.03] rounded-[4rem] px-8 md:px-20 border border-primary/5 shadow-inner">
             <div className="max-w-4xl mx-auto text-center space-y-8">
               <div className="h-20 w-20 mx-auto rounded-3xl bg-primary flex items-center justify-center text-white shadow-2xl">
                 <Hammer className="h-10 w-10" />
@@ -650,7 +662,7 @@ export default function ProductDetailPage() {
                 At Kalamic, every piece is more than just home decor; it's a labor of love from India's master artisans. 
                 Using centuries-old molding and firing techniques, we ensure that no two pieces are identical, giving you a truly unique masterpiece for your sanctuary.
               </p>
-              <div className="flex flex-wrap justify-center gap-10 pt-4">
+              <div className="flex flex-wrap justify-center gap-6 md:gap-10 pt-4">
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary" />
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">100% Authentic</span>
@@ -670,20 +682,20 @@ export default function ProductDetailPage() {
           {/* FAQ Section - Product Specific */}
           {product.faqs && product.faqs.length > 0 && (
             <section className="mb-32 max-w-4xl mx-auto space-y-12">
-              <div className="text-center space-y-2">
-                <h2 className="text-[32px] md:text-[40px] font-display font-semibold text-primary tracking-tight">Curiosity Corner</h2>
+              <div className="text-center space-y-2 px-4">
+                <h2 className="text-[28px] md:text-[40px] font-display font-semibold text-primary tracking-tight">Curiosity Corner</h2>
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Collector FAQ for this specific piece</p>
               </div>
               
               <Accordion type="single" collapsible className="w-full space-y-4">
                 {product.faqs.map((faq: any, idx: number) => (
                   <AccordionItem key={idx} value={`faq-${idx}`} className="border-none">
-                    <AccordionTrigger className="p-8 rounded-[2rem] bg-white shadow-md hover:no-underline data-[state=open]:rounded-b-none border border-border group transition-all">
-                      <span className="flex items-center gap-4 text-left font-bold text-primary group-data-[state=open]:text-accent text-sm md:text-base">
+                    <AccordionTrigger className="p-6 md:p-8 rounded-[2rem] bg-white shadow-md hover:no-underline data-[state=open]:rounded-b-none border border-border group transition-all outline-none">
+                      <span className="flex items-center gap-4 text-left font-bold text-primary group-data-[state=open]:text-primary/80 text-sm md:text-base">
                         <HelpCircle className="h-5 w-5 shrink-0 opacity-40" /> {faq.question}
                       </span>
                     </AccordionTrigger>
-                    <AccordionContent className="p-8 pt-2 bg-white rounded-b-[2rem] text-sm text-muted-foreground leading-relaxed border-t border-border/50 shadow-md">
+                    <AccordionContent className="p-6 md:p-8 pt-2 bg-white rounded-b-[2rem] text-sm text-muted-foreground leading-relaxed border-t border-border/50 shadow-md">
                       {faq.answer}
                     </AccordionContent>
                   </AccordionItem>
@@ -709,9 +721,9 @@ export default function ProductDetailPage() {
               className="object-contain"
               priority
             />
-            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 px-10 py-5 bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/20 text-white text-center shadow-2xl">
-              <p className="text-xl font-display font-bold">{product.name}</p>
-              <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.3em] mt-2">{activeImage.alt || 'Artisan Focus'}</p>
+            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 px-6 md:px-10 py-4 md:py-5 bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/20 text-white text-center shadow-2xl mx-4">
+              <p className="text-lg md:text-xl font-display font-bold">{product.name}</p>
+              <p className="text-[9px] md:text-[10px] font-black opacity-60 uppercase tracking-[0.3em] mt-2">{activeImage.alt || 'Artisan Focus'}</p>
             </div>
           </div>
         </DialogContent>
@@ -719,7 +731,7 @@ export default function ProductDetailPage() {
 
       {/* Mobile Sticky CTA Bar */}
       <div className={cn(
-        "lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-xl border-t border-border z-50 shadow-[0_-15px_50px_rgba(0,0,0,0.1)] transition-transform duration-500",
+        "lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-2xl border-t border-border z-50 shadow-[0_-15px_50px_rgba(0,0,0,0.15)] transition-transform duration-500 rounded-t-[2rem]",
         isScrolled ? "translate-y-0" : "translate-y-full"
       )}>
         <div className="flex items-center gap-6">
@@ -730,7 +742,7 @@ export default function ProductDetailPage() {
           <Button 
             onClick={handleAddToCart} 
             disabled={product.stock <= 0}
-            className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-base shadow-xl active:scale-95 transition-all"
+            className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-base shadow-xl shadow-primary/20 active:scale-95 transition-all"
           >
             <ShoppingCart className="mr-2 h-5 w-5" /> Add to Bag
           </Button>
