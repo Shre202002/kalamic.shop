@@ -3,29 +3,11 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * NEXGENSHOP SECURITY RULES - PROTOTYPING MODE
+     * NEXGENSHOP SECURITY RULES
      * 
      * Core Philosophy:
-     * This ruleset implements a strict user-ownership model combined with administrative overrides.
-     * Security is primarily enforced through path-based authorization (data nested under user IDs) 
-     * and document-level ownership fields where shared collections exist.
-     * 
-     * Data Structure:
-     * 1. Private User Data: Nested under /userProfiles/{userId}/... (Addresses, Cart, Wishlist, Orders).
-     * 2. Public Catalog Data: Top-level collections (Categories, Products) are globally readable.
-     * 3. Shared Social Data: Reviews are globally readable but only modifiable by the creator.
-     * 4. Administrative Control: A dedicated /roles_admin/ collection determines global admin status.
-     * 
-     * Key Security Decisions:
-     * - Authorization Independence: Rules avoid costly get() lookups by relying on path variables 
-     *   or data denormalized onto the document (e.g., userId in Reviews).
-     * - Admin Privilege: Admin status is verified by checking the existence of a document in the 
-     *   /roles_admin/ collection, providing a performant "Existence over Content" pattern.
-     * - Prototyping Flexibility: While authorization (WHO can access) is strictly enforced, 
-     *   the specific shape and types of data fields (WHAT is written) are not validated 
-     *   to allow for rapid schema iteration.
-     * - Relational Integrity: On creation of user-scoped documents, the rules enforce that 
-     *   internal ID fields match the path ID to ensure data consistency.
+     * Security is enforced through path-based authorization where data is nested under user IDs.
+     * This ruleset matches the application implementation using /users/ path root.
      */
 
     // --- HELPER FUNCTIONS ---
@@ -42,179 +24,73 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    function isExistingOwnerOrAdmin(userId) {
-      return resource != null && (isOwner(userId) || isAdmin());
-    }
-
     // --- COLLECTION RULES ---
 
     /**
-     * @description Rules for user profile documents. Users manage their own profile; admins have full access.
-     * @path /userProfiles/{userId}
-     * @allow (get) If the user is the owner or an admin.
-     * @deny (create) If the authenticated UID does not match the document ID.
-     * @principle Enforces self-creation and path-based ownership.
+     * @description Unified user data rules. Covers /users/{userId} and all subcollections
+     * like cart, wishlist, and orders.
+     */
+    match /users/{userId} {
+      allow get, list, create, update, delete: if isOwner(userId) || isAdmin();
+
+      match /{allSubpaths=**} {
+        allow get, list, create, update, delete: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    /**
+     * @description Fallback for any legacy userProfiles paths.
      */
     match /userProfiles/{userId} {
-      allow get, list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update, delete: if isExistingOwner(userId) || (resource != null && isAdmin());
+      allow get, list, create, update, delete: if isOwner(userId) || isAdmin();
 
-      /**
-       * @description User's private shipping and billing addresses.
-       * @path /userProfiles/{userId}/addresses/{addressId}
-       * @allow (update) If user owns the parent profile.
-       * @deny (list) If user is not the owner or an admin.
-       * @principle Path-based authorization for nested user data.
-       */
-      match /addresses/{addressId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update, delete: if isExistingOwner(userId) || (resource != null && isAdmin());
-      }
-
-      /**
-       * @description User's active shopping cart.
-       * @path /userProfiles/{userId}/cart/{cartId}
-       * @allow (get) If the user owns the profile.
-       * @deny (create) If the data's userId does not match the path.
-       * @principle Ensures cart data remains private to the user.
-       */
-      match /cart/{cartId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update, delete: if isExistingOwner(userId) || (resource != null && isAdmin());
-
-        /**
-         * @description Individual items within a user's cart.
-         * @path /userProfiles/{userId}/cart/{cartId}/items/{itemId}
-         */
-        match /items/{itemId} {
-          allow get, list: if isOwner(userId) || isAdmin();
-          allow create: if isOwner(userId);
-          allow update, delete: if isExistingOwner(userId) || (resource != null && isAdmin());
-        }
-      }
-
-      /**
-       * @description User's product wishlist.
-       * @path /userProfiles/{userId}/wishlist/{wishlistId}
-       */
-      match /wishlist/{wishlistId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update, delete: if isExistingOwner(userId) || (resource != null && isAdmin());
-      }
-
-      /**
-       * @description Confirmed orders placed by a user.
-       * @path /userProfiles/{userId}/orders/{orderId}
-       * @allow (get) If the user is the owner or an admin.
-       * @deny (update) If the order does not belong to the user.
-       * @principle Protects order history while allowing admin oversight.
-       */
-      match /orders/{orderId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update, delete: if isExistingOwnerOrAdmin(userId);
-
-        /**
-         * @description Items included in a specific order.
-         */
-        match /items/{orderItemId} {
-          allow get, list: if isOwner(userId) || isAdmin();
-          allow create: if isOwner(userId);
-          allow update, delete: if isExistingOwnerOrAdmin(userId);
-        }
-
-        /**
-         * @description Payment transaction details for an order.
-         */
-        match /paymentTransaction/{transactionId} {
-          allow get, list: if isOwner(userId) || isAdmin();
-          allow create: if isOwner(userId);
-          allow update, delete: if isExistingOwnerOrAdmin(userId);
-        }
+      match /{allSubpaths=**} {
+        allow get, list, create, update, delete: if isOwner(userId) || isAdmin();
       }
     }
 
     /**
      * @description Product categories. Publicly readable; admin-only writes.
-     * @path /categories/{categoryId}
-     * @allow (get) Everyone.
-     * @deny (create) Non-admin users.
-     * @principle Publicly accessible catalog with restricted management.
      */
     match /categories/{categoryId} {
       allow get, list: if true;
-      allow create: if isAdmin();
-      allow update, delete: if resource != null && isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     /**
-     * @description Product catalog. Publicly readable; admin-only writes.
-     * @path /products/{productId}
+     * @description Product catalog and nested reviews/variants.
      */
     match /products/{productId} {
       allow get, list: if true;
-      allow create: if isAdmin();
-      allow update, delete: if resource != null && isAdmin();
+      allow create, update, delete: if isAdmin();
 
-      /**
-       * @description Specific variants (size/color) of a product.
-       */
-      match /variants/{variantId} {
+      match /{allSubpaths=**} {
         allow get, list: if true;
-        allow create: if isAdmin();
-        allow update, delete: if resource != null && isAdmin();
+        allow create, update, delete: if isAdmin();
       }
 
-      /**
-       * @description Product reviews. Publicly readable; owner-only writes.
-       * @path /products/{productId}/reviews/{reviewId}
-       * @allow (create) Authenticated user matching the internal userId field.
-       * @deny (update) If the reviewer is not the original author.
-       * @principle Shared resource with ownership-based write access.
-       */
+      // Specific override for reviews to allow owners to manage their own
       match /reviews/{reviewId} {
-        allow get, list: if true;
         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow update, delete: if (resource != null && resource.data.userId == request.auth.uid) || (resource != null && isAdmin());
+        allow update, delete: if (resource != null && resource.data.userId == request.auth.uid) || isAdmin();
       }
     }
 
     /**
-     * @description Discount coupon codes. Publicly readable for validation; admin-only writes.
-     * @path /couponCodes/{couponCodeId}
+     * @description Discount coupon codes.
      */
     match /couponCodes/{couponCodeId} {
       allow get, list: if true;
-      allow create: if isAdmin();
-      allow update, delete: if resource != null && isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     /**
-     * @description Internal OTP requests. Backend-only access.
-     * @path /otpRequests/{otpRequestId}
-     * @deny (all) Direct client access is forbidden.
-     * @principle Restricted system-level collection.
-     */
-    match /otpRequests/{otpRequestId} {
-      allow get, list, create, update, delete: if false;
-    }
-
-    /**
-     * @description Admin role registry. Backend-only access.
-     * @path /roles_admin/{userId}
-     * @deny (all) Direct client access is forbidden.
-     * @principle Secure privilege registry for 'Existence-over-Content' checks.
+     * @description Admin role registry. 
+     * Users can read to check their own status; write is forbidden for clients.
      */
     match /roles_admin/{userId} {
-      allow get, list, create, update, delete: if false;
+      allow read: if isSignedIn();
+      allow write: if false;
     }
   }
 }
