@@ -55,7 +55,6 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState(0);
   
   // Review Form State
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
@@ -185,7 +184,7 @@ export default function ProductDetailPage() {
       : { label: 'Currently Out of Stock', color: 'text-red-600', bg: 'bg-red-50' };
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
-  const currentImage = galleryImages[selectedImage] || galleryImages[0] || { url: 'https://placehold.co/800x800?text=Kalamic', alt: 'Handcrafted Piece' };
+  const currentImage = galleryImages[0] || { url: 'https://placehold.co/800x800?text=Kalamic', alt: 'Handcrafted Piece' };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
@@ -231,9 +230,9 @@ export default function ProductDetailPage() {
             <span className="text-primary truncate">{product.name}</span>
           </nav>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 mb-20">
-            {/* Gallery Section */}
-            <div className="lg:col-span-7 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 mb-20 items-start">
+            {/* Gallery Section - Fixed on Scroll */}
+            <div className="lg:col-span-7 space-y-6 lg:sticky lg:top-28 self-start">
               <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl bg-white border-4 border-white group">
                 <Image 
                   src={currentImage.url} 
@@ -249,21 +248,6 @@ export default function ProductDetailPage() {
                     </Badge>
                   </div>
                 )}
-              </div>
-              
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide px-1">
-                {galleryImages.map((img: any, i: number) => (
-                  <button 
-                    key={i} 
-                    onClick={() => setSelectedImage(i)} 
-                    className={cn(
-                      "relative min-w-[90px] h-[90px] rounded-2xl overflow-hidden border-4 transition-all duration-300 shadow-sm", 
-                      selectedImage === i ? "border-primary scale-105 shadow-xl" : "border-white opacity-70 hover:opacity-100 hover:border-primary/20"
-                    )}
-                  >
-                    <Image src={img.url} alt={img.alt || product.name} fill className="object-cover" />
-                  </button>
-                ))}
               </div>
             </div>
 
