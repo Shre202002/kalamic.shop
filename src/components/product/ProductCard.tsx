@@ -120,7 +120,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
           />
           {tag && (
             <div className="absolute top-4 left-4">
-              <Badge className="bg-primary text-white border-none text-[9px] font-body font-black px-3 py-1 rounded-full shadow-lg">
+              <Badge className="bg-primary text-white border-none text-[9px] font-body font-bold px-3 py-1 rounded-full shadow-lg">
                 {tag}
               </Badge>
             </div>
@@ -140,15 +140,15 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
       <CardContent className="p-5 flex-1 flex flex-col font-body">
         <div className="flex items-center gap-1 text-[#6F8A7A] mb-1.5">
           {[1,2,3,4,5].map(i => <Star key={i} className={cn("h-3 w-3", i <= Math.round(rating) ? "fill-current" : "opacity-20")} />)}
-          <span className="text-[9px] font-black text-[#6B6B6B] ml-1">{rating || 4.8}</span>
+          <span className="text-[9px] font-bold text-[#6B6B6B] ml-1">{rating || 4.8}</span>
         </div>
         
-        <h3 className="text-lg font-display font-black text-[#2E2E2E] tracking-tight leading-tight line-clamp-2 mb-1.5 group-hover:text-primary transition-colors duration-300">
+        <h3 className="text-[18px] md:text-[22px] font-display font-semibold text-[#2E2E2E] tracking-tight leading-tight line-clamp-2 mb-1.5 group-hover:text-primary transition-colors duration-300">
           {name || 'Handcrafted Piece'}
         </h3>
         
         <div className="mt-auto flex items-baseline gap-2 mb-4">
-          <span className="text-xl font-black text-primary tracking-tight">₹{(price ?? 0).toLocaleString()}</span>
+          <span className="text-xl font-bold text-primary tracking-tight">₹{(price ?? 0).toLocaleString()}</span>
           {originalPrice && (
             <span className="text-xs text-[#9A9A9A] line-through decoration-[#9A9A9A]/50 font-bold">₹{originalPrice.toLocaleString()}</span>
           )}
@@ -157,13 +157,13 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
         <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="outline"
-            className="h-10 rounded-lg border-primary/20 text-primary hover:bg-primary/5 text-[10px] font-black gap-1.5 transition-all active:scale-95"
+            className="h-10 rounded-lg border-primary/20 text-primary hover:bg-primary/5 text-[10px] font-bold gap-1.5 transition-all active:scale-95 tracking-[0.3px]"
             onClick={handleAddToCart}
           >
             <ShoppingBag className="h-3.5 w-3.5" /> Bag
           </Button>
           <Button 
-            className="h-10 rounded-lg bg-primary text-white hover:bg-[#A95C2B] text-[10px] font-black gap-1.5 shadow-xl shadow-primary/20 transition-all active:scale-95"
+            className="h-10 rounded-lg bg-primary text-white hover:bg-[#A95C2B] text-[10px] font-bold gap-1.5 shadow-xl shadow-primary/20 transition-all active:scale-95 tracking-[0.3px]"
             onClick={handleBuyNow}
           >
             <Zap className="h-3.5 w-3.5" /> Buy

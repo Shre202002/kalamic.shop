@@ -10,7 +10,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"DM Serif Display"', 'serif'],
+        display: ['"Playfair Display"', 'serif'],
         body: ['Inter', 'sans-serif'],
         code: ['monospace'],
       },

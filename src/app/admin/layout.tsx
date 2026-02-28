@@ -29,15 +29,15 @@ const adminTheme = createTheme({
     background: { default: '#F6F1E9' } // Soft Cream
   },
   typography: {
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: '"Inter", sans-serif',
     fontSize: 13,
-    h4: { fontWeight: 800, fontSize: '1.5rem', fontFamily: '"DM Serif Display", serif' },
-    h6: { fontWeight: 700, fontSize: '0.9rem', fontFamily: '"DM Serif Display", serif' }
+    h4: { fontWeight: 700, fontSize: '1.5rem', fontFamily: '"Playfair Display", serif' },
+    h6: { fontWeight: 600, fontSize: '0.9rem', fontFamily: '"Playfair Display", serif' }
   },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: { borderRadius: 8, textTransform: 'none', fontWeight: 700, fontFamily: 'Inter, sans-serif' }
+        root: { borderRadius: 8, textTransform: 'none', fontWeight: 600, fontFamily: '"Inter", sans-serif' }
       }
     },
     MuiPaper: {
@@ -84,7 +84,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <MenuIcon />
                 </IconButton>
               )}
-              <Typography variant="h6" noWrap component="div" sx={{ fontFamily: '"DM Serif Display", serif', fontSize: '1.2rem', color: '#C97A40' }}>
+              <Typography variant="h6" noWrap component="div" sx={{ fontFamily: '"Playfair Display", serif', fontSize: '1.2rem', color: '#C97A40', fontWeight: 700 }}>
                 Control Hub
               </Typography>
             </Box>
