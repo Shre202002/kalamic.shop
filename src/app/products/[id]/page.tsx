@@ -395,13 +395,13 @@ export default function ProductDetailPage() {
                 </p>
               </div>
 
-              {/* Highlights Strip */}
+              {/* Highlights Strip - Enhanced Responsiveness */}
               {highlights.length > 0 && (
-                <div className="flex divide-x divide-border bg-white border border-border rounded-3xl p-6 shadow-sm overflow-x-auto scrollbar-hide">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border border border-border rounded-3xl overflow-hidden shadow-sm">
                   {highlights.map((h: any, i: number) => (
-                    <div key={i} className="flex-1 px-4 first:pl-0 last:pr-0 text-center min-w-[100px]">
+                    <div key={i} className="bg-white p-4 text-center flex flex-col justify-center min-h-[80px]">
                       <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">{h.key}</p>
-                      <p className="text-xs font-bold text-primary truncate">{h.value}</p>
+                      <p className="text-xs font-bold text-primary leading-tight px-2">{h.value}</p>
                     </div>
                   ))}
                 </div>
@@ -769,5 +769,25 @@ export default function ProductDetailPage() {
 
       <Footer />
     </div>
+  );
+}
+
+function UserIcon(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
   );
 }
