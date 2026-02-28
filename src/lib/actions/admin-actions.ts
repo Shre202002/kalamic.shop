@@ -16,7 +16,6 @@ async function validateRole(adminId: string, allowedRoles: string[]) {
   await dbConnect();
   const user = await User.findOne({ firebaseId: adminId });
   
-  // Permanent Super Admin Recognition
   if (user?.email === 'sriyanshgupta24@gmail.com') return user;
 
   if (!user || !allowedRoles.includes(user.role)) {
@@ -38,7 +37,133 @@ async function logAction(admin: any, action: string, type: string, entityId: str
 }
 
 /**
- * GOVERNANCE ACTIONS
+ * Deep sanitization to remove all MongoDB system fields recursively.
+ * This is CRITICAL for $set operations on nested arrays.
+ */
+function deepSanitize(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(item => deepSanitize(item));
+  } else if (obj !== null && typeof obj === 'object') {
+    const newObj: any = {};
+    for (const key in obj) {
+      if (['_id', '__v', 'createdAt', 'updatedAt', 'id'].includes(key)) continue;
+      newObj[key] = deepSanitize(obj[key]);
+    }
+    return newObj;
+  }
+  return obj;
+}
+
+/**
+ * PRODUCT CRUD (Kalamic_Products)
+ */
+export async function getAdminProducts() {
+  await dbConnect();
+  try {
+    const products = await KalamicProduct.find({ is_deleted: { $ne: true } }).sort({ visibility_priority: -1, createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(products));
+  } catch (error) { return []; }
+}
+
+export async function saveProduct(adminId: string, rawData: any) {
+  const actor = await validateRole(adminId, ['super_admin', 'admin']);
+  await dbConnect();
+
+  console.log(`[ADMIN_ACTION] Initiating save for product: ${rawData._id || 'NEW'}`);
+
+  try {
+    const targetId = rawData._id;
+    const isNew = !targetId;
+
+    // 1. Business Logic Validation
+    const price = Number(rawData.price) || 0;
+    const compareAtPrice = rawData.compare_at_price ? Number(rawData.compare_at_price) : undefined;
+    if (compareAtPrice !== undefined && compareAtPrice > 0 && compareAtPrice <= price) {
+      throw new Error(`Validation: Heritage Price (₹${compareAtPrice}) must be greater than Current Price (₹${price})`);
+    }
+
+    // 2. SEO Keywords Parsing
+    let keywordsArray: string[] = [];
+    if (typeof rawData.seo?.meta_keywords === 'string') {
+      keywordsArray = rawData.seo.meta_keywords
+        .split(',')
+        .map((k: string) => k.trim())
+        .filter((k: string) => k.length > 0);
+    } else if (Array.isArray(rawData.seo?.meta_keywords)) {
+      keywordsArray = rawData.seo.meta_keywords;
+    }
+
+    // 3. Deep Sanitization & Normalization
+    const baseData = deepSanitize(rawData);
+    
+    const cleanedData: any = {
+      ...baseData,
+      name: rawData.name?.trim(),
+      slug: rawData.slug?.toLowerCase().trim(),
+      price: price,
+      compare_at_price: compareAtPrice,
+      stock: Number(rawData.stock) || 0,
+      updated_by_admin: adminId,
+      category_id: mongoose.isValidObjectId(rawData.category_id) 
+        ? new mongoose.Types.ObjectId(rawData.category_id) 
+        : new mongoose.Types.ObjectId(),
+      // Ensure arrays are clean and ready for total replacement
+      images: (rawData.images || []).filter((img: any) => img.url).map((img: any) => ({
+        url: img.url,
+        alt: img.alt || rawData.name,
+        is_primary: !!img.is_primary
+      })),
+      specifications: (rawData.specifications || []).filter((s: any) => s.key && s.value),
+      faqs: (rawData.faqs || []).filter((f: any) => f.question && f.answer),
+      seo: {
+        meta_title: rawData.seo?.meta_title || '',
+        meta_description: rawData.seo?.meta_description || '',
+        meta_keywords: keywordsArray
+      }
+    };
+
+    let saved;
+    if (isNew) {
+      cleanedData.created_by_admin = adminId;
+      cleanedData.analytics = { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 };
+      saved = await KalamicProduct.create(cleanedData);
+      await logAction(actor, 'CREATE_PRODUCT', 'KalamicProduct', saved._id.toString(), `Created: ${saved.name}`);
+    } else {
+      console.log(`[MONGO] Executing findByIdAndUpdate for ${targetId}`);
+      
+      saved = await KalamicProduct.findByIdAndUpdate(
+        new mongoose.Types.ObjectId(targetId),
+        { $set: cleanedData },
+        { 
+          new: true, 
+          runValidators: true,
+          overwrite: false // Ensure we are merging/replacing specific fields only
+        }
+      );
+
+      if (!saved) {
+        throw new Error(`Piece not found in database archive.`);
+      }
+      
+      await logAction(actor, 'UPDATE_PRODUCT', 'KalamicProduct', targetId, `Updated: ${saved.name}`);
+    }
+
+    console.log(`[ADMIN_ACTION] Successfully saved: ${saved.slug}`);
+
+    revalidatePath('/admin/products');
+    revalidatePath(`/products/${saved.slug}`);
+    revalidatePath('/');
+    
+    return JSON.parse(JSON.stringify(saved));
+
+  } catch (error: any) {
+    console.error(`[ADMIN_ACTION_ERROR] Persistence failed:`, error);
+    throw new Error(error.message || 'The masterpiece could not be saved to the archive.');
+  }
+}
+
+/**
+ * GOVERNANCE & USER ACTIONS
  */
 export async function getAdmins() {
   await dbConnect();
@@ -55,15 +180,8 @@ export async function getAdminLogs() {
 export async function provisionAdmin(superAdminId: string, email: string, role: string) {
   const actor = await validateRole(superAdminId, ['super_admin']);
   await dbConnect();
-  
-  const user = await User.findOneAndUpdate(
-    { email: email.toLowerCase() },
-    { $set: { role: role } },
-    { new: true }
-  );
-
+  const user = await User.findOneAndUpdate({ email: email.toLowerCase() }, { $set: { role: role } }, { new: true });
   if (!user) throw new Error("User with this email does not exist.");
-  
   await logAction(actor, 'PROVISION_ADMIN', 'User', user.firebaseId, `Assigned role: ${role} to ${email}`);
   revalidatePath('/admin/settings');
 }
@@ -71,28 +189,19 @@ export async function provisionAdmin(superAdminId: string, email: string, role: 
 export async function updateAdminRole(superAdminId: string, targetUserId: string, newRole: string) {
   const actor = await validateRole(superAdminId, ['super_admin']);
   await dbConnect();
-  
   const user = await User.findByIdAndUpdate(targetUserId, { role: newRole }, { new: true });
-  if (user) {
-    await logAction(actor, 'UPDATE_ROLE', 'User', targetUserId, `Changed role to: ${newRole}`);
-  }
+  if (user) await logAction(actor, 'UPDATE_ROLE', 'User', targetUserId, `Changed role to: ${newRole}`);
   revalidatePath('/admin/settings');
 }
 
 export async function removeAdminAccess(superAdminId: string, targetUserId: string) {
   const actor = await validateRole(superAdminId, ['super_admin']);
   await dbConnect();
-  
   const user = await User.findByIdAndUpdate(targetUserId, { role: 'buyer' }, { new: true });
-  if (user) {
-    await logAction(actor, 'REVOKE_ACCESS', 'User', targetUserId, `Removed administrative privileges`);
-  }
+  if (user) await logAction(actor, 'REVOKE_ACCESS', 'User', targetUserId, `Removed administrative privileges`);
   revalidatePath('/admin/settings');
 }
 
-/**
- * USER & ORDER MANAGEMENT
- */
 export async function getAllUsers() {
   await dbConnect();
   return JSON.parse(JSON.stringify(await User.find({}).sort({ createdAt: -1 }).lean()));
@@ -119,98 +228,6 @@ export async function updateOrderStatus(adminId: string, orderId: string, status
   revalidatePath('/admin/orders');
 }
 
-/**
- * PRODUCT CRUD (Kalamic_Products)
- */
-export async function getAdminProducts() {
-  await dbConnect();
-  try {
-    const products = await KalamicProduct.find({ is_deleted: { $ne: true } }).sort({ visibility_priority: -1, createdAt: -1 }).lean();
-    return JSON.parse(JSON.stringify(products));
-  } catch (error) { return []; }
-}
-
-export async function saveProduct(adminId: string, productData: any) {
-  const actor = await validateRole(adminId, ['super_admin', 'admin']);
-  await dbConnect();
-  
-  const price = Number(productData.price) || 0;
-  const compareAtPrice = productData.compare_at_price ? Number(productData.compare_at_price) : undefined;
-
-  // Manual Validation: Compare price must be greater than current price
-  if (compareAtPrice !== undefined && compareAtPrice > 0 && compareAtPrice <= price) {
-    throw new Error(`Validation failed: compare_at_price must be greater than price`);
-  }
-
-  // CRITICAL: Clean system fields from productData to avoid "Immutable Field" errors during update
-  const { _id, id, createdAt, updatedAt, __v, ...rest } = productData;
-  const isNew = !_id;
-  
-  // SEO Meta Keywords Parsing: Handle both array and comma-separated string
-  let keywordsArray: string[] = [];
-  if (Array.isArray(productData.seo?.meta_keywords)) {
-    keywordsArray = productData.seo.meta_keywords;
-  } else if (typeof productData.seo?.meta_keywords === 'string') {
-    keywordsArray = productData.seo.meta_keywords
-      .split(',')
-      .map((k: string) => k.trim())
-      .filter((k: string) => k.length > 0);
-  }
-
-  // Schema Normalization
-  const cleanedData: any = {
-    ...rest,
-    name: productData.name.trim(),
-    slug: productData.slug.toLowerCase().trim(),
-    price: price,
-    compare_at_price: compareAtPrice,
-    stock: Number(productData.stock) || 0,
-    updated_by_admin: adminId,
-    category_id: mongoose.isValidObjectId(productData.category_id) 
-      ? new mongoose.Types.ObjectId(productData.category_id) 
-      : new mongoose.Types.ObjectId(),
-    images: (productData.images || []).filter((img: any) => img.url),
-    specifications: (productData.specifications || []).filter((s: any) => s.key && s.value),
-    faqs: (productData.faqs || []).filter((f: any) => f.question && f.answer),
-    shipping: {
-      weight_kg: Number(productData.shipping?.weight_kg) || 0,
-      package_dimensions_cm: {
-        length: Number(productData.shipping?.package_dimensions_cm?.length) || 0,
-        width: Number(productData.shipping?.package_dimensions_cm?.width) || 0,
-        height: Number(productData.shipping?.package_dimensions_cm?.height) || 0
-      }
-    },
-    seo: {
-      meta_title: productData.seo?.meta_title || '',
-      meta_description: productData.seo?.meta_description || '',
-      meta_keywords: keywordsArray
-    }
-  };
-
-  let saved;
-  if (isNew) {
-    cleanedData.created_by_admin = adminId;
-    cleanedData.analytics = { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 };
-    saved = await KalamicProduct.create(cleanedData);
-    await logAction(actor, 'CREATE_PRODUCT', 'KalamicProduct', saved._id.toString(), `Created: ${saved.name}`);
-  } else {
-    // Execute update using $set to prevent schema conflicts
-    saved = await KalamicProduct.findByIdAndUpdate(
-      new mongoose.Types.ObjectId(_id), 
-      { $set: cleanedData }, 
-      { new: true }
-    );
-    
-    if (!saved) throw new Error(`Product update failed: Document not found.`);
-    await logAction(actor, 'UPDATE_PRODUCT', 'KalamicProduct', _id, `Updated: ${saved.name}`);
-  }
-
-  revalidatePath('/admin/products');
-  revalidatePath(`/products/${saved.slug}`);
-  revalidatePath('/');
-  return JSON.parse(JSON.stringify(saved));
-}
-
 export async function toggleProductVisibility(adminId: string, productId: string, isActive: boolean) {
   const actor = await validateRole(adminId, ['super_admin', 'admin']);
   await dbConnect();
@@ -235,9 +252,6 @@ export async function deleteProduct(adminId: string, productId: string) {
   revalidatePath('/admin/products');
 }
 
-/**
- * DASHBOARD STATS
- */
 export async function getAdminDashboardStats() {
   await dbConnect();
   try {

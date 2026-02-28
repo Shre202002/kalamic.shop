@@ -2,7 +2,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * @fileOverview Official Schema for the Kalamic_Products collection.
- * Fully managed via Admin Panel with strict validation and nested structures.
+ * Treating nested arrays as data-only structures (no internal _ids) 
+ * to ensure reliable replacement during updates.
  */
 
 export interface IKalamicProduct extends Document {
@@ -70,11 +71,17 @@ const KalamicProductSchema: Schema = new Schema({
   description: { type: String, required: true },
   category_id: { type: Schema.Types.ObjectId, required: true, index: true },
   tags: [{ type: String, trim: true }],
-  images: [{
-    url: { type: String, required: true },
-    alt: { type: String, required: true },
-    is_primary: { type: Boolean, default: false }
-  }],
+  
+  // Nested arrays with _id: false to prevent "Immutable Field" errors during array replacement
+  images: {
+    type: [{
+      url: { type: String, required: true },
+      alt: { type: String, required: true },
+      is_primary: { type: Boolean, default: false }
+    }],
+    _id: false 
+  },
+  
   price: { type: Number, required: true, min: 0 },
   compare_at_price: { type: Number },
   currency: { type: String, default: 'INR' },
@@ -85,14 +92,23 @@ const KalamicProductSchema: Schema = new Schema({
   is_featured: { type: Boolean, default: false },
   visibility_priority: { type: Number, default: 0 },
   is_deleted: { type: Boolean, default: false },
-  specifications: [{
-    key: { type: String, required: true },
-    value: { type: String, default: '' }
-  }],
-  faqs: [{
-    question: { type: String, required: true },
-    answer: { type: String, required: true }
-  }],
+  
+  specifications: {
+    type: [{
+      key: { type: String, required: true },
+      value: { type: String, default: '' }
+    }],
+    _id: false
+  },
+  
+  faqs: {
+    type: [{
+      question: { type: String, required: true },
+      answer: { type: String, required: true }
+    }],
+    _id: false
+  },
+  
   shipping: {
     weight_kg: { type: Number, default: 0 },
     package_dimensions_cm: {
@@ -113,13 +129,14 @@ const KalamicProductSchema: Schema = new Schema({
   seo: {
     meta_title: { type: String, default: '' },
     meta_description: { type: String, default: '' },
-    meta_keywords: [{ type: String }]
+    meta_keywords: { type: [String], default: [] }
   },
   created_by_admin: { type: String },
   updated_by_admin: { type: String }
 }, { 
   timestamps: true,
-  collection: 'Kalamic_Products'
+  collection: 'Kalamic_Products',
+  strict: true // Enforce schema-only fields
 });
 
 export default mongoose.models.KalamicProduct || mongoose.model<IKalamicProduct>('KalamicProduct', KalamicProductSchema);
