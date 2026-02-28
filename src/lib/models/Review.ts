@@ -11,7 +11,8 @@ export interface IReview extends Document {
   user_name: string;
   user_avatar?: string;
   rating: number;
-  review_text: string;
+  comment: string;
+  review_text?: string; // Legacy alias
   review_images: Array<{
     url: string;
     alt: string;
@@ -29,7 +30,8 @@ const ReviewSchema: Schema = new Schema({
   user_name: { type: String, required: true },
   user_avatar: { type: String },
   rating: { type: Number, required: true, min: 1, max: 5 },
-  review_text: { type: String, required: true },
+  comment: { type: String, required: true }, // Field name synchronized with error report
+  review_text: { type: String }, // Optional legacy support
   review_images: {
     type: [{
       url: { type: String, required: true },

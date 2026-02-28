@@ -11,10 +11,11 @@ import { revalidatePath } from 'next/cache';
  */
 async function checkVerifiedPurchase(userId: string, productId: string) {
   await dbConnect();
+  // Check against both model types for safety in this prototype environment
   const order = await Order.findOne({ 
     userId, 
     'items.productId': productId,
-    orderStatus: { $in: ['placed', 'delivered', 'dispatched'] }
+    orderStatus: { $in: ['placed', 'delivered', 'dispatched', 'confirmed'] }
   });
   return !!order;
 }
@@ -63,7 +64,7 @@ export async function submitReview(data: {
       user_name: data.userName,
       user_avatar: data.userAvatar,
       rating: data.rating,
-      review_text: data.reviewText,
+      comment: data.reviewText, // Sending 'comment' as required by the model
       review_images: data.images || [],
       is_verified_purchase: isVerified,
       status: 'approved' // Auto-approve for this prototype

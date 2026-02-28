@@ -242,6 +242,7 @@ export default function ProductDetailPage() {
       setReviewComment('');
       setReviewFiles([]);
       setReviewPreviews([]);
+      setReviewRating(5);
       toast({ title: "Review Shared", description: "Your feedback has been immortalized." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Submission Failed", description: error.message });
@@ -330,6 +331,16 @@ export default function ProductDetailPage() {
                     </div>
                   )}
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border rounded-2xl overflow-hidden shadow-sm">
+                  {(product.specifications || []).slice(0, 3).map((spec: any, i: number) => (
+                    <div key={i} className="bg-white p-4 flex flex-col gap-1">
+                      <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{spec.key}</span>
+                      <span className="text-[10px] font-bold text-primary leading-tight">{spec.value}</span>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Button onClick={handleAddToCart} className="h-16 rounded-[1.5rem] bg-primary text-white font-black text-lg shadow-2xl">Add to Bag</Button>
                   <Button onClick={handleBuyNow} className="h-16 rounded-[1.5rem] bg-[#1E1E1E] text-white font-black text-lg shadow-2xl">Buy Now</Button>
@@ -339,7 +350,7 @@ export default function ProductDetailPage() {
                   <Button onClick={handleShare} variant="outline" className="h-16 rounded-[1.5rem] border-2 border-border text-muted-foreground font-black">Share Piece</Button>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4 pt-2">
+              <div className="grid grid-cols-3 gap-4 pt-2 border-t">
                 <div className="flex flex-col items-center text-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-primary/60" />
                   <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Secure SSL</p>
@@ -358,6 +369,39 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
+          {/* Details Section */}
+          <section className="mb-32">
+            <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
+              <div className="w-full lg:w-1/3 space-y-4">
+                <h2 className="text-3xl font-black text-primary">Behind the Craft</h2>
+                <p className="text-muted-foreground leading-relaxed">The technical precision behind our artistry ensures longevity for generations to come.</p>
+              </div>
+              <div className="flex-1">
+                <Tabs defaultValue="description" className="w-full">
+                  <TabsList className="w-full justify-start bg-transparent border-b rounded-none h-auto p-0 mb-8">
+                    <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-8 py-4 font-black uppercase tracking-widest text-xs">Description</TabsTrigger>
+                    <TabsTrigger value="specs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-8 py-4 font-black uppercase tracking-widest text-xs">Specifications</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="description" className="animate-in fade-in duration-500">
+                    <div className="prose prose-stone max-w-none">
+                      <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">{product.description}</p>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="specs" className="animate-in fade-in duration-500">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                      {(product.specifications || []).map((spec: any, i: number) => (
+                        <div key={i} className="flex justify-between border-b pb-4">
+                          <span className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60">{spec.key}</span>
+                          <span className="text-sm font-bold text-primary">{spec.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </div>
+          </section>
+
           {/* FragileCare Section */}
           <section className="mb-32">
             <div className="text-center space-y-4 mb-16">
@@ -365,12 +409,12 @@ export default function ProductDetailPage() {
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] max-w-md mx-auto">Expert Logistics for Handcrafted Masterpieces</p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4">
+              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:border-primary/20">
                 <Scale className="h-6 w-6 text-primary" />
                 <h4 className="text-lg font-bold text-primary uppercase tracking-widest text-xs">Weight Metrics</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG.</p>
               </div>
-              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4">
+              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:border-primary/20">
                 <Box className="h-6 w-6 text-primary" />
                 <h4 className="text-lg font-bold text-primary uppercase tracking-widest text-xs">Package Profile</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'}x{product.shipping?.package_dimensions_cm?.width || '30'}x{product.shipping?.package_dimensions_cm?.height || '15'} CM.</p>
@@ -378,10 +422,34 @@ export default function ProductDetailPage() {
               <div className="p-8 md:p-10 rounded-[3rem] bg-primary text-white shadow-xl space-y-4">
                 <Truck className="h-6 w-6" />
                 <h4 className="text-lg font-bold uppercase tracking-widest text-xs text-white">FragileCare™ Priority</h4>
-                <p className="text-sm opacity-80 leading-relaxed text-white">Every ceramic treasure is encased in reinforced honeycomb padding.</p>
+                <p className="text-sm opacity-80 leading-relaxed text-white">Every ceramic treasure is encased in reinforced honeycomb padding and insured transit.</p>
               </div>
             </div>
           </section>
+
+          {/* FAQ Section */}
+          {product.faqs?.length > 0 && (
+            <section className="mb-32">
+              <div className="max-w-4xl mx-auto">
+                <div className="text-center space-y-4 mb-16">
+                  <h2 className="text-3xl md:text-5xl font-display font-semibold text-primary">Curiosity Corner</h2>
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Artisanal FAQ & Preservation</p>
+                </div>
+                <Accordion type="single" collapsible className="space-y-4">
+                  {product.faqs.map((faq: any, i: number) => (
+                    <AccordionItem key={i} value={`item-${i}`} className="border rounded-2xl px-6 bg-white overflow-hidden data-[state=open]:border-primary/30 transition-all">
+                      <AccordionTrigger className="hover:no-underline py-6">
+                        <span className="text-left font-black text-primary text-sm sm:text-base">{faq.question}</span>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-6 text-muted-foreground leading-relaxed text-sm">
+                        {faq.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+            </section>
+          )}
 
           {/* Reviews Section */}
           <section className="mb-32">
@@ -442,7 +510,7 @@ export default function ProductDetailPage() {
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
                       </div>
 
-                      <Button type="submit" disabled={isSubmittingReview} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl">
+                      <Button type="submit" disabled={isSubmittingReview} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl transition-all active:scale-95">
                         {isSubmittingReview ? <Loader2 className="animate-spin h-5 w-5" /> : "Post Experience"}
                       </Button>
                     </form>
@@ -450,7 +518,7 @@ export default function ProductDetailPage() {
                     <div className="p-8 rounded-[2rem] bg-muted/50 border border-dashed border-border text-center space-y-6">
                       <Lock className="mx-auto h-8 w-8 text-primary opacity-20" />
                       <p className="text-[10px] font-black text-muted-foreground uppercase leading-relaxed tracking-widest">Sign in to share your experience.</p>
-                      <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-12"><Link href="/auth/login">Join the Community</Link></Button>
+                      <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-12 hover:bg-primary hover:text-white"><Link href="/auth/login">Join the Community</Link></Button>
                     </div>
                   )}
                 </div>
@@ -463,8 +531,8 @@ export default function ProductDetailPage() {
                       <div key={idx} className="p-8 rounded-[3rem] bg-white shadow-sm border border-border space-y-6 transition-all hover:shadow-xl group">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black">
-                              {review.user_avatar ? <img src={review.user_avatar} className="h-full w-full object-cover rounded-2xl" /> : review.user_name?.charAt(0).toUpperCase()}
+                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black overflow-hidden shadow-inner">
+                              {review.user_avatar ? <img src={review.user_avatar} className="h-full w-full object-cover" /> : review.user_name?.charAt(0).toUpperCase()}
                             </div>
                             <div>
                               <p className="text-sm font-black text-primary flex items-center gap-2">
@@ -480,14 +548,15 @@ export default function ProductDetailPage() {
                         </div>
                         
                         <p className="text-sm font-medium text-muted-foreground leading-relaxed italic">
-                          "{review.review_text || review.comment}"
+                          "{review.comment || review.review_text}"
                         </p>
 
                         {review.review_images?.length > 0 && (
                           <div className={cn("grid gap-2", review.review_images.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
                             {review.review_images.map((img: any, i: number) => (
-                              <div key={i} className="relative aspect-video rounded-2xl overflow-hidden cursor-zoom-in border border-border/50" onClick={() => { setLightboxImage(img.url); setIsLightboxOpen(true); }}>
-                                <Image src={`${img.url}?tr=w-400,q-80,f-webp`} alt={img.alt || 'Review photo'} fill className="object-cover hover:scale-110 transition-transform duration-500" />
+                              <div key={i} className="relative aspect-video rounded-2xl overflow-hidden cursor-zoom-in border border-border/50 group/img" onClick={() => { setLightboxImage(img.url); setIsLightboxOpen(true); }}>
+                                <Image src={`${img.url}?tr=w-400,q-80,f-webp`} alt={img.alt || 'Review photo'} fill className="object-cover transition-transform duration-500 group-hover/img:scale-110" />
+                                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/img:opacity-100 transition-opacity" />
                               </div>
                             ))}
                           </div>
@@ -520,12 +589,12 @@ export default function ProductDetailPage() {
         </DialogContent>
       </Dialog>
 
-      <div className={cn("lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-2xl border-t border-border z-50 transition-transform duration-500 rounded-t-[2rem]", isScrolled ? "translate-y-0" : "translate-y-full")}>
+      <div className={cn("lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-2xl border-t border-border z-50 transition-transform duration-500 rounded-t-[2rem] shadow-2xl", isScrolled ? "translate-y-0" : "translate-y-full")}>
         <div className="flex items-center gap-6">
           <div className="shrink-0 pl-2">
             <p className="text-2xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</p>
           </div>
-          <Button onClick={handleAddToCart} className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-base">Add to Bag</Button>
+          <Button onClick={handleAddToCart} className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-base active:scale-95 transition-all">Add to Bag</Button>
         </div>
       </div>
       <Footer />
