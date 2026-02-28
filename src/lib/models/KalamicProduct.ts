@@ -68,7 +68,7 @@ const KalamicProductSchema: Schema = new Schema({
   tags: [{ type: String, trim: true }],
   images: [{
     url: { type: String, required: true },
-    alt: { type: String, default: '' },
+    alt: { type: String, required: true },
     is_primary: { type: Boolean, default: false }
   }],
   price: { type: Number, required: true, min: 0 },

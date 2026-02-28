@@ -34,6 +34,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
   const [isFavorited, setIsFavorited] = useState(isInitiallyFavorited);
 
   const displayImage = typeof image === 'string' ? image : (image?.url || 'https://placehold.co/600x800?text=Kalamic');
+  const imageAlt = typeof image === 'object' && image?.alt ? image.alt : (name || 'Handcrafted Ceramic Piece');
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -113,10 +114,11 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
         <div className="relative aspect-[4/5] rounded-[1rem] overflow-hidden bg-[#F6F1E9] shadow-inner">
           <Image
             src={displayImage}
-            alt={name || 'Ceramic Piece'}
+            alt={imageAlt}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, 33vw"
+            loading="lazy"
           />
           {tag && (
             <div className="absolute top-4 left-4">

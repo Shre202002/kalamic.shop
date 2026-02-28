@@ -170,8 +170,7 @@ export default function ProductDetailPage() {
   if (isLoading) return <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF4EB]"><Loader2 className="animate-spin text-primary h-10 w-10" /><p className="mt-4 text-primary font-body font-bold uppercase tracking-widest text-[10px]">Curating Piece...</p></div>;
   if (!product) return <div className="p-20 text-center bg-[#FAF4EB] min-h-screen flex flex-col items-center justify-center"><h1 className="text-3xl font-display font-semibold text-primary mb-6">Piece Not Found</h1><Button asChild className="rounded-2xl h-12 px-8 font-body"><Link href="/products">Return to Shop</Link></Button></div>;
 
-  const images = (product.images || []).map((img: any) => img.url);
-  const currentImageUrl = images[selectedImage] || 'https://placehold.co/800x800?text=Kalamic';
+  const currentImage = product.images?.[selectedImage] || product.images?.[0] || { url: 'https://placehold.co/800x800?text=Kalamic', alt: 'Handcrafted Piece' };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
@@ -191,7 +190,14 @@ export default function ProductDetailPage() {
             {/* Gallery Section */}
             <div className="lg:col-span-7 space-y-6">
               <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl bg-white border-4 border-white">
-                <Image src={currentImageUrl} alt={product.name} fill className="object-cover" priority />
+                <Image 
+                  src={currentImage.url} 
+                  alt={currentImage.alt || product.name} 
+                  fill 
+                  className="object-cover" 
+                  priority 
+                  loading="eager"
+                />
                 <div className="absolute top-6 left-6">
                   <Badge className="bg-accent text-accent-foreground px-4 py-1.5 rounded-full shadow-lg font-body font-bold uppercase tracking-widest text-[10px] border-none">
                     {product.tags?.[0] || 'Original'}
@@ -200,7 +206,7 @@ export default function ProductDetailPage() {
               </div>
               
               <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-                {images.map((img: string, i: number) => (
+                {product.images?.map((img: any, i: number) => (
                   <button 
                     key={i} 
                     onClick={() => setSelectedImage(i)} 
@@ -209,7 +215,7 @@ export default function ProductDetailPage() {
                       selectedImage === i ? "border-primary scale-105" : "border-white opacity-60 hover:opacity-100"
                     )}
                   >
-                    <Image src={img} alt={product.name} fill className="object-cover" />
+                    <Image src={img.url} alt={img.alt || product.name} fill className="object-cover" />
                   </button>
                 ))}
               </div>
@@ -311,7 +317,6 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-              {/* Review columns omitted for brevity, but they will use font-body and font-display appropriately */}
               <div className="lg:col-span-12">
                 <p className="text-muted-foreground font-body text-center py-10 italic">Redesigned typography is now live across the platform.</p>
               </div>

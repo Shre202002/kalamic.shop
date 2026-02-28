@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -28,7 +27,8 @@ import {
   Tab,
   CircularProgress,
   Stack,
-  Divider
+  Divider,
+  FormHelperText
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { 
@@ -151,8 +151,16 @@ export default function ProductsManagement() {
 
   const handleSaveProduct = async () => {
     if (!user) return;
+    
+    // Validation
     if (!editingProduct.name || !editingProduct.slug || !editingProduct.description || !editingProduct.category_id) {
       toast({ variant: "destructive", title: "Validation Error", description: "Name, Slug, Description, and Category are required." });
+      return;
+    }
+
+    const hasIncompleteImages = editingProduct.images.some((img: any) => !img.url || !img.alt || img.alt.length < 5);
+    if (hasIncompleteImages) {
+      toast({ variant: "destructive", title: "Media Error", description: "All images must have a URL and descriptive ALT text (min 5 chars)." });
       return;
     }
 
@@ -370,19 +378,46 @@ export default function ProductsManagement() {
                 <Box>
                   <Typography variant="caption" sx={{ display: 'block', mb: 2, color: 'text.secondary', fontWeight: 700 }}>ARTISAN GALLERY (MIN 1)</Typography>
                   {(editingProduct.images || []).map((img: any, idx: number) => (
-                    <Paper key={idx} variant="outlined" sx={{ p: 2, mb: 2, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'center' }}>
-                      <TextField fullWidth size="small" label="Image URL" value={img.url} onChange={(e) => {
-                        const next = [...editingProduct.images]; next[idx].url = e.target.value; setEditingProduct({...editingProduct, images: next});
-                      }} />
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: 'space-between' }}>
-                        <FormControlLabel control={<Checkbox checked={!!img.is_primary} onChange={() => {
-                          const next = editingProduct.images.map((i: any, ii: number) => ({ ...i, is_primary: ii === idx })); setEditingProduct({...editingProduct, images: next});
-                        }} />} label="Cover" />
-                        <IconButton size="small" color="error" onClick={() => setEditingProduct({...editingProduct, images: editingProduct.images.filter((_: any, ii: number) => ii !== idx)})}><Delete fontSize="small" /></IconButton>
-                      </Stack>
+                    <Paper key={idx} variant="outlined" sx={{ p: 2, mb: 3, borderStyle: 'dashed', borderColor: alpha(theme.palette.divider, 0.2) }}>
+                      <Grid container spacing={2} alignItems="flex-start">
+                        <Grid item xs={12} md={6}>
+                          <TextField 
+                            fullWidth 
+                            size="small" 
+                            label="Image URL" 
+                            placeholder="https://ik.imagekit.io/..."
+                            value={img.url} 
+                            onChange={(e) => {
+                              const next = [...editingProduct.images]; next[idx].url = e.target.value; setEditingProduct({...editingProduct, images: next});
+                            }} 
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField 
+                            fullWidth 
+                            size="small" 
+                            label="Image ALT Text (SEO)" 
+                            placeholder="Example: Handmade Ceramic Mandala Wheel with Golden Finish"
+                            value={img.alt} 
+                            error={img.url && img.alt.length < 5}
+                            onChange={(e) => {
+                              const next = [...editingProduct.images]; next[idx].alt = e.target.value; setEditingProduct({...editingProduct, images: next});
+                            }} 
+                          />
+                          <FormHelperText>Tip: Describe what is visible in the image. Avoid keyword stuffing. (Min 5 chars)</FormHelperText>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                            <FormControlLabel control={<Checkbox checked={!!img.is_primary} onChange={() => {
+                              const next = editingProduct.images.map((i: any, ii: number) => ({ ...i, is_primary: ii === idx })); setEditingProduct({...editingProduct, images: next});
+                            }} />} label="Cover Image" />
+                            <Button size="small" color="error" startIcon={<Delete />} onClick={() => setEditingProduct({...editingProduct, images: editingProduct.images.filter((_: any, ii: number) => ii !== idx)})}>Remove</Button>
+                          </Stack>
+                        </Grid>
+                      </Grid>
                     </Paper>
                   ))}
-                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...editingProduct.images, { url: '', alt: '', is_primary: false }]})}>Add Image</Button>
+                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...editingProduct.images, { url: '', alt: '', is_primary: false }]})}>Add Image Slot</Button>
                 </Box>
               )}
 

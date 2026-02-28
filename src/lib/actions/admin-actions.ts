@@ -1,4 +1,3 @@
-
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -137,7 +136,22 @@ export async function saveProduct(adminId: string, productData: any) {
   
   const isNew = !productData._id;
   
-  // Strict Schema Normalization
+  // Strict Schema Normalization & SEO Validation
+  const validatedImages = (productData.images || []).map((img: any) => {
+    if (img.url && (!img.alt || img.alt.length < 5)) {
+      throw new Error(`SEO Error: Image [${img.url}] must have descriptive ALT text (min 5 chars).`);
+    }
+    return {
+      url: img.url,
+      alt: img.alt.trim(),
+      is_primary: !!img.is_primary
+    };
+  }).filter((img: any) => img.url);
+
+  if (validatedImages.length === 0) {
+    throw new Error("At least one product image is required.");
+  }
+
   const cleanedData = {
     ...productData,
     slug: productData.slug.toLowerCase().trim(),
@@ -146,11 +160,7 @@ export async function saveProduct(adminId: string, productData: any) {
     stock: Number(productData.stock) || 0,
     updated_by_admin: adminId,
     category_id: mongoose.isValidObjectId(productData.category_id) ? productData.category_id : new mongoose.Types.ObjectId(),
-    images: (productData.images || []).map((img: any) => ({
-      url: img.url,
-      alt: img.alt || '',
-      is_primary: !!img.is_primary
-    })).filter((img: any) => img.url),
+    images: validatedImages,
     specifications: (productData.specifications || []).filter((s: any) => s.key && s.value),
     shipping: {
       weight_kg: Number(productData.shipping?.weight_kg) || 0,
