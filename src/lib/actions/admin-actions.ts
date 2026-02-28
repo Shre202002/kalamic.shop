@@ -134,7 +134,8 @@ export async function saveProduct(adminId: string, productData: any) {
   const actor = await validateRole(adminId, ['super_admin', 'admin']);
   await dbConnect();
   
-  const isNew = !productData._id;
+  const { _id, ...rest } = productData;
+  const isNew = !_id;
   
   // Strict Schema Normalization & SEO Validation
   const validatedImages = (productData.images || []).map((img: any) => {
@@ -152,8 +153,8 @@ export async function saveProduct(adminId: string, productData: any) {
     throw new Error("At least one product image is required.");
   }
 
-  const cleanedData = {
-    ...productData,
+  const cleanedData: any = {
+    ...rest,
     slug: productData.slug.toLowerCase().trim(),
     price: Number(productData.price) || 0,
     compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
@@ -178,18 +179,16 @@ export async function saveProduct(adminId: string, productData: any) {
     }
   };
 
+  let saved;
   if (isNew) {
     cleanedData.created_by_admin = adminId;
     cleanedData.analytics = { total_views: 0, total_orders: 0, wishlist_count: 0, cart_add_count: 0, share_count: 0 };
-  }
-
-  let saved;
-  if (isNew) {
     saved = await KalamicProduct.create(cleanedData);
     await logAction(actor, 'CREATE_PRODUCT', 'KalamicProduct', saved._id.toString(), `Created: ${saved.name}`);
   } else {
-    saved = await KalamicProduct.findByIdAndUpdate(productData._id, cleanedData, { new: true });
-    await logAction(actor, 'UPDATE_PRODUCT', 'KalamicProduct', productData._id, `Updated: ${saved.name}`);
+    saved = await KalamicProduct.findByIdAndUpdate(_id, { $set: cleanedData }, { new: true });
+    if (!saved) throw new Error("Product not found.");
+    await logAction(actor, 'UPDATE_PRODUCT', 'KalamicProduct', _id, `Updated: ${saved.name}`);
   }
 
   revalidatePath('/admin/products');

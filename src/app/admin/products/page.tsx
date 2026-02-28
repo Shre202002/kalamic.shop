@@ -206,7 +206,7 @@ export default function ProductsManagement() {
     setIsSaving(true);
     try {
       await saveProduct(user.uid, editingProduct);
-      toast({ title: "Product Saved", description: "Artisan piece updated in Kalamic_Products." });
+      toast({ title: "Product Saved", description: "Artisan piece updated in catalog." });
       setDialogOpen(false);
       load();
     } catch (error: any) {
@@ -540,14 +540,34 @@ export default function ProductsManagement() {
                     <Paper key={idx} variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 3 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                         <Typography variant="caption" fontWeight={800} color="primary">FAQ #{idx + 1}</Typography>
-                        <IconButton size="small" color="error" onClick={() => setEditingProduct({...editingProduct, faqs: editingProduct.faqs.filter((_: any, ii: number) => ii !== idx)})}><Delete fontSize="small" /></IconButton>
+                        <IconButton size="small" color="error" onClick={() => {
+                          const next = editingProduct.faqs.filter((_: any, ii: number) => ii !== idx);
+                          setEditingProduct({...editingProduct, faqs: next.length ? next : [{ question: '', answer: '' }]});
+                        }}><Delete fontSize="small" /></IconButton>
                       </Box>
-                      <TextField fullWidth label="Question" value={faq.question} onChange={(e) => {
-                        const next = [...editingProduct.faqs]; next[idx].question = e.target.value; setEditingProduct({...editingProduct, faqs: next});
-                      }} sx={{ mb: 2 }} />
-                      <TextField fullWidth multiline rows={2} label="Answer" value={faq.answer} onChange={(e) => {
-                        const next = [...editingProduct.faqs]; next[idx].answer = e.target.value; setEditingProduct({...editingProduct, faqs: next});
-                      }} />
+                      <TextField 
+                        fullWidth 
+                        label="Question" 
+                        value={faq.question} 
+                        onChange={(e) => {
+                          const next = [...editingProduct.faqs]; 
+                          next[idx] = { ...next[idx], question: e.target.value };
+                          setEditingProduct({...editingProduct, faqs: next});
+                        }} 
+                        sx={{ mb: 2 }} 
+                      />
+                      <TextField 
+                        fullWidth 
+                        multiline 
+                        rows={2} 
+                        label="Answer" 
+                        value={faq.answer} 
+                        onChange={(e) => {
+                          const next = [...editingProduct.faqs]; 
+                          next[idx] = { ...next[idx], answer: e.target.value };
+                          setEditingProduct({...editingProduct, faqs: next});
+                        }} 
+                      />
                     </Paper>
                   ))}
                   <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, faqs: [...editingProduct.faqs, { question: '', answer: '' }]})}>Add FAQ</Button>
@@ -568,6 +588,19 @@ export default function ProductsManagement() {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>DISCOVERY METADATA</Typography>
                   <TextField fullWidth label="Search Title" value={editingProduct.seo?.meta_title} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_title: e.target.value}})} />
+                  <TextField 
+                    fullWidth 
+                    label="Meta Keywords (Comma separated)" 
+                    placeholder="handmade, ceramic, indian decor"
+                    value={editingProduct.seo?.meta_keywords?.join(', ') || ''} 
+                    onChange={(e) => {
+                      const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k);
+                      setEditingProduct({
+                        ...editingProduct, 
+                        seo: { ...editingProduct.seo, meta_keywords: keywords }
+                      });
+                    }} 
+                  />
                   <TextField fullWidth multiline rows={3} label="Meta Description" value={editingProduct.seo?.meta_description} onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_description: e.target.value}})} />
                 </Box>
               )}
