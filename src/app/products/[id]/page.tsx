@@ -479,13 +479,11 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Detailed Artisan Narrative & Specs Tabs */}
-          <section className="mb-32">
+          <section className="mb-20">
             <Tabs defaultValue="narrative" className="w-full">
               <TabsList className="flex w-full h-auto bg-transparent border-b border-border p-0 gap-4 md:gap-8 mb-12 overflow-x-auto scrollbar-hide">
                 <TabsTrigger value="narrative" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:text-primary transition-all whitespace-nowrap">Artisan Narrative</TabsTrigger>
                 <TabsTrigger value="specs" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:text-primary transition-all whitespace-nowrap">Technical Specs</TabsTrigger>
-                <TabsTrigger value="shipping" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:text-primary transition-all whitespace-nowrap">FragileCare™ Shipping</TabsTrigger>
-                <TabsTrigger value="reviews" className="px-0 py-4 bg-transparent border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:text-primary transition-all whitespace-nowrap">Reviews ({reviews.length})</TabsTrigger>
               </TabsList>
 
               <TabsContent value="narrative" className="animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
@@ -518,112 +516,132 @@ export default function ProductDetailPage() {
                   ))}
                 </div>
               </TabsContent>
+            </Tabs>
+          </section>
 
-              <TabsContent value="shipping" className="animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4">
-                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                      <Scale className="h-6 w-6" />
-                    </div>
-                    <h4 className="text-lg font-bold text-primary">Weight Metrics</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG for safe transit balancing.</p>
-                  </div>
-                  <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4">
-                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                      <Box className="h-6 w-6" />
-                    </div>
-                    <h4 className="text-lg font-bold text-primary">Package Profile</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Box Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'} x {product.shipping?.package_dimensions_cm?.width || '30'} x {product.shipping?.package_dimensions_cm?.height || '15'} CM
-                    </p>
-                  </div>
-                  <div className="p-8 md:p-10 rounded-[3rem] bg-primary text-white shadow-xl border-none space-y-4">
-                    <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center shadow-lg">
-                      <Truck className="h-6 w-6" />
-                    </div>
-                    <h4 className="text-lg font-bold">FragileCare™ Priority</h4>
-                    <p className="text-sm opacity-80 leading-relaxed">Reinforced honeycomb padding and shock-absorbent layers used for every ceramic masterpiece.</p>
-                  </div>
+          {/* STANDALONE SECTION: FragileCare™ Shipping */}
+          <section className="mb-32">
+            <div className="text-center space-y-4 mb-16">
+              <h2 className="text-[32px] md:text-[48px] font-display font-semibold text-primary tracking-tight">FragileCare™ Shipping</h2>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] max-w-md mx-auto">Expert Logistics for Handcrafted Masterpieces</p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:shadow-2xl">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                  <Scale className="h-6 w-6" />
                 </div>
-              </TabsContent>
+                <h4 className="text-lg font-bold text-primary uppercase tracking-widest text-xs">Weight Metrics</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG for safe transit balancing and shock prevention.</p>
+              </div>
+              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:shadow-2xl">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                  <Box className="h-6 w-6" />
+                </div>
+                <h4 className="text-lg font-bold text-primary uppercase tracking-widest text-xs">Package Profile</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Box Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'} x {product.shipping?.package_dimensions_cm?.width || '30'} x {product.shipping?.package_dimensions_cm?.height || '15'} CM. Precision fit for maximum protection.
+                </p>
+              </div>
+              <div className="p-8 md:p-10 rounded-[3rem] bg-primary text-white shadow-xl border-none space-y-4 transition-all hover:shadow-primary/30">
+                <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center shadow-lg">
+                  <Truck className="h-6 w-6" />
+                </div>
+                <h4 className="text-lg font-bold uppercase tracking-widest text-xs">FragileCare™ Priority</h4>
+                <p className="text-sm opacity-80 leading-relaxed">Every ceramic treasure is encased in reinforced honeycomb padding and shock-absorbent layers for its long-distance voyage.</p>
+              </div>
+            </div>
+          </section>
 
-              <TabsContent value="reviews" className="animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-                  <div className="lg:col-span-4 space-y-8">
-                    <div className="p-8 rounded-[2.5rem] bg-white shadow-xl border border-border">
-                      <h3 className="text-xl font-black text-primary mb-6 flex items-center gap-3">
-                        <MessageSquare className="h-5 w-5 text-primary" /> Collector Verdict
-                      </h3>
-                      <div className="flex items-center gap-6 mb-8">
-                        <p className="text-5xl md:text-6xl font-black text-primary tracking-tighter">{product.analytics?.average_rating || 4.8}</p>
-                        <div>
-                          <div className="flex gap-1 text-primary mb-1">
-                            {[1,2,3,4,5].map(i => <Star key={i} className="h-4 w-4 fill-current" />)}
-                          </div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Community Trust Score</p>
+          {/* STANDALONE SECTION: Collector Experiences (Reviews) */}
+          <section className="mb-32">
+            <div className="text-center space-y-4 mb-16">
+              <h2 className="text-[32px] md:text-[48px] font-display font-semibold text-primary tracking-tight">Collector Experiences</h2>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Authentic feedback from the Kalamic Community</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+              {/* Review Sidebar / Summary */}
+              <div className="lg:col-span-4 space-y-8">
+                <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border sticky top-28">
+                  <h3 className="text-xl font-black text-primary mb-8 flex items-center gap-3">
+                    <MessageSquare className="h-5 w-5 text-accent" /> Collector Verdict
+                  </h3>
+                  <div className="flex items-center gap-6 mb-10">
+                    <p className="text-6xl md:text-7xl font-black text-primary tracking-tighter">{product.analytics?.average_rating || 4.8}</p>
+                    <div>
+                      <div className="flex gap-1 text-primary mb-1">
+                        {[1,2,3,4,5].map(i => <Star key={i} className="h-4 w-4 fill-current" />)}
+                      </div>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Community Trust Score</p>
+                    </div>
+                  </div>
+                  
+                  {user ? (
+                    <form onSubmit={handleSubmitReview} className="space-y-6">
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Artisan Rating</Label>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setReviewRating(star)}
+                              className={cn(
+                                "h-10 w-10 rounded-xl flex items-center justify-center transition-all shadow-sm",
+                                reviewRating >= star ? "bg-primary text-white shadow-primary/20" : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              <Star className={cn("h-5 w-5", reviewRating >= star && "fill-current")} />
+                            </button>
+                          ))}
                         </div>
                       </div>
-                      
-                      {user ? (
-                        <form onSubmit={handleSubmitReview} className="space-y-6">
-                          <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Artisan Rating</Label>
-                            <div className="flex gap-2">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <button
-                                  key={star}
-                                  type="button"
-                                  onClick={() => setReviewRating(star)}
-                                  className={cn(
-                                    "h-10 w-10 rounded-xl flex items-center justify-center transition-all shadow-sm",
-                                    reviewRating >= star ? "bg-primary text-white shadow-primary/20" : "bg-muted text-muted-foreground"
-                                  )}
-                                >
-                                  <Star className={cn("h-5 w-5", reviewRating >= star && "fill-current")} />
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Collector Feedback</Label>
-                            <textarea
-                              required
-                              value={reviewComment}
-                              onChange={(e) => setReviewComment(e.target.value)}
-                              placeholder="Describe the texture, the intricate patterns..."
-                              className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none shadow-inner"
-                            />
-                          </div>
-                          <Button 
-                            type="submit" 
-                            disabled={isSubmittingReview} 
-                            className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]"
-                          >
-                            {isSubmittingReview ? <Loader2 className="animate-spin h-5 w-5" /> : "Post Review"}
-                          </Button>
-                        </form>
-                      ) : (
-                        <div className="p-6 rounded-2xl bg-muted border border-dashed border-border text-center space-y-4">
-                          <Lock className="mx-auto h-6 w-6 text-muted-foreground opacity-30" />
-                          <p className="text-[10px] font-black text-muted-foreground uppercase leading-relaxed tracking-widest">Sign in to share your collector experience.</p>
-                          <Button asChild variant="outline" className="w-full rounded-xl border-primary text-primary font-black text-xs h-10">
-                            <Link href="/auth/login">Join the Community</Link>
-                          </Button>
-                        </div>
-                      )}
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Collector Feedback</Label>
+                        <textarea
+                          required
+                          value={reviewComment}
+                          onChange={(e) => setReviewComment(e.target.value)}
+                          placeholder="Describe the texture, the intricate patterns..."
+                          className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none shadow-inner"
+                        />
+                      </div>
+                      <Button 
+                        type="submit" 
+                        disabled={isSubmittingReview} 
+                        className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] border-none"
+                      >
+                        {isSubmittingReview ? <Loader2 className="animate-spin h-5 w-5" /> : "Post Experience"}
+                      </Button>
+                    </form>
+                  ) : (
+                    <div className="p-8 rounded-[2rem] bg-muted/50 border border-dashed border-border text-center space-y-6">
+                      <Lock className="mx-auto h-8 w-8 text-primary opacity-20" />
+                      <p className="text-[10px] font-black text-muted-foreground uppercase leading-relaxed tracking-widest px-4">Sign in to share your collector experience.</p>
+                      <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-12 hover:bg-primary hover:text-white transition-all">
+                        <Link href="/auth/login">Join the Community</Link>
+                      </Button>
                     </div>
-                  </div>
+                  )}
+                </div>
+              </div>
 
-                  <div className="lg:col-span-8 space-y-8">
-                    {reviews.length > 0 ? reviews.map((review, idx) => (
-                      <div key={idx} className="p-8 rounded-[2.5rem] bg-white shadow-sm border border-border space-y-4 transition-all hover:shadow-md">
+              {/* Reviews Feed */}
+              <div className="lg:col-span-8 space-y-8">
+                {reviews.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {reviews.map((review, idx) => (
+                      <div key={idx} className="p-8 rounded-[3rem] bg-white shadow-sm border border-border space-y-6 transition-all hover:shadow-xl group">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black shadow-inner">
+                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black shadow-inner group-hover:scale-110 transition-transform">
                               {review.user_name?.charAt(0).toUpperCase() || 'C'}
                             </div>
                             <div>
-                              <p className="text-sm font-black text-primary">{review.user_name || 'Collector'}</p>
+                              <p className="text-sm font-black text-primary flex items-center gap-2">
+                                {review.user_name || 'Collector'}
+                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                              </p>
                               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{dayjs(review.createdAt).format('DD MMM YYYY')}</p>
                             </div>
                           </div>
@@ -638,17 +656,17 @@ export default function ProductDetailPage() {
                           "{review.comment}"
                         </p>
                       </div>
-                    )) : (
-                      <div className="text-center py-24 bg-white rounded-[3rem] border border-dashed border-border shadow-inner">
-                        <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground opacity-10 mb-4" />
-                        <p className="text-lg font-display font-semibold text-muted-foreground">Be the first to share your verdict</p>
-                        <p className="text-xs font-medium text-muted-foreground/60 mt-2">Help other collectors discover this masterpiece.</p>
-                      </div>
-                    )}
+                    ))}
                   </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+                ) : (
+                  <div className="text-center py-24 bg-white rounded-[4rem] border border-dashed border-border shadow-inner">
+                    <MessageSquare className="mx-auto h-16 w-16 text-primary opacity-10 mb-6" />
+                    <p className="text-2xl font-display font-semibold text-primary/60">Be the first to share your verdict</p>
+                    <p className="text-xs font-medium text-muted-foreground/60 mt-2 max-w-xs mx-auto">Help other connoisseurs discover the magic behind this masterpiece.</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
 
           {/* Artisan Branding Section */}
@@ -742,7 +760,7 @@ export default function ProductDetailPage() {
           <Button 
             onClick={handleAddToCart} 
             disabled={product.stock <= 0}
-            className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-base shadow-xl shadow-primary/20 active:scale-95 transition-all"
+            className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-base shadow-xl shadow-primary/20 active:scale-95 transition-all border-none"
           >
             <ShoppingCart className="mr-2 h-5 w-5" /> Add to Bag
           </Button>
@@ -751,25 +769,5 @@ export default function ProductDetailPage() {
 
       <Footer />
     </div>
-  );
-}
-
-function UserIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
   );
 }
