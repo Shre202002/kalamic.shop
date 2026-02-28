@@ -1,4 +1,3 @@
-
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -135,6 +134,14 @@ export async function saveProduct(adminId: string, productData: any) {
   const actor = await validateRole(adminId, ['super_admin', 'admin']);
   await dbConnect();
   
+  const price = Number(productData.price) || 0;
+  const compareAtPrice = productData.compare_at_price ? Number(productData.compare_at_price) : undefined;
+
+  // Manual Validation to replace problematic schema validator
+  if (compareAtPrice !== undefined && compareAtPrice <= price) {
+    throw new Error(`Validation Error: Compare Price (₹${compareAtPrice}) must be greater than Current Price (₹${price}).`);
+  }
+
   // Sanitize incoming data to remove internal MongoDB fields that block updates
   const { _id, id, createdAt, updatedAt, __v, ...rest } = productData;
   const isNew = !_id;
@@ -168,9 +175,10 @@ export async function saveProduct(adminId: string, productData: any) {
 
   const cleanedData: any = {
     ...rest,
+    name: productData.name.trim(),
     slug: productData.slug.toLowerCase().trim(),
-    price: Number(productData.price) || 0,
-    compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
+    price: price,
+    compare_at_price: compareAtPrice,
     stock: Number(productData.stock) || 0,
     updated_by_admin: adminId,
     category_id: mongoose.isValidObjectId(productData.category_id) 

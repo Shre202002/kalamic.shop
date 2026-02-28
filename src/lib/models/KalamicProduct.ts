@@ -76,13 +76,7 @@ const KalamicProductSchema: Schema = new Schema({
     is_primary: { type: Boolean, default: false }
   }],
   price: { type: Number, required: true, min: 0 },
-  compare_at_price: {
-    type: Number,
-    validate: {
-      validator: function (this: any, v: number) { return !v || v > this.price; },
-      message: "compare_at_price must be greater than price"
-    }
-  },
+  compare_at_price: { type: Number },
   currency: { type: String, default: 'INR' },
   stock: { type: Number, default: 0 },
   sku: { type: String, unique: true, sparse: true },

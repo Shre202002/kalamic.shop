@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -146,7 +145,6 @@ export default function ProductsManagement() {
         seo: {
           ...INITIAL_PRODUCT.seo,
           ...product.seo,
-          // If keywords is an array, it will be handled as a string in the UI logic
           meta_keywords: Array.isArray(product.seo?.meta_keywords) ? product.seo.meta_keywords : []
         }
       });
