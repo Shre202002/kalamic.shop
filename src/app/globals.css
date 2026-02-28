@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -62,6 +63,35 @@ html {
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight leading-[1.15];
   }
+}
+
+/* NProgress Brand Styling */
+#nprogress {
+  pointer-events: none;
+}
+
+#nprogress .bar {
+  background: #C97A40;
+  position: fixed;
+  z-index: 99999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  box-shadow: 0 0 6px rgba(201, 122, 64, 0.6);
+}
+
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0px;
+  width: 100px;
+  height: 100%;
+  box-shadow: 0 0 10px #C97A40, 0 0 5px #C97A40;
+  opacity: 1.0;
+  -webkit-transform: rotate(3deg) translate(0px, -4px);
+  -ms-transform: rotate(3deg) translate(0px, -4px);
+  transform: rotate(3deg) translate(0px, -4px);
 }
 
 .product-card-hover {
