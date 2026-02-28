@@ -46,7 +46,8 @@ import {
   Visibility as ViewIcon,
   ShoppingBag as OrderIcon,
   Favorite as WishIcon,
-  Star as StarIcon
+  Star as StarIcon,
+  CloudUpload
 } from '@mui/icons-material';
 import { 
   getAdminProducts, 
@@ -55,6 +56,7 @@ import {
   deleteProduct,
   saveProduct
 } from '@/lib/actions/admin-actions';
+import { uploadToImageKit } from '@/lib/actions/upload-actions';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 
@@ -101,6 +103,7 @@ export default function ProductsManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState(0);
 
   const theme = useTheme();
@@ -149,6 +152,27 @@ export default function ProductsManagement() {
     setDialogOpen(true);
   };
 
+  const handleFileChange = async (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingIdx(idx);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await uploadToImageKit(formData);
+      
+      const next = [...editingProduct.images];
+      next[idx].url = result.url;
+      setEditingProduct({ ...editingProduct, images: next });
+      toast({ title: "Image Uploaded", description: "Media successfully stored in ImageKit." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Upload Failed", description: error.message });
+    } finally {
+      setUploadingIdx(null);
+    }
+  };
+
   const handleSaveProduct = async () => {
     if (!user) return;
     
@@ -158,9 +182,21 @@ export default function ProductsManagement() {
       return;
     }
 
-    const hasIncompleteImages = editingProduct.images.some((img: any) => !img.url || !img.alt || img.alt.length < 5);
-    if (hasIncompleteImages) {
-      toast({ variant: "destructive", title: "Media Error", description: "All images must have a URL and descriptive ALT text (min 5 chars)." });
+    const hasNoUrl = editingProduct.images.some((img: any) => !img.url);
+    if (hasNoUrl) {
+      toast({ variant: "destructive", title: "Media Error", description: "Please upload a file for all image slots or remove empty ones." });
+      return;
+    }
+
+    const hasIncompleteAlt = editingProduct.images.some((img: any) => !img.alt || img.alt.length < 5);
+    if (hasIncompleteAlt) {
+      toast({ variant: "destructive", title: "SEO Error", description: "All images must have descriptive ALT text (min 5 chars)." });
+      return;
+    }
+
+    const hasPrimary = editingProduct.images.some((img: any) => img.is_primary);
+    if (!hasPrimary) {
+      toast({ variant: "destructive", title: "Cover Image Missing", description: "Please mark one image as the primary cover." });
       return;
     }
 
@@ -256,7 +292,7 @@ export default function ProductsManagement() {
       }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 900 }}>Artisan Catalog</Typography>
-          <Typography variant="body2" color="text.secondary">Managing the primary Kalamic_Products collection.</Typography>
+          <Typography variant="body2" color="text.secondary">Managing the primary Kalamic_Products collection with ImageKit storage.</Typography>
         </Box>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: { xs: '100%', md: 'auto' } }}>
           <Paper sx={{ 
@@ -379,45 +415,99 @@ export default function ProductsManagement() {
                   <Typography variant="caption" sx={{ display: 'block', mb: 2, color: 'text.secondary', fontWeight: 700 }}>ARTISAN GALLERY (MIN 1)</Typography>
                   {(editingProduct.images || []).map((img: any, idx: number) => (
                     <Paper key={idx} variant="outlined" sx={{ p: 2, mb: 3, borderStyle: 'dashed', borderColor: alpha(theme.palette.divider, 0.2) }}>
-                      <Grid container spacing={2} alignItems="flex-start">
-                        <Grid item xs={12} md={6}>
-                          <TextField 
-                            fullWidth 
-                            size="small" 
-                            label="Image URL" 
-                            placeholder="https://ik.imagekit.io/..."
-                            value={img.url} 
-                            onChange={(e) => {
-                              const next = [...editingProduct.images]; next[idx].url = e.target.value; setEditingProduct({...editingProduct, images: next});
-                            }} 
-                          />
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} md={4}>
+                          <Box sx={{ 
+                            position: 'relative', 
+                            width: '100%', 
+                            height: 140, 
+                            bgcolor: alpha(theme.palette.background.default, 0.8), 
+                            borderRadius: 2, 
+                            overflow: 'hidden', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            border: '1px solid', 
+                            borderColor: 'divider' 
+                          }}>
+                            {img.url ? (
+                              <>
+                                <img src={img.url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <IconButton 
+                                  size="small" 
+                                  sx={{ 
+                                    position: 'absolute', 
+                                    top: 5, 
+                                    right: 5, 
+                                    bgcolor: 'rgba(255,255,255,0.9)', 
+                                    '&:hover': { bgcolor: 'white' },
+                                    boxShadow: theme.shadows[2]
+                                  }}
+                                  onClick={() => {
+                                    const next = [...editingProduct.images];
+                                    next[idx].url = '';
+                                    setEditingProduct({ ...editingProduct, images: next });
+                                  }}
+                                >
+                                  <Close fontSize="small" />
+                                </IconButton>
+                              </>
+                            ) : (
+                              <Button
+                                component="label"
+                                disabled={uploadingIdx === idx}
+                                sx={{ 
+                                  width: '100%', 
+                                  height: '100%', 
+                                  flexDirection: 'column', 
+                                  gap: 1,
+                                  color: 'text.secondary'
+                                }}
+                              >
+                                {uploadingIdx === idx ? (
+                                  <CircularProgress size={32} thickness={5} />
+                                ) : (
+                                  <>
+                                    <CloudUpload sx={{ fontSize: 32, opacity: 0.5 }} />
+                                    <Typography variant="caption" fontWeight={700}>Select File</Typography>
+                                  </>
+                                )}
+                                <input 
+                                  type="file" 
+                                  hidden 
+                                  accept="image/*" 
+                                  onChange={(e) => handleFileChange(idx, e)} 
+                                />
+                              </Button>
+                            )}
+                          </Box>
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12} md={8}>
                           <TextField 
                             fullWidth 
                             size="small" 
-                            label="Image ALT Text (SEO)" 
+                            label="Image ALT Text (SEO) *" 
                             placeholder="Example: Handmade Ceramic Mandala Wheel with Golden Finish"
                             value={img.alt} 
                             error={img.url && img.alt.length < 5}
                             onChange={(e) => {
                               const next = [...editingProduct.images]; next[idx].alt = e.target.value; setEditingProduct({...editingProduct, images: next});
                             }} 
+                            sx={{ mb: 1 }}
                           />
-                          <FormHelperText>Tip: Describe what is visible in the image. Avoid keyword stuffing. (Min 5 chars)</FormHelperText>
-                        </Grid>
-                        <Grid item xs={12}>
+                          <FormHelperText sx={{ mb: 2 }}>Tip: Describe what is visible in the image (min 5 chars). Required for search engines.</FormHelperText>
+                          
                           <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                             <FormControlLabel control={<Checkbox checked={!!img.is_primary} onChange={() => {
                               const next = editingProduct.images.map((i: any, ii: number) => ({ ...i, is_primary: ii === idx })); setEditingProduct({...editingProduct, images: next});
-                            }} />} label="Cover Image" />
-                            <Button size="small" color="error" startIcon={<Delete />} onClick={() => setEditingProduct({...editingProduct, images: editingProduct.images.filter((_: any, ii: number) => ii !== idx)})}>Remove</Button>
+                            }} />} label={<Typography variant="caption" fontWeight={700}>Primary Cover</Typography>} />
+                            <Button size="small" color="error" startIcon={<Delete />} onClick={() => setEditingProduct({...editingProduct, images: editingProduct.images.filter((_: any, ii: number) => ii !== idx)})}>Remove Slot</Button>
                           </Stack>
                         </Grid>
                       </Grid>
                     </Paper>
                   ))}
-                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...editingProduct.images, { url: '', alt: '', is_primary: false }]})}>Add Image Slot</Button>
+                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...editingProduct.images, { url: '', alt: '', is_primary: false }]})}>Add Another Image</Button>
                 </Box>
               )}
 
@@ -465,7 +555,7 @@ export default function ProductsManagement() {
               variant="contained" 
               startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <Save />} 
               onClick={handleSaveProduct} 
-              disabled={isSaving}
+              disabled={isSaving || uploadingIdx !== null}
               sx={{ borderRadius: 2, px: 4, fontWeight: 800 }}
             >
               Save Creation
