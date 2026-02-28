@@ -73,6 +73,7 @@ export default function ProductDetailPage() {
   const [api, setApi] = useState<CarouselApi>();
   
   // Gallery & Lightbox State
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<any>(null);
   
@@ -90,7 +91,7 @@ export default function ProductDetailPage() {
   const { data: wishlistDoc } = useDoc(wishlistDocQuery);
   const isFavorited = !!wishlistDoc;
 
-  // Auto-scroll logic for carousel
+  // Auto-scroll logic for carousel (thumbnails)
   useEffect(() => {
     if (!api) return;
 
@@ -215,7 +216,7 @@ export default function ProductDetailPage() {
       : { label: 'Currently Out of Stock', color: 'text-red-600', bg: 'bg-red-50' };
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
-  const primaryImage = galleryImages[0] || { url: 'https://placehold.co/800x800?text=Kalamic', alt: 'Handcrafted Piece' };
+  const activeImage = galleryImages[activeImageIndex] || galleryImages[0] || { url: 'https://placehold.co/800x800?text=Kalamic', alt: 'Handcrafted Piece' };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
@@ -267,13 +268,13 @@ export default function ProductDetailPage() {
               <div 
                 className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl bg-white border-4 border-white group cursor-zoom-in"
                 onClick={() => {
-                  setSelectedImage(primaryImage);
+                  setSelectedImage(activeImage);
                   setIsLightboxOpen(true);
                 }}
               >
                 <Image 
-                  src={primaryImage.url} 
-                  alt={primaryImage.alt || product.name} 
+                  src={activeImage.url} 
+                  alt={activeImage.alt || product.name} 
                   fill 
                   className="object-cover transition-transform duration-700 group-hover:scale-105" 
                   priority 
@@ -290,7 +291,7 @@ export default function ProductDetailPage() {
                 )}
               </div>
 
-              {/* Auto-scrolling Thumbnails */}
+              {/* Auto-scrolling Thumbnails - Updates main view on click, NO lightbox */}
               {galleryImages.length > 1 && (
                 <div className="px-2">
                   <Carousel 
@@ -302,11 +303,11 @@ export default function ProductDetailPage() {
                       {galleryImages.map((img, idx) => (
                         <CarouselItem key={idx} className="pl-4 basis-1/4 sm:basis-1/5 md:basis-1/6">
                           <div 
-                            className="relative aspect-square rounded-2xl overflow-hidden border-2 border-white shadow-md cursor-pointer hover:border-primary transition-all"
-                            onClick={() => {
-                              setSelectedImage(img);
-                              setIsLightboxOpen(true);
-                            }}
+                            className={cn(
+                              "relative aspect-square rounded-2xl overflow-hidden border-2 shadow-md cursor-pointer transition-all",
+                              activeImageIndex === idx ? "border-primary scale-95" : "border-white hover:border-primary/50"
+                            )}
+                            onClick={() => setActiveImageIndex(idx)}
                           >
                             <Image 
                               src={img.url} 
