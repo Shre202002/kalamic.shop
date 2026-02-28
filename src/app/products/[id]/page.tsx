@@ -1,6 +1,7 @@
+
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -15,6 +16,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { 
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi
+} from "@/components/ui/carousel";
 import { 
   ShoppingCart, 
   Heart, 
@@ -33,7 +44,8 @@ import {
   CheckCircle2,
   Box,
   Scale,
-  MapPin
+  MapPin,
+  Maximize2
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +67,11 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [api, setApi] = useState<CarouselApi>();
+  
+  // Gallery & Lightbox State
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<any>(null);
   
   // Review Form State
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
@@ -70,6 +87,17 @@ export default function ProductDetailPage() {
   const { data: wishlistDoc } = useDoc(wishlistDocQuery);
   const isFavorited = !!wishlistDoc;
 
+  // Auto-scroll logic for carousel
+  useEffect(() => {
+    if (!api) return;
+
+    const interval = setInterval(() => {
+      api.scrollNext();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [api]);
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -78,7 +106,7 @@ export default function ProductDetailPage() {
         
         if (data) {
           setProduct(data);
-          incrementProductViews(data._id); // Atomic backend increment
+          incrementProductViews(data._id);
 
           const reviewData = await getProductReviews(data._id);
           setReviews(reviewData);
@@ -184,7 +212,7 @@ export default function ProductDetailPage() {
       : { label: 'Currently Out of Stock', color: 'text-red-600', bg: 'bg-red-50' };
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
-  const currentImage = galleryImages[0] || { url: 'https://placehold.co/800x800?text=Kalamic', alt: 'Handcrafted Piece' };
+  const primaryImage = galleryImages[0] || { url: 'https://placehold.co/800x800?text=Kalamic', alt: 'Handcrafted Piece' };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
@@ -233,14 +261,23 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 mb-20 items-start">
             {/* Gallery Section - Fixed on Scroll */}
             <div className="lg:col-span-7 space-y-6 lg:sticky lg:top-28 self-start">
-              <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl bg-white border-4 border-white group">
+              <div 
+                className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl bg-white border-4 border-white group cursor-zoom-in"
+                onClick={() => {
+                  setSelectedImage(primaryImage);
+                  setIsLightboxOpen(true);
+                }}
+              >
                 <Image 
-                  src={currentImage.url} 
-                  alt={currentImage.alt || product.name} 
+                  src={primaryImage.url} 
+                  alt={primaryImage.alt || product.name} 
                   fill 
                   className="object-cover transition-transform duration-700 group-hover:scale-105" 
                   priority 
                 />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
+                  <Maximize2 className="text-white opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 drop-shadow-lg" />
+                </div>
                 {discountPercent > 0 && (
                   <div className="absolute top-6 left-6">
                     <Badge className="bg-primary text-white px-4 py-2 rounded-xl shadow-lg font-body font-black uppercase tracking-tighter text-sm border-none">
@@ -249,6 +286,38 @@ export default function ProductDetailPage() {
                   </div>
                 )}
               </div>
+
+              {/* Auto-scrolling Thumbnails */}
+              {galleryImages.length > 1 && (
+                <div className="px-2">
+                  <Carousel 
+                    setApi={setApi}
+                    opts={{ align: "start", loop: true }} 
+                    className="w-full"
+                  >
+                    <CarouselContent className="-ml-4">
+                      {galleryImages.map((img, idx) => (
+                        <CarouselItem key={idx} className="pl-4 basis-1/4 sm:basis-1/5 md:basis-1/6">
+                          <div 
+                            className="relative aspect-square rounded-2xl overflow-hidden border-2 border-white shadow-md cursor-pointer hover:border-primary transition-all"
+                            onClick={() => {
+                              setSelectedImage(img);
+                              setIsLightboxOpen(true);
+                            }}
+                          >
+                            <Image 
+                              src={img.url} 
+                              alt={img.alt || `View ${idx + 1}`} 
+                              fill 
+                              className="object-cover"
+                            />
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                  </Carousel>
+                </div>
+              )}
             </div>
 
             {/* Info Section */}
@@ -534,6 +603,27 @@ export default function ProductDetailPage() {
         </div>
       </main>
 
+      {/* Lightbox Dialog */}
+      <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-black/90 flex items-center justify-center overflow-hidden rounded-[2rem]">
+          {selectedImage && (
+            <div className="relative w-full h-full min-h-[80vh] flex items-center justify-center">
+              <Image 
+                src={selectedImage.url} 
+                alt={selectedImage.alt || product.name} 
+                fill 
+                className="object-contain"
+                priority
+              />
+              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 text-white text-center">
+                <p className="text-lg font-display font-bold">{product.name}</p>
+                <p className="text-xs font-body opacity-60 uppercase tracking-widest mt-1">{selectedImage.alt || 'Artisan Detail'}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Mobile Sticky Add to Cart */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
         <div className="flex items-center gap-4">
@@ -553,25 +643,5 @@ export default function ProductDetailPage() {
 
       <Footer />
     </div>
-  );
-}
-
-function UserIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
   );
 }
