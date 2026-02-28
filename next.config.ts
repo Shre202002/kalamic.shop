@@ -13,8 +13,13 @@ const nextConfig: NextConfig = {
     // Explicitly allow workstation origins to resolve CORS/CSRF warnings in the Studio environment
     allowedDevOrigins: [
       '*.cloudworkstations.dev',
+      '*.firebaseapp.com',
+      '*.web.app',
       'localhost:9002'
-    ]
+    ],
+    serverActions: {
+      bodySizeLimit: '6mb',
+    }
   },
   images: {
     remotePatterns: [
