@@ -137,32 +137,16 @@ export async function saveProduct(adminId: string, productData: any) {
   const price = Number(productData.price) || 0;
   const compareAtPrice = productData.compare_at_price ? Number(productData.compare_at_price) : undefined;
 
-  // Manual Validation to replace problematic schema validator
-  if (compareAtPrice !== undefined && compareAtPrice <= price) {
-    throw new Error(`Validation Error: Compare Price (₹${compareAtPrice}) must be greater than Current Price (₹${price}).`);
+  // Manual Validation: Compare price must be greater than current price
+  if (compareAtPrice !== undefined && compareAtPrice > 0 && compareAtPrice <= price) {
+    throw new Error(`Validation failed: compare_at_price must be greater than price`);
   }
 
-  // Sanitize incoming data to remove internal MongoDB fields that block updates
+  // CRITICAL: Clean system fields from productData to avoid "Immutable Field" errors during update
   const { _id, id, createdAt, updatedAt, __v, ...rest } = productData;
   const isNew = !_id;
   
-  // Strict Schema Normalization & SEO Validation
-  const validatedImages = (productData.images || []).map((img: any) => {
-    if (img.url && (!img.alt || img.alt.length < 5)) {
-      throw new Error(`SEO Error: Image [${img.url}] must have descriptive ALT text (min 5 chars).`);
-    }
-    return {
-      url: img.url,
-      alt: img.alt.trim(),
-      is_primary: !!img.is_primary
-    };
-  }).filter((img: any) => img.url);
-
-  if (validatedImages.length === 0) {
-    throw new Error("At least one product image is required.");
-  }
-
-  // Handle Meta Keywords - Support both Array and Comma-separated String
+  // SEO Meta Keywords Parsing: Handle both array and comma-separated string
   let keywordsArray: string[] = [];
   if (Array.isArray(productData.seo?.meta_keywords)) {
     keywordsArray = productData.seo.meta_keywords;
@@ -173,6 +157,7 @@ export async function saveProduct(adminId: string, productData: any) {
       .filter((k: string) => k.length > 0);
   }
 
+  // Schema Normalization
   const cleanedData: any = {
     ...rest,
     name: productData.name.trim(),
@@ -184,7 +169,7 @@ export async function saveProduct(adminId: string, productData: any) {
     category_id: mongoose.isValidObjectId(productData.category_id) 
       ? new mongoose.Types.ObjectId(productData.category_id) 
       : new mongoose.Types.ObjectId(),
-    images: validatedImages,
+    images: (productData.images || []).filter((img: any) => img.url),
     specifications: (productData.specifications || []).filter((s: any) => s.key && s.value),
     faqs: (productData.faqs || []).filter((f: any) => f.question && f.answer),
     shipping: {
@@ -209,15 +194,14 @@ export async function saveProduct(adminId: string, productData: any) {
     saved = await KalamicProduct.create(cleanedData);
     await logAction(actor, 'CREATE_PRODUCT', 'KalamicProduct', saved._id.toString(), `Created: ${saved.name}`);
   } else {
-    // Cast to ObjectId for reliable lookup
-    const targetId = new mongoose.Types.ObjectId(_id);
+    // Execute update using $set to prevent schema conflicts
     saved = await KalamicProduct.findByIdAndUpdate(
-      targetId, 
+      new mongoose.Types.ObjectId(_id), 
       { $set: cleanedData }, 
-      { new: true, runValidators: true }
+      { new: true }
     );
     
-    if (!saved) throw new Error(`Product with ID ${_id} not found or update failed.`);
+    if (!saved) throw new Error(`Product update failed: Document not found.`);
     await logAction(actor, 'UPDATE_PRODUCT', 'KalamicProduct', _id, `Updated: ${saved.name}`);
   }
 
