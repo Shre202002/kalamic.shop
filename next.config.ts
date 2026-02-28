@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // In Next.js 15, serverActions configuration is a top-level property
+  serverActions: {
+    bodySizeLimit: '6mb',
+  },
   experimental: {
     // Explicitly allow workstation origins to resolve CORS/CSRF warnings in the Studio environment
     allowedDevOrigins: [
@@ -17,9 +21,6 @@ const nextConfig: NextConfig = {
       '*.web.app',
       'localhost:9002'
     ],
-    serverActions: {
-      bodySizeLimit: '6mb',
-    }
   },
   images: {
     remotePatterns: [
