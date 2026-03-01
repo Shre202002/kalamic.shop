@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -403,7 +402,7 @@ export default function ProductDetailPage() {
               </div>
               <div className="flex-1">
                 <Tabs defaultValue="description" className="w-full">
-                  <TabsList className="w-full justify-start bg-transparent border-b rounded-none h-auto p-0 mb-8">
+                  <TabsList className="w-full justify-start bg-transparent border-b rounded-none h-auto p-0 mb-8 overflow-x-auto overflow-y-hidden scrollbar-none whitespace-nowrap flex-nowrap">
                     <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 sm:px-10 py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs">Description</TabsTrigger>
                     <TabsTrigger value="specs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 sm:px-10 py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs">Specifications</TabsTrigger>
                   </TabsList>
