@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -27,7 +26,8 @@ import {
   Link as MuiLink,
   alpha,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Avatar
 } from '@mui/material';
 import { 
   CreditCard, 
