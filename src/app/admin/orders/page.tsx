@@ -25,7 +25,7 @@ import {
   useTheme
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Visibility, CheckCircle2, AlertCircle, ShoppingBag, MapPin, CreditCard } from '@mui/icons-material';
+import { Visibility, CheckCircle, Error as ErrorIcon, ShoppingBag, LocationOn, CreditCard } from '@mui/icons-material';
 import { getAllOrders } from '@/lib/actions/admin-actions';
 import dayjs from 'dayjs';
 import { useToast } from '@/hooks/use-toast';
@@ -274,7 +274,7 @@ export default function OrdersManagement() {
                     <Box>
                       <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2, textTransform: 'uppercase', letterSpacing: 1 }}>Destination</Typography>
                       <Box sx={{ display: 'flex', gap: 2 }}>
-                        <MapPin sx={{ color: 'primary.main', fontSize: 20 }} />
+                        <LocationOn sx={{ color: 'primary.main', fontSize: 20 }} />
                         <Box>
                           <Typography variant="body2" fontWeight={800}>{selectedOrder.shipping_address.full_name}</Typography>
                           <Typography variant="caption" color="text.secondary">
