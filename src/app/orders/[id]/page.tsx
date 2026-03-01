@@ -133,14 +133,14 @@ export default function OrderDetailPage() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9', overflowX: 'hidden' }}>
       <Navbar />
       <main style={{ flex: 1 }}>
-        <Container maxWidth="lg" sx={{ py: { xs: 4, md: 10 }, px: { xs: 2.5, sm: 4 } }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 4, md: 10 }, px: { xs: 2, sm: 4 } }}>
           
           {/* Header Navigation */}
-          <Box sx={{ mb: { xs: 5, md: 8 } }}>
-            <Breadcrumbs separator={<ChevronLeft size={12} />} sx={{ mb: 3 }}>
+          <Box sx={{ mb: { xs: 4, md: 8 } }}>
+            <Breadcrumbs separator={<ChevronLeft size={12} />} sx={{ mb: 2 }}>
               <MuiLink component={Link} href="/orders" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5 }}>
                 Orders History
               </MuiLink>
@@ -150,18 +150,17 @@ export default function OrderDetailPage() {
               direction={{ xs: 'column', sm: 'row' }} 
               justifyContent="space-between" 
               alignItems={{ xs: 'flex-start', sm: 'flex-end' }} 
-              spacing={3}
+              spacing={2}
             >
-              <Box>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.04em', mb: 1.5, fontSize: { xs: '2rem', md: '3rem' } }}>
+              <Box sx={{ width: '100%' }}>
+                <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.04em', mb: 1.5, fontSize: { xs: '1.75rem', md: '3rem' } }}>
                   Order Dossier
                 </Typography>
-                <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#C97A40', bgcolor: alpha('#C97A40', 0.08), px: 1.5, py: 0.5, borderRadius: 1.5, fontSize: '0.85rem' }}>
+                <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" gap={1}>
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#C97A40', bgcolor: alpha('#C97A40', 0.08), px: 1.5, py: 0.5, borderRadius: 1.5, fontSize: '0.75rem' }}>
                     REF: {order?.orderNumber}
                   </Typography>
-                  <Divider orientation="vertical" flexItem sx={{ height: 16, my: 'auto', display: { xs: 'none', sm: 'block' } }} />
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
                     Recorded on {formatDate(order?.createdAt)}
                   </Typography>
                 </Stack>
@@ -173,8 +172,8 @@ export default function OrderDetailPage() {
                   fontWeight: 900, 
                   borderRadius: '1rem', 
                   px: 2, 
-                  height: 44,
-                  fontSize: '0.75rem',
+                  height: 40,
+                  fontSize: '0.7rem',
                   letterSpacing: 1,
                   width: { xs: '100%', sm: 'auto' },
                   boxShadow: `0 8px 20px ${alpha(isCanceled ? theme.palette.error.main : theme.palette.primary.main, 0.15)}`
@@ -183,15 +182,15 @@ export default function OrderDetailPage() {
             </Stack>
           </Box>
 
-          <Grid container spacing={4}>
+          <Grid container spacing={3}>
             {/* Status Timeline Section */}
             <Grid item xs={12}>
-              <Paper sx={{ p: { xs: 4, md: 6 }, borderRadius: '2.5rem', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', border: '1px solid', borderColor: alpha('#000', 0.03) }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 4, textTransform: 'uppercase', letterSpacing: 1.5, color: '#271E1B', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Paper sx={{ p: { xs: 3, md: 6 }, borderRadius: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', border: '1px solid', borderColor: alpha('#000', 0.03) }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 3, textTransform: 'uppercase', letterSpacing: 1.5, color: '#271E1B', display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <Truck size={20} color="#C97A40" /> Logistics Journey
                 </Typography>
                 {isCanceled ? (
-                  <Alert severity="error" variant="outlined" sx={{ borderRadius: '1.5rem', fontWeight: 700, p: 3 }}>
+                  <Alert severity="error" variant="outlined" sx={{ borderRadius: '1.5rem', fontWeight: 700, p: 2 }}>
                     The journey of this handcrafted acquisition has been halted. This record is now archived.
                   </Alert>
                 ) : (
@@ -201,8 +200,8 @@ export default function OrderDetailPage() {
                       orientation={isMobile ? "vertical" : "horizontal"}
                       alternativeLabel={!isMobile}
                       sx={{ 
-                        '& .MuiStepLabel-label': { fontWeight: 800, textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: 0.5, mt: 1 },
-                        '& .MuiStepIcon-root': { width: 28, height: 28 },
+                        '& .MuiStepLabel-label': { fontWeight: 800, textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: 0.5, mt: isMobile ? 0 : 1 },
+                        '& .MuiStepIcon-root': { width: 24, height: 24 },
                         '& .MuiStepIcon-root.Mui-active': { color: '#C97A40' },
                         '& .MuiStepIcon-root.Mui-completed': { color: '#6F8A7A' },
                       }}
@@ -220,26 +219,34 @@ export default function OrderDetailPage() {
 
             {/* Left Content Area: Pieces & Logistics */}
             <Grid item xs={12} lg={8}>
-              <Stack spacing={4}>
+              <Stack spacing={3}>
                 {/* Items List */}
-                <Paper sx={{ p: { xs: 4, md: 6 }, borderRadius: '2.5rem' }}>
+                <Paper sx={{ p: { xs: 3, md: 6 }, borderRadius: '2rem', overflow: 'hidden' }}>
                   <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center', gap: 2, color: '#271E1B' }}>
                     <Package size={22} color="#C97A40" /> Curated Selections
                   </Typography>
-                  <Stack spacing={3}>
+                  <Stack spacing={4}>
                     {(order?.items || []).map((item: any, idx: number) => (
-                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: { xs: 3, md: 4 } }}>
-                        <Box sx={{ position: 'relative', width: { xs: 80, md: 100 }, height: { xs: 80, md: 100 }, borderRadius: '1.5rem', overflow: 'hidden', flexShrink: 0, bgcolor: '#F5EFE9', border: '1px solid', borderColor: alpha('#000', 0.05) }}>
+                      <Box 
+                        key={idx} 
+                        sx={{ 
+                          display: 'flex', 
+                          flexDirection: { xs: 'column', sm: 'row' },
+                          alignItems: { xs: 'flex-start', sm: 'center' }, 
+                          gap: { xs: 2, md: 4 } 
+                        }}
+                      >
+                        <Box sx={{ position: 'relative', width: { xs: '100%', sm: 100 }, height: { xs: 200, sm: 100 }, borderRadius: '1.5rem', overflow: 'hidden', flexShrink: 0, bgcolor: '#F5EFE9', border: '1px solid', borderColor: alpha('#000', 0.05) }}>
                           <Image 
                             src={item.imageUrl || 'https://placehold.co/200x200?text=Ceramic'} 
                             alt={item.name} 
                             fill 
                             style={{ objectFit: 'cover' }} 
-                            sizes="(max-width: 768px) 80px, 100px"
+                            sizes="(max-width: 768px) 100vw, 100px"
                           />
                         </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography variant="body1" sx={{ fontWeight: 900, color: '#271E1B', mb: 0.5, lineClamp: 1 }}>
+                        <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+                          <Typography variant="body1" sx={{ fontWeight: 900, color: '#271E1B', mb: 0.5, lineHeight: 1.3 }}>
                             {item.name}
                           </Typography>
                           <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -249,7 +256,7 @@ export default function OrderDetailPage() {
                             ₹{item.price.toLocaleString()} per piece
                           </Typography>
                         </Box>
-                        <Typography variant="h6" sx={{ fontWeight: 900, color: '#271E1B', textAlign: 'right' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 900, color: '#271E1B', textAlign: { xs: 'left', sm: 'right' }, width: { xs: '100%', sm: 'auto' } }}>
                           ₹{(item.price * item.quantity).toLocaleString()}
                         </Typography>
                       </Box>
@@ -258,14 +265,14 @@ export default function OrderDetailPage() {
                 </Paper>
 
                 {/* Logistics & Payment Detail Grid */}
-                <Grid container spacing={4}>
+                <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: { xs: 4, md: 5 }, borderRadius: '2.5rem', height: '100%', border: '1px solid', borderColor: alpha('#000', 0.02) }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, textTransform: 'uppercase', letterSpacing: 1.5, color: 'text.secondary' }}>
+                    <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: '2rem', height: '100%', border: '1px solid', borderColor: alpha('#000', 0.02) }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, textTransform: 'uppercase', letterSpacing: 1.5, color: 'text.secondary', fontSize: '0.75rem' }}>
                         <MapPin size={18} color="#C97A40" /> Destination
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 900, mb: 1.5 }}>{order?.shippingAddress?.fullName}</Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, fontWeight: 500, fontSize: '0.9rem' }}>
+                      <Typography variant="body1" sx={{ fontWeight: 900, mb: 1.5, fontSize: '1rem' }}>{order?.shippingAddress?.fullName}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6, fontWeight: 500, fontSize: '0.85rem' }}>
                         {order?.shippingAddress?.addressLine1}
                         {order?.shippingAddress?.addressLine2 && <><br />{order.shippingAddress.addressLine2}</>}
                         <br />{order?.shippingAddress?.city}, {order?.shippingAddress?.state}
@@ -273,14 +280,14 @@ export default function OrderDetailPage() {
                       </Typography>
                       
                       {order?.shippingAddress?.nearestLandmark && (
-                        <Box sx={{ mt: 2.5, p: 2, bgcolor: alpha('#C97A40', 0.05), borderRadius: 2, border: '1px dashed', borderColor: alpha('#C97A40', 0.2) }}>
-                          <Typography variant="caption" sx={{ fontWeight: 800, color: '#C97A40', textTransform: 'uppercase', fontSize: '0.65rem' }}>Precision Landmark</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>{order.shippingAddress.nearestLandmark}</Typography>
+                        <Box sx={{ mt: 2, p: 2, bgcolor: alpha('#C97A40', 0.05), borderRadius: 2, border: '1px dashed', borderColor: alpha('#C97A40', 0.2) }}>
+                          <Typography variant="caption" sx={{ fontWeight: 800, color: '#C97A40', textTransform: 'uppercase', fontSize: '0.6rem' }}>Precision Landmark</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5, fontSize: '0.75rem' }}>{order.shippingAddress.nearestLandmark}</Typography>
                         </Box>
                       )}
                       
                       <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid', borderColor: alpha('#000', 0.05) }}>
-                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.75rem' }}>
                           Contact: <span style={{ color: '#271E1B' }}>{order?.shippingAddress?.phone || order?.userPhone}</span>
                         </Typography>
                       </Box>
@@ -288,42 +295,42 @@ export default function OrderDetailPage() {
                   </Grid>
                   
                   <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: { xs: 4, md: 5 }, borderRadius: '2.5rem', height: '100%', border: '1px solid', borderColor: alpha('#000', 0.02) }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, textTransform: 'uppercase', letterSpacing: 1.5, color: 'text.secondary' }}>
+                    <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: '2rem', height: '100%', border: '1px solid', borderColor: alpha('#000', 0.02) }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, textTransform: 'uppercase', letterSpacing: 1.5, color: 'text.secondary', fontSize: '0.75rem' }}>
                         <CreditCard size={18} color="#C97A40" /> Integrity
                       </Typography>
-                      <Stack spacing={2.5}>
+                      <Stack spacing={2}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>Protocol</Typography>
-                          <Typography variant="body2" fontWeight={800} sx={{ textTransform: 'capitalize' }}>
+                          <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>Protocol</Typography>
+                          <Typography variant="body2" fontWeight={800} sx={{ textTransform: 'capitalize', fontSize: '0.85rem' }}>
                             {order?.paymentGateway} / {order?.paymentMethod}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>Verification</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>Verification</Typography>
                           <Chip 
                             label={(order?.paymentStatus || 'pending').toUpperCase()} 
                             size="small" 
                             color={order?.paymentStatus === 'paid' ? 'success' : 'warning'} 
-                            sx={{ fontWeight: 900, fontSize: '0.6rem', height: 24, borderRadius: '6px' }} 
+                            sx={{ fontWeight: 900, fontSize: '0.55rem', height: 22, borderRadius: '4px' }} 
                           />
                         </Box>
                         
                         {order?.paymentVerified && (
-                          <Box sx={{ p: 2, bgcolor: alpha('#6F8A7A', 0.08), borderRadius: '1.25rem', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <ShieldCheck size={18} color="#6F8A7A" />
-                            <Typography variant="caption" sx={{ color: '#6F8A7A', fontWeight: 900, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                          <Box sx={{ p: 1.5, bgcolor: alpha('#6F8A7A', 0.08), borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <ShieldCheck size={16} color="#6F8A7A" />
+                            <Typography variant="caption" sx={{ color: '#6F8A7A', fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                               Transaction Reconciled
                             </Typography>
                           </Box>
                         )}
                         
                         {order?.transactionId && (
-                          <Box sx={{ mt: 1.5 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase' }}>
                               Gateway Reference
                             </Typography>
-                            <Typography variant="caption" sx={{ fontFamily: 'monospace', bgcolor: alpha('#000', 0.04), px: 1.5, py: 1, borderRadius: '6px', display: 'block', fontSize: '0.75rem', fontWeight: 700, textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ fontFamily: 'monospace', bgcolor: alpha('#000', 0.04), px: 1, py: 0.5, borderRadius: '4px', display: 'block', fontSize: '0.7rem', fontWeight: 700, textAlign: 'center', wordBreak: 'break-all' }}>
                               {order.transactionId}
                             </Typography>
                           </Box>
@@ -337,46 +344,46 @@ export default function OrderDetailPage() {
 
             {/* Right Sidebar: Summary & Support */}
             <Grid item xs={12} lg={4}>
-              <Paper sx={{ p: { xs: 4, md: 6 }, borderRadius: '3rem', position: { lg: 'sticky' }, top: { lg: 120 }, bgcolor: 'white', boxShadow: '0 20px 60px rgba(0,0,0,0.05)' }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, color: '#271E1B', textTransform: 'uppercase', letterSpacing: 1 }}>Financial Ledger</Typography>
+              <Paper sx={{ p: { xs: 3, md: 6 }, borderRadius: '2.5rem', position: { lg: 'sticky' }, top: { lg: 120 }, bgcolor: 'white', boxShadow: '0 20px 60px rgba(0,0,0,0.05)' }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, color: '#271E1B', textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.9rem' }}>Financial Ledger</Typography>
                 
-                <Stack spacing={2.5} sx={{ mb: 4 }}>
+                <Stack spacing={2} sx={{ mb: 4 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary" fontWeight={600}>Acquisition Subtotal</Typography>
-                    <Typography variant="body2" fontWeight={800}>₹{order?.subtotal?.toLocaleString()}</Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600} sx={{ fontSize: '0.85rem' }}>Acquisition Subtotal</Typography>
+                    <Typography variant="body2" fontWeight={800} sx={{ fontSize: '0.85rem' }}>₹{order?.subtotal?.toLocaleString()}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary" fontWeight={600}>FragileCare™ Shipping</Typography>
-                    <Typography variant="body2" fontWeight={800}>₹{order?.charges?.shipping?.toLocaleString()}</Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600} sx={{ fontSize: '0.85rem' }}>FragileCare™ Shipping</Typography>
+                    <Typography variant="body2" fontWeight={800} sx={{ fontSize: '0.85rem' }}>₹{order?.charges?.shipping?.toLocaleString()}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary" fontWeight={600}>Artisan Handling</Typography>
-                    <Typography variant="body2" fontWeight={800}>₹{order?.charges?.handling?.toLocaleString()}</Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600} sx={{ fontSize: '0.85rem' }}>Artisan Handling</Typography>
+                    <Typography variant="body2" fontWeight={800} sx={{ fontSize: '0.85rem' }}>₹{order?.charges?.handling?.toLocaleString()}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary" fontWeight={600}>Premium Protection</Typography>
-                    <Typography variant="body2" fontWeight={800}>₹{order?.charges?.premium?.toLocaleString()}</Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600} sx={{ fontSize: '0.85rem' }}>Premium Protection</Typography>
+                    <Typography variant="body2" fontWeight={800} sx={{ fontSize: '0.85rem' }}>₹{order?.charges?.premium?.toLocaleString()}</Typography>
                   </Box>
                   
-                  <Divider sx={{ my: 2, borderStyle: 'dashed' }} />
+                  <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                   
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mt: 1 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1 }}>Total Recorded</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 900, color: '#C97A40', lineHeight: 1 }}>₹{order?.totalAmount?.toLocaleString()}</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.85rem' }}>Total Recorded</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 900, color: '#C97A40', lineHeight: 1, fontSize: { xs: '1.75rem', md: '2.25rem' } }}>₹{order?.totalAmount?.toLocaleString()}</Typography>
                   </Box>
                 </Stack>
 
-                <Stack spacing={3}>
-                  <Paper variant="outlined" sx={{ p: 3, borderRadius: '1.5rem', bgcolor: '#FAF4EB', border: '1px solid', borderColor: alpha('#C97A40', 0.15) }}>
-                    <Stack direction="row" spacing={2.5} alignItems="center">
-                      <Avatar sx={{ bgcolor: alpha('#C97A40', 0.1), color: '#C97A40', width: 44, height: 44, boxShadow: '0 4px 12px rgba(201, 122, 64, 0.1)' }}>
-                        <Clock size={22} />
+                <Stack spacing={2.5}>
+                  <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '1.5rem', bgcolor: '#FAF4EB', border: '1px solid', borderColor: alpha('#C97A40', 0.15) }}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Avatar sx={{ bgcolor: alpha('#C97A40', 0.1), color: '#C97A40', width: 40, height: 40, boxShadow: '0 4px 12px rgba(201, 122, 64, 0.1)' }}>
+                        <Clock size={20} />
                       </Avatar>
                       <Box>
-                        <Typography variant="caption" sx={{ fontWeight: 900, color: '#C97A40', textTransform: 'uppercase', fontSize: '0.65rem', display: 'block', letterSpacing: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 900, color: '#C97A40', textTransform: 'uppercase', fontSize: '0.6rem', display: 'block', letterSpacing: 1 }}>
                           Expected Arrival
                         </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 900, color: '#271E1B' }}>
+                        <Typography variant="body1" sx={{ fontWeight: 900, color: '#271E1B', fontSize: '0.9rem' }}>
                           {formatDate(order?.expectedDelivery)}
                         </Typography>
                       </Box>
@@ -388,14 +395,14 @@ export default function OrderDetailPage() {
                     variant="contained" 
                     startIcon={<MessageCircle size={20} />}
                     sx={{ 
-                      height: 64, 
-                      borderRadius: '1.5rem', 
+                      height: 56, 
+                      borderRadius: '1.25rem', 
                       fontWeight: 900, 
-                      fontSize: '0.9rem', 
+                      fontSize: '0.85rem', 
                       bgcolor: '#25D366',
                       '&:hover': { bgcolor: '#128C7E' },
                       textTransform: 'none',
-                      boxShadow: '0 12px 24px rgba(37, 211, 102, 0.25)',
+                      boxShadow: '0 8px 20px rgba(37, 211, 102, 0.2)',
                       letterSpacing: 0.5
                     }}
                     component={Link}
@@ -405,7 +412,7 @@ export default function OrderDetailPage() {
                     Contact Studio Support
                   </Button>
                   
-                  <Typography variant="caption" sx={{ textAlign: 'center', color: 'text.disabled', fontWeight: 600, display: 'block', px: 2 }}>
+                  <Typography variant="caption" sx={{ textAlign: 'center', color: 'text.disabled', fontWeight: 600, display: 'block', px: 1, fontSize: '0.65rem' }}>
                     Our master artisans are available for logistics inquiries via WhatsApp.
                   </Typography>
                 </Stack>
