@@ -31,7 +31,7 @@ import {
   MapPin, 
   CreditCard, 
   ShieldCheck, 
-  ExternalLink,
+  MessageCircle,
   Clock
 } from 'lucide-react';
 import Link from 'next/link';
@@ -177,14 +177,14 @@ export default function OrderDetailPage() {
           <Grid container spacing={3}>
             {/* Status Timeline */}
             <Grid item xs={12}>
-              <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: { xs: '1.5rem', md: '3rem' }, boxShadow: '0 4px 20px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+              <Paper sx={{ p: { xs: 2, md: 5 }, borderRadius: { xs: '1.5rem', md: '3rem' }, boxShadow: '0 4px 20px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
                 {isCanceled ? (
                   <Alert severity="error" sx={{ borderRadius: '1rem', fontWeight: 700, fontSize: '0.875rem' }}>
                     This acquisition has been canceled.
                   </Alert>
                 ) : (
                   <Box sx={{ width: '100%', overflowX: 'auto', pb: 1 }}>
-                    <Box sx={{ minWidth: { xs: '600px', sm: '100%' } }}>
+                    <Box sx={{ minWidth: { xs: '600px', md: '100%' } }}>
                       <Stepper activeStep={currentStep} alternativeLabel>
                         {STEPS.map((label) => (
                           <Step key={label}>
@@ -364,19 +364,21 @@ export default function OrderDetailPage() {
                   
                   <Button 
                     fullWidth 
-                    variant="outlined" 
-                    startIcon={<ExternalLink size={14} />}
+                    variant="contained" 
+                    startIcon={<MessageCircle size={18} />}
                     sx={{ 
-                      height: 48, 
-                      borderRadius: '1rem', 
-                      fontWeight: 800, 
-                      fontSize: '0.75rem', 
-                      color: 'text.secondary', 
-                      borderColor: 'divider',
-                      textTransform: 'none'
+                      height: 52, 
+                      borderRadius: '1.25rem', 
+                      fontWeight: 900, 
+                      fontSize: '0.85rem', 
+                      bgcolor: '#25D366',
+                      '&:hover': { bgcolor: '#128C7E' },
+                      textTransform: 'none',
+                      boxShadow: '0 8px 20px rgba(37, 211, 102, 0.2)'
                     }}
                     component={Link}
-                    href="/contact"
+                    href={`https://wa.me/916387562920?text=Hi, I need assistance with my Kalamic Order: ${order?.orderNumber}`}
+                    target="_blank"
                   >
                     Logistics Support
                   </Button>
