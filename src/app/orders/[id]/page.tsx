@@ -32,9 +32,7 @@ import {
   CreditCard, 
   ShieldCheck, 
   ExternalLink,
-  CheckCircle2,
-  Clock,
-  ArrowRight
+  Clock
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -49,7 +47,12 @@ export default function OrderDetailPage() {
   const { toast } = useToast();
   const [order, setOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const orderStatusRef = useRef<string>('');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchOrder = async (isSilent = false) => {
     if (!params?.id) return;
@@ -85,7 +88,7 @@ export default function OrderDetailPage() {
   };
 
   useEffect(() => {
-    if (!params?.id) return;
+    if (!mounted || !params?.id) return;
 
     fetchOrder();
     reconcilePayment();
@@ -99,9 +102,9 @@ export default function OrderDetailPage() {
     }, 20000);
 
     return () => clearInterval(interval);
-  }, [params?.id]);
+  }, [mounted, params?.id]);
 
-  if (isLoading || !params?.id) {
+  if (!mounted || isLoading || !params?.id) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
         <Navbar />
@@ -121,122 +124,183 @@ export default function OrderDetailPage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
       <Navbar />
       <main style={{ flex: 1 }}>
-        <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
-          <Box sx={{ mb: 6 }}>
-            <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: 2 }}>
-              <MuiLink component={Link} href="/orders" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5 }}>
-                Back to Collection
+        <Container maxWidth="lg" sx={{ py: { xs: 3, md: 8 }, px: { xs: 2, sm: 3 } }}>
+          <Box sx={{ mb: { xs: 4, md: 6 } }}>
+            <Breadcrumbs separator={<ChevronLeft size={12} />} sx={{ mb: 2 }}>
+              <MuiLink component={Link} href="/orders" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontWeight: 800, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                Orders
               </MuiLink>
             </Breadcrumbs>
-            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'flex-end' }} spacing={2}>
+            
+            <Stack 
+              direction={{ xs: 'column', sm: 'row' }} 
+              justifyContent="space-between" 
+              alignItems={{ xs: 'flex-start', sm: 'flex-end' }} 
+              spacing={3}
+            >
               <Box>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.03em', mb: 1 }}>Acquisition Record</Typography>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#C97A40' }}>REF: {order?.orderNumber}</Typography>
-                  <Divider orientation="vertical" flexItem sx={{ height: 16, my: 'auto' }} />
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>{dayjs(order?.createdAt).format('MMMM DD, YYYY')}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.03em', mb: 1, fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
+                  Order Details
+                </Typography>
+                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: '#C97A40', fontSize: '0.75rem' }}>
+                    #{order?.orderNumber}
+                  </Typography>
+                  <Divider orientation="vertical" flexItem sx={{ height: 12, my: 'auto', display: { xs: 'none', sm: 'block' } }} />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>
+                    {dayjs(order?.createdAt).format('DD MMM YYYY')}
+                  </Typography>
                 </Stack>
               </Box>
               <Chip 
                 label={currentStatus.toUpperCase()} 
                 color={isCanceled ? "error" : "primary"}
-                sx={{ fontWeight: 900, borderRadius: '1rem', px: 2, height: 40 }} 
+                sx={{ 
+                  fontWeight: 900, 
+                  borderRadius: '0.75rem', 
+                  px: 1.5, 
+                  height: 36,
+                  fontSize: '0.7rem',
+                  width: { xs: '100%', sm: 'auto' }
+                }} 
               />
             </Stack>
           </Box>
 
-          <Grid container spacing={4}>
+          <Grid container spacing={3}>
+            {/* Status Timeline */}
             <Grid item xs={12}>
-              <Paper sx={{ p: { xs: 4, md: 6 }, borderRadius: '3rem', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
+              <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: { xs: '1.5rem', md: '3rem' }, boxShadow: '0 4px 20px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
                 {isCanceled ? (
-                  <Alert severity="error" sx={{ borderRadius: '1.5rem', fontWeight: 700 }}>
+                  <Alert severity="error" sx={{ borderRadius: '1rem', fontWeight: 700, fontSize: '0.875rem' }}>
                     This acquisition has been canceled.
                   </Alert>
                 ) : (
-                  <Box sx={{ width: '100%', overflowX: 'auto', py: 2 }}>
-                    <Stepper activeStep={currentStep} alternativeLabel>
-                      {STEPS.map((label) => (
-                        <Step key={label}>
-                          <StepLabel
-                            StepIconProps={{
-                              sx: {
-                                '&.Mui-active': { color: '#C97A40' },
-                                '&.Mui-completed': { color: '#6F8A7A' },
-                              }
-                            }}
-                          >
-                            <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.6rem' }}>{label}</Typography>
-                          </StepLabel>
-                        </Step>
-                      ))}
-                    </Stepper>
+                  <Box sx={{ width: '100%', overflowX: 'auto', pb: 1, cursor: 'grab' }}>
+                    <Box sx={{ minWidth: { xs: '600px', sm: '100%' } }}>
+                      <Stepper activeStep={currentStep} alternativeLabel>
+                        {STEPS.map((label) => (
+                          <Step key={label}>
+                            <StepLabel
+                              StepIconProps={{
+                                sx: {
+                                  '&.Mui-active': { color: '#C97A40' },
+                                  '&.Mui-completed': { color: '#6F8A7A' },
+                                }
+                              }}
+                            >
+                              <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.55rem', letterSpacing: 0.5 }}>
+                                {label}
+                              </Typography>
+                            </StepLabel>
+                          </Step>
+                        ))}
+                      </Stepper>
+                    </Box>
                   </Box>
                 )}
               </Paper>
             </Grid>
 
+            {/* Main Content Area */}
             <Grid item xs={12} lg={8}>
               <Stack spacing={3}>
-                <Paper sx={{ p: 4, borderRadius: '2.5rem' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Package size={20} color="#C97A40" /> Curated Items
+                {/* Items List */}
+                <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: '1.5rem', md: '2.5rem' } }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, color: '#271E1B' }}>
+                    <Package size={18} color="#C97A40" /> Artisan Pieces
                   </Typography>
-                  <Stack spacing={3}>
+                  <Stack spacing={2.5}>
                     {(order?.items || []).map((item: any, idx: number) => (
-                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <Box sx={{ position: 'relative', width: 80, height: 80, borderRadius: '1.5rem', overflow: 'hidden', flexShrink: 0, bgcolor: '#F5EFE9' }}>
-                          <Image src={item.imageUrl || 'https://placehold.co/200x200?text=Ceramic'} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, md: 3 } }}>
+                        <Box sx={{ position: 'relative', width: { xs: 64, md: 80 }, height: { xs: 64, md: 80 }, borderRadius: '1rem', overflow: 'hidden', flexShrink: 0, bgcolor: '#F5EFE9', border: '1px solid', borderColor: alpha('#000', 0.05) }}>
+                          <Image 
+                            src={item.imageUrl || 'https://placehold.co/200x200?text=Ceramic'} 
+                            alt={item.name} 
+                            fill 
+                            style={{ objectFit: 'cover' }} 
+                            sizes="(max-width: 768px) 64px, 80px"
+                          />
                         </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="body1" sx={{ fontWeight: 800, color: '#271E1B' }}>{item.name}</Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>Qty: {item.quantity} × ₹{item.price.toLocaleString()}</Typography>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 800, color: '#271E1B', mb: 0.5, noWrap: true, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
+                            {item.quantity} × ₹{item.price.toLocaleString()}
+                          </Typography>
                         </Box>
-                        <Typography variant="body1" sx={{ fontWeight: 900 }}>₹{(item.price * item.quantity).toLocaleString()}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 900, color: '#271E1B', textAlign: 'right' }}>
+                          ₹{(item.price * item.quantity).toLocaleString()}
+                        </Typography>
                       </Box>
                     ))}
                   </Stack>
                 </Paper>
 
+                {/* Logistics & Payment Info */}
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 4, borderRadius: '2.5rem', height: '100%' }}>
-                      <Typography variant="h6" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <MapPin size={20} color="#C97A40" /> Destination
+                    <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: '1.5rem', md: '2.5rem' }, height: '100%' }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 2.5, display: 'flex', alignItems: 'center', gap: 1.5, color: '#271E1B' }}>
+                        <MapPin size={18} color="#C97A40" /> Destination
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 800, mb: 1 }}>{order?.shippingAddress?.fullName}</Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6, fontWeight: 500 }}>
-                        {order?.shippingAddress?.addressLine1}<br />
-                        {order?.shippingAddress?.nearestLandmark && `Near ${order.shippingAddress.nearestLandmark}, `}
-                        {order?.shippingAddress?.city}, {order?.shippingAddress?.state}<br />
-                        {order?.shippingAddress?.pincode}
+                      <Typography variant="body2" sx={{ fontWeight: 800, mb: 1 }}>{order?.shippingAddress?.fullName}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6, fontWeight: 500, display: 'block', fontSize: '0.8rem' }}>
+                        {order?.shippingAddress?.addressLine1}
+                        {order?.shippingAddress?.addressLine2 && <><br />{order.shippingAddress.addressLine2}</>}
+                        {order?.shippingAddress?.nearestLandmark && <><br /><span style={{ color: '#C97A40', fontWeight: 700 }}>Near {order.shippingAddress.nearestLandmark}</span></>}
+                        <br />{order?.shippingAddress?.city}, {order?.shippingAddress?.state}
+                        <br />{order?.shippingAddress?.pincode}
                       </Typography>
-                      <Typography variant="body2" sx={{ mt: 2, fontWeight: 700 }}>
-                        Contact: {order?.shippingAddress?.phone || order?.userPhone}
-                      </Typography>
+                      <Box sx={{ mt: 2, pt: 2, borderTop: '1px dashed', borderColor: 'divider' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+                          Contact: {order?.shippingAddress?.phone || order?.userPhone}
+                        </Typography>
+                      </Box>
                     </Paper>
                   </Grid>
+                  
                   <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 4, borderRadius: '2.5rem', height: '100%' }}>
-                      <Typography variant="h6" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <CreditCard size={20} color="#C97A40" /> Payment
+                    <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: '1.5rem', md: '2.5rem' }, height: '100%' }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 2.5, display: 'flex', alignItems: 'center', gap: 1.5, color: '#271E1B' }}>
+                        <CreditCard size={18} color="#C97A40" /> Payment
                       </Typography>
                       <Stack spacing={2}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="body2" color="text.secondary" fontWeight={600}>Method</Typography>
-                          <Typography variant="body2" fontWeight={800} sx={{ textTransform: 'capitalize' }}>{order?.paymentGateway} {order?.paymentMethod}</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>Method</Typography>
+                          <Typography variant="caption" fontWeight={800} sx={{ textTransform: 'capitalize' }}>
+                            {order?.paymentGateway} {order?.paymentMethod}
+                          </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="body2" color="text.secondary" fontWeight={600}>Status</Typography>
-                          <Chip label={(order?.paymentStatus || 'pending').toUpperCase()} size="small" color={order?.paymentStatus === 'paid' ? 'success' : 'warning'} sx={{ fontWeight: 900, fontSize: '0.6rem' }} />
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>Verification</Typography>
+                          <Chip 
+                            label={(order?.paymentStatus || 'pending').toUpperCase()} 
+                            size="small" 
+                            color={order?.paymentStatus === 'paid' ? 'success' : 'warning'} 
+                            sx={{ fontWeight: 900, fontSize: '0.55rem', height: 20, borderRadius: '4px' }} 
+                          />
                         </Box>
+                        
                         {order?.paymentVerified && (
-                          <Box sx={{ p: 2, bgcolor: alpha('#6F8A7A', 0.1), borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <ShieldCheck size={16} color="#6F8A7A" />
-                            <Typography variant="caption" sx={{ color: '#6F8A7A', fontWeight: 800 }}>Payment Verified Successfully</Typography>
+                          <Box sx={{ p: 1.5, bgcolor: alpha('#6F8A7A', 0.08), borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <ShieldCheck size={14} color="#6F8A7A" />
+                            <Typography variant="caption" sx={{ color: '#6F8A7A', fontWeight: 800, fontSize: '0.65rem' }}>
+                              Securely Verified
+                            </Typography>
                           </Box>
                         )}
+                        
                         {order?.transactionId && (
-                          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>TXN: {order.transactionId}</Typography>
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                              Transaction Reference
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontFamily: 'monospace', bgcolor: alpha('#000', 0.03), px: 1, py: 0.5, borderRadius: '4px', display: 'inline-block', fontSize: '0.65rem' }}>
+                              {order.transactionId}
+                            </Typography>
+                          </Box>
                         )}
                       </Stack>
                     </Paper>
@@ -245,40 +309,48 @@ export default function OrderDetailPage() {
               </Stack>
             </Grid>
 
+            {/* Summary Sidebar */}
             <Grid item xs={12} lg={4}>
-              <Paper sx={{ p: 4, borderRadius: '3rem', position: 'sticky', top: 100, bgcolor: 'white' }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, mb: 4 }}>Financial Record</Typography>
-                <Stack spacing={2.5} sx={{ mb: 4 }}>
+              <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: '1.5rem', md: '3rem' }, position: { lg: 'sticky' }, top: { lg: 100 }, bgcolor: 'white' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 3, color: '#271E1B' }}>Financial Record</Typography>
+                
+                <Stack spacing={2} sx={{ mb: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary" fontWeight={600}>Subtotal</Typography>
-                    <Typography variant="body2" fontWeight={700}>₹{order?.subtotal?.toLocaleString()}</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>Subtotal</Typography>
+                    <Typography variant="caption" fontWeight={700}>₹{order?.subtotal?.toLocaleString()}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary" fontWeight={600}>FragileCare™ Shipping</Typography>
-                    <Typography variant="body2" fontWeight={700}>₹{order?.charges?.shipping?.toLocaleString()}</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>FragileCare™ Shipping</Typography>
+                    <Typography variant="caption" fontWeight={700}>₹{order?.charges?.shipping?.toLocaleString()}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary" fontWeight={600}>Handling & Packaging</Typography>
-                    <Typography variant="body2" fontWeight={700}>₹{order?.charges?.handling?.toLocaleString()}</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>Studio Handling</Typography>
+                    <Typography variant="caption" fontWeight={700}>₹{order?.charges?.handling?.toLocaleString()}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary" fontWeight={600}>Premium Insurance</Typography>
-                    <Typography variant="body2" fontWeight={700}>₹{order?.charges?.premium?.toLocaleString()}</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>Premium Protection</Typography>
+                    <Typography variant="caption" fontWeight={700}>₹{order?.charges?.premium?.toLocaleString()}</Typography>
                   </Box>
-                  <Divider sx={{ my: 1 }} />
+                  
+                  <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+                  
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 900 }}>Total Value</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 900 }}>Total Value</Typography>
                     <Typography variant="h5" sx={{ fontWeight: 900, color: '#C97A40' }}>₹{order?.totalAmount?.toLocaleString()}</Typography>
                   </Box>
                 </Stack>
 
                 <Stack spacing={2}>
-                  <Box sx={{ p: 3, bgcolor: '#FAF4EB', borderRadius: '1.5rem', border: '1px solid', borderColor: alpha('#C97A40', 0.1) }}>
+                  <Box sx={{ p: 2.5, bgcolor: '#FAF4EB', borderRadius: '1.25rem', border: '1px solid', borderColor: alpha('#C97A40', 0.1) }}>
                     <Stack direction="row" spacing={2} alignItems="center">
-                      <Avatar sx={{ bgcolor: alpha('#C97A40', 0.1), color: '#C97A40' }}><Clock size={20} /></Avatar>
+                      <Avatar sx={{ bgcolor: alpha('#C97A40', 0.1), color: '#C97A40', width: 36, height: 36 }}><Clock size={18} /></Avatar>
                       <Box>
-                        <Typography variant="caption" sx={{ fontWeight: 800, color: '#C97A40', textTransform: 'uppercase' }}>Expected Discovery</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800 }}>{dayjs(order?.expectedDelivery).format('DD MMM YYYY')}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: '#C97A40', textTransform: 'uppercase', fontSize: '0.6rem', display: 'block' }}>
+                          Target Discovery
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.85rem' }}>
+                          {dayjs(order?.expectedDelivery).format('DD MMM YYYY')}
+                        </Typography>
                       </Box>
                     </Stack>
                   </Box>
@@ -286,12 +358,20 @@ export default function OrderDetailPage() {
                   <Button 
                     fullWidth 
                     variant="outlined" 
-                    startIcon={<ExternalLink size={16} />}
-                    sx={{ height: 56, borderRadius: '1.25rem', fontWeight: 800, color: 'text.secondary', borderColor: 'divider' }}
+                    startIcon={<ExternalLink size={14} />}
+                    sx={{ 
+                      height: 48, 
+                      borderRadius: '1rem', 
+                      fontWeight: 800, 
+                      fontSize: '0.75rem', 
+                      color: 'text.secondary', 
+                      borderColor: 'divider',
+                      textTransform: 'none'
+                    }}
                     component={Link}
                     href="/contact"
                   >
-                    Support Enquiry
+                    Logistics Support
                   </Button>
                 </Stack>
               </Paper>
