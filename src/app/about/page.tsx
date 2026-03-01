@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -20,8 +19,16 @@ import {
   Eye,
   History
 } from 'lucide-react';
+import { useScrollAnimation } from '@/hooks/use-scroll-animation';
+import { cn } from '@/lib/utils';
 
 export default function AboutPage() {
+  // Initialize scroll animations for different sections
+  const storyScroll = useScrollAnimation(0.15);
+  const philosophyScroll = useScrollAnimation(0.15);
+  const craftScroll = useScrollAnimation(0.15);
+  const whyScroll = useScrollAnimation(0.15);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F5EFE9]">
       <Navbar />
@@ -29,13 +36,13 @@ export default function AboutPage() {
         
         {/* 1. HERO SECTION */}
         <section className="relative py-12 md:py-20 lg:py-32 overflow-hidden border-b border-primary/5">
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-4 max-w-[1200px]">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000 text-center lg:text-left">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-[0.2em]">
                   <Sparkles className="h-3 w-3" /> Crafting Culture
                 </div>
-                <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-semibold text-primary leading-[1.1] tracking-tight">
+                <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-semibold text-primary leading-[1.1] tracking-tight text-balance">
                   Preserving Culture. <br className="hidden sm:block" />
                   <span className="italic">Designing for</span> <br className="hidden sm:block" />
                   Modern Homes.
@@ -69,7 +76,13 @@ export default function AboutPage() {
         </section>
 
         {/* 2. BRAND STORY SECTION */}
-        <section className="py-16 md:py-24 lg:py-32 bg-white/50">
+        <section 
+          ref={storyScroll.ref}
+          className={cn(
+            "py-16 md:py-24 lg:py-32 bg-white/50 transition-all duration-1000 ease-out transform",
+            storyScroll.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+          )}
+        >
           <div className="container mx-auto px-4 max-w-4xl text-center space-y-8 md:space-y-12">
             <div className="space-y-4">
               <h2 className="text-[10px] md:text-sm font-black uppercase tracking-[0.3em] text-primary/60">Our Beginning</h2>
@@ -93,11 +106,17 @@ export default function AboutPage() {
         </section>
 
         {/* 3. PHILOSOPHY SECTION */}
-        <section className="py-16 md:py-24 lg:py-32 bg-primary text-white overflow-hidden relative">
+        <section 
+          ref={philosophyScroll.ref}
+          className={cn(
+            "py-16 md:py-24 lg:py-32 bg-primary text-white overflow-hidden relative transition-all duration-1000 ease-out",
+            philosophyScroll.isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"
+          )}
+        >
           <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none">
             <div className="pattern-paisley w-full h-full" />
           </div>
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-4 max-w-[1200px]">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
               <div className="space-y-8 md:space-y-12">
                 <h2 className="text-[10px] md:text-sm font-black uppercase tracking-[0.3em] text-white/60">Our Philosophy</h2>
@@ -133,8 +152,15 @@ export default function AboutPage() {
         </section>
 
         {/* 4. CRAFTSMANSHIP SECTION */}
-        <section id="craftsmanship" className="py-16 md:py-24 lg:py-32">
-          <div className="container mx-auto px-4">
+        <section 
+          ref={craftScroll.ref}
+          id="craftsmanship" 
+          className={cn(
+            "py-16 md:py-24 lg:py-32 transition-all duration-1000 ease-out transform",
+            craftScroll.isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-12"
+          )}
+        >
+          <div className="container mx-auto px-4 max-w-[1200px]">
             <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
               <div className="w-full lg:w-1/2 grid grid-cols-2 gap-4 md:gap-6">
                 <div className="relative aspect-[3/4] rounded-2xl md:rounded-[2.5rem] overflow-hidden shadow-xl mt-12">
@@ -183,8 +209,14 @@ export default function AboutPage() {
         </section>
 
         {/* 5. WHY KALAMIC SECTION */}
-        <section className="py-16 md:py-24 lg:py-32 bg-[#E8DFC9]/30">
-          <div className="container mx-auto px-4 text-center space-y-12 md:space-y-20">
+        <section 
+          ref={whyScroll.ref}
+          className={cn(
+            "py-16 md:py-24 lg:py-32 bg-[#E8DFC9]/30 transition-all duration-1000 ease-out transform",
+            whyScroll.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+          )}
+        >
+          <div className="container mx-auto px-4 max-w-[1200px] text-center space-y-12 md:space-y-20">
             <div className="space-y-4">
               <h2 className="text-[10px] md:text-sm font-black uppercase tracking-[0.3em] text-primary/60">Why Kalamic?</h2>
               <h3 className="text-3xl sm:text-4xl font-display font-semibold text-primary tracking-tight">Tradition, Refined for Today</h3>
@@ -212,8 +244,8 @@ export default function AboutPage() {
 
         {/* 6. CTA SECTION */}
         <section className="py-20 md:py-32 relative overflow-hidden">
-          <div className="container mx-auto px-4 text-center space-y-10 md:space-y-12 relative z-10">
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-display font-semibold text-primary tracking-tighter leading-tight">
+          <div className="container mx-auto px-4 max-w-[1200px] text-center space-y-10 md:space-y-12 relative z-10">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-display font-semibold text-primary tracking-tighter leading-tight text-balance">
               Bring Meaning Back <br className="hidden md:block" /> Into Your Space.
             </h2>
             <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-white h-16 md:h-20 px-10 md:px-16 rounded-[1.5rem] md:rounded-[2rem] font-bold text-base md:text-lg shadow-2xl shadow-primary/20 transition-all active:scale-95 group w-full sm:w-auto">
