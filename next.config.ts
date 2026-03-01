@@ -9,11 +9,11 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // In Next.js 15, serverActions configuration is a top-level property
-  serverActions: {
-    bodySizeLimit: '6mb',
-  },
   experimental: {
+    // Relocating serverActions to experimental block to resolve unrecognized key warnings in some environments
+    serverActions: {
+      bodySizeLimit: '6mb',
+    },
     // Explicitly allow workstation origins to resolve CORS/CSRF warnings in the Studio environment
     allowedDevOrigins: [
       '*.cloudworkstations.dev',
