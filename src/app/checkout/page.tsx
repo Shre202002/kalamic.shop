@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { getProfile } from '@/lib/actions/user-actions';
@@ -21,7 +21,9 @@ import {
   Breadcrumbs,
   Link as MuiLink,
   Avatar,
-  alpha as muiAlpha
+  alpha as muiAlpha,
+  Skeleton,
+  Chip
 } from '@mui/material';
 import { 
   CreditCard, 
@@ -29,7 +31,8 @@ import {
   MapPin,
   CheckCircle2,
   AlertTriangle,
-  ChevronLeft
+  ChevronLeft,
+  Info
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -43,6 +46,19 @@ declare global {
   }
 }
 
+interface ChargesPreview {
+  charges: {
+    shipping: number;
+    handling: number;
+    premium: number;
+  };
+  total: number;
+  freeDelivery: {
+    isFree: boolean;
+    reason: 'city' | 'threshold' | null;
+  };
+}
+
 export default function CheckoutPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -52,6 +68,10 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [chargesPreview, setChargesPreview] = useState<ChargesPreview | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -64,10 +84,53 @@ export default function CheckoutPage() {
     paymentMethod: 'card'
   });
 
-  // Ensure component is mounted to prevent hydration errors with MUI/Emotion
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const cartQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'cart', 'cart', 'items');
+  }, [firestore, user]);
+
+  const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
+
+  const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
+
+  // Live Charge Calculation
+  const fetchCharges = async (city: string) => {
+    if (subtotal === 0) return;
+    setIsCalculating(true);
+    try {
+      const res = await fetch('/api/calculate-charges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subtotal, city })
+      });
+      const data = await res.json();
+      if (res.ok) setChargesPreview(data);
+    } catch (e) {
+      console.error("Charges sync failed", e);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mounted && subtotal > 0) {
+      // Immediate fetch for initial mount or subtotal change
+      fetchCharges(formData.city);
+    }
+  }, [mounted, subtotal]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchCharges(formData.city);
+    }, 600);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [formData.city]);
 
   useEffect(() => {
     async function checkVerify() {
@@ -89,13 +152,6 @@ export default function CheckoutPage() {
     }
     checkVerify();
   }, [user, isUserLoading, router, toast, mounted]);
-
-  const cartQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return collection(firestore, 'users', user.uid, 'cart', 'cart', 'items');
-  }, [firestore, user]);
-
-  const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
   useEffect(() => {
     async function loadUserData() {
@@ -122,10 +178,6 @@ export default function CheckoutPage() {
     loadUserData();
   }, [user, mounted]);
 
-  const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
-  const shipping = cartItems && cartItems.length > 0 ? 150 : 0;
-  const total = subtotal + shipping;
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -135,6 +187,11 @@ export default function CheckoutPage() {
     
     if (!formData.fullName || !formData.address || !formData.city || !formData.state || !formData.zip || !formData.phone) {
       toast({ variant: "destructive", title: "Incomplete Details", description: "All shipping details are required." });
+      return;
+    }
+
+    if (isCalculating || !chargesPreview) {
+      toast({ title: "Please wait", description: "Calculating the final logistics ledger..." });
       return;
     }
 
@@ -185,7 +242,6 @@ export default function CheckoutPage() {
     }
   };
 
-  // Prevent hydration mismatch by returning null until mounted on client
   if (!mounted) return null;
 
   if (isUserLoading || isCartLoading) {
@@ -317,9 +373,35 @@ export default function CheckoutPage() {
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography>
                   <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography>
                 </MuiBox>
+                
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>FragileCare™ Shipping</Typography>
+                  {isCalculating ? (
+                    <Skeleton width={40} height={20} />
+                  ) : (
+                    <Typography sx={{ fontWeight: 700, color: chargesPreview?.charges.shipping === 0 ? '#6F8A7A' : 'inherit' }}>
+                      {chargesPreview?.charges.shipping === 0 ? 'FREE' : `₹${chargesPreview?.charges.shipping || 150}`}
+                    </Typography>
+                  )}
+                </MuiBox>
+
+                {chargesPreview?.freeDelivery.isFree && !isCalculating && (
+                  <Chip 
+                    icon={<CheckCircle2 size={12} />} 
+                    label={chargesPreview.freeDelivery.reason === 'city' ? `Free local delivery to ${formData.city}` : "Free delivery on orders above ₹999"} 
+                    size="small" 
+                    sx={{ bgcolor: muiAlpha('#6F8A7A', 0.1), color: '#6F8A7A', fontWeight: 800, fontSize: '0.6rem', border: 'none', height: 24 }} 
+                  />
+                )}
+
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Shipping</Typography>
-                  <Typography sx={{ fontWeight: 700, color: '#EA781E' }}>₹{shipping.toLocaleString()}</Typography>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Artisan Handling</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.handling || 80}</Typography>
+                </MuiBox>
+
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Premium Protection</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.premium || 50}</Typography>
                 </MuiBox>
               </Stack>
 
@@ -327,17 +409,23 @@ export default function CheckoutPage() {
 
               <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
                 <Typography sx={{ fontWeight: 900, textTransform: 'uppercase' }}>Total</Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{total.toLocaleString()}</Typography>
+                {isCalculating ? (
+                  <Skeleton width={100} height={40} />
+                ) : (
+                  <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>
+                    ₹{chargesPreview?.total.toLocaleString() || (subtotal + 280).toLocaleString()}
+                  </Typography>
+                )}
               </MuiBox>
 
               <Button
                 fullWidth
                 variant="contained"
-                disabled={isProcessing}
+                disabled={isProcessing || isCalculating}
                 onClick={handlePlaceOrder}
                 sx={{ borderRadius: '1.5rem', height: '5rem', fontSize: '1.25rem', fontWeight: 900, bgcolor: '#EA781E', '&:hover': { bgcolor: '#D66A18' }, textTransform: 'none' }}
               >
-                {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay ₹${total.toLocaleString()}`}
+                {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay ₹${(chargesPreview?.total || subtotal + 280).toLocaleString()}`}
               </Button>
             </Paper>
           </Grid>

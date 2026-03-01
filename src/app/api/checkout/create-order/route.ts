@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import OrderedItem from '@/lib/models/OrderedItem';
-import User from '@/lib/models/User';
-import AdminNotification from '@/lib/models/AdminNotification';
 import { createCashfreeOrder } from '@/lib/actions/cashfree';
 import { syncOrderToFirestore } from '@/lib/firebase-admin';
-import { sendEmail } from '@/lib/email';
+import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 import crypto from 'crypto';
 
 /**
@@ -42,13 +40,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Define Charges Breakdown
+    // 2. Dynamic Charge Calculation
+    const calculatedCharges = calculateOrderCharges(subtotal, shippingDetails.city);
     const charges = {
-      shipping: 20,
-      handling: 80,
-      premium: 50
+      shipping: calculatedCharges.shipping,
+      handling: calculatedCharges.handling,
+      premium: calculatedCharges.premium
     };
-    const totalAmount = subtotal + charges.shipping + charges.handling + charges.premium;
+    const totalAmount = calculatedCharges.total;
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
     // 3. Create the MongoDB Record (State: Initiated)
