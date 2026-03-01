@@ -8,20 +8,35 @@ import { getProfile } from '@/lib/actions/user-actions';
 import { createCashfreeOrder, verifyCashfreePayment } from '@/lib/actions/cashfree';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { 
+  Container, 
+  Grid, 
+  Paper, 
+  Typography, 
+  Box, 
+  TextField, 
+  Button, 
+  Divider, 
+  Radio, 
+  RadioGroup, 
+  FormControlLabel, 
+  FormControl, 
+  CircularProgress,
+  Stack,
+  Breadcrumbs,
+  Link as MuiLink,
+  alpha,
+  useTheme,
+  useMediaQuery
+} from '@mui/material';
 import { 
   CreditCard, 
   ShieldCheck, 
-  Loader2, 
   MapPin,
   CheckCircle2,
   AlertTriangle,
-  ChevronLeft
+  ChevronLeft,
+  ShoppingBag
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -40,6 +55,8 @@ export default function CheckoutPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
@@ -242,151 +259,241 @@ export default function CheckoutPage() {
 
   if (isUserLoading || isCartLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <Loader2 className="h-12 w-12 text-primary animate-spin" />
-        <p className="mt-4 text-muted-foreground font-medium">Securing your session...</p>
-      </div>
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
+        <CircularProgress sx={{ color: '#EA781E' }} />
+        <Typography sx={{ mt: 2, color: 'text.secondary', fontWeight: 600 }}>Securing your session...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#FAF4EB' }}>
       <Navbar />
       <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" onLoad={() => setCashfreeLoaded(true)} />
       
-      <main className="flex-1 py-8 md:py-16">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-4">
-            <div className="space-y-1">
-              <Link href="/cart" className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 mb-2">
-                <ChevronLeft className="h-3 w-3" /> Back to Bag
-              </Link>
-              <h1 className="text-3xl md:text-5xl font-black text-primary tracking-tight">Checkout</h1>
-              <p className="text-muted-foreground">Confirm your selection and shipping destination.</p>
-            </div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary bg-white px-6 py-3 rounded-2xl shadow-sm border">
-              <ShieldCheck className="h-4 w-4 text-accent" /> Secure Cashfree® Integration
-            </div>
-          </div>
+      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 4, md: 8 } }}>
+        <Box sx={{ mb: 6 }}>
+          <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: 2 }}>
+            <MuiLink component={Link} href="/cart" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>
+              Back to Bag
+            </MuiLink>
+          </Breadcrumbs>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 2 }}>
+            <Box>
+              <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.02em', mb: 1 }}>Checkout</Typography>
+              <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Confirm your selection and shipping destination.</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: 'white', px: 3, py: 1.5, borderRadius: '1rem', border: '1px solid', borderColor: alpha('#EA781E', 0.1), boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+              <ShieldCheck size={18} color="#EA781E" />
+              <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#EA781E' }}>Secure Cashfree® Integration</Typography>
+            </Box>
+          </Box>
+        </Box>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            <div className="lg:col-span-7 space-y-8">
-              <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white">
-                <CardHeader className="p-10 pb-4">
-                  <div className="flex items-center gap-4 mb-1">
-                    <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                      <MapPin className="h-5 w-5" />
-                    </div>
-                    <CardTitle className="text-2xl font-black text-primary">Shipping Credentials</CardTitle>
-                  </div>
-                  <CardDescription className="text-base">Verified delivery details for your artisan pieces.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-10 pt-4 space-y-6">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Name</Label>
-                    <Input name="fullName" value={formData.fullName} onChange={handleInputChange} className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Street Address</Label>
-                    <Input name="address" value={formData.address} onChange={handleInputChange} className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City</Label>
-                      <Input name="city" value={formData.city} onChange={handleInputChange} className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">ZIP / Pincode</Label>
-                      <Input name="zip" value={formData.zip} onChange={handleInputChange} className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone</Label>
-                    <Input name="phone" placeholder="+91XXXXXXXXXX" value={formData.phone} onChange={handleInputChange} className="rounded-2xl h-14 border-muted/30 focus-visible:ring-accent bg-muted/5 font-medium px-6" />
-                  </div>
-                </CardContent>
-              </Card>
+        <Grid container spacing={4} alignItems="flex-start">
+          <Grid item xs={12} lg={7}>
+            <Stack spacing={4}>
+              {/* Shipping Section */}
+              <Paper elevation={0} sx={{ borderRadius: '2.5rem', p: { xs: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+                  <Avatar sx={{ bgcolor: alpha('#EA781E', 0.1), color: '#EA781E', width: 48, height: 48, borderRadius: '1rem' }}>
+                    <MapPin size={24} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 900 }}>Shipping Credentials</Typography>
+                    <Typography variant="body2" color="text.secondary">Verified delivery details for your artisan pieces.</Typography>
+                  </Box>
+                </Box>
 
-              <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white">
-                <CardHeader className="p-10 pb-4">
-                  <div className="flex items-center gap-4 mb-1">
-                    <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                      <CreditCard className="h-5 w-5" />
-                    </div>
-                    <CardTitle className="text-2xl font-black text-primary">Payment Architecture</CardTitle>
-                  </div>
-                  <CardDescription className="text-base">Choose your method of acquisition.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-10 pt-4 space-y-8">
-                  <RadioGroup defaultValue="card" onValueChange={(v) => setFormData({...formData, paymentMethod: v})} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <RadioGroupItem value="card" id="card" className="peer sr-only" />
-                      <Label htmlFor="card" className="flex flex-col items-center justify-center rounded-[2rem] border-2 border-muted bg-white p-8 hover:bg-primary/5 hover:border-primary/20 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary cursor-pointer transition-all h-full">
-                        <CreditCard className="mb-4 h-8 w-8 text-primary" />
-                        <span className="text-lg font-black text-primary">Secure Online</span>
-                        <span className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest">Cards, UPI, Banking</span>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                  <div className="p-6 bg-[#FAF4EB] rounded-[1.5rem] border border-dashed border-primary/20 flex gap-4 items-start">
-                    <AlertTriangle className="h-6 w-6 text-accent flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-muted-foreground leading-relaxed italic">
-                      Note: You will be redirected to a secure Cashfree environment to complete your transaction.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Full Name"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      variant="outlined"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Street Address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      variant="outlined"
+                      multiline
+                      rows={2}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="City"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      variant="outlined"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="ZIP / Pincode"
+                      name="zip"
+                      value={formData.zip}
+                      onChange={handleInputChange}
+                      variant="outlined"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Contact Phone"
+                      name="phone"
+                      placeholder="+91XXXXXXXXXX"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      variant="outlined"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }}
+                    />
+                  </Grid>
+                </Grid>
+              </Paper>
 
-            <div className="lg:col-span-5 space-y-8 lg:sticky lg:top-24">
-              <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
-                <CardHeader className="p-10 pb-4">
-                  <CardTitle className="text-3xl font-black text-primary">Acquisition Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="p-10 pt-4 space-y-8">
-                  <div className="space-y-6 max-h-[350px] overflow-y-auto pr-4 scrollbar-hide">
-                    {cartItems?.map((item) => (
-                      <div key={item.id} className="flex gap-6 items-center group">
-                        <div className="relative h-20 w-20 rounded-2xl overflow-hidden bg-muted flex-shrink-0 shadow-inner">
-                          <Image src={item.imageUrl} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" sizes="80px" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base font-black text-primary truncate">{item.name}</p>
-                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Qty: {item.quantity}</p>
-                        </div>
-                        <p className="text-lg font-black text-primary">₹{( (item.priceAtAddToCart || 0) * item.quantity).toLocaleString()}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <Separator className="opacity-30" />
-                  <div className="space-y-4">
-                    <div className="flex justify-between text-sm font-bold uppercase tracking-widest">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span className="text-primary">₹{(subtotal ?? 0).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-bold uppercase tracking-widest">
-                      <span className="text-muted-foreground">Shipping</span>
-                      <span className="text-accent">₹{(shipping ?? 0).toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <Separator className="opacity-30" />
-                  <div className="flex justify-between items-end">
-                    <span className="text-xl font-black text-primary uppercase tracking-tighter">Total</span>
-                    <div className="text-right">
-                      <p className="text-4xl font-black text-primary tracking-tighter">₹{(total ?? 0).toLocaleString()}</p>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Inclusive of taxes</p>
-                    </div>
-                  </div>
-                  <Button onClick={handlePlaceOrder} disabled={isProcessing} className="w-full h-20 rounded-[2rem] bg-primary text-white hover:bg-primary/90 text-2xl font-black shadow-2xl shadow-primary/20 transition-all active:scale-95 mt-6">
-                    {isProcessing ? <><Loader2 className="mr-3 h-8 w-8 animate-spin" /> Securing...</> : <><CheckCircle2 className="mr-3 h-8 w-8" /> Pay ₹{(total ?? 0).toLocaleString()}</>}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </main>
+              {/* Payment Section */}
+              <Paper elevation={0} sx={{ borderRadius: '2.5rem', p: { xs: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+                  <Avatar sx={{ bgcolor: alpha('#EA781E', 0.1), color: '#EA781E', width: 48, height: 48, borderRadius: '1rem' }}>
+                    <CreditCard size={24} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 900 }}>Payment Architecture</Typography>
+                    <Typography variant="body2" color="text.secondary">Choose your method of acquisition.</Typography>
+                  </Box>
+                </Box>
+
+                <RadioGroup defaultValue="card" onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}>
+                  <Paper 
+                    variant="outlined" 
+                    sx={{ 
+                      p: 3, 
+                      borderRadius: '1.5rem', 
+                      mb: 3, 
+                      cursor: 'pointer',
+                      borderColor: formData.paymentMethod === 'card' ? '#EA781E' : 'divider',
+                      bgcolor: formData.paymentMethod === 'card' ? alpha('#EA781E', 0.03) : 'white',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <FormControlLabel 
+                      value="card" 
+                      control={<Radio sx={{ color: '#EA781E', '&.Mui-checked': { color: '#EA781E' } }} />} 
+                      label={
+                        <Box sx={{ ml: 1 }}>
+                          <Typography sx={{ fontWeight: 800 }}>Secure Online</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>Cards, UPI, Banking</Typography>
+                        </Box>
+                      } 
+                      sx={{ width: '100%', m: 0 }}
+                    />
+                  </Paper>
+                </RadioGroup>
+
+                <Box sx={{ p: 3, bgcolor: '#FAF4EB', borderRadius: '1.25rem', border: '1px dashed', borderColor: alpha('#EA781E', 0.3), display: 'flex', gap: 2 }}>
+                  <AlertTriangle size={20} color="#EA781E" style={{ flexShrink: 0 }} />
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    Note: You will be redirected to a secure Cashfree environment to complete your transaction.
+                  </Typography>
+                </Box>
+              </Paper>
+            </Stack>
+          </Grid>
+
+          <Grid item xs={12} lg={5}>
+            <Paper elevation={10} sx={{ borderRadius: '3rem', p: { xs: 4, md: 6 }, position: 'sticky', top: '100px', bgcolor: 'white', border: 'none', overflow: 'hidden' }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, mb: 4, color: '#271E1B' }}>Acquisition Summary</Typography>
+              
+              <Box sx={{ maxHeight: '300px', overflowY: 'auto', pr: 2, mb: 4, '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: alpha('#EA781E', 0.2), borderRadius: '10px' } }}>
+                <Stack spacing={3}>
+                  {cartItems?.map((item) => (
+                    <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <Box sx={{ position: 'relative', width: 64, height: 64, borderRadius: '1rem', overflow: 'hidden', bgcolor: 'muted.main', flexShrink: 0, border: '1px solid', borderColor: 'divider' }}>
+                        <Image src={item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} sizes="64px" />
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography noWrap sx={{ fontWeight: 800, color: '#271E1B' }}>{item.name}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Qty: {item.quantity}</Typography>
+                      </Box>
+                      <Typography sx={{ fontWeight: 900 }}>₹{(item.priceAtAddToCart * item.quantity).toLocaleString()}</Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
+
+              <Divider sx={{ mb: 4, borderStyle: 'dashed' }} />
+
+              <Stack spacing={2} sx={{ mb: 4 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 1 }}>Subtotal</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 1 }}>FragileCare™ Shipping</Typography>
+                  <Typography sx={{ fontWeight: 700, color: '#EA781E' }}>₹{shipping.toLocaleString()}</Typography>
+                </Box>
+              </Stack>
+
+              <Divider sx={{ mb: 4 }} />
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
+                <Typography sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '1.25rem', letterSpacing: '-0.02em' }}>Total</Typography>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{total.toLocaleString()}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Inclusive of taxes</Typography>
+                </Box>
+              </Box>
+
+              <Button
+                fullWidth
+                size="large"
+                variant="contained"
+                disabled={isProcessing}
+                onClick={handlePlaceOrder}
+                sx={{ 
+                  borderRadius: '2rem', 
+                  height: '5rem', 
+                  fontSize: '1.5rem', 
+                  fontWeight: 900, 
+                  bgcolor: '#EA781E',
+                  boxShadow: `0 12px 32px ${alpha('#EA781E', 0.3)}`,
+                  '&:hover': { bgcolor: '#D66A18' },
+                  textTransform: 'none'
+                }}
+              >
+                {isProcessing ? (
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <CircularProgress size={24} color="inherit" />
+                    <span>Securing...</span>
+                  </Stack>
+                ) : (
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <CheckCircle2 size={28} />
+                    <span>Pay ₹{total.toLocaleString()}</span>
+                  </Stack>
+                )}
+              </Button>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Container>
       <Footer />
-    </div>
+    </Box>
   );
 }
