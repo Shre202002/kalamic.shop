@@ -124,6 +124,9 @@ const OrderedItemSchema: Schema = new Schema({
   collection: 'Ordered_Items' 
 });
 
-OrderedItemSchema.index({ createdAt: -1 });
+// For debugging: verify correct schema paths are loaded
+if (process.env.NODE_ENV === 'development') {
+  console.log('[OrderedItem] Loaded Schema Paths:', Object.keys(OrderedItemSchema.paths));
+}
 
 export default mongoose.models.OrderedItem || mongoose.model<IOrderedItem>('OrderedItem', OrderedItemSchema);

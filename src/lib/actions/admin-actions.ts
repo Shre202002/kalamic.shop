@@ -6,7 +6,6 @@ import KalamicProduct from '@/lib/models/KalamicProduct';
 import AdminLog from '@/lib/models/AdminLog';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { revalidatePath } from 'next/cache';
-import mongoose from 'mongoose';
 import dayjs from 'dayjs';
 
 /**
@@ -44,6 +43,7 @@ export async function getAdminProducts() {
 
 export async function getAllOrders() {
   await dbConnect();
+  // Using OrderedItem (Ordered_Items collection) exclusively
   const orders = await OrderedItem.find({}).sort({ createdAt: -1 }).lean();
   return JSON.parse(JSON.stringify(orders));
 }
@@ -75,7 +75,6 @@ export async function getAdminDashboardStats() {
   }
 }
 
-// ... existing governance functions ...
 export async function getAdmins() {
   await dbConnect();
   const admins = await User.find({ role: { $in: ['super_admin', 'admin', 'support'] } }).lean();

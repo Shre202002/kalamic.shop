@@ -4,8 +4,8 @@ import OrderedItem from '@/lib/models/OrderedItem';
 import { getCashfreeOrderStatus } from '@/lib/actions/cashfree';
 
 /**
- * @fileOverview Direct order status reconciliation API.
- * Uses camelCase fields matching the schema.
+ * @fileOverview Direct Status Reconciliation API.
+ * Ensures local database matches payment gateway state using camelCase fields.
  */
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -16,11 +16,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const order = await OrderedItem.findOne({ orderNumber: id });
     if (!order) return NextResponse.json({ message: 'Order not found' }, { status: 404 });
 
-    if (order.paymentStatus === 'paid') {
-      return NextResponse.json({ status: order.orderStatus, paymentStatus: 'paid' });
+    // If already verified locally, return early
+    if (order.paymentStatus === 'paid' && order.paymentVerified) {
+      return NextResponse.json({ orderStatus: order.orderStatus, paymentStatus: 'paid' });
     }
 
-    // Check with Cashfree directly
+    // Proactive check with Cashfree API (Trusted Source)
     const cfOrder = await getCashfreeOrderStatus(id);
 
     if (cfOrder.order_status === 'PAID') {
@@ -34,10 +35,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           transactionId: cfOrder.cf_order_id || cfOrder.order_id
         }
       );
-      return NextResponse.json({ status: order.orderStatus, paymentStatus: 'paid' });
+      return NextResponse.json({ orderStatus: order.orderStatus, paymentStatus: 'paid' });
     }
 
-    return NextResponse.json({ status: order.orderStatus, paymentStatus: 'pending' });
+    return NextResponse.json({ orderStatus: order.orderStatus, paymentStatus: order.paymentStatus });
 
   } catch (error: any) {
     return NextResponse.json({ message: error.message }, { status: 500 });

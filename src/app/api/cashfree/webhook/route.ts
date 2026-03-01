@@ -5,7 +5,7 @@ import { verifyCashfreeSignature, getCashfreeOrderStatus } from '@/lib/actions/c
 
 /**
  * @fileOverview Secure Cashfree Webhook Handler.
- * Updated for camelCase schema fields.
+ * Synchronized with camelCase OrderedItem schema.
  */
 
 export async function POST(req: NextRequest) {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Missing signature' }, { status: 401 });
     }
 
-    // 1. Validate Signature
+    // 1. Signature Verification
     const isValid = await verifyCashfreeSignature(rawBody, signature);
     if (!isValid) {
       console.error('[WEBHOOK_INVALID_SIGNATURE]');
@@ -29,12 +29,13 @@ export async function POST(req: NextRequest) {
     const payload = JSON.parse(rawBody);
     const { order_id } = payload.data.order;
 
-    // 2. PROACTIVE VERIFICATION (Server-to-Gateway)
+    // 2. Server-to-Gateway Confirmation
     const cfOrder = await getCashfreeOrderStatus(order_id);
 
     if (cfOrder.order_status === 'PAID') {
-      console.log(`[PAYMENT_SUCCESS] Verified order: ${order_id}`);
+      console.log(`[PAYMENT_SUCCESS] Reconciled order: ${order_id}`);
       
+      // 3. Update using correct camelCase fields
       await OrderedItem.findOneAndUpdate(
         { orderNumber: order_id },
         { 
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
 
   } catch (error: any) {
-    console.error('[WEBHOOK_ERROR]:', error.message);
-    return NextResponse.json({ message: 'Webhook internal error' }, { status: 500 });
+    console.error('[WEBHOOK_INTERNAL_ERROR]:', error.message);
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }

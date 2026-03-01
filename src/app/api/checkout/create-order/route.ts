@@ -6,8 +6,8 @@ import { createCashfreeOrder } from '@/lib/actions/cashfree';
 import crypto from 'crypto';
 
 /**
- * @fileOverview Refined Order Creation API.
- * Standardized to camelCase field names to match schema requirements.
+ * @fileOverview Production-safe Order Creation API.
+ * Uses camelCase fields to match the OrderedItem schema.
  */
 
 export async function POST(req: NextRequest) {
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     let subtotal = 0;
     const validatedItems = [];
 
+    // 1. Server-side Price Validation
     for (const item of items) {
       const product = await KalamicProduct.findById(item.productId);
       if (!product) throw new Error(`Product ${item.productId} no longer exists.`);
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Explicit Charges based on updated Schema
+    // 2. Define Charges Breakdown
     const charges = {
       shipping: 20,
       handling: 80,
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     const totalAmount = subtotal + charges.shipping + charges.handling + charges.premium;
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    // Create order using camelCase fields matching the IOrderedItem interface
+    // 3. Create the Database Record (Ensures camelCase)
     const newOrder = await OrderedItem.create({
       userId,
       userName: customerName,
@@ -71,12 +72,14 @@ export async function POST(req: NextRequest) {
       paymentGateway: 'cashfree',
       paymentStatus: 'pending',
       paymentVerified: false,
-      expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 7 days
+      expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Standard 7 day lead time
     });
 
+    // 4. Construct Multi-Environment Return URL
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
     const returnUrl = `${origin}/orders/${orderNumber}`;
 
+    // 5. Initiate Gateway Transaction
     const cashfreeResult = await createCashfreeOrder({
       orderId: orderNumber,
       orderAmount: totalAmount,
@@ -103,7 +106,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('[ORDER_CREATION_FAILED]:', error.message);
+    console.error('[ORDER_CREATION_ERROR]:', error.message);
     return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }
