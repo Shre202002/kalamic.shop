@@ -2,7 +2,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * @fileOverview Official Schema for finalized acquisitions in the Kalamic ecosystem.
- * Standardized to camelCase to match application logic and prevent validation errors.
+ * Standardized to camelCase. Includes legacy field 'order_number' to prevent 
+ * unique index collisions in existing databases.
  */
 
 export type OrderStatus = 
@@ -23,6 +24,7 @@ export interface IOrderedItem extends Document {
   userPhone: string;
   userEmail?: string;
   orderNumber: string;
+  order_number?: string; // Legacy support for DB indexes
   subtotal: number;
   charges: {
     shipping: number;
@@ -66,7 +68,12 @@ const OrderedItemSchema: Schema = new Schema({
   userName: { type: String, required: true },
   userPhone: { type: String, required: true },
   userEmail: { type: String },
+  
+  // Primary unique field
   orderNumber: { type: String, required: true, unique: true, index: true },
+  
+  // Legacy field support to satisfy old 'order_number_1' unique index in DB
+  order_number: { type: String }, 
   
   subtotal: { type: Number, required: true },
   charges: {
@@ -124,10 +131,5 @@ const OrderedItemSchema: Schema = new Schema({
   collection: 'Ordered_Items',
   strict: true 
 });
-
-// For debugging: verify correct schema paths are loaded
-if (process.env.NODE_ENV === 'development') {
-  console.log('[OrderedItem] Active Schema Paths:', Object.keys(OrderedItemSchema.paths));
-}
 
 export default mongoose.models.OrderedItem || mongoose.model<IOrderedItem>('OrderedItem', OrderedItemSchema);

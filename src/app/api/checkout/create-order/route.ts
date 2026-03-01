@@ -7,7 +7,8 @@ import crypto from 'crypto';
 
 /**
  * @fileOverview Production-safe Order Creation API.
- * Uses camelCase fields to match the OrderedItem schema exactly.
+ * Maps frontend shipping data to the camelCase OrderedItem schema.
+ * Explicitly populates both orderNumber and order_number to satisfy DB indexes.
  */
 
 export async function POST(req: NextRequest) {
@@ -47,14 +48,14 @@ export async function POST(req: NextRequest) {
     const totalAmount = subtotal + charges.shipping + charges.handling + charges.premium;
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    // 3. Create the Database Record (Ensures strict camelCase)
-    // Map shippingDetails zip/landmark to pincode/nearestLandmark
+    // 3. Create the Database Record
     const newOrder = await OrderedItem.create({
       userId,
       userName: customerName,
       userPhone: customerPhone,
       userEmail: customerEmail || '',
       orderNumber,
+      order_number: orderNumber, // Bridge for legacy unique index
       subtotal,
       charges,
       totalAmount,
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
       expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
     });
 
-    console.log(`[DB] Order Created: ${orderNumber} (_id: ${newOrder._id})`);
+    console.log(`[DB] Order Created Successfully: ${orderNumber}`);
 
     // 4. Construct Return URL
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
@@ -96,6 +97,7 @@ export async function POST(req: NextRequest) {
       returnUrl
     });
 
+    // Update with gateway reference if not in mock mode
     if (!cashfreeResult.isMock) {
       await OrderedItem.findByIdAndUpdate(newOrder._id, { 
         gatewayOrderId: cashfreeResult.orderId 
@@ -110,7 +112,8 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[ORDER_CREATION_ERROR]:', error.message);
-    // Explicitly return error message to prevent frontend "crash"
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      message: error.message || 'Validation failed. Check your console logs.' 
+    }, { status: 500 });
   }
 }
