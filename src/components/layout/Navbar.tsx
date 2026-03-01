@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut, Settings, CreditCard, LayoutDashboard } from 'lucide-react';
+import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,8 @@ export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [userRole, setUserRole] = useState<string>('buyer');
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -36,9 +38,6 @@ export function Navbar() {
     
     async function fetchRole() {
       if (user) {
-        if (user.email === 'sriyanshgupta24@gmail.com') {
-          setUserRole('super_admin');
-        }
         const profile = await getProfile(user.uid);
         if (profile) setUserRole(profile.role || 'buyer');
       } else {
@@ -63,48 +62,109 @@ export function Navbar() {
     { name: 'Speak with Us', href: '/contact' },
   ];
 
-  const handleSignOut = () => auth.signOut();
+  const handleSignOut = () => {
+    auth.signOut();
+    setIsMobileMenuOpen(false);
+  };
+
   const isAdmin = ['super_admin', 'admin', 'support'].includes(userRole);
 
   return (
     <header className={cn(
       "sticky top-0 z-50 w-full transition-all duration-500",
-      isScrolled ? "bg-white/80 backdrop-blur-xl h-16 border-b border-primary/5 premium-shadow" : "bg-transparent h-24"
+      isScrolled ? "bg-white/90 backdrop-blur-xl h-16 border-b border-primary/5 shadow-sm" : "bg-transparent h-20 md:h-24"
     )}>
       <div className="container mx-auto px-4 h-full flex items-center justify-between">
-        <div className="flex items-center gap-2 md:hidden">
-          <Sheet>
+        {/* Left: Mobile Menu Trigger */}
+        <div className="flex items-center md:hidden">
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="hover:bg-primary/5 rounded-full">
-                <Menu className="h-5 w-5 text-primary" />
+                <Menu className="h-6 w-6 text-primary" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[320px] p-0 border-none bg-background">
+            <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-none bg-background">
               <SheetHeader className="p-8 border-b border-primary/5 text-left bg-white/50">
                 <SheetTitle className="text-3xl font-display font-black text-primary tracking-tighter">Kalamic</SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col p-6 space-y-2">
-                <Link href="/" className="flex items-center justify-between p-4 text-sm font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5">Home</Link>
+              <nav className="flex flex-col p-6 space-y-1">
+                <Link 
+                  href="/" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
+                >
+                  Home
+                </Link>
                 {navLinks.map((link) => (
                   <Link
                     key={link.name}
                     href={link.href}
-                    className="flex items-center justify-between p-4 text-sm font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
                   >
                     <span>{link.name}</span>
                     <ChevronRight className="h-4 w-4 opacity-30" />
                   </Link>
                 ))}
+                
+                <DropdownMenuSeparator className="my-4 bg-primary/5" />
+                
+                <Link 
+                  href="/wishlist" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
+                >
+                  <span className="flex items-center gap-3">
+                    <Heart className="h-4 w-4" /> My Favorites
+                  </span>
+                </Link>
+
+                {user ? (
+                  <>
+                    <Link 
+                      href="/profile" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
+                    >
+                      <span className="flex items-center gap-3">
+                        <User className="h-4 w-4" /> My Workspace
+                      </span>
+                    </Link>
+                    <button 
+                      onClick={handleSignOut}
+                      className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-destructive hover:bg-destructive/5 transition-colors rounded-2xl w-full text-left"
+                    >
+                      <span className="flex items-center gap-3">
+                        <LogOut className="h-4 w-4" /> Exit Studio
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <Link 
+                    href="/auth/login" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary hover:bg-primary/5 transition-colors rounded-2xl mt-4"
+                  >
+                    Join the Collective
+                  </Link>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
         </div>
 
+        {/* Center: Logo */}
         <Link href="/" className="flex items-center gap-2 group outline-none">
-          <span className="text-2xl md:text-4xl font-display font-black text-primary tracking-tighter group-hover:scale-105 transition-transform duration-500">Kalamic</span>
+          <span className={cn(
+            "font-display font-black text-primary tracking-tighter transition-all duration-500",
+            isScrolled ? "text-xl md:text-2xl" : "text-2xl md:text-4xl"
+          )}>
+            Kalamic
+          </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-12">
+        {/* Center: Desktop Links */}
+        <nav className="hidden md:flex items-center gap-10">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
@@ -116,7 +176,8 @@ export function Navbar() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2 md:gap-4">
+        {/* Right: Actions */}
+        <div className="flex items-center gap-1 md:gap-4">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -126,8 +187,8 @@ export function Navbar() {
             <Search className="h-5 w-5" />
           </Button>
 
-          <Link href="/wishlist">
-            <Button variant="ghost" size="icon" className="hidden sm:flex hover:bg-primary/5 rounded-full text-primary/60 hover:text-primary transition-colors">
+          <Link href="/wishlist" className="hidden sm:block">
+            <Button variant="ghost" size="icon" className="hover:bg-primary/5 rounded-full text-primary/60 hover:text-primary transition-colors">
               <Heart className="h-5 w-5" />
             </Button>
           </Link>
@@ -146,8 +207,8 @@ export function Navbar() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="outline-none group">
-                  <Avatar className="h-9 w-9 border-2 border-white shadow-lg group-hover:border-primary/20 transition-all duration-500">
+                <button className="outline-none group p-1">
+                  <Avatar className="h-8 w-8 md:h-9 md:w-9 border-2 border-white shadow-md group-hover:border-primary/20 transition-all duration-500">
                     <AvatarImage src={user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`} />
                     <AvatarFallback className="bg-primary/5 text-primary font-bold text-[10px] uppercase">
                       {user.email?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
@@ -203,7 +264,7 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <Link href="/auth/login">
-              <Button className="hidden sm:flex bg-primary text-white font-black h-11 px-8 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest">
+              <Button className="hidden sm:flex bg-primary text-white font-black h-10 px-6 md:h-11 md:px-8 rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest">
                 Join Us
               </Button>
               <Button variant="ghost" size="icon" className="sm:hidden text-primary rounded-full hover:bg-primary/5">
@@ -214,14 +275,15 @@ export function Navbar() {
         </div>
       </div>
 
+      {/* Search Overlay */}
       {isSearchOpen && (
-        <div className="absolute top-0 left-0 w-full h-[100vh] bg-black/20 backdrop-blur-md z-50 flex items-start pt-24 justify-center animate-in fade-in duration-500" onClick={() => setIsSearchOpen(false)}>
+        <div className="absolute top-0 left-0 w-full h-[100vh] bg-black/40 backdrop-blur-md z-[60] flex items-start pt-24 justify-center animate-in fade-in duration-500" onClick={() => setIsSearchOpen(false)}>
           <div className="w-full max-w-3xl px-4" onClick={e => e.stopPropagation()}>
             <div className="relative group animate-in slide-in-from-top-10 duration-700">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-primary/40 group-focus-within:text-primary transition-colors" />
               <Input 
                 placeholder="Search the artisan collection..." 
-                className="pl-16 h-20 rounded-3xl bg-white border-none shadow-2xl focus-visible:ring-4 focus-visible:ring-primary/10 transition-all text-xl font-medium" 
+                className="pl-16 h-16 md:h-20 rounded-2xl md:rounded-3xl bg-white border-none shadow-2xl focus-visible:ring-4 focus-visible:ring-primary/10 transition-all text-lg md:text-xl font-medium" 
                 autoFocus 
               />
               <button 
