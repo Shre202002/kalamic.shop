@@ -22,7 +22,8 @@ import {
   Avatar, 
   Stack, 
   alpha, 
-  useTheme 
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { 
@@ -36,7 +37,9 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon,
   Home as HomeIcon,
-  Flag as FlagIcon
+  Flag as FlagIcon,
+  MoreVert,
+  LocalShipping
 } from '@mui/icons-material';
 import { getAllOrders } from '@/lib/actions/admin-actions';
 import dayjs from 'dayjs';
@@ -48,6 +51,7 @@ const STATUS_OPTIONS = ["Placed", "Confirmed", "Preparing", "Developing", "Compl
 export default function OrdersManagement() {
   const { user } = useUser();
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -107,9 +111,9 @@ export default function OrdersManagement() {
     { 
       field: 'orderNumber', 
       headerName: 'Reference', 
-      width: 180,
+      width: 160,
       renderCell: (params) => (
-        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 900, color: 'primary.main' }}>
+        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 900, color: 'primary.main', fontSize: '0.75rem' }}>
           {params.value}
         </Typography>
       )
@@ -117,37 +121,39 @@ export default function OrdersManagement() {
     { 
       field: 'userName', 
       headerName: 'Collector', 
-      width: 200,
+      flex: 1,
+      minWidth: 200,
       renderCell: (params) => (
         <Box sx={{ py: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 700 }}>{params.value}</Typography>
-          <Typography variant="caption" color="text.secondary">{params.row.userPhone}</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>{params.value}</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>{params.row.userPhone}</Typography>
         </Box>
       )
     },
     { 
       field: 'totalAmount', 
-      headerName: 'Total (₹)', 
-      width: 120,
+      headerName: 'Total', 
+      width: 110,
       renderCell: (params) => (
         <Typography variant="body2" sx={{ fontWeight: 900 }}>₹{(params.value ?? 0).toLocaleString()}</Typography>
       )
     },
     { 
       field: 'orderStatus', 
-      headerName: 'Status', 
-      width: 200,
+      headerName: 'Logistics State', 
+      width: 180,
       renderCell: (params) => (
-        <FormControl fullWidth size="small">
+        <FormControl fullWidth size="small" sx={{ my: 1 }}>
           <Select
-            value={params.value}
+            value={params.value || 'Placed'}
             onChange={(e) => handleStatusChangeClick(params.row._id, e.target.value)}
             sx={{ 
-              fontSize: '0.7rem', 
+              fontSize: '0.65rem', 
               fontWeight: 900, 
               textTransform: 'uppercase',
               bgcolor: alpha(theme.palette.primary.main, 0.05),
-              borderRadius: '8px'
+              borderRadius: '6px',
+              '& .MuiSelect-select': { py: 0.5 }
             }}
           >
             {STATUS_OPTIONS.map((opt) => (
@@ -159,26 +165,22 @@ export default function OrdersManagement() {
     },
     { 
       field: 'paymentStatus', 
-      headerName: 'Payment', 
-      width: 130,
+      headerName: 'Billing', 
+      width: 120,
       renderCell: (params) => (
         <Chip 
           label={params.value || 'pending'} 
           size="small" 
-          color={params.value === 'paid' ? 'success' : 'error'} 
-          variant={params.row.paymentVerified ? 'filled' : 'outlined'}
-          sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '0.6rem', height: 24 }}
+          color={params.value === 'paid' ? 'success' : 'warning'} 
+          sx={{ 
+            fontWeight: 900, 
+            textTransform: 'uppercase', 
+            fontSize: '0.6rem', 
+            height: 22,
+            width: '100%',
+            borderRadius: '4px'
+          }}
         />
-      )
-    },
-    { 
-      field: 'createdAt', 
-      headerName: 'Date', 
-      width: 160,
-      renderCell: (params) => (
-        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-          {dayjs(params.value).format('DD MMM YYYY')}
-        </Typography>
       )
     },
     {
@@ -187,20 +189,29 @@ export default function OrdersManagement() {
       width: 60,
       sortable: false,
       renderCell: (params) => (
-        <IconButton size="small" color="primary" onClick={() => { setSelectedOrder(params.row); setDetailOpen(true); }}>
-          <Visibility fontSize="small" />
-        </IconButton>
+        <Tooltip title="Examine Dossier">
+          <IconButton size="small" color="primary" onClick={() => { setSelectedOrder(params.row); setDetailOpen(true); }}>
+            <Visibility fontSize="small" />
+          </IconButton>
+        </Tooltip>
       )
     }
   ], [theme.palette]);
 
-  if (!mounted) return <Skeleton variant="rectangular" height={400} />;
+  if (!mounted) return <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 4 }} />;
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 900 }}>Artisanal Acquisitions</Typography>
-        <Typography variant="body2" color="text.secondary">Overseeing the finalized collection pipeline.</Typography>
+    <Box sx={{ flexGrow: 1, p: { xs: 1, md: 0 } }}>
+      <Box sx={{ mb: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: -0.5 }}>Artisanal Acquisitions</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.7 }}>Overseeing the finalized collection pipeline and studio logistics.</Typography>
+        </Box>
+        {!isMobile && (
+          <Button variant="outlined" startIcon={<LocalShipping />} onClick={load} size="small" sx={{ borderRadius: 2, fontWeight: 800 }}>
+            Refresh Feed
+          </Button>
+        )}
       </Box>
 
       <Paper sx={{ border: 'none', borderRadius: 4, boxShadow: '0 10px 40px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
@@ -215,196 +226,219 @@ export default function OrdersManagement() {
           disableRowSelectionOnClick
           sx={{ 
             border: 'none',
-            '& .MuiDataGrid-cell:focus': { outline: 'none' }
+            '& .MuiDataGrid-cell:focus': { outline: 'none' },
+            '& .MuiDataGrid-columnHeaders': {
+              bgcolor: alpha(theme.palette.primary.main, 0.02),
+              borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+            },
+            '& .MuiDataGrid-columnHeaderTitle': {
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              fontSize: '0.65rem',
+              letterSpacing: 1
+            }
           }}
         />
       </Paper>
 
-      {/* Confirmation Dialog */}
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle sx={{ fontWeight: 900 }}>Synchronize Status</DialogTitle>
+      {/* Status Confirmation Dialog */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} PaperProps={{ sx: { borderRadius: 4, p: 1 } }}>
+        <DialogTitle sx={{ fontWeight: 900, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <CheckCircle color="primary" /> Synchronize Logistics
+        </DialogTitle>
         <DialogContent>
-          <Typography variant="body2">Transition this acquisition to <b>{statusUpdate.status.toUpperCase()}</b>?</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Are you sure you want to transition this acquisition to the <b>{statusUpdate.status.toUpperCase()}</b> state? This will be reflected in the collector's workspace immediately.
+          </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={confirmStatusUpdate}>Confirm</Button>
+          <Button onClick={() => setConfirmOpen(false)} sx={{ fontWeight: 700, color: 'text.disabled' }}>Discard</Button>
+          <Button variant="contained" onClick={confirmStatusUpdate} sx={{ borderRadius: 2, fontWeight: 800, px: 3 }}>
+            Confirm Transition
+          </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Enhanced Detail Dialog */}
+      {/* Order Detail Dossier Dialog */}
       <Dialog 
         open={detailOpen} 
         onClose={() => setDetailOpen(false)} 
         maxWidth="lg" 
         fullWidth
-        PaperProps={{ sx: { borderRadius: 6, overflow: 'hidden' } }}
+        fullScreen={isMobile}
+        PaperProps={{ sx: { borderRadius: isMobile ? 0 : 6, overflow: 'hidden' } }}
       >
         {selectedOrder && (
           <>
-            <DialogTitle sx={{ p: 4, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: 1, borderColor: 'divider' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <DialogTitle sx={{ p: { xs: 3, md: 4 }, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: 1, borderColor: 'divider' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
                 <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: -0.5 }}>Acquisition Dossier</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                    REF: {selectedOrder.orderNumber} <Divider orientation="vertical" flexItem sx={{ mx: 1 }} /> {dayjs(selectedOrder.createdAt).format('DD MMMM YYYY')}
-                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: -0.5, fontSize: { xs: '1.25rem', md: '1.5rem' } }}>Acquisition Dossier</Typography>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main' }}>
+                      REF: {selectedOrder.orderNumber}
+                    </Typography>
+                    <Divider orientation="vertical" flexItem sx={{ height: 12, my: 'auto' }} />
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                      {dayjs(selectedOrder.createdAt).format('DD MMMM YYYY')}
+                    </Typography>
+                  </Stack>
                 </Box>
                 <Chip 
                   label={selectedOrder.orderStatus.toUpperCase()} 
                   color="primary" 
-                  sx={{ fontWeight: 900, height: 40, px: 2, borderRadius: 2 }} 
+                  sx={{ fontWeight: 900, height: 32, px: 1, borderRadius: '6px', fontSize: '0.65rem' }} 
                 />
               </Box>
             </DialogTitle>
             
-            <DialogContent sx={{ p: 4 }}>
+            <DialogContent sx={{ p: { xs: 2, md: 4 }, bgcolor: '#fafafa' }}>
               <Grid container spacing={4}>
-                {/* Left Column: Items and Summary */}
+                {/* Left Section: Items and Financials */}
                 <Grid item xs={12} md={7}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <ShoppingBag sx={{ fontSize: 18, color: 'primary.main' }} /> Curated Selections
-                  </Typography>
-                  <Stack spacing={2} sx={{ mb: 4 }}>
-                    {(selectedOrder.items || []).map((item: any, idx: number) => (
-                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: alpha(theme.palette.common.black, 0.02), borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
-                        <Avatar src={item.imageUrl} variant="rounded" sx={{ width: 64, height: 64, borderRadius: 3 }}><ShoppingBag /></Avatar>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 800 }}>{item.name}</Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Piece ID: {item.productId}</Typography>
-                          <Typography variant="caption" sx={{ fontWeight: 700 }}>Qty: {item.quantity} × ₹{item.price.toLocaleString()}</Typography>
-                        </Box>
-                        <Typography variant="body1" sx={{ fontWeight: 900, color: 'primary.main' }}>₹{(item.price * item.quantity).toLocaleString()}</Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-
-                  <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2, textTransform: 'uppercase', letterSpacing: 1 }}>Financial Record</Typography>
-                  <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.01) }}>
-                    <Stack spacing={1.5}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">Item Subtotal</Typography>
-                        <Typography variant="body2" fontWeight={700}>₹{selectedOrder.subtotal?.toLocaleString()}</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">FragileCare™ Shipping</Typography>
-                        <Typography variant="body2" fontWeight={700}>₹{selectedOrder.charges?.shipping?.toLocaleString()}</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">Artisan Handling</Typography>
-                        <Typography variant="body2" fontWeight={700}>₹{selectedOrder.charges?.handling?.toLocaleString()}</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">Premium Insurance</Typography>
-                        <Typography variant="body2" fontWeight={700}>₹{selectedOrder.charges?.premium?.toLocaleString()}</Typography>
-                      </Box>
-                      <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                        <Typography variant="h6" sx={{ fontWeight: 900 }}>Total Value</Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 900, color: 'primary.main' }}>₹{selectedOrder.totalAmount?.toLocaleString()}</Typography>
-                      </Box>
-                    </Stack>
-                  </Paper>
-                </Grid>
-
-                {/* Right Column: User and Shipping Details */}
-                <Grid item xs={12} md={5}>
                   <Stack spacing={4}>
-                    {/* Collector Identity */}
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2.5, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <PersonIcon sx={{ fontSize: 18, color: 'primary.main' }} /> Collector Identity
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2.5, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.secondary' }}>
+                        <ShoppingBag sx={{ fontSize: 18, color: 'primary.main' }} /> Curated Selections
                       </Typography>
-                      <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, bgcolor: alpha(theme.palette.secondary.main, 0.02) }}>
-                        <Stack spacing={2}>
-                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                            <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40, fontSize: '1rem', fontWeight: 900 }}>
-                              {selectedOrder.userName?.[0]}
+                      <Stack spacing={2}>
+                        {(selectedOrder.items || []).map((item: any, idx: number) => (
+                          <Paper key={idx} variant="outlined" sx={{ p: 2, borderRadius: 3, display: 'flex', gap: 2, alignItems: 'center', bgcolor: 'white' }}>
+                            <Avatar src={item.imageUrl} variant="rounded" sx={{ width: 56, height: 56, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+                              <ShoppingBag sx={{ fontSize: 20, color: alpha(theme.palette.primary.main, 0.2) }} />
                             </Avatar>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 800 }}>{selectedOrder.userName}</Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                ID: {selectedOrder.userId}
-                              </Typography>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 800, noWrap: true }}>{item.name}</Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>SKU: {item.productId.slice(-8).toUpperCase()}</Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>{item.quantity} × ₹{item.price.toLocaleString()}</Typography>
                             </Box>
+                            <Typography variant="body2" sx={{ fontWeight: 900, ml: 'auto' }}>₹{(item.price * item.quantity).toLocaleString()}</Typography>
+                          </Paper>
+                        ))}
+                      </Stack>
+                    </Box>
+
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2, textTransform: 'uppercase', letterSpacing: 1, color: 'text.secondary' }}>Financial Ledger</Typography>
+                      <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, bgcolor: 'white' }}>
+                        <Stack spacing={1.5}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>Acquisition Subtotal</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{selectedOrder.subtotal?.toLocaleString()}</Typography>
                           </Box>
-                          <Divider />
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <EmailIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
-                            <Typography variant="body2" fontWeight={600}>{selectedOrder.userEmail || 'No Email Registered'}</Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>FragileCare™ Logistics</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{selectedOrder.charges?.shipping?.toLocaleString()}</Typography>
                           </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <PhoneIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
-                            <Typography variant="body2" fontWeight={600}>{selectedOrder.userPhone}</Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>Artisan Handling Fee</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{selectedOrder.charges?.handling?.toLocaleString()}</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>Premium Protection</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{selectedOrder.charges?.premium?.toLocaleString()}</Typography>
+                          </Box>
+                          <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 900 }}>Total Recorded Value</Typography>
+                            <Typography variant="h5" sx={{ fontWeight: 900, color: 'primary.main' }}>₹{selectedOrder.totalAmount?.toLocaleString()}</Typography>
                           </Box>
                         </Stack>
                       </Paper>
                     </Box>
+                  </Stack>
+                </Grid>
 
-                    {/* Destination Details */}
+                {/* Right Section: Collector & Logistics */}
+                <Grid item xs={12} md={5}>
+                  <Stack spacing={4}>
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2.5, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <LocationOn sx={{ fontSize: 18, color: 'primary.main' }} /> Logistics Destination
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2.5, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.secondary' }}>
+                        <PersonIcon sx={{ fontSize: 18, color: 'primary.main' }} /> Collector Profile
                       </Typography>
-                      <Paper variant="outlined" sx={{ p: 3, borderRadius: 4 }}>
+                      <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, bgcolor: 'white' }}>
+                        <Stack spacing={2}>
+                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                            <Avatar sx={{ bgcolor: 'primary.main', width: 44, height: 44, fontSize: '1.1rem', fontWeight: 900, boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}` }}>
+                              {selectedOrder.userName?.[0]}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 800 }}>{selectedOrder.userName}</Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.65rem' }}>
+                                Collector ID: {selectedOrder.userId.slice(-10)}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Divider sx={{ opacity: 0.5 }} />
+                          <Stack spacing={1.5}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                              <EmailIcon sx={{ fontSize: 16, color: alpha(theme.palette.text.primary, 0.3) }} />
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>{selectedOrder.userEmail || 'No Email Provided'}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                              <PhoneIcon sx={{ fontSize: 16, color: alpha(theme.palette.text.primary, 0.3) }} />
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>{selectedOrder.userPhone}</Typography>
+                            </Box>
+                          </Stack>
+                        </Stack>
+                      </Paper>
+                    </Box>
+
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2.5, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.secondary' }}>
+                        <HomeIcon sx={{ fontSize: 18, color: 'primary.main' }} /> Logistics Destination
+                      </Typography>
+                      <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, bgcolor: 'white' }}>
                         <Stack spacing={2}>
                           <Box sx={{ display: 'flex', gap: 2 }}>
-                            <HomeIcon sx={{ fontSize: 20, color: 'primary.main', mt: 0.5 }} />
                             <Box>
-                              <Typography variant="body2" fontWeight={800}>{selectedOrder.shippingAddress?.fullName}</Typography>
-                              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.6 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 800, mb: 0.5 }}>{selectedOrder.shippingAddress?.fullName}</Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.6, fontWeight: 500 }}>
                                 {selectedOrder.shippingAddress?.addressLine1}
                                 {selectedOrder.shippingAddress?.addressLine2 && `, ${selectedOrder.shippingAddress.addressLine2}`}
                               </Typography>
-                              <Typography variant="body2" fontWeight={700} sx={{ mt: 1, color: 'text.primary' }}>
+                              <Typography variant="body2" sx={{ mt: 1, fontWeight: 800, color: 'primary.main', fontSize: '0.85rem' }}>
                                 {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} — {selectedOrder.shippingAddress?.pincode}
                               </Typography>
                             </Box>
                           </Box>
                           
                           {selectedOrder.shippingAddress?.nearestLandmark && (
-                            <Box sx={{ display: 'flex', gap: 2, p: 2, bgcolor: alpha(theme.palette.warning.main, 0.05), borderRadius: 3, border: '1px dashed', borderColor: 'warning.light' }}>
-                              <FlagIcon sx={{ fontSize: 18, color: 'warning.main' }} />
+                            <Box sx={{ display: 'flex', gap: 2, p: 2, bgcolor: alpha(theme.palette.warning.main, 0.05), borderRadius: 2, border: '1px dashed', borderColor: alpha(theme.palette.warning.main, 0.2) }}>
+                              <FlagIcon sx={{ fontSize: 16, color: 'warning.dark', mt: 0.2 }} />
                               <Box>
-                                <Typography variant="caption" sx={{ fontWeight: 900, color: 'warning.dark', textTransform: 'uppercase' }}>Landmark Reference</Typography>
-                                <Typography variant="body2" fontWeight={600}>{selectedOrder.shippingAddress.nearestLandmark}</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 900, color: 'warning.dark', textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: 0.5 }}>Precision Landmark</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>{selectedOrder.shippingAddress.nearestLandmark}</Typography>
                               </Box>
                             </Box>
                           )}
-
-                          <Divider />
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="caption" color="text.secondary" fontWeight={700}>Destination Contact</Typography>
-                            <Typography variant="body2" fontWeight={800}>{selectedOrder.shippingAddress?.phone}</Typography>
-                          </Box>
                         </Stack>
                       </Paper>
                     </Box>
 
-                    {/* Transaction Security */}
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2.5, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <CreditCard sx={{ fontSize: 18, color: 'primary.main' }} /> Security Integrity
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2.5, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.secondary' }}>
+                        <CreditCard sx={{ fontSize: 18, color: 'primary.main' }} /> Transaction Integrity
                       </Typography>
                       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 4, bgcolor: alpha(theme.palette.success.main, 0.02) }}>
                         <Stack spacing={1.5}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption" color="text.secondary">Gateway Path</Typography>
-                            <Typography variant="caption" fontWeight={800} sx={{ textTransform: 'uppercase' }}>{selectedOrder.paymentGateway} / {selectedOrder.paymentMethod}</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>Gateway Protocol</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase' }}>{selectedOrder.paymentGateway} / {selectedOrder.paymentMethod}</Typography>
                           </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption" color="text.secondary">Reconciliation</Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>Reconciliation Status</Typography>
                             <Chip 
-                              label={selectedOrder.paymentVerified ? 'Verified' : 'Unverified'} 
+                              label={selectedOrder.paymentVerified ? 'Verified' : 'Verification Pending'} 
                               size="small" 
                               color={selectedOrder.paymentVerified ? 'success' : 'warning'} 
-                              sx={{ height: 20, fontSize: '0.6rem', fontWeight: 900 }} 
+                              sx={{ height: 18, fontSize: '0.55rem', fontWeight: 900, borderRadius: '4px' }} 
                             />
                           </Box>
                           {selectedOrder.transactionId && (
-                            <Box>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Archive Transaction ID</Typography>
-                              <Typography variant="caption" sx={{ fontFamily: 'monospace', bgcolor: 'divider', px: 1, py: 0.5, borderRadius: 1, fontWeight: 700 }}>
+                            <Box sx={{ pt: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.5 }}>Archive Transaction ID</Typography>
+                              <Typography variant="caption" sx={{ fontFamily: 'monospace', bgcolor: alpha(theme.palette.common.black, 0.05), px: 1, py: 0.5, borderRadius: 1, fontWeight: 700, fontSize: '0.65rem' }}>
                                 {selectedOrder.transactionId}
                               </Typography>
                             </Box>
@@ -417,14 +451,14 @@ export default function OrdersManagement() {
               </Grid>
             </DialogContent>
             
-            <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+            <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider', bgcolor: 'white' }}>
               <Button 
                 onClick={() => setDetailOpen(false)} 
                 variant="outlined" 
                 fullWidth 
-                sx={{ borderRadius: 3, height: 48, fontWeight: 800, color: 'text.secondary', borderColor: 'divider' }}
+                sx={{ borderRadius: 3, height: 44, fontWeight: 800, color: 'text.secondary', borderColor: 'divider' }}
               >
-                Close Acquisition Record
+                Close Record
               </Button>
             </DialogActions>
           </>
