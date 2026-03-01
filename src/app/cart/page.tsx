@@ -1,16 +1,18 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { getProfile } from '@/lib/actions/user-actions';
+import { calculateOrderCharges, isEligibleForFreeDelivery } from '@/lib/utils/calculateShipping';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Loader2, ChevronLeft } from 'lucide-react';
+import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Loader2, ChevronLeft, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +24,9 @@ export default function CartPage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+
   const cartQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, 'users', user.uid, 'cart', 'cart', 'items');
@@ -29,8 +34,30 @@ export default function CartPage() {
 
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
+  // Fetch user profile to get the city for dynamic shipping calculation
+  useEffect(() => {
+    async function loadProfile() {
+      if (user) {
+        setIsProfileLoading(true);
+        try {
+          const profile = await getProfile(user.uid);
+          setUserProfile(profile);
+        } catch (error) {
+          console.error("Failed to load profile for shipping calculation", error);
+        } finally {
+          setIsProfileLoading(false);
+        }
+      }
+    }
+    loadProfile();
+  }, [user]);
+
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
-  const shipping = cartItems && cartItems.length > 0 ? 150 : 0;
+  
+  // Calculate dynamic charges
+  const userCity = userProfile?.city || '';
+  const charges = calculateOrderCharges(subtotal, userCity);
+  const freeDeliveryInfo = isEligibleForFreeDelivery(subtotal, userCity);
 
   const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
     if (!user || !firestore) return;
@@ -159,21 +186,37 @@ export default function CartPage() {
                     <div className="space-y-3 text-xs md:text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Subtotal</span>
-                        <span className="font-medium">₹{subtotal.toFixed(2)}</span>
+                        <span className="font-medium">₹{subtotal.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between">
+                      
+                      <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">FragileCare™ Shipping</span>
-                        <span className="font-medium text-accent">₹{shipping.toFixed(2)}</span>
+                        <span className={`font-medium ${charges.shipping === 0 ? 'text-green-600' : ''}`}>
+                          {charges.shipping === 0 ? 'FREE' : `₹${charges.shipping}`}
+                        </span>
                       </div>
-                      <div className="flex justify-between text-[10px] md:text-xs text-green-600 font-medium">
-                        <span>Heritage Discount</span>
-                        <span>- ₹0.00</span>
+
+                      {freeDeliveryInfo.isFree && (
+                        <div className="flex items-center gap-1.5 py-1 text-[10px] text-green-600 font-bold bg-green-50 px-3 rounded-lg border border-green-100">
+                          <CheckCircle2 className="h-3 w-3" />
+                          {freeDeliveryInfo.reason === 'city' ? `Local delivery to ${userCity}` : "Order value exceeds ₹999"}
+                        </div>
+                      )}
+
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Artisan Handling</span>
+                        <span className="font-medium">₹{charges.handling}</span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Premium Protection</span>
+                        <span className="font-medium">₹{charges.premium}</span>
                       </div>
                     </div>
                     
                     <div className="flex justify-between font-bold text-lg md:text-xl pt-6 border-t text-primary">
                       <span>Total</span>
-                      <span>₹{(subtotal + shipping).toFixed(2)}</span>
+                      <span className="text-accent">₹{charges.total.toLocaleString()}</span>
                     </div>
 
                     <div className="pt-4 space-y-4">
