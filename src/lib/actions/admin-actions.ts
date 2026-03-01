@@ -5,6 +5,7 @@ import User from '@/lib/models/User';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import AdminLog from '@/lib/models/AdminLog';
 import OrderedItem from '@/lib/models/OrderedItem';
+import AdminNotification from '@/lib/models/AdminNotification';
 import { revalidatePath } from 'next/cache';
 import dayjs from 'dayjs';
 
@@ -43,7 +44,6 @@ export async function getAdminProducts() {
 
 export async function getAllOrders() {
   await dbConnect();
-  // Using OrderedItem (Ordered_Items collection) exclusively
   const orders = await OrderedItem.find({}).sort({ createdAt: -1 }).lean();
   return JSON.parse(JSON.stringify(orders));
 }
@@ -85,6 +85,17 @@ export async function getAdminLogs() {
   await dbConnect();
   const logs = await AdminLog.find({}).sort({ timestamp: -1 }).limit(100).lean();
   return JSON.parse(JSON.stringify(logs));
+}
+
+export async function getAdminNotifications() {
+  await dbConnect();
+  const notifications = await AdminNotification.find({}).sort({ createdAt: -1 }).limit(20).lean();
+  return JSON.parse(JSON.stringify(notifications));
+}
+
+export async function markNotificationsAsRead() {
+  await dbConnect();
+  await AdminNotification.updateMany({ isRead: false }, { $set: { isRead: true } });
 }
 
 export async function getAllUsers() {
