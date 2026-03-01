@@ -1,167 +1,181 @@
+
 "use client"
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  ShoppingBag, 
-  Sparkles, 
-  Loader2, 
-  ArrowRight, 
-  Star, 
-  TrendingUp
-} from 'lucide-react';
-import Image from 'next/image';
-import { getFeaturedProducts, getTrendingProducts } from '@/lib/actions/products';
-import { useUser } from '@/firebase';
+import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { ProductCard } from '@/components/product/ProductCard';
+import { getProducts } from '@/lib/actions/products';
+import { ChevronRight, ChevronLeft, CheckCircle2, RefreshCcw, Loader2 } from 'lucide-react';
+
+const QUESTIONS = [
+  {
+    id: 'category',
+    question: "What are you looking to enhance today?",
+    description: "Tell us where you want to add a touch of handcrafted ceramic art.",
+    options: [
+      { label: "Spiritual Space", value: "spiritual", icon: "🕉️" },
+      { label: "Wall Decor", value: "wall", icon: "🖼️" },
+      { label: "Gifting Someone", value: "gift", icon: "🎁" },
+      { label: "Small Accents", value: "accent", icon: "🐚" }
+    ]
+  },
+  {
+    id: 'vibe',
+    question: "Which pattern style speaks to you?",
+    description: "Our artisans specialize in traditional Indian motifs.",
+    options: [
+      { label: "Peacock (Mor) Motifs", value: "mor", icon: "🦚" },
+      { label: "Mandala Patterns", value: "mandala", icon: "🌀" },
+      { label: "Floral Designs", value: "floral", icon: "🌸" }
+    ]
+  }
+];
 
 export default function Home() {
-  const { user } = useUser();
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
-  const [trendingProducts, setTrendingProducts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [showResults, setShowResults] = useState(false);
+  const [recommendedProducts, setRecommendedProducts] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
 
   useEffect(() => {
-    async function loadData() {
+    async function preload() {
       try {
-        const [featured, trending] = await Promise.all([
-          getFeaturedProducts(),
-          getTrendingProducts()
-        ]);
-        setFeaturedProducts(featured);
-        setTrendingProducts(trending);
-      } catch (error) {
-        console.error("Failed to load products:", error);
+        const data = await getProducts();
+        setAllProducts(data);
       } finally {
-        setIsLoading(false);
+        setIsDataLoading(false);
       }
     }
-    loadData();
+    preload();
   }, []);
+
+  const progress = ((step) / QUESTIONS.length) * 100;
+
+  const handleOptionSelect = (value: string) => {
+    const newAnswers = { ...answers, [QUESTIONS[step].id]: value };
+    setAnswers(newAnswers);
+    
+    if (step < QUESTIONS.length - 1) {
+      setStep(step + 1);
+    } else {
+      generateRecommendations(newAnswers);
+    }
+  };
+
+  const generateRecommendations = (finalAnswers: Record<string, string>) => {
+    let filtered = [...allProducts];
+    
+    if (finalAnswers.vibe === 'mor') {
+      filtered = allProducts.filter(p => p.name.toLowerCase().includes('mor') || p.slug.includes('mor'));
+    } else if (finalAnswers.vibe === 'mandala') {
+      filtered = allProducts.filter(p => p.name.toLowerCase().includes('mandala') || p.slug.includes('mandala'));
+    }
+
+    if (filtered.length === 0) filtered = allProducts.slice(0, 4);
+    
+    setRecommendedProducts(filtered.slice(0, 4));
+    setShowResults(true);
+  };
+
+  const resetSurvey = () => {
+    setStep(0);
+    setAnswers({});
+    setShowResults(false);
+  };
+
+  if (isDataLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <p className="mt-4 text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Curation in Progress...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative min-h-[85vh] flex items-center overflow-hidden py-20 lg:py-0 bg-background">
-          <div className="absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-10" />
-            <Image 
-              src="https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?q=80&w=2000"
-              alt="Handcrafted Kalamic Hero"
-              fill
-              className="object-cover object-right animate-in fade-in duration-1000"
-              priority
-              sizes="100vw"
-              data-ai-hint="pottery workshop"
-            />
-          </div>
-          
-          <div className="container mx-auto px-4 relative z-20">
-            <div className="max-w-3xl space-y-8 animate-in slide-in-from-bottom-8 duration-700 ease-out">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full border border-primary/20">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-body font-black uppercase tracking-[0.2em] text-primary">New Artisan Drops Live</span>
+      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
+        {!showResults ? (
+          <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="mb-8 space-y-4">
+              <div className="flex justify-between items-end">
+                <div className="space-y-1">
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">Discovery Step {step + 1} of {QUESTIONS.length}</span>
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-semibold text-primary leading-tight tracking-tight">{QUESTIONS[step].question}</h1>
+                  <p className="text-sm md:text-base text-muted-foreground font-medium">{QUESTIONS[step].description}</p>
+                </div>
+                {step > 0 && (
+                  <Button variant="ghost" size="sm" onClick={() => setStep(step - 1)} className="text-muted-foreground font-bold text-xs uppercase tracking-widest hover:text-primary">
+                    <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                  </Button>
+                )}
               </div>
-              
-              <div className="space-y-4">
-                <h1 className="text-[32px] md:text-[56px] font-display font-semibold text-foreground tracking-tight leading-[1.15]">
-                  Elevate Your <br className="hidden md:block" /> 
-                  Home with <br className="hidden md:block" />
-                  <span className="text-primary italic">Ceramic Art</span>
-                </h1>
-                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl font-body">
-                  Crafted with devotion, designed for elegance. Discover India's finest handcrafted ceramic collection.
-                </p>
-              </div>
+              <Progress value={progress} className="h-1.5 bg-muted" />
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button 
-                  asChild 
-                  size="lg" 
-                  className="bg-primary hover:bg-primary/90 text-white text-lg h-16 px-10 rounded-lg shadow-2xl shadow-primary/20 active:scale-95 transition-all font-body font-semibold tracking-[0.3px]"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {QUESTIONS[step].options.map((option) => (
+                <Card 
+                  key={option.value} 
+                  className={`group cursor-pointer transition-all duration-500 border-2 rounded-[1.5rem] hover:shadow-2xl hover:shadow-primary/5 ${answers[QUESTIONS[step].id] === option.value ? 'border-primary bg-primary/[0.03] scale-[1.02]' : 'border-border bg-white'}`}
+                  onClick={() => handleOptionSelect(option.value)}
                 >
-                  <Link href="/products">
-                    Shop Collection <ShoppingBag className="ml-3 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button 
-                  asChild 
-                  variant="outline" 
-                  size="lg" 
-                  className="border-primary text-primary hover:bg-primary/5 text-lg h-16 px-10 rounded-lg transition-all font-body font-semibold tracking-[0.3px]"
-                >
-                  <Link href="#featured">
-                    Explore Best Sellers
-                  </Link>
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-6 pt-8">
-                <div className="flex -space-x-3">
-                  {[1,2,3,4].map(i => (
-                    <div key={i} className="h-10 w-10 rounded-full border-2 border-background bg-muted overflow-hidden shadow-sm">
-                      <Image src={`https://picsum.photos/seed/${i+100}/40/40`} alt="Collector" width={40} height={40} />
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center text-3xl shadow-inner group-hover:scale-110 transition-transform">
+                      {option.icon}
                     </div>
-                  ))}
-                </div>
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1 text-primary">
-                    {[1,2,3,4,5].map(i => <Star key={i} className="h-3 w-3 fill-current" />)}
-                  </div>
-                  <p className="text-[10px] font-body font-bold uppercase tracking-widest text-muted-foreground">Trusted by 2,000+ Collectors</p>
-                </div>
-              </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-primary text-base md:text-lg">{option.label}</p>
+                    </div>
+                    <ChevronRight className={`h-5 w-5 transition-transform group-hover:translate-x-1 ${answers[QUESTIONS[step].id] === option.value ? 'text-primary' : 'text-muted-foreground/30'}`} />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
-        </section>
-
-        {/* Featured Products */}
-        <section id="featured" className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-primary font-body font-bold text-[10px] uppercase tracking-[0.25em]">
-                  <TrendingUp className="h-4 w-4" /> The Artisan Collection
-                </div>
-                <h2 className="text-[24px] md:text-[32px] font-display font-semibold text-foreground leading-tight">Best Selling Pieces</h2>
+        ) : (
+          <div className="w-full max-w-7xl animate-in fade-in zoom-in-95 duration-700 py-8 px-4">
+            <div className="text-center mb-16 space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-[10px] uppercase tracking-widest">
+                <CheckCircle2 className="h-3 w-3" /> Artisan Discovery Complete
               </div>
-              <Button asChild variant="link" className="text-primary font-body font-bold uppercase tracking-widest text-xs p-0 group">
-                <Link href="/products" className="flex items-center gap-2">
-                  View Full Catalog <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-display font-semibold text-primary tracking-tighter">Your Handcrafted Matches</h1>
+              <p className="text-sm md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                Based on your preference for <span className="text-primary font-bold underline decoration-primary/20 underline-offset-4">{QUESTIONS[0].options.find(o => o.value === answers.category)?.label.toLowerCase()}</span>, we've curated these perfect pieces.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
+              {recommendedProducts.map((product) => (
+                <ProductCard 
+                  key={product._id} 
+                  id={product._id} 
+                  slug={product.slug}
+                  name={product.name}
+                  price={product.price}
+                  originalPrice={product.compare_at_price ? Number(product.compare_at_price) : undefined}
+                  image={product.images?.[0] || 'https://placehold.co/600x600?text=No+Image'}
+                  rating={product.analytics?.average_rating || 4.8}
+                  tag="Recommended"
+                />
+              ))}
+            </div>
+
+            <div className="flex flex-col items-center gap-6 pt-12 border-t border-primary/10">
+              <p className="text-muted-foreground text-xs md:text-sm font-bold uppercase tracking-widest opacity-60">Want to explore a different style?</p>
+              <Button variant="outline" size="lg" onClick={resetSurvey} className="border-primary text-primary hover:bg-primary/5 h-14 px-10 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/5 transition-all active:scale-95">
+                <RefreshCcw className="mr-2 h-4 w-4" /> Restart Discovery Journey
               </Button>
             </div>
-            
-            {isLoading ? (
-              <div className="flex justify-center items-center py-20">
-                <Loader2 className="h-12 w-12 text-primary animate-spin" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {featuredProducts.slice(0, 4).map((product) => (
-                  <div key={product._id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <ProductCard 
-                      id={product._id} 
-                      slug={product.slug}
-                      name={product.name}
-                      price={product.price}
-                      originalPrice={product.compare_at_price}
-                      image={product.images?.[0] || 'https://placehold.co/600x600?text=No+Image'}
-                      rating={product.analytics?.average_rating || 4.8}
-                      tag={product.analytics?.total_orders > 10 ? "Best Seller" : "Artisan"}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
-        </section>
+        )}
       </main>
       <Footer />
     </div>

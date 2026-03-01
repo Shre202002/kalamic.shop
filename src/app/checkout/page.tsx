@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -24,10 +25,10 @@ import {
   Stack,
   Breadcrumbs,
   Link as MuiLink,
-  alpha,
+  Avatar,
+  alpha as muiAlpha,
   useTheme,
-  useMediaQuery,
-  Avatar
+  useMediaQuery
 } from '@mui/material';
 import { 
   CreditCard, 
@@ -259,53 +260,53 @@ export default function CheckoutPage() {
 
   if (isUserLoading || isCartLoading) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
+      <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
         <CircularProgress sx={{ color: '#EA781E' }} />
-        <Typography sx={{ mt: 2, color: 'text.secondary', fontWeight: 600 }}>Securing your session...</Typography>
-      </Box>
+        <Typography sx={{ mt: 2, color: 'text.secondary', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: 2 }}>Securing your session...</Typography>
+      </MuiBox>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#FAF4EB' }}>
+    <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#FAF4EB' }}>
       <Navbar />
       <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" onLoad={() => setCashfreeLoaded(true)} />
       
       <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 4, md: 8 } }}>
-        <Box sx={{ mb: 6 }}>
+        <MuiBox sx={{ mb: 6 }}>
           <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: 2 }}>
-            <MuiLink component={Link} href="/cart" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>
+            <MuiLink component={Link} href="/cart" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5 }}>
               Back to Bag
             </MuiLink>
           </Breadcrumbs>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 2 }}>
-            <Box>
-              <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.02em', mb: 1 }}>Checkout</Typography>
-              <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Confirm your selection and shipping destination.</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: 'white', px: 3, py: 1.5, borderRadius: '1rem', border: '1px solid', borderColor: alpha('#EA781E', 0.1), boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+          <MuiBox sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 2 }}>
+            <MuiBox>
+              <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.03em', mb: 1, fontSize: { xs: '2rem', md: '3rem' } }}>Checkout</Typography>
+              <Typography color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '0.875rem', md: '1rem' } }}>Confirm your selection and shipping destination.</Typography>
+            </MuiBox>
+            <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: 'white', px: { xs: 2, md: 3 }, py: 1.5, rounded: '1rem', border: '1px solid', borderColor: muiAlpha('#EA781E', 0.1), boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
               <ShieldCheck size={18} color="#EA781E" />
-              <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#EA781E' }}>Secure Cashfree® Integration</Typography>
-            </Box>
-          </Box>
-        </Box>
+              <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#EA781E', fontSize: '0.65rem' }}>Secure Cashfree® Integration</Typography>
+            </MuiBox>
+          </MuiBox>
+        </MuiBox>
 
         <Grid container spacing={4} alignItems="flex-start">
           <Grid item xs={12} lg={7}>
             <Stack spacing={4}>
               {/* Shipping Section */}
-              <Paper elevation={0} sx={{ borderRadius: '2.5rem', p: { xs: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-                  <Avatar sx={{ bgcolor: alpha('#EA781E', 0.1), color: '#EA781E', width: 48, height: 48, borderRadius: '1rem' }}>
+              <Paper elevation={0} sx={{ borderRadius: { xs: '1.5rem', md: '2.5rem' }, p: { xs: 3, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
+                <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+                  <Avatar sx={{ bgcolor: muiAlpha('#EA781E', 0.1), color: '#EA781E', width: 48, height: 48, borderRadius: '1rem' }}>
                     <MapPin size={24} />
                   </Avatar>
-                  <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 900 }}>Shipping Credentials</Typography>
-                    <Typography variant="body2" color="text.secondary">Verified delivery details for your artisan pieces.</Typography>
-                  </Box>
-                </Box>
+                  <MuiBox>
+                    <Typography variant="h5" sx={{ fontWeight: 900, fontSize: { xs: '1.25rem', md: '1.5rem' } }}>Shipping Credentials</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>Verified delivery details for your artisan pieces.</Typography>
+                  </MuiBox>
+                </MuiBox>
 
-                <Grid container spacing={3}>
+                <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
@@ -368,27 +369,27 @@ export default function CheckoutPage() {
               </Paper>
 
               {/* Payment Section */}
-              <Paper elevation={0} sx={{ borderRadius: '2.5rem', p: { xs: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-                  <Avatar sx={{ bgcolor: alpha('#EA781E', 0.1), color: '#EA781E', width: 48, height: 48, borderRadius: '1rem' }}>
+              <Paper elevation={0} sx={{ borderRadius: { xs: '1.5rem', md: '2.5rem' }, p: { xs: 3, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
+                <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+                  <Avatar sx={{ bgcolor: muiAlpha('#EA781E', 0.1), color: '#EA781E', width: 48, height: 48, borderRadius: '1rem' }}>
                     <CreditCard size={24} />
                   </Avatar>
-                  <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 900 }}>Payment Architecture</Typography>
-                    <Typography variant="body2" color="text.secondary">Choose your method of acquisition.</Typography>
-                  </Box>
-                </Box>
+                  <MuiBox>
+                    <Typography variant="h5" sx={{ fontWeight: 900, fontSize: { xs: '1.25rem', md: '1.5rem' } }}>Payment Architecture</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>Choose your method of acquisition.</Typography>
+                  </MuiBox>
+                </MuiBox>
 
                 <RadioGroup defaultValue="card" onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}>
                   <Paper 
                     variant="outlined" 
                     sx={{ 
-                      p: 3, 
-                      borderRadius: '1.5rem', 
-                      mb: 3, 
+                      p: 2.5, 
+                      borderRadius: '1.25rem', 
+                      mb: 2, 
                       cursor: 'pointer',
                       borderColor: formData.paymentMethod === 'card' ? '#EA781E' : 'divider',
-                      bgcolor: formData.paymentMethod === 'card' ? alpha('#EA781E', 0.03) : 'white',
+                      bgcolor: formData.paymentMethod === 'card' ? muiAlpha('#EA781E', 0.03) : 'white',
                       transition: 'all 0.2s'
                     }}
                   >
@@ -396,69 +397,69 @@ export default function CheckoutPage() {
                       value="card" 
                       control={<Radio sx={{ color: '#EA781E', '&.Mui-checked': { color: '#EA781E' } }} />} 
                       label={
-                        <Box sx={{ ml: 1 }}>
-                          <Typography sx={{ fontWeight: 800 }}>Secure Online</Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>Cards, UPI, Banking</Typography>
-                        </Box>
+                        <MuiBox sx={{ ml: 1 }}>
+                          <Typography sx={{ fontWeight: 800, fontSize: '1rem' }}>Secure Online</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.6rem' }}>Cards, UPI, Banking</Typography>
+                        </MuiBox>
                       } 
                       sx={{ width: '100%', m: 0 }}
                     />
                   </Paper>
                 </RadioGroup>
 
-                <Box sx={{ p: 3, bgcolor: '#FAF4EB', borderRadius: '1.25rem', border: '1px dashed', borderColor: alpha('#EA781E', 0.3), display: 'flex', gap: 2 }}>
+                <MuiBox sx={{ p: 3, bgcolor: '#FAF4EB', borderRadius: '1.25rem', border: '1px dashed', borderColor: muiAlpha('#EA781E', 0.3), display: 'flex', gap: 2 }}>
                   <AlertTriangle size={20} color="#EA781E" style={{ flexShrink: 0 }} />
-                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
                     Note: You will be redirected to a secure Cashfree environment to complete your transaction.
                   </Typography>
-                </Box>
+                </MuiBox>
               </Paper>
             </Stack>
           </Grid>
 
           <Grid item xs={12} lg={5}>
-            <Paper elevation={10} sx={{ borderRadius: '3rem', p: { xs: 4, md: 6 }, position: 'sticky', top: '100px', bgcolor: 'white', border: 'none', overflow: 'hidden' }}>
-              <Typography variant="h4" sx={{ fontWeight: 900, mb: 4, color: '#271E1B' }}>Acquisition Summary</Typography>
+            <Paper elevation={10} sx={{ borderRadius: { xs: '2rem', md: '3rem' }, p: { xs: 3, md: 6 }, position: 'sticky', top: '100px', bgcolor: 'white', border: 'none', overflow: 'hidden' }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, mb: 4, color: '#271E1B', fontSize: { xs: '1.5rem', md: '2rem' } }}>Acquisition Summary</Typography>
               
-              <Box sx={{ maxHeight: '300px', overflowY: 'auto', pr: 2, mb: 4, '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: alpha('#EA781E', 0.2), borderRadius: '10px' } }}>
+              <MuiBox sx={{ maxHeight: '300px', overflowY: 'auto', pr: 2, mb: 4, '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: muiAlpha('#EA781E', 0.2), borderRadius: '10px' } }}>
                 <Stack spacing={3}>
                   {cartItems?.map((item) => (
-                    <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <Box sx={{ position: 'relative', width: 64, height: 64, borderRadius: '1rem', overflow: 'hidden', bgcolor: 'muted.main', flexShrink: 0, border: '1px solid', borderColor: 'divider' }}>
-                        <Image src={item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} sizes="64px" />
-                      </Box>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography noWrap sx={{ fontWeight: 800, color: '#271E1B' }}>{item.name}</Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Qty: {item.quantity}</Typography>
-                      </Box>
-                      <Typography sx={{ fontWeight: 900 }}>₹{(item.priceAtAddToCart * item.quantity).toLocaleString()}</Typography>
-                    </Box>
+                    <MuiBox key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                      <MuiBox sx={{ position: 'relative', width: 56, height: 56, borderRadius: '1rem', overflow: 'hidden', bgcolor: 'muted.main', flexShrink: 0, border: '1px solid', borderColor: 'divider' }}>
+                        <Image src={item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} sizes="56px" />
+                      </MuiBox>
+                      <MuiBox sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography noWrap sx={{ fontWeight: 800, color: '#271E1B', fontSize: '0.875rem' }}>{item.name}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.6rem' }}>Qty: {item.quantity}</Typography>
+                      </MuiBox>
+                      <Typography sx={{ fontWeight: 900, fontSize: '0.875rem' }}>₹{(item.priceAtAddToCart * item.quantity).toLocaleString()}</Typography>
+                    </MuiBox>
                   ))}
                 </Stack>
-              </Box>
+              </MuiBox>
 
               <Divider sx={{ mb: 4, borderStyle: 'dashed' }} />
 
               <Stack spacing={2} sx={{ mb: 4 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 1 }}>Subtotal</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 1 }}>FragileCare™ Shipping</Typography>
-                  <Typography sx={{ fontWeight: 700, color: '#EA781E' }}>₹{shipping.toLocaleString()}</Typography>
-                </Box>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 1.5 }}>Subtotal</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>₹{subtotal.toLocaleString()}</Typography>
+                </MuiBox>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 1.5 }}>FragileCare™ Shipping</Typography>
+                  <Typography sx={{ fontWeight: 700, color: '#EA781E', fontSize: '0.875rem' }}>₹{shipping.toLocaleString()}</Typography>
+                </MuiBox>
               </Stack>
 
               <Divider sx={{ mb: 4 }} />
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
-                <Typography sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '1.25rem', letterSpacing: '-0.02em' }}>Total</Typography>
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{total.toLocaleString()}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Inclusive of taxes</Typography>
-                </Box>
-              </Box>
+              <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
+                <Typography sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '1rem', letterSpacing: '0.05em' }}>Total</Typography>
+                <MuiBox sx={{ textAlign: 'right' }}>
+                  <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1, fontSize: { xs: '1.75rem', md: '2.5rem' } }}>₹{total.toLocaleString()}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.6rem' }}>Inclusive of taxes</Typography>
+                </MuiBox>
+              </MuiBox>
 
               <Button
                 fullWidth
@@ -467,12 +468,12 @@ export default function CheckoutPage() {
                 disabled={isProcessing}
                 onClick={handlePlaceOrder}
                 sx={{ 
-                  borderRadius: '2rem', 
-                  height: '5rem', 
-                  fontSize: '1.5rem', 
+                  borderRadius: '1.5rem', 
+                  height: { xs: '4rem', md: '5rem' }, 
+                  fontSize: { xs: '1.1rem', md: '1.5rem' }, 
                   fontWeight: 900, 
                   bgcolor: '#EA781E',
-                  boxShadow: `0 12px 32px ${alpha('#EA781E', 0.3)}`,
+                  boxShadow: `0 12px 32px ${muiAlpha('#EA781E', 0.3)}`,
                   '&:hover': { bgcolor: '#D66A18' },
                   textTransform: 'none'
                 }}
@@ -480,12 +481,12 @@ export default function CheckoutPage() {
                 {isProcessing ? (
                   <Stack direction="row" spacing={2} alignItems="center">
                     <CircularProgress size={24} color="inherit" />
-                    <span>Securing...</span>
+                    <span>Securing Transaction...</span>
                   </Stack>
                 ) : (
                   <Stack direction="row" spacing={2} alignItems="center">
                     <CheckCircle2 size={28} />
-                    <span>Pay ₹{total.toLocaleString()}</span>
+                    <span>Confirm & Pay ₹{total.toLocaleString()}</span>
                   </Stack>
                 )}
               </Button>
@@ -494,6 +495,6 @@ export default function CheckoutPage() {
         </Grid>
       </Container>
       <Footer />
-    </Box>
+    </MuiBox>
   );
 }

@@ -19,7 +19,9 @@ import {
   TableCell, 
   TableContainer, 
   TableRow, 
-  Paper 
+  Paper,
+  Box as MuiBox,
+  alpha as muiAlpha
 } from '@mui/material';
 import { 
   ShoppingCart, 
@@ -68,13 +70,11 @@ export default function ProductDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [thumbnailApi, setThumbnailApi] = useState<CarouselApi>();
   
-  // Slider State
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isSliderPaused, setIsSliderPaused] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   
-  // UI State
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
@@ -82,7 +82,6 @@ export default function ProductDetailPage() {
   const [reviewPreviews, setReviewPreviews] = useState<string[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Wishlist Doc Connection
   const wishlistDocRef = useMemoFirebase(() => {
     const id = product?._id || product?.id;
     if (!firestore || !user || !id) return null;
@@ -94,11 +93,7 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 600) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      setIsScrolled(window.scrollY > 600);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -280,7 +275,7 @@ export default function ProductDetailPage() {
       <main className="flex-1">
         <div className="container mx-auto px-4 max-w-7xl pt-6 md:pt-12">
           {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-8">
+          <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-8">
             <Link href="/" className="hover:text-primary transition-colors shrink-0">Home</Link>
             <ChevronRight className="h-3 w-3 shrink-0" />
             <Link href="/products" className="hover:text-primary transition-colors shrink-0">Catalog</Link>
@@ -292,7 +287,7 @@ export default function ProductDetailPage() {
             {/* Left: Slider */}
             <div className="lg:col-span-7 space-y-6 lg:sticky lg:top-28 self-start">
               <div 
-                className="relative aspect-square rounded-[3rem] overflow-hidden shadow-2xl bg-white border-4 border-white group"
+                className="relative aspect-square rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl bg-white border-2 sm:border-4 border-white group"
                 onMouseEnter={() => setIsSliderPaused(true)}
                 onMouseLeave={() => setIsSliderPaused(false)}
               >
@@ -349,14 +344,14 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Right: Info */}
-            <div className="lg:col-span-5 space-y-10">
+            <div className="lg:col-span-5 space-y-8 sm:space-y-10">
               <div className="space-y-6">
-                <h1 className="text-[32px] md:text-[52px] font-display font-semibold text-primary tracking-tight leading-[1.05]">{product.name}</h1>
+                <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-primary tracking-tight leading-[1.05]">{product.name}</h1>
                 <div className="flex items-baseline gap-5 py-4">
-                  <span className="text-4xl md:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
+                  <span className="text-3xl sm:text-4xl md:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
                   {product.compare_at_price && (
                     <div className="flex flex-col">
-                      <span className="text-lg text-muted-foreground line-through decoration-primary/30 opacity-40">₹{product.compare_at_price.toLocaleString()}</span>
+                      <span className="text-sm sm:text-lg text-muted-foreground line-through decoration-primary/30 opacity-40">₹{product.compare_at_price.toLocaleString()}</span>
                       <span className="text-[10px] font-black text-primary uppercase tracking-widest">Heritage Pricing</span>
                     </div>
                   )}
@@ -365,19 +360,19 @@ export default function ProductDetailPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border rounded-2xl overflow-hidden shadow-sm">
                   {(product.specifications || []).slice(0, 3).map((spec: any, i: number) => (
                     <div key={i} className="bg-white p-4 flex flex-col gap-1 h-full">
-                      <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground whitespace-normal">{spec.key}</span>
-                      <span className="text-[10px] font-bold text-primary leading-tight whitespace-normal">{spec.value}</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{spec.key}</span>
+                      <span className="text-[10px] sm:text-xs font-bold text-primary leading-tight">{spec.value}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button onClick={handleAddToCart} className="h-16 rounded-[1.5rem] bg-primary text-white font-black text-lg shadow-2xl">Add to Bag</Button>
-                  <Button onClick={handleBuyNow} className="h-16 rounded-[1.5rem] bg-[#1E1E1E] text-white font-black text-lg shadow-2xl">Buy Now</Button>
+                  <Button onClick={handleAddToCart} className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] bg-primary text-white font-black text-base md:text-lg shadow-2xl transition-all active:scale-95">Add to Bag</Button>
+                  <Button onClick={handleBuyNow} className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] bg-[#1E1E1E] text-white font-black text-base md:text-lg shadow-2xl transition-all active:scale-95">Buy Now</Button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button asChild variant="outline" className="h-16 rounded-[1.5rem] border-2 border-primary/20 text-primary font-black"><Link href={`https://wa.me/916387562920?text=Hi, I am interested in ${encodeURIComponent(product.name)}`} target="_blank">Enquire Now</Link></Button>
-                  <Button onClick={handleShare} variant="outline" className="h-16 rounded-[1.5rem] border-2 border-border text-muted-foreground font-black">Share Piece</Button>
+                  <Button asChild variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-primary/20 text-primary font-black text-sm"><Link href={`https://wa.me/916387562920?text=Hi, I am interested in ${encodeURIComponent(product.name)}`} target="_blank">Enquire Now</Link></Button>
+                  <Button onClick={handleShare} variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-border text-muted-foreground font-black text-sm">Share Piece</Button>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-4 pt-2 border-t">
@@ -399,22 +394,22 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Details */}
+          {/* Details Section */}
           <section className="mb-32">
             <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
               <div className="w-full lg:w-1/3 space-y-4">
-                <h2 className="text-3xl font-black text-primary">Behind the Craft</h2>
-                <p className="text-muted-foreground leading-relaxed">The technical precision behind our artistry ensures longevity for generations to come.</p>
+                <h2 className="text-2xl sm:text-3xl font-black text-primary uppercase tracking-tight">Behind the Craft</h2>
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">The technical precision behind our artistry ensures longevity for generations to come.</p>
               </div>
               <div className="flex-1">
                 <Tabs defaultValue="description" className="w-full">
                   <TabsList className="w-full justify-start bg-transparent border-b rounded-none h-auto p-0 mb-8">
-                    <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-8 py-4 font-black uppercase tracking-widest text-xs">Description</TabsTrigger>
-                    <TabsTrigger value="specs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-8 py-4 font-black uppercase tracking-widest text-xs">Specifications</TabsTrigger>
+                    <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 sm:px-10 py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs">Description</TabsTrigger>
+                    <TabsTrigger value="specs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 sm:px-10 py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs">Specifications</TabsTrigger>
                   </TabsList>
                   <TabsContent value="description" className="animate-in fade-in duration-500">
                     <div className="prose prose-stone max-w-none">
-                      <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">{product.description}</p>
+                      <p className="text-base sm:text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">{product.description}</p>
                     </div>
                   </TabsContent>
                   <TabsContent value="specs" className="animate-in fade-in duration-500">
@@ -427,16 +422,16 @@ export default function ProductDetailPage() {
                               className="hover:bg-primary/[0.02] transition-colors"
                               sx={{ 
                                 '&:last-child td, &:last-child th': { border: 0 },
-                                '&:nth-of-type(odd)': { bgcolor: 'rgba(28, 89, 52, 0.01)' }
+                                '&:nth-of-type(odd)': { bgcolor: muiAlpha('#C97A40', 0.01) }
                               }}
                             >
-                              <TableCell className="border-primary/5 py-6">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-70">
+                              <TableCell className="border-primary/5 py-5 sm:py-6">
+                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-70">
                                   {spec.key}
                                 </span>
                               </TableCell>
-                              <TableCell align="right" className="border-primary/5 py-6">
-                                <span className="text-sm font-bold text-primary">
+                              <TableCell align="right" className="border-primary/5 py-5 sm:py-6">
+                                <span className="text-xs sm:text-sm font-bold text-primary">
                                   {spec.value}
                                 </span>
                               </TableCell>
@@ -453,25 +448,25 @@ export default function ProductDetailPage() {
 
           {/* Shipping */}
           <section className="mb-32">
-            <div className="text-center space-y-4 mb-16">
-              <h2 className="text-[32px] md:text-[48px] font-display font-semibold text-primary tracking-tight">FragileCare™ Shipping</h2>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] max-w-md mx-auto">Expert Logistics for Handcrafted Masterpieces</p>
+            <div className="text-center space-y-4 mb-16 px-4">
+              <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-primary tracking-tight">FragileCare™ Shipping</h2>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] max-w-md mx-auto leading-relaxed">Expert Logistics for Handcrafted Masterpieces</p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:border-primary/20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:border-primary/20">
                 <Scale className="h-6 w-6 text-primary" />
-                <h4 className="text-lg font-bold text-primary uppercase tracking-widest text-xs">Weight Metrics</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG.</p>
+                <h4 className="text-xs font-bold text-primary uppercase tracking-widest">Weight Metrics</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed font-medium">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG.</p>
               </div>
-              <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:border-primary/20">
+              <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:border-primary/20">
                 <Box className="h-6 w-6 text-primary" />
-                <h4 className="text-lg font-bold text-primary uppercase tracking-widest text-xs">Package Profile</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'}x{product.shipping?.package_dimensions_cm?.width || '30'}x{product.shipping?.package_dimensions_cm?.height || '15'} CM.</p>
+                <h4 className="text-xs font-bold text-primary uppercase tracking-widest">Package Profile</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed font-medium">Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'}x{product.shipping?.package_dimensions_cm?.width || '30'}x{product.shipping?.package_dimensions_cm?.height || '15'} CM.</p>
               </div>
-              <div className="p-8 md:p-10 rounded-[3rem] bg-primary text-white shadow-xl space-y-4">
+              <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-primary text-white shadow-xl space-y-4 md:col-span-2 lg:col-span-1">
                 <Truck className="h-6 w-6" />
-                <h4 className="text-lg font-bold uppercase tracking-widest text-xs text-white">FragileCare™ Priority</h4>
-                <p className="text-sm opacity-80 leading-relaxed text-white">Every ceramic treasure is encased in reinforced honeycomb padding and insured transit.</p>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-white">FragileCare™ Priority</h4>
+                <p className="text-sm opacity-80 leading-relaxed text-white font-medium">Every ceramic treasure is encased in reinforced honeycomb padding and insured transit.</p>
               </div>
             </div>
           </section>
@@ -479,18 +474,18 @@ export default function ProductDetailPage() {
           {/* FAQ */}
           {product.faqs?.length > 0 && (
             <section className="mb-32">
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-4xl mx-auto px-4">
                 <div className="text-center space-y-4 mb-16">
-                  <h2 className="text-3xl md:text-5xl font-display font-semibold text-primary">Curiosity Corner</h2>
+                  <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-primary">Curiosity Corner</h2>
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Artisanal FAQ & Preservation</p>
                 </div>
                 <Accordion type="single" collapsible className="space-y-4">
                   {product.faqs.map((faq: any, i: number) => (
-                    <AccordionItem key={i} value={`item-${i}`} className="border rounded-2xl px-6 bg-white overflow-hidden data-[state=open]:border-primary/30 transition-all">
+                    <AccordionItem key={i} value={`item-${i}`} className="border rounded-2xl px-6 bg-white overflow-hidden data-[state=open]:border-primary/30 transition-all shadow-sm">
                       <AccordionTrigger className="hover:no-underline py-6">
                         <span className="text-left font-black text-primary text-sm sm:text-base">{faq.question}</span>
                       </AccordionTrigger>
-                      <AccordionContent className="pb-6 text-muted-foreground leading-relaxed text-sm">
+                      <AccordionContent className="pb-6 text-muted-foreground leading-relaxed text-sm font-medium">
                         {faq.answer}
                       </AccordionContent>
                     </AccordionItem>
@@ -502,24 +497,24 @@ export default function ProductDetailPage() {
 
           {/* Reviews */}
           <section className="mb-32">
-            <div className="text-center space-y-4 mb-16">
-              <h2 className="text-[32px] md:text-[48px] font-display font-semibold text-primary tracking-tight">Collector Experiences</h2>
+            <div className="text-center space-y-4 mb-16 px-4">
+              <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-primary tracking-tight">Collector Experiences</h2>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Authentic feedback from the Kalamic Community</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
               <div className="lg:col-span-4 space-y-8">
-                <div className="p-8 md:p-10 rounded-[3rem] bg-white shadow-xl border border-border sticky top-28">
-                  <h3 className="text-xl font-black text-primary mb-8 flex items-center gap-3">
+                <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-xl border border-border sticky top-28">
+                  <h3 className="text-lg sm:text-xl font-black text-primary mb-8 flex items-center gap-3">
                     <MessageSquare className="h-5 w-5 text-accent" /> Collector Verdict
                   </h3>
                   <div className="flex items-center gap-6 mb-10">
-                    <p className="text-6xl md:text-7xl font-black text-primary tracking-tighter">{product.analytics?.average_rating || 4.8}</p>
+                    <p className="text-5xl sm:text-6xl md:text-7xl font-black text-primary tracking-tighter">{product.analytics?.average_rating || 4.8}</p>
                     <div>
                       <div className="flex gap-1 text-primary mb-1">
-                        {[1,2,3,4,5].map(i => <Star key={i} className={cn("h-4 w-4", i < Math.floor(product.analytics?.average_rating || 5) ? "fill-current" : "opacity-20")} />)}
+                        {[1,2,3,4,5].map(i => <Star key={i} className={cn("h-4 w-4", i <= Math.floor(product.analytics?.average_rating || 5) ? "fill-current" : "opacity-20")} />)}
                       </div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Community Trust Score</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground leading-none">Community Trust Score</p>
                     </div>
                   </div>
                   
@@ -559,7 +554,7 @@ export default function ProductDetailPage() {
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
                       </div>
 
-                      <Button type="submit" disabled={isSubmittingReview} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl transition-all active:scale-95">
+                      <Button type="submit" disabled={isSubmittingReview} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl transition-all active:scale-95 text-xs uppercase tracking-widest">
                         {isSubmittingReview ? <Loader2 className="animate-spin h-5 w-5" /> : "Post Experience"}
                       </Button>
                     </form>
@@ -567,7 +562,7 @@ export default function ProductDetailPage() {
                     <div className="p-8 rounded-[2rem] bg-muted/50 border border-dashed border-border text-center space-y-6">
                       <Lock className="mx-auto h-8 w-8 text-primary opacity-20" />
                       <p className="text-[10px] font-black text-muted-foreground uppercase leading-relaxed tracking-widest">Sign in to share your experience.</p>
-                      <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-12 hover:bg-primary hover:text-white"><Link href="/auth/login">Join the Community</Link></Button>
+                      <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-12 hover:bg-primary hover:text-white transition-all"><Link href="/auth/login">Join the Community</Link></Button>
                     </div>
                   )}
                 </div>
@@ -577,10 +572,10 @@ export default function ProductDetailPage() {
                 {reviews.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {reviews.map((review, idx) => (
-                      <div key={idx} className="p-8 rounded-[3rem] bg-white shadow-sm border border-border space-y-6 transition-all hover:shadow-xl group">
+                      <div key={idx} className="p-8 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-sm border border-border space-y-6 transition-all hover:shadow-xl group">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black overflow-hidden shadow-inner">
+                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black overflow-hidden shadow-inner text-sm uppercase">
                               {review.user_avatar ? <img src={review.user_avatar} className="h-full w-full object-cover" /> : review.user_name?.charAt(0).toUpperCase()}
                             </div>
                             <div>
@@ -588,7 +583,7 @@ export default function ProductDetailPage() {
                                 {review.user_name || 'Collector'}
                                 {review.is_verified_purchase && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                               </p>
-                              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{dayjs(review.createdAt).format('DD MMM YYYY')}</p>
+                              <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{dayjs(review.createdAt).format('DD MMM YYYY')}</p>
                             </div>
                           </div>
                           <div className="flex gap-0.5 text-primary">
@@ -620,9 +615,9 @@ export default function ProductDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-24 bg-white rounded-[4rem] border border-dashed border-border shadow-inner">
+                  <div className="text-center py-24 bg-white rounded-[3rem] sm:rounded-[4rem] border border-dashed border-border shadow-inner">
                     <MessageSquare className="mx-auto h-16 w-16 text-primary opacity-10 mb-6" />
-                    <p className="text-2xl font-display font-semibold text-primary/60">Be the first to share your verdict</p>
+                    <p className="text-xl sm:text-2xl font-display font-semibold text-primary/60">Be the first to share your verdict</p>
                   </div>
                 )}
               </div>
@@ -631,7 +626,17 @@ export default function ProductDetailPage() {
         </div>
       </main>
 
-      {/* Lightbox */}
+      {/* Sticky Mobile Buy Bar */}
+      <div className={cn("lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-2xl border-t border-border z-50 transition-transform duration-500 rounded-t-[2rem] shadow-2xl", isScrolled ? "translate-y-0" : "translate-y-full")}>
+        <div className="flex items-center gap-6">
+          <div className="shrink-0 pl-2">
+            <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</p>
+          </div>
+          <Button onClick={handleAddToCart} className="flex-1 h-12 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all">Add to Bag</Button>
+        </div>
+      </div>
+
+      {/* Lightbox Dialog */}
       <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-black/95 flex items-center justify-center overflow-hidden rounded-[2.5rem]">
           <DialogHeader className="sr-only">
@@ -653,14 +658,6 @@ export default function ProductDetailPage() {
         </DialogContent>
       </Dialog>
 
-      <div className={cn("lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-2xl border-t border-border z-50 transition-transform duration-500 rounded-t-[2rem] shadow-2xl", isScrolled ? "translate-y-0" : "translate-y-full")}>
-        <div className="flex items-center gap-6">
-          <div className="shrink-0 pl-2">
-            <p className="text-2xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</p>
-          </div>
-          <Button onClick={handleAddToCart} className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-base active:scale-95 transition-all">Add to Bag</Button>
-        </div>
-      </div>
       <Footer />
     </div>
   );
