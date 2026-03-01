@@ -48,7 +48,7 @@ export default function OrdersPage() {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
         <Navbar />
-        <Box sx={{ flex: 1, display: 'flex', items: 'center', justifyContent: 'center' }}>
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <CircularProgress color="primary" />
         </Box>
         <Footer />
@@ -136,7 +136,7 @@ export default function OrdersPage() {
                       <Grid item xs={12} sm={3}>
                         <Stack spacing={1}>
                           <Chip 
-                            label={order.orderStatus.toUpperCase()} 
+                            label={(order.orderStatus || 'Placed').toUpperCase()} 
                             size="small" 
                             sx={{ 
                               fontWeight: 900, 
@@ -148,7 +148,7 @@ export default function OrdersPage() {
                           />
                           <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
                             <Truck size={14} />
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>{order.orderStatus}</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>{order.orderStatus || 'Placed'}</Typography>
                           </Stack>
                         </Stack>
                       </Grid>
@@ -156,7 +156,7 @@ export default function OrdersPage() {
                       <Grid item xs={12} sm={3}>
                         <Stack spacing={1}>
                           <Chip 
-                            label={order.paymentStatus.toUpperCase()} 
+                            label={(order.paymentStatus || 'pending').toUpperCase()} 
                             variant="outlined"
                             size="small"
                             color={order.paymentStatus === 'paid' ? 'success' : 'warning'}

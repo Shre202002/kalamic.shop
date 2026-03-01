@@ -94,7 +94,7 @@ export default function OrderDetailPage() {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
         <Navbar />
-        <Box sx={{ flex: 1, display: 'flex', items: 'center', justifyContent: 'center' }}>
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <CircularProgress color="primary" />
         </Box>
         <Footer />
@@ -126,7 +126,7 @@ export default function OrderDetailPage() {
                 </Stack>
               </Box>
               <Chip 
-                label={order.orderStatus.toUpperCase()} 
+                label={(order.orderStatus || 'Placed').toUpperCase()} 
                 color={isCanceled ? "error" : "primary"}
                 sx={{ fontWeight: 900, borderRadius: '1rem', px: 2, height: 40 }} 
               />
@@ -217,7 +217,7 @@ export default function OrderDetailPage() {
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Typography variant="body2" color="text.secondary" fontWeight={600}>Status</Typography>
-                          <Chip label={order.paymentStatus.toUpperCase()} size="small" color={order.paymentStatus === 'paid' ? 'success' : 'warning'} sx={{ fontWeight: 900, fontSize: '0.6rem' }} />
+                          <Chip label={(order.paymentStatus || 'pending').toUpperCase()} size="small" color={order.paymentStatus === 'paid' ? 'success' : 'warning'} sx={{ fontWeight: 900, fontSize: '0.6rem' }} />
                         </Box>
                         {order.paymentVerified && (
                           <Box sx={{ p: 2, bgcolor: alpha('#6F8A7A', 0.1), borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -276,7 +276,7 @@ export default function OrderDetailPage() {
                   
                   <Button 
                     fullWidth 
-                    variant="outlined" 
+                    variant="outline" 
                     startIcon={<ExternalLink size={16} />}
                     sx={{ height: 56, borderRadius: '1.25rem', fontWeight: 800, color: 'text.secondary', borderColor: 'divider' }}
                     component={Link}
