@@ -1,10 +1,11 @@
 'use server';
 
 /**
- * @fileOverview Server actions for Cashfree Payment Gateway integration.
- * Handles secure order creation and payment verification.
- * Includes a Mock Mode fallback for prototyping when credentials are missing.
+ * @fileOverview Production-grade Cashfree Payment Gateway utilities.
+ * Handles secure order creation, server-to-gateway status checks, and signature verification.
  */
+
+import crypto from 'crypto';
 
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
@@ -15,7 +16,22 @@ const BASE_URL = CASHFREE_ENV === 'production'
   : 'https://sandbox.cashfree.com/pg';
 
 /**
- * Creates a Cashfree order and returns the payment_session_id.
+ * Utility to verify Cashfree Webhook Signature.
+ */
+export async function verifyCashfreeSignature(payload: string, signature: string): Promise<boolean> {
+  if (!CASHFREE_SECRET_KEY) return true; // Safety for mock mode
+  
+  const expectedSignature = crypto
+    .createHmac('sha256', CASHFREE_SECRET_KEY)
+    .update(payload)
+    .digest('base64');
+    
+  return expectedSignature === signature;
+}
+
+/**
+ * Creates a Cashfree order.
+ * returnUrl is provided by the caller (API route) to ensure environment matching.
  */
 export async function createCashfreeOrder(data: {
   orderId: string;
@@ -27,12 +43,12 @@ export async function createCashfreeOrder(data: {
     customerEmail: string;
     customerName: string;
   };
+  returnUrl: string;
 }) {
-  // If credentials are missing, enter Mock Mode for prototyping
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    console.info('[CASHFREE] Missing credentials. Entering Mock Mode for development.');
+    console.warn('[CASHFREE] Missing credentials. Using Mock Mode.');
     return {
-      paymentSessionId: `mock_session_${Math.random().toString(36).substring(7)}`,
+      paymentSessionId: `mock_session_${crypto.randomBytes(8).toString('hex')}`,
       orderId: data.orderId,
       isMock: true
     };
@@ -58,7 +74,7 @@ export async function createCashfreeOrder(data: {
           customer_name: data.customerDetails.customerName,
         },
         order_meta: {
-          return_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/orders/${data.orderId}?cf_id={order_id}`,
+          return_url: data.returnUrl,
         },
       }),
     });
@@ -66,7 +82,6 @@ export async function createCashfreeOrder(data: {
     const result = await response.json();
 
     if (!response.ok) {
-      console.error('[CASHFREE] Order Creation Failed:', result);
       throw new Error(result.message || 'Failed to create Cashfree order');
     }
 
@@ -76,24 +91,18 @@ export async function createCashfreeOrder(data: {
       isMock: false
     };
   } catch (error: any) {
-    console.error('[CASHFREE] Error:', error);
-    throw new Error(error.message || 'Internal server error during payment initialization');
+    console.error('[CASHFREE_ERROR] Order creation:', error.message);
+    throw error;
   }
 }
 
 /**
- * Verifies the status of a Cashfree order on the server.
+ * Fetches order status directly from Cashfree (Server-to-Server).
+ * THIS IS THE ONLY TRUSTED SOURCE FOR PAYMENT STATUS.
  */
-export async function verifyCashfreePayment(orderId: string) {
-  // Handle Mock Verification
+export async function getCashfreeOrderStatus(orderId: string) {
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    console.info('[CASHFREE] Verifying Mock Order:', orderId);
-    return {
-      success: true,
-      status: 'PAID',
-      paymentId: `mock_pay_${Math.random().toString(36).substring(7)}`,
-      isMock: true
-    };
+    return { order_status: 'PAID', cf_order_id: 'mock_payment_id' };
   }
 
   try {
@@ -106,23 +115,13 @@ export async function verifyCashfreePayment(orderId: string) {
       },
     });
 
-    const result = await response.json();
-
     if (!response.ok) {
-      console.error('[CASHFREE] Verification Failed:', result);
-      throw new Error('Failed to verify payment with Cashfree');
+      throw new Error('Failed to fetch order from Cashfree');
     }
 
-    const isPaid = result.order_status === 'PAID';
-    
-    return {
-      success: isPaid,
-      status: result.order_status,
-      paymentId: result.cf_order_id || result.order_id,
-      isMock: false
-    };
+    return await response.json();
   } catch (error: any) {
-    console.error('[CASHFREE] Verification Error:', error);
-    throw new Error('Error during payment verification');
+    console.error('[CASHFREE_ERROR] Order fetch:', error.message);
+    throw error;
   }
 }
