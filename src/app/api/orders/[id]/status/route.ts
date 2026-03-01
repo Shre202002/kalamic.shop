@@ -5,6 +5,7 @@ import { getCashfreeOrderStatus } from '@/lib/actions/cashfree';
 
 /**
  * @fileOverview Direct order status reconciliation API.
+ * Uses camelCase fields matching the schema.
  */
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ status: order.orderStatus, paymentStatus: 'paid' });
     }
 
+    // Check with Cashfree directly
     const cfOrder = await getCashfreeOrderStatus(id);
 
     if (cfOrder.order_status === 'PAID') {

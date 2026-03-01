@@ -8,7 +8,6 @@ import crypto from 'crypto';
 /**
  * @fileOverview Refined Order Creation API.
  * Standardized to camelCase field names to match schema requirements.
- * Now includes nearestLandmark in the shippingAddress object.
  */
 
 export async function POST(req: NextRequest) {
@@ -38,7 +37,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Default Charges based on Schema
+    // Explicit Charges based on updated Schema
     const charges = {
       shipping: 20,
       handling: 80,
@@ -47,11 +46,12 @@ export async function POST(req: NextRequest) {
     const totalAmount = subtotal + charges.shipping + charges.handling + charges.premium;
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
+    // Create order using camelCase fields matching the IOrderedItem interface
     const newOrder = await OrderedItem.create({
       userId,
       userName: customerName,
       userPhone: customerPhone,
-      userEmail: customerEmail,
+      userEmail: customerEmail || '',
       orderNumber,
       subtotal,
       charges,
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       paymentGateway: 'cashfree',
       paymentStatus: 'pending',
       paymentVerified: false,
-      expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 7 days
     });
 
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
