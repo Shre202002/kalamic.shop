@@ -9,13 +9,16 @@ import { syncOrderToFirestore } from '@/lib/firebase-admin';
  * @fileOverview Direct Status Reconciliation API.
  * Ensures local database matches payment gateway state using camelCase fields.
  * Triggers Firestore sync on state changes.
+ * Next.js 15: params must be awaited in route handlers.
  */
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await dbConnect();
-  const { id } = params;
-
+  
   try {
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
+
     const order = await OrderedItem.findOne({ orderNumber: id });
     if (!order) return NextResponse.json({ message: 'Order not found' }, { status: 404 });
 
