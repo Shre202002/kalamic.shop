@@ -104,7 +104,9 @@ export default function OrderDetailPage() {
     return () => clearInterval(interval);
   }, [mounted, params?.id]);
 
-  if (!mounted || isLoading || !params?.id) {
+  if (!mounted) return null;
+
+  if (isLoading || !params?.id) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
         <Navbar />
@@ -119,6 +121,11 @@ export default function OrderDetailPage() {
   const currentStatus = order?.orderStatus || 'Placed';
   const currentStep = STEPS.indexOf(currentStatus);
   const isCanceled = currentStatus === 'Canceled';
+
+  const formatDate = (date: any) => {
+    if (!date) return 'TBD';
+    return dayjs(date).format('DD MMM YYYY');
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
@@ -148,7 +155,7 @@ export default function OrderDetailPage() {
                   </Typography>
                   <Divider orientation="vertical" flexItem sx={{ height: 12, my: 'auto', display: { xs: 'none', sm: 'block' } }} />
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>
-                    {dayjs(order?.createdAt).format('DD MMM YYYY')}
+                    {formatDate(order?.createdAt)}
                   </Typography>
                 </Stack>
               </Box>
@@ -176,7 +183,7 @@ export default function OrderDetailPage() {
                     This acquisition has been canceled.
                   </Alert>
                 ) : (
-                  <Box sx={{ width: '100%', overflowX: 'auto', pb: 1, cursor: 'grab' }}>
+                  <Box sx={{ width: '100%', overflowX: 'auto', pb: 1 }}>
                     <Box sx={{ minWidth: { xs: '600px', sm: '100%' } }}>
                       <Stepper activeStep={currentStep} alternativeLabel>
                         {STEPS.map((label) => (
@@ -349,7 +356,7 @@ export default function OrderDetailPage() {
                           Target Discovery
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.85rem' }}>
-                          {dayjs(order?.expectedDelivery).format('DD MMM YYYY')}
+                          {formatDate(order?.expectedDelivery)}
                         </Typography>
                       </Box>
                     </Stack>
