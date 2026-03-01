@@ -1,38 +1,39 @@
+
 "use client"
 
 import React from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { Map, ChevronRight, Home, ShoppingBag, Info, Shield, HelpCircle, Mail } from 'lucide-react';
+import { Map, ChevronRight, Home, ShoppingBag, Shield, Mail } from 'lucide-react';
 
 const SITEMAP_DATA = [
   {
-    title: "Main Experience",
+    title: "Experience",
     icon: Home,
     links: [
       { name: "Home", href: "/" },
-      { name: "Artisan Story", href: "/about" },
-      { name: "The Collection", href: "/products" },
-      { name: "Discovery Survey", href: "/survey" }
+      { name: "Products", href: "/products" },
+      { name: "About", href: "/about" },
+      { name: "Discovery Quiz", href: "/survey" }
     ]
   },
   {
-    title: "The Studio",
+    title: "Account",
     icon: ShoppingBag,
     links: [
-      { name: "Your Bag", href: "/cart" },
-      { name: "Saved Favorites", href: "/wishlist" },
-      { name: "My Workspace", href: "/profile" },
-      { name: "Acquisition History", href: "/orders" }
+      { name: "Cart", href: "/cart" },
+      { name: "Wishlist", href: "/wishlist" },
+      { name: "Profile", href: "/profile" },
+      { name: "Orders", href: "/orders" }
     ]
   },
   {
-    title: "Help & Governance",
+    title: "Help & Legal",
     icon: Shield,
     links: [
-      { name: "Curiosity Corner (FAQ)", href: "/faq" },
-      { name: "Contact Studio", href: "/contact" },
+      { name: "FAQs", href: "/faq" },
+      { name: "Contact", href: "/contact" },
       { name: "Privacy Policy", href: "/privacy" },
       { name: "Returns & Refunds", href: "/returns" }
     ]
@@ -49,7 +50,7 @@ export default function SitemapPage() {
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-xs uppercase tracking-widest">
               <Map className="h-3 w-3" /> Navigation Map
             </div>
-            <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tight">Kalamic Sitemap</h1>
+            <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tight">Sitemap</h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto">
               A comprehensive directory of our artisan studio's digital footprint.
             </p>
@@ -81,7 +82,7 @@ export default function SitemapPage() {
           <div className="mt-24 p-12 rounded-[3rem] bg-white border border-dashed border-primary/20 text-center space-y-4 shadow-sm">
             <Mail className="h-8 w-8 mx-auto text-primary opacity-30" />
             <p className="text-muted-foreground font-medium italic">"Can't find what you're looking for? Reach out to our artisans directly."</p>
-            <Link href="/contact" className="text-primary font-black uppercase tracking-widest text-xs hover:underline decoration-2 underline-offset-8">Contact Our Studio</Link>
+            <Link href="/contact" className="text-primary font-black uppercase tracking-widest text-xs hover:underline decoration-2 underline-offset-8">Contact Us</Link>
           </div>
         </div>
       </main>

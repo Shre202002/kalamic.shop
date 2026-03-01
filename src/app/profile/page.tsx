@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -25,7 +26,7 @@ import {
   Flag
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getProfile, updateProfile, getUserOrders, getWishlistItems, verifyUserEmail, getOrCreateProfile } from '@/lib/actions/user-actions';
+import { getProfile, updateProfile, getWishlistItems, verifyUserEmail, getOrCreateProfile } from '@/lib/actions/user-actions';
 import { sendOtp, verifyOtp } from '@/lib/actions/otp-actions';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -38,7 +39,6 @@ export default function ProfilePage() {
   const { toast } = useToast();
   
   const [profile, setProfile] = useState<any>(null);
-  const [wishlistCount, setWishlistCount] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   
@@ -73,10 +73,6 @@ export default function ProfilePage() {
           profileData = await getOrCreateProfile(user.uid, user.email || '');
         }
 
-        const [wishlistData] = await Promise.all([
-          getWishlistItems(user.uid)
-        ]);
-
         if (profileData) {
           setProfile(profileData);
           setFormData({
@@ -90,7 +86,6 @@ export default function ProfilePage() {
             landmark: profileData.landmark || ''
           });
         }
-        setWishlistCount(wishlistData.length);
       } catch (error) {
         console.error("Error loading profile data:", error);
       } finally {
@@ -106,7 +101,7 @@ export default function ProfilePage() {
     try {
       await sendOtp(user.email);
       setIsEmailOtpSent(true);
-      toast({ title: "Email OTP Sent", description: "Check your inbox for the code." });
+      toast({ title: "OTP Sent", description: "Check your inbox for the verification code." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } finally {
@@ -124,7 +119,7 @@ export default function ProfilePage() {
         setProfile(updated);
         setIsEmailOtpSent(false);
         setEmailOtpCode('');
-        toast({ title: "Email Verified", description: "Your email is now authenticated." });
+        toast({ title: "Email Verified", description: "Your email has been successfully authenticated." });
       } else {
         toast({ variant: "destructive", title: "Failed", description: result.message });
       }
@@ -146,7 +141,7 @@ export default function ProfilePage() {
         email: user.email || ''
       } as any);
       setProfile(updated);
-      toast({ title: "Profile Updated", description: "Your settings have been saved." });
+      toast({ title: "Profile Updated", description: "Your changes have been saved." });
     } catch (error) {
       toast({ variant: "destructive", title: "Update Failed", description: "Could not save changes." });
     } finally {
@@ -180,19 +175,19 @@ export default function ProfilePage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border pb-8">
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-[0.2em]">
-                <ShieldCheck className="h-4 w-4 text-primary" /> Collector Dashboard
+                <ShieldCheck className="h-4 w-4 text-primary" /> Account Dashboard
               </div>
-              <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tight">Artisan Workspace</h1>
+              <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tight">My Profile</h1>
               <p className="text-muted-foreground text-sm md:text-lg max-w-xl">
-                Fine-tune your personal credentials and artisanal delivery preferences.
+                Manage your personal details and delivery preferences.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
                <Badge variant={isFullyVerified ? "default" : "destructive"} className="h-12 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg">
-                {isFullyVerified ? "Fully Verified Master" : "Action Required"}
+                {isFullyVerified ? "Verified Member" : "Verification Required"}
               </Badge>
                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-white border border-border px-4 py-3 rounded-2xl shadow-sm">
-                <Calendar className="h-3 w-3 text-primary" /> Since {memberSinceYear}
+                <Calendar className="h-3 w-3 text-primary" /> Member Since {memberSinceYear}
               </div>
             </div>
           </div>
@@ -204,10 +199,10 @@ export default function ProfilePage() {
                   <AlertCircle className="h-10 w-10" />
                 </div>
                 <div className="flex-1 text-center md:text-left space-y-2">
-                  <h3 className="text-2xl font-black text-primary">Verification Required</h3>
+                  <h3 className="text-2xl font-black text-primary">Information Required</h3>
                   <p className="text-muted-foreground text-base max-w-lg">
-                    {!isEmailVerified && "• Email verification pending. "}
-                    {!isProfileComplete && "• Complete your delivery details to start acquiring art."}
+                    {!isEmailVerified && "• Please verify your email address. "}
+                    {!isProfileComplete && "• Complete your profile details to enable seamless checkout."}
                   </p>
                 </div>
               </CardContent>
@@ -223,8 +218,8 @@ export default function ProfilePage() {
                       <UserIcon className="h-6 w-6" />
                     </div>
                     <div>
-                      <CardTitle className="text-3xl font-black text-primary">Collector Profile</CardTitle>
-                      <CardDescription className="text-base">Enter the credentials we use for delivery.</CardDescription>
+                      <CardTitle className="text-3xl font-black text-primary">Personal Details</CardTitle>
+                      <CardDescription className="text-base">Your credentials used for billing and delivery.</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -233,7 +228,7 @@ export default function ProfilePage() {
                   <form onSubmit={handleUpdateProfile} className="space-y-12">
                     <div className="space-y-6">
                       <h3 className="text-xs font-black uppercase tracking-[0.25em] text-primary flex items-center gap-3">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" /> Identity & Contact
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" /> Identity
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
@@ -255,7 +250,7 @@ export default function ProfilePage() {
                           </div>
                         </div>
                         <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Authenticated Email</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Email Address</Label>
                           <div className="relative">
                             <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                             <Input disabled value={user?.email || ''} className="pl-14 rounded-2xl h-14 border-border bg-muted text-lg font-medium pr-24" />
@@ -284,18 +279,18 @@ export default function ProfilePage() {
 
                     <div className="space-y-6">
                       <h3 className="text-xs font-black uppercase tracking-[0.25em] text-primary flex items-center gap-3">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" /> Artisanal Shipping Destination
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" /> Shipping Address
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Street Address *</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Street Address *</Label>
                           <div className="relative">
                             <Home className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                             <Input required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="House No, Street Name" className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
                           </div>
                         </div>
                         <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Nearest Landmark</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Landmark</Label>
                           <div className="relative">
                             <Flag className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                             <Input value={formData.landmark} onChange={(e) => setFormData({...formData, landmark: e.target.value})} placeholder="Near Public Park" className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
@@ -324,7 +319,7 @@ export default function ProfilePage() {
                     <div className="flex justify-end">
                       <Button type="submit" disabled={isUpdating} className="bg-primary text-white px-12 h-16 rounded-[1.5rem] text-lg font-black shadow-2xl shadow-primary/20 transition-all active:scale-95">
                         {isUpdating ? <Loader2 className="mr-3 h-6 w-6 animate-spin" /> : null}
-                        Save Artisan Settings
+                        Save Profile
                       </Button>
                     </div>
                   </form>
@@ -338,11 +333,11 @@ export default function ProfilePage() {
                   <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
                     <Settings className="h-7 w-7" />
                   </div>
-                  <h3 className="text-xl font-black text-primary">Control Hub</h3>
+                  <h3 className="text-xl font-black text-primary">Settings</h3>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-5 rounded-3xl bg-muted border-2 border-primary/5">
-                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Auth Status</span>
+                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Status</span>
                     {isFullyVerified ? (
                       <Badge className="bg-green-500 px-3 py-1 text-[10px] font-bold">VERIFIED</Badge>
                     ) : (
@@ -352,7 +347,7 @@ export default function ProfilePage() {
                 </div>
                 <Separator className="my-8 opacity-50" />
                 <Button variant="ghost" className="w-full h-16 rounded-[1.5rem] text-muted-foreground hover:text-destructive hover:bg-destructive/5 border-2 border-dashed border-border font-black" onClick={() => auth.signOut()}>
-                  <LogOut className="mr-3 h-5 w-5" /> Sign Out from Studio
+                  <LogOut className="mr-3 h-5 w-5" /> Sign Out
                 </Button>
               </Card>
             </div>

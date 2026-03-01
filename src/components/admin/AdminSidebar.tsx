@@ -79,17 +79,17 @@ const DesktopDrawer = styled(Drawer, { shouldForwardProp: (prop) => prop !== 'op
 );
 
 const MENU_ITEMS = [
-  { text: 'Overview', icon: <DashboardIcon />, href: '/admin/dashboard', roles: ['super_admin', 'admin', 'support'] },
+  { text: 'Dashboard', icon: <DashboardIcon />, href: '/admin/dashboard', roles: ['super_admin', 'admin', 'support'] },
   { text: 'Orders', icon: <OrdersIcon />, href: '/admin/orders', roles: ['super_admin', 'admin', 'support'] },
-  { text: 'Collectors', icon: <UsersIcon />, href: '/admin/users', roles: ['super_admin', 'admin'] },
-  { text: 'Inventory', icon: <ProductsIcon />, href: '/admin/products', roles: ['super_admin', 'admin'] },
+  { text: 'Users', icon: <UsersIcon />, href: '/admin/users', roles: ['super_admin', 'admin'] },
+  { text: 'Products', icon: <ProductsIcon />, href: '/admin/products', roles: ['super_admin', 'admin'] },
   { text: 'Analytics', icon: <AnalyticsIcon />, href: '/admin/analytics', roles: ['super_admin', 'admin'] },
 ];
 
 const WEBSITE_LINKS = [
-  { text: 'Studio Home', icon: <HomeIcon />, href: '/' },
-  { text: 'Live Catalog', icon: <StoreIcon />, href: '/products' },
-  { text: 'Our Story', icon: <AboutIcon />, href: '/about' },
+  { text: 'Home', icon: <HomeIcon />, href: '/' },
+  { text: 'Products', icon: <StoreIcon />, href: '/products' },
+  { text: 'About', icon: <AboutIcon />, href: '/about' },
 ];
 
 interface AdminSidebarProps {
@@ -136,7 +136,7 @@ export function AdminSidebar({ open, mobileOpen, handleDrawerToggle }: AdminSide
           subheader={
             open ? (
               <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 800, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, color: 'text.disabled', lineHeight: '32px' }}>
-                Control Hub
+                Management
               </ListSubheader>
             ) : null
           }
@@ -173,7 +173,7 @@ export function AdminSidebar({ open, mobileOpen, handleDrawerToggle }: AdminSide
           subheader={
             open ? (
               <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 800, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, color: 'text.disabled', lineHeight: '32px' }}>
-                Public Studio
+                Storefront
               </ListSubheader>
             ) : null
           }
@@ -204,7 +204,7 @@ export function AdminSidebar({ open, mobileOpen, handleDrawerToggle }: AdminSide
         <List sx={{ px: open ? 2 : 1 }}>
           {role === 'super_admin' && (
             <ListItem disablePadding sx={{ mb: 0.5 }}>
-              <Tooltip title={!open ? "Governance" : ""} placement="right">
+              <Tooltip title={!open ? "Settings" : ""} placement="right">
                 <ListItemButton 
                   component={Link} 
                   href="/admin/settings" 
@@ -213,7 +213,7 @@ export function AdminSidebar({ open, mobileOpen, handleDrawerToggle }: AdminSide
                   onClick={isMobile ? handleDrawerToggle : undefined}
                 >
                   <ListItemIcon sx={{ minWidth: 0, mr: open ? 2 : 'auto', justifyContent: 'center' }}><SettingsIcon /></ListItemIcon>
-                  <ListItemText primary="Governance" sx={{ opacity: open ? 1 : 0 }} primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }} />
+                  <ListItemText primary="Settings" sx={{ opacity: open ? 1 : 0 }} primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }} />
                 </ListItemButton>
               </Tooltip>
             </ListItem>

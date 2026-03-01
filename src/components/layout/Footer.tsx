@@ -3,9 +3,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Facebook, Instagram, Twitter, Mail, MapPin, Phone, Globe } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Instagram, Globe } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -28,10 +26,9 @@ export function Footer() {
           <div>
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#271E1B] mb-8">Shop</h3>
             <ul className="space-y-4 text-sm text-[#6B6B6B] font-medium">
-              <li><Link href="/products" className="hover:text-primary transition-colors">All Collections</Link></li>
+              <li><Link href="/products" className="hover:text-primary transition-colors">Products</Link></li>
               <li><Link href="/products?sort=newest" className="hover:text-primary transition-colors">New Arrivals</Link></li>
-              <li><Link href="/products?filter=bestsellers" className="hover:text-primary transition-colors">Best Sellers</Link></li>
-              <li><Link href="/contact" className="hover:text-primary transition-colors">Gift Cards</Link></li>
+              <li><Link href="/wishlist" className="hover:text-primary transition-colors">Wishlist</Link></li>
             </ul>
           </div>
 
@@ -42,7 +39,7 @@ export function Footer() {
               <li><Link href="/returns" className="hover:text-primary transition-colors">Shipping & Returns</Link></li>
               <li><Link href="/faq" className="hover:text-primary transition-colors">Care Guide</Link></li>
               <li><Link href="/faq" className="hover:text-primary transition-colors">FAQs</Link></li>
-              <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
+              <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
             </ul>
           </div>
 
@@ -50,10 +47,9 @@ export function Footer() {
           <div>
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#271E1B] mb-8">Company</h3>
             <ul className="space-y-4 text-sm text-[#6B6B6B] font-medium">
-              <li><Link href="/about" className="hover:text-primary transition-colors">Our Story</Link></li>
-              <li><Link href="/about" className="hover:text-primary transition-colors">Studio Journal</Link></li>
-              <li><Link href="/contact" className="hover:text-primary transition-colors">Wholesale</Link></li>
-              <li><Link href="/about" className="hover:text-primary transition-colors">Careers</Link></li>
+              <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
+              <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/sitemap" className="hover:text-primary transition-colors">Sitemap</Link></li>
             </ul>
           </div>
         </div>

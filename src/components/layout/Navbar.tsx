@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -57,9 +58,9 @@ export function Navbar() {
   const cartItemCount = cartItems?.length || 0;
 
   const navLinks = [
-    { name: 'The Collection', href: '/products' },
-    { name: 'Artisan Story', href: '/about' },
-    { name: 'Speak with Us', href: '/contact' },
+    { name: 'Products', href: '/products' },
+    { name: 'About', href: '/about' },
+    { name: 'Contact', href: '/contact' },
   ];
 
   const handleSignOut = () => {
@@ -115,7 +116,7 @@ export function Navbar() {
                   className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
                 >
                   <span className="flex items-center gap-3">
-                    <Heart className="h-4 w-4" /> My Favorites
+                    <Heart className="h-4 w-4" /> Wishlist
                   </span>
                 </Link>
 
@@ -127,7 +128,7 @@ export function Navbar() {
                       className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
                     >
                       <span className="flex items-center gap-3">
-                        <User className="h-4 w-4" /> My Workspace
+                        <User className="h-4 w-4" /> Profile
                       </span>
                     </Link>
                     <button 
@@ -135,7 +136,7 @@ export function Navbar() {
                       className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-destructive hover:bg-destructive/5 transition-colors rounded-2xl w-full text-left"
                     >
                       <span className="flex items-center gap-3">
-                        <LogOut className="h-4 w-4" /> Exit Studio
+                        <LogOut className="h-4 w-4" /> Sign Out
                       </span>
                     </button>
                   </>
@@ -145,7 +146,7 @@ export function Navbar() {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary hover:bg-primary/5 transition-colors rounded-2xl mt-4"
                   >
-                    Join the Collective
+                    Sign In
                   </Link>
                 )}
               </nav>
@@ -153,7 +154,7 @@ export function Navbar() {
           </Sheet>
         </div>
 
-        {/* Center: Logo */}
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group outline-none">
           <span className={cn(
             "font-display font-black text-primary tracking-tighter transition-all duration-500",
@@ -163,7 +164,7 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Center: Desktop Links */}
+        {/* Desktop Links */}
         <nav className="hidden md:flex items-center gap-10">
           {navLinks.map((link) => (
             <Link 
@@ -176,7 +177,7 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* Right: Actions */}
+        {/* Actions */}
         <div className="flex items-center gap-1 md:gap-4">
           <Button 
             variant="ghost" 
@@ -219,7 +220,7 @@ export function Navbar() {
               <DropdownMenuContent align="end" className="w-72 p-3 rounded-[2rem] shadow-2xl border-primary/5 bg-white/95 backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-500">
                 <DropdownMenuLabel className="font-normal p-4">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-black text-primary uppercase tracking-wider">{user.displayName || 'Artisan Collector'}</p>
+                    <p className="text-sm font-black text-primary uppercase tracking-wider">{user.displayName || 'Collector'}</p>
                     <p className="text-[10px] font-medium text-muted-foreground truncate">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>
@@ -228,13 +229,13 @@ export function Navbar() {
                   <DropdownMenuItem asChild className="rounded-2xl cursor-pointer p-4 focus:bg-primary/5 focus:text-primary transition-all duration-300">
                     <Link href="/profile" className="flex items-center w-full">
                       <User className="mr-4 h-4 w-4 opacity-40" />
-                      <span className="text-xs font-bold uppercase tracking-widest">My Workspace</span>
+                      <span className="text-xs font-bold uppercase tracking-widest">Profile</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-2xl cursor-pointer p-4 focus:bg-primary/5 focus:text-primary transition-all duration-300">
                     <Link href="/orders" className="flex items-center w-full">
                       <Package className="mr-4 h-4 w-4 opacity-40" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Acquisitions</span>
+                      <span className="text-xs font-bold uppercase tracking-widest">Orders</span>
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -246,7 +247,7 @@ export function Navbar() {
                       <DropdownMenuItem asChild className="rounded-2xl cursor-pointer p-4 bg-accent/5 focus:bg-accent/10 focus:text-accent transition-all duration-300">
                         <Link href="/admin/dashboard" className="flex items-center w-full">
                           <LayoutDashboard className="mr-4 h-4 w-4 text-accent" />
-                          <span className="text-xs font-black uppercase tracking-widest text-accent">Control Hub</span>
+                          <span className="text-xs font-black uppercase tracking-widest text-accent">Admin Hub</span>
                         </Link>
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
@@ -257,7 +258,7 @@ export function Navbar() {
                 <div className="p-2">
                   <DropdownMenuItem onClick={handleSignOut} className="rounded-2xl cursor-pointer p-4 text-destructive focus:bg-destructive/5 focus:text-destructive font-black transition-all duration-300">
                     <LogOut className="mr-4 h-4 w-4" />
-                    <span className="text-xs font-black uppercase tracking-widest">Exit Studio</span>
+                    <span className="text-xs font-black uppercase tracking-widest">Sign Out</span>
                   </DropdownMenuItem>
                 </div>
               </DropdownMenuContent>
@@ -265,7 +266,7 @@ export function Navbar() {
           ) : (
             <Link href="/auth/login">
               <Button className="hidden sm:flex bg-primary text-white font-black h-10 px-6 md:h-11 md:px-8 rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest">
-                Join Us
+                Sign In
               </Button>
               <Button variant="ghost" size="icon" className="sm:hidden text-primary rounded-full hover:bg-primary/5">
                 <User className="h-5 w-5" />
@@ -282,7 +283,7 @@ export function Navbar() {
             <div className="relative group animate-in slide-in-from-top-10 duration-700">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-primary/40 group-focus-within:text-primary transition-colors" />
               <Input 
-                placeholder="Search the artisan collection..." 
+                placeholder="Search products..." 
                 className="pl-16 h-16 md:h-20 rounded-2xl md:rounded-3xl bg-white border-none shadow-2xl focus-visible:ring-4 focus-visible:ring-primary/10 transition-all text-lg md:text-xl font-medium" 
                 autoFocus 
               />

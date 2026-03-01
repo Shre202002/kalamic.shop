@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -42,7 +43,7 @@ export default function OrdersPage() {
         const data = await getUserOrders(user.uid);
         setOrders(data);
       } catch (error) {
-        console.error("Failed to load acquisitions:", error);
+        console.error("Failed to load orders:", error);
       } finally {
         setIsLoading(false);
       }
@@ -54,7 +55,7 @@ export default function OrdersPage() {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
         <Navbar />
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center' }}>
           <CircularProgress color="primary" />
         </Box>
         <Footer />
@@ -69,10 +70,10 @@ export default function OrdersPage() {
         <Container maxWidth="sm" sx={{ flex: 1, py: 12, textAlign: 'center' }}>
           <Box sx={{ mb: 4, p: 4, bgcolor: 'white', borderRadius: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
             <ShoppingBag size={64} color="#C97A40" style={{ opacity: 0.2, marginBottom: '1.5rem' }} />
-            <Typography variant="h4" sx={{ fontWeight: 900, mb: 2 }}>Secure Workspace</Typography>
-            <Typography color="text.secondary" sx={{ mb: 4 }}>Please sign in to view your artisanal acquisition history.</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 900, mb: 2 }}>Sign In Required</Typography>
+            <Typography color="text.secondary" sx={{ mb: 4 }}>Please sign in to view your order history.</Typography>
             <Button component={Link} href="/auth/login" variant="contained" fullWidth sx={{ height: 56, borderRadius: '1rem', fontWeight: 900 }}>
-              Sign In to Studio
+              Sign In
             </Button>
           </Box>
         </Container>
@@ -92,19 +93,19 @@ export default function OrdersPage() {
                 Home
               </MuiLink>
               <Typography sx={{ fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5, color: '#C97A40' }}>
-                Acquisitions
+                Orders
               </Typography>
             </Breadcrumbs>
-            <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.03em' }}>My Collection</Typography>
-            <Typography color="text.secondary">History of your handcrafted treasures.</Typography>
+            <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.03em' }}>Order History</Typography>
+            <Typography color="text.secondary">Detailed log of your handcrafted acquisitions.</Typography>
           </Box>
 
           {!orders || orders.length === 0 ? (
             <Paper sx={{ p: 10, textAlign: 'center', borderRadius: '3rem', border: '2px dashed rgba(0,0,0,0.05)', bgcolor: 'white', boxShadow: 'none' }}>
               <Package size={64} color="#C97A40" style={{ opacity: 0.1, marginBottom: '1rem' }} />
-              <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.secondary' }}>No acquisitions yet</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 4, mt: 1 }}>Your curated ceramic history will appear here once you place an order.</Typography>
-              <Button component={Link} href="/products" variant="outlined" sx={{ borderRadius: '1rem', px: 4, fontWeight: 800 }}>Explore Collection</Button>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.secondary' }}>No orders found</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 4, mt: 1 }}>Your history will appear here once you make your first purchase.</Typography>
+              <Button component={Link} href="/products" variant="outlined" sx={{ borderRadius: '1rem', px: 4, fontWeight: 800 }}>Browse Products</Button>
             </Paper>
           ) : (
             <Grid container spacing={3}>
@@ -131,7 +132,7 @@ export default function OrdersPage() {
                     <Grid container spacing={2} alignItems="center">
                       <Grid item xs={12} sm={4}>
                         <Stack spacing={0.5}>
-                          <Typography variant="caption" sx={{ fontWeight: 900, color: '#C97A40', textTransform: 'uppercase', letterSpacing: 1 }}>REF: {order.orderNumber}</Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 900, color: '#C97A40', textTransform: 'uppercase', letterSpacing: 1 }}>ID: {order.orderNumber}</Typography>
                           <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
                             <Calendar size={14} />
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{dayjs(order.createdAt).format('DD MMM YYYY')}</Typography>
@@ -171,7 +172,7 @@ export default function OrdersPage() {
                           <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
                             <CreditCard size={14} />
                             <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                              {order.paymentVerified ? 'Verified Transaction' : 'Verification Pending'}
+                              {order.paymentVerified ? 'Payment Verified' : 'Verification Pending'}
                             </Typography>
                           </Stack>
                         </Stack>
@@ -179,7 +180,7 @@ export default function OrdersPage() {
 
                       <Grid item xs={12} sm={2} sx={{ textAlign: { sm: 'right' } }}>
                         <Typography variant="h6" sx={{ fontWeight: 900, color: '#271E1B' }}>₹{order.totalAmount?.toLocaleString()}</Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Total Value</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Total</Typography>
                       </Grid>
                     </Grid>
                   </Paper>
