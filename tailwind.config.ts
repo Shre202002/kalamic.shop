@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Playfair Display"', 'serif'],
-        body: ['Inter', 'sans-serif'],
+        display: ['"Playfair Display"', '"Noto Serif Devanagari"', 'serif'],
+        body: ['Poppins', '"Noto Sans Devanagari"', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -40,6 +40,14 @@ export default {
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
+        },
+        terracotta: {
+          DEFAULT: 'hsl(var(--terracotta))',
+          foreground: 'hsl(var(--terracotta-foreground))',
+        },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
