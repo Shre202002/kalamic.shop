@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * @fileOverview Official Schema for finalized acquisitions in the Kalamic ecosystem.
- * Updated to use camelCase and include specific artisanal charges.
+ * Standardized to camelCase to match application logic and prevent validation errors.
  */
 
 export type OrderStatus = 
@@ -45,10 +45,11 @@ export interface IOrderedItem extends Document {
     city: string;
     state: string;
     pincode: string;
+    nearestLandmark?: string | null;
   };
   orderStatus: OrderStatus;
-  paymentMethod?: string;
-  paymentGateway?: string;
+  paymentMethod: string;
+  paymentGateway: string;
   paymentStatus: PaymentStatus;
   transactionId?: string | null;
   gatewayOrderId?: string | null;
@@ -77,23 +78,24 @@ const OrderedItemSchema: Schema = new Schema({
 
   items: {
     type: [{
-      productId: String,
-      name: String,
-      price: Number,
-      quantity: Number,
+      productId: { type: String, required: true },
+      name: { type: String, required: true },
+      price: { type: Number, required: true },
+      quantity: { type: Number, required: true },
       imageUrl: String
     }],
     _id: false
   },
 
   shippingAddress: {
-    fullName: { type: String },
-    phone: { type: String },
-    addressLine1: { type: String },
+    fullName: { type: String, required: true },
+    phone: { type: String, required: true },
+    addressLine1: { type: String, required: true },
     addressLine2: { type: String, default: null },
-    city: { type: String },
-    state: { type: String },
-    pincode: { type: String },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    pincode: { type: String, required: true },
+    nearestLandmark: { type: String, default: null },
   },
 
   orderStatus: { 
@@ -102,8 +104,8 @@ const OrderedItemSchema: Schema = new Schema({
     default: "Placed"
   },
 
-  paymentMethod: { type: String },
-  paymentGateway: { type: String },
+  paymentMethod: { type: String, required: true, default: 'online' },
+  paymentGateway: { type: String, required: true, default: 'cashfree' },
   paymentStatus: { 
     type: String, 
     enum: ["pending", "paid", "failed", "refunded"],
@@ -116,7 +118,7 @@ const OrderedItemSchema: Schema = new Schema({
   
   paymentVerified: { type: Boolean, default: false },
   paymentTimestamp: { type: Date, default: null },
-  expectedDelivery: { type: Date },
+  expectedDelivery: { type: Date, required: true },
 }, { 
   timestamps: true,
   collection: 'Ordered_Items' 

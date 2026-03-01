@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -60,6 +59,7 @@ export default function CheckoutPage() {
     state: '',
     zip: '',
     phone: '',
+    landmark: '',
     paymentMethod: 'card'
   });
 
@@ -106,6 +106,7 @@ export default function CheckoutPage() {
             city: profile.city || '',
             state: profile.state || '',
             zip: profile.pincode || '',
+            landmark: profile.landmark || '',
           }));
         }
       } catch (err) {
@@ -231,13 +232,16 @@ export default function CheckoutPage() {
                   <Grid item xs={12}>
                     <TextField fullWidth label="Street Address" name="address" value={formData.address} onChange={handleInputChange} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
                   </Grid>
-                  <Grid item xs={12} sm={4}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth label="Nearest Landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} placeholder="e.g. Near City Temple" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
                     <TextField fullWidth label="City" name="city" value={formData.city} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
                   </Grid>
-                  <Grid item xs={12} sm={4}>
+                  <Grid item xs={12} sm={6}>
                     <TextField fullWidth label="State" name="state" value={formData.state} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
                   </Grid>
-                  <Grid item xs={12} sm={4}>
+                  <Grid item xs={12} sm={6}>
                     <TextField fullWidth label="ZIP / Pincode" name="zip" value={formData.zip} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
                   </Grid>
                   <Grid item xs={12}>

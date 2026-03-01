@@ -204,6 +204,11 @@ export default function OrderDetailPage() {
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>{order.shippingAddress?.fullName}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   {order.shippingAddress?.addressLine1}<br />
+                  {order.shippingAddress?.nearestLandmark && (
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#EA781E' }}>
+                      Landmark: {order.shippingAddress.nearestLandmark}<br />
+                    </span>
+                  )}
                   {order.shippingAddress?.city}, {order.shippingAddress?.state} — {order.shippingAddress?.pincode}
                 </Typography>
               </Paper>

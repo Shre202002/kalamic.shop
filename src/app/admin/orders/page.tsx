@@ -17,12 +17,12 @@ import {
   DialogContent, 
   DialogActions, 
   Button, 
-  Divider,
-  Grid,
-  Avatar,
-  Stack,
-  alpha,
-  useTheme
+  Divider, 
+  Grid, 
+  Avatar, 
+  Stack, 
+  alpha, 
+  useTheme 
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Visibility, CheckCircle, Error as ErrorIcon, ShoppingBag, LocationOn, CreditCard } from '@mui/icons-material';
@@ -277,7 +277,7 @@ export default function OrdersManagement() {
                         <Box>
                           <Typography variant="body2" fontWeight={800}>{selectedOrder.shippingAddress?.fullName}</Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {selectedOrder.shippingAddress?.addressLine1}, {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} — {selectedOrder.shippingAddress?.pincode}
+                            {selectedOrder.shippingAddress?.addressLine1}, {selectedOrder.shippingAddress?.nearestLandmark && `(${selectedOrder.shippingAddress.nearestLandmark}), `}{selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} — {selectedOrder.shippingAddress?.pincode}
                           </Typography>
                         </Box>
                       </Box>

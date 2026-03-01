@@ -5,6 +5,12 @@ import OrderedItem from '@/lib/models/OrderedItem';
 import { createCashfreeOrder } from '@/lib/actions/cashfree';
 import crypto from 'crypto';
 
+/**
+ * @fileOverview Refined Order Creation API.
+ * Standardized to camelCase field names to match schema requirements.
+ * Now includes nearestLandmark in the shippingAddress object.
+ */
+
 export async function POST(req: NextRequest) {
   await dbConnect();
 
@@ -58,11 +64,13 @@ export async function POST(req: NextRequest) {
         city: shippingDetails.city,
         state: shippingDetails.state,
         pincode: shippingDetails.zip,
+        nearestLandmark: shippingDetails.landmark || null,
       },
       orderStatus: 'Placed',
       paymentMethod: 'online',
       paymentGateway: 'cashfree',
       paymentStatus: 'pending',
+      paymentVerified: false,
       expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 

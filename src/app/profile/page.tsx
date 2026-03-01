@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -22,7 +21,8 @@ import {
   Home,
   CheckCircle2,
   Key,
-  Map as MapIcon
+  Map as MapIcon,
+  Flag
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getProfile, updateProfile, getUserOrders, getWishlistItems, verifyUserEmail, getOrCreateProfile } from '@/lib/actions/user-actions';
@@ -286,11 +286,20 @@ export default function ProfilePage() {
                       <h3 className="text-xs font-black uppercase tracking-[0.25em] text-primary flex items-center gap-3">
                         <div className="h-1.5 w-1.5 rounded-full bg-primary" /> Artisanal Shipping Destination
                       </h3>
-                      <div className="space-y-2.5">
-                        <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Street Address *</Label>
-                        <div className="relative">
-                          <Home className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
-                          <Input required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="House No, Street Name" className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Full Street Address *</Label>
+                          <div className="relative">
+                            <Home className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
+                            <Input required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="House No, Street Name" className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
+                          </div>
+                        </div>
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Nearest Landmark</Label>
+                          <div className="relative">
+                            <Flag className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
+                            <Input value={formData.landmark} onChange={(e) => setFormData({...formData, landmark: e.target.value})} placeholder="Near Public Park" className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
+                          </div>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
