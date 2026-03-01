@@ -29,8 +29,23 @@ async function dbConnect() {
       dbName: process.env.DB_NAME || 'kalamic',
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
-      return mongoose;
+    cached.promise = mongoose.connect(MONGODB_URI!, opts).then(async (m) => {
+      /**
+       * SELF-HEALING: Cleanup legacy snake_case unique index.
+       * The 'order_number_1' index causes E11000 errors on the new schema
+       * because new documents lack the field (duplicate nulls).
+       */
+      try {
+        const collection = m.connection.db?.collection('Ordered_Items');
+        if (collection) {
+          await collection.dropIndex('order_number_1');
+          console.log('[DB] Successfully purged legacy index: order_number_1');
+        }
+      } catch (e) {
+        // Index likely doesn't exist or collection is empty; ignore safely.
+      }
+      
+      return m;
     });
   }
 
