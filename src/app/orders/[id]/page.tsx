@@ -1,236 +1,295 @@
-
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams } from 'next/navigation';
-import { useUser } from '@/firebase';
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { 
   Container, 
-  Paper, 
   Typography, 
   Box, 
-  Stepper, 
-  Step, 
-  StepLabel, 
+  Paper, 
   Grid, 
-  Divider, 
   Chip, 
+  Button, 
   CircularProgress,
-  Button,
-  Avatar,
   Stack,
+  Breadcrumbs,
+  Link as MuiLink,
+  Divider,
+  Stepper,
+  Step,
+  StepLabel,
+  Avatar,
   Alert,
-  AlertTitle,
   alpha
 } from '@mui/material';
 import { 
-  CheckCircle2, 
   ChevronLeft, 
-  ShoppingBag, 
+  Package, 
   Truck, 
-  Clock, 
   MapPin, 
-  CreditCard,
-  AlertCircle
+  CreditCard, 
+  ShieldCheck, 
+  ExternalLink,
+  CheckCircle2,
+  Clock,
+  ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import dayjs from 'dayjs';
+import { useToast } from '@/hooks/use-toast';
 
 const STEPS = ["Placed", "Confirmed", "Preparing", "Developing", "Completed", "Dispatched", "Delivered"];
-const STEP_MAP: Record<string, number> = {
-  'Placed': 0,
-  'Confirmed': 1,
-  'Preparing': 2,
-  'Developing': 3,
-  'Completed': 4,
-  'Dispatched': 5,
-  'Delivered': 6,
-};
 
 export default function OrderDetailPage() {
   const params = useParams();
-  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
   const [order, setOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Use a ref to store current status to avoid stale closure in polling interval
-  const statusRef = useRef<string>('');
+  const orderStatusRef = useRef<string>('');
 
-  const orderId = params.id as string;
-
-  const fetchOrder = useCallback(async () => {
+  const fetchOrder = async (isSilent = false) => {
     try {
-      // Proactively reconcile with gateway
-      await fetch(`/api/orders/${orderId}/status`);
-      
-      const res = await fetch(`/api/orders/${orderId}`);
+      const res = await fetch(`/api/orders/${params.id}`);
+      if (!res.ok) throw new Error("Order not found");
       const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.message);
-      
       setOrder(data);
-      statusRef.current = data.orderStatus;
-      setIsLoading(false);
-    } catch (err: any) {
-      setError(err.message);
-      setIsLoading(false);
+      orderStatusRef.current = data.orderStatus;
+      if (!isSilent) setIsLoading(false);
+    } catch (err) {
+      console.error(err);
+      if (!isSilent) router.push('/orders');
     }
-  }, [orderId]);
+  };
+
+  const reconcilePayment = async () => {
+    try {
+      await fetch(`/api/orders/${params.id}/status`);
+      await fetchOrder(true);
+    } catch (err) {
+      console.error("Reconciliation failed:", err);
+    }
+  };
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-      fetchOrder();
+    fetchOrder();
+    reconcilePayment();
 
-      const interval = setInterval(() => {
-        const terminalStates = ['Delivered', 'Canceled'];
-        if (statusRef.current && !terminalStates.includes(statusRef.current)) {
-          console.log('[POLLING] Refreshing order status:', orderId);
-          fetchOrder();
-        } else if (terminalStates.includes(statusRef.current)) {
-          console.log('[POLLING] Terminal state reached. Stopping poll.');
-          clearInterval(interval);
-        }
-      }, 20000);
+    const interval = setInterval(() => {
+      // Don't poll if order is final
+      if (['Delivered', 'Canceled'].includes(orderStatusRef.current)) {
+        clearInterval(interval);
+        return;
+      }
+      fetchOrder(true);
+    }, 20000);
 
-      return () => clearInterval(interval);
-    }
-  }, [user, isUserLoading, fetchOrder, orderId]);
+    return () => clearInterval(interval);
+  }, [params.id]);
 
-  if (isUserLoading || isLoading) {
+  if (isLoading) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
-        <CircularProgress sx={{ color: '#EA781E' }} />
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
+        <Navbar />
+        <Box sx={{ flex: 1, display: 'flex', items: 'center', justifyContent: 'center' }}>
+          <CircularProgress color="primary" />
+        </Box>
+        <Footer />
       </Box>
     );
   }
 
-  if (error || !order) {
-    return (
-      <Container maxWidth="md" sx={{ py: 10, textAlign: 'center' }}>
-        <AlertCircle size={64} color="#EA781E" style={{ marginBottom: 24 }} />
-        <Typography variant="h4" gutterBottom>Acquisition Not Found</Typography>
-        <Button component={Link} href="/" variant="contained" sx={{ bgcolor: '#EA781E' }}>Return Home</Button>
-      </Container>
-    );
-  }
-
-  const currentStep = STEP_MAP[order.orderStatus] ?? 0;
+  const currentStep = STEPS.indexOf(order.orderStatus);
   const isCanceled = order.orderStatus === 'Canceled';
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#FAF4EB', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
       <Navbar />
-      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 4, md: 8 } }}>
-        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Button component={Link} href="/profile" startIcon={<ChevronLeft size={18} />} sx={{ color: 'text.secondary', fontWeight: 800 }}>
-            Back to Workspace
-          </Button>
-          <Typography variant="caption" sx={{ fontWeight: 900, color: 'text.disabled', letterSpacing: 1.5 }}>
-            REF: {order.orderNumber}
-          </Typography>
-        </Box>
+      <main style={{ flex: 1 }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
+          <Box sx={{ mb: 6 }}>
+            <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: 2 }}>
+              <MuiLink component={Link} href="/orders" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                Back to Collection
+              </MuiLink>
+            </Breadcrumbs>
+            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'flex-end' }} spacing={2}>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.03em', mb: 1 }}>Acquisition Record</Typography>
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#C97A40' }}>REF: {order.orderNumber}</Typography>
+                  <Divider orientation="vertical" flexItem sx={{ height: 16, my: 'auto' }} />
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>{dayjs(order.createdAt).format('MMMM DD, YYYY')}</Typography>
+                </Stack>
+              </Box>
+              <Chip 
+                label={order.orderStatus.toUpperCase()} 
+                color={isCanceled ? "error" : "primary"}
+                sx={{ fontWeight: 900, borderRadius: '1rem', px: 2, height: 40 }} 
+              />
+            </Stack>
+          </Box>
 
-        <Grid container spacing={4}>
-          <Grid item xs={12} lg={8}>
-            <Stack spacing={4}>
-              <Paper sx={{ p: { xs: 4, md: 6 }, borderRadius: '2rem' }}>
-                <Box sx={{ mb: 6, textAlign: 'center' }}>
-                  <Typography variant="h5" sx={{ fontWeight: 900, mb: 1 }}>Acquisition Journey</Typography>
-                  <Typography variant="body2" color="text.secondary">Expected: {dayjs(order.expectedDelivery).format('DD MMM YYYY')}</Typography>
-                </Box>
-
+          <Grid container spacing={4}>
+            {/* Status & Timeline */}
+            <Grid item xs={12}>
+              <Paper sx={{ p: { xs: 4, md: 6 }, borderRadius: '3rem', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
                 {isCanceled ? (
-                  <Alert severity="error" sx={{ borderRadius: '1rem' }}>
-                    <AlertTitle sx={{ fontWeight: 800 }}>Acquisition Canceled</AlertTitle>
-                    This creation process has been halted.
+                  <Alert severity="error" sx={{ borderRadius: '1.5rem', fontWeight: 700 }}>
+                    This acquisition has been canceled.
                   </Alert>
                 ) : (
-                  <Stepper activeStep={currentStep} alternativeLabel>
-                    {STEPS.map((label) => (
-                      <Step key={label}>
-                        <StepLabel>
-                          <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.65rem' }}>{label}</Typography>
-                        </StepLabel>
-                      </Step>
-                    ))}
-                  </Stepper>
+                  <Box sx={{ width: '100%', overflowX: 'auto', py: 2 }}>
+                    <Stepper activeStep={currentStep} alternativeLabel>
+                      {STEPS.map((label) => (
+                        <Step key={label}>
+                          <StepLabel
+                            StepIconProps={{
+                              sx: {
+                                '&.Mui-active': { color: '#C97A40' },
+                                '&.Mui-completed': { color: '#6F8A7A' },
+                              }
+                            }}
+                          >
+                            <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.6rem' }}>{label}</Typography>
+                          </StepLabel>
+                        </Step>
+                      ))}
+                    </Stepper>
+                  </Box>
                 )}
               </Paper>
+            </Grid>
 
-              <Paper sx={{ p: { xs: 4, md: 6 }, borderRadius: '2rem' }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, mb: 4 }}>Curated Items</Typography>
-                <Stack spacing={3}>
-                  {order.items.map((item: any, idx: number) => (
-                    <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <Avatar src={item.imageUrl} variant="rounded" sx={{ width: 64, height: 64 }}><ShoppingBag size={24} /></Avatar>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontWeight: 800, fontSize: '0.9rem' }}>{item.name}</Typography>
-                        <Typography variant="caption" color="text.secondary">Qty: {item.quantity}</Typography>
+            {/* Items List */}
+            <Grid item xs={12} lg={8}>
+              <Stack spacing={3}>
+                <Paper sx={{ p: 4, borderRadius: '2.5rem' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Package size={20} color="#C97A40" /> Curated Items
+                  </Typography>
+                  <Stack spacing={3}>
+                    {(order.items || []).map((item: any, idx: number) => (
+                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Box sx={{ position: 'relative', width: 80, height: 80, borderRadius: '1.5rem', overflow: 'hidden', flexShrink: 0, bgcolor: '#F5EFE9' }}>
+                          <Image src={item.imageUrl || 'https://placehold.co/200x200?text=Ceramic'} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 800, color: '#271E1B' }}>{item.name}</Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>Qty: {item.quantity} × ₹{item.price.toLocaleString()}</Typography>
+                        </Box>
+                        <Typography variant="body1" sx={{ fontWeight: 900 }}>₹{(item.price * item.quantity).toLocaleString()}</Typography>
                       </Box>
-                      <Typography sx={{ fontWeight: 900 }}>₹{(item.price * item.quantity).toLocaleString()}</Typography>
-                    </Box>
-                  ))}
-                </Stack>
-              </Paper>
-            </Stack>
-          </Grid>
+                    ))}
+                  </Stack>
+                </Paper>
 
-          <Grid item xs={12} lg={4}>
-            <Stack spacing={4}>
-              <Paper sx={{ p: 4, borderRadius: '2.5rem' }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, mb: 3 }}>Financial Summary</Typography>
-                <Box sx={{ mb: 4 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase' }}>Payment Status</Typography>
-                    <Chip label={order.paymentStatus.toUpperCase()} color={order.paymentStatus === 'paid' ? 'success' : 'warning'} size="small" sx={{ fontWeight: 900, fontSize: '0.6rem' }} />
-                  </Box>
-                  {order.paymentVerified && (
-                    <Alert severity="success" sx={{ py: 0, px: 1, mt: 1, '& .MuiAlert-message': { p: 0.5, fontSize: '0.7rem', fontWeight: 700 } }}>
-                      ✔ Payment Verified Successfully
-                    </Alert>
-                  )}
-                </Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Paper sx={{ p: 4, borderRadius: '2.5rem', height: '100%' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <MapPin size={20} color="#C97A40" /> Destination
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 800, mb: 1 }}>{order.shippingAddress?.fullName}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6, fontWeight: 500 }}>
+                        {order.shippingAddress?.addressLine1}<br />
+                        {order.shippingAddress?.nearestLandmark && `Near ${order.shippingAddress.nearestLandmark}, `}
+                        {order.shippingAddress?.city}, {order.shippingAddress?.state}<br />
+                        {order.shippingAddress?.pincode}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 2, fontWeight: 700 }}>
+                        Contact: {order.shippingAddress?.phone || order.userPhone}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Paper sx={{ p: 4, borderRadius: '2.5rem', height: '100%' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <CreditCard size={20} color="#C97A40" /> Payment
+                      </Typography>
+                      <Stack spacing={2}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body2" color="text.secondary" fontWeight={600}>Method</Typography>
+                          <Typography variant="body2" fontWeight={800} sx={{ textTransform: 'capitalize' }}>{order.paymentGateway} {order.paymentMethod}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body2" color="text.secondary" fontWeight={600}>Status</Typography>
+                          <Chip label={order.paymentStatus.toUpperCase()} size="small" color={order.paymentStatus === 'paid' ? 'success' : 'warning'} sx={{ fontWeight: 900, fontSize: '0.6rem' }} />
+                        </Box>
+                        {order.paymentVerified && (
+                          <Box sx={{ p: 2, bgcolor: alpha('#6F8A7A', 0.1), borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <ShieldCheck size={16} color="#6F8A7A" />
+                            <Typography variant="caption" sx={{ color: '#6F8A7A', fontWeight: 800 }}>Payment Verified Successfully</Typography>
+                          </Box>
+                        )}
+                        {order.transactionId && (
+                          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>TXN: {order.transactionId}</Typography>
+                        )}
+                      </Stack>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              </Stack>
+            </Grid>
 
-                <Stack spacing={1.5}>
+            {/* Financial Record */}
+            <Grid item xs={12} lg={4}>
+              <Paper sx={{ p: 4, borderRadius: '3rem', position: 'sticky', top: 100, bgcolor: 'white' }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, mb: 4 }}>Financial Record</Typography>
+                <Stack spacing={2.5} sx={{ mb: 4 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Subtotal</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{order.subtotal?.toLocaleString()}</Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>Subtotal</Typography>
+                    <Typography variant="body2" fontWeight={700}>₹{order.subtotal?.toLocaleString()}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Logistics Charges</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{(order.charges?.shipping + order.charges?.handling + order.charges?.premium).toLocaleString()}</Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>FragileCare™ Shipping</Typography>
+                    <Typography variant="body2" fontWeight={700}>₹{order.charges?.shipping?.toLocaleString()}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>Handling & Packaging</Typography>
+                    <Typography variant="body2" fontWeight={700}>₹{order.charges?.handling?.toLocaleString()}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>Premium Insurance</Typography>
+                    <Typography variant="body2" fontWeight={700}>₹{order.charges?.premium?.toLocaleString()}</Typography>
                   </Box>
                   <Divider sx={{ my: 1 }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                    <Typography sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '0.75rem' }}>Total</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 900, color: '#EA781E' }}>₹{order.totalAmount?.toLocaleString()}</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 900 }}>Total Value</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 900, color: '#C97A40' }}>₹{order.totalAmount?.toLocaleString()}</Typography>
                   </Box>
                 </Stack>
-              </Paper>
 
-              <Paper sx={{ p: 4, borderRadius: '2rem' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <MapPin size={20} color="#EA781E" />
-                  <Typography sx={{ fontWeight: 900 }}>Destination</Typography>
-                </Box>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>{order.shippingAddress?.fullName}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {order.shippingAddress?.addressLine1}<br />
-                  {order.shippingAddress?.nearestLandmark && (
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#EA781E' }}>
-                      Landmark: {order.shippingAddress.nearestLandmark}<br />
-                    </span>
-                  )}
-                  {order.shippingAddress?.city}, {order.shippingAddress?.state} — {order.shippingAddress?.pincode}
-                </Typography>
+                <Stack spacing={2}>
+                  <Box sx={{ p: 3, bgcolor: '#FAF4EB', borderRadius: '1.5rem', border: '1px solid', borderColor: alpha('#C97A40', 0.1) }}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Avatar sx={{ bgcolor: alpha('#C97A40', 0.1), color: '#C97A40' }}><Clock size={20} /></Avatar>
+                      <Box>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: '#C97A40', textTransform: 'uppercase' }}>Expected Discovery</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800 }}>{dayjs(order.expectedDelivery).format('DD MMM YYYY')}</Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                  
+                  <Button 
+                    fullWidth 
+                    variant="outlined" 
+                    startIcon={<ExternalLink size={16} />}
+                    sx={{ height: 56, borderRadius: '1.25rem', fontWeight: 800, color: 'text.secondary', borderColor: 'divider' }}
+                    component={Link}
+                    href="/contact"
+                  >
+                    Support Enquiry
+                  </Button>
+                </Stack>
               </Paper>
-            </Stack>
+            </Grid>
           </Grid>
-        </Grid>
-      </Container>
+        </Container>
+      </main>
       <Footer />
     </Box>
   );

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -6,16 +5,30 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Package, Clock, Loader2, ChevronRight } from 'lucide-react';
+import { 
+  Container, 
+  Typography, 
+  Box, 
+  Paper, 
+  Grid, 
+  Chip, 
+  Button, 
+  CircularProgress,
+  Stack,
+  Breadcrumbs,
+  Link as MuiLink,
+  alpha
+} from '@mui/material';
+import { 
+  Package, 
+  ChevronRight, 
+  Calendar, 
+  CreditCard, 
+  Truck,
+  ShoppingBag
+} from 'lucide-react';
 import Link from 'next/link';
-
-/**
- * @fileOverview Real-time Order List Page.
- * Subscribes to Firestore for instant updates while linking to MongoDB-driven detail pages.
- */
+import dayjs from 'dayjs';
 
 export default function OrdersPage() {
   const { user, isUserLoading } = useUser();
@@ -29,99 +42,148 @@ export default function OrdersPage() {
     );
   }, [firestore, user]);
 
-  const { data: orders, isLoading } = useCollection(ordersQuery);
+  const { data: orders, isLoading: isOrdersLoading } = useCollection(ordersQuery);
 
-  if (isUserLoading || isLoading) {
+  if (isUserLoading || isOrdersLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        </main>
+        <Box sx={{ flex: 1, display: 'flex', items: 'center', justifyContent: 'center' }}>
+          <CircularProgress color="primary" />
+        </Box>
         <Footer />
-      </div>
+      </Box>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
         <Navbar />
-        <main className="flex-1 flex flex-col items-center justify-center p-8 space-y-4">
-          <Package className="h-16 w-16 text-muted-foreground opacity-20" />
-          <h1 className="text-2xl font-bold">Your Orders</h1>
-          <p className="text-muted-foreground">Sign in to track your acquisitions.</p>
-          <Link href="/auth/login" className="bg-primary text-white px-6 py-2 rounded-lg">Sign In</Link>
-        </main>
+        <Container maxWidth="sm" sx={{ flex: 1, py: 12, textAlign: 'center' }}>
+          <Box sx={{ mb: 4, p: 4, bgcolor: 'white', borderRadius: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
+            <ShoppingBag size={64} color="#C97A40" style={{ opacity: 0.2, marginBottom: '1.5rem' }} />
+            <Typography variant="h4" sx={{ fontWeight: 900, mb: 2 }}>Secure Workspace</Typography>
+            <Typography color="text.secondary" sx={{ mb: 4 }}>Please sign in to view your artisanal acquisition history.</Typography>
+            <Button component={Link} href="/auth/login" variant="contained" fullWidth sx={{ height: 56, borderRadius: '1rem', fontWeight: 900 }}>
+              Sign In to Studio
+            </Button>
+          </Box>
+        </Container>
         <Footer />
-      </div>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
       <Navbar />
-      <main className="flex-1 py-12">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <h1 className="text-3xl font-bold text-primary mb-8">Order History</h1>
+      <main style={{ flex: 1 }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
+          <Box sx={{ mb: 6 }}>
+            <Breadcrumbs separator={<ChevronRight size={14} />} sx={{ mb: 2 }}>
+              <MuiLink component={Link} href="/" underline="hover" sx={{ color: 'text.secondary', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                Home
+              </MuiLink>
+              <Typography sx={{ fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5, color: '#C97A40' }}>
+                Acquisitions
+              </Typography>
+            </Breadcrumbs>
+            <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.03em' }}>My Collection</Typography>
+            <Typography color="text.secondary">History of your handcrafted treasures.</Typography>
+          </Box>
 
-          {!orders?.length ? (
-            <div className="text-center py-20 bg-white rounded-3xl border">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground opacity-30 mb-4" />
-              <p className="text-xl font-medium text-muted-foreground">No orders yet</p>
-              <Link href="/products" className="text-primary hover:underline mt-4 inline-block font-semibold">Start shopping</Link>
-            </div>
+          {!orders || orders.length === 0 ? (
+            <Paper sx={{ p: 10, textAlign: 'center', borderRadius: '3rem', border: '2px dashed rgba(0,0,0,0.05)', bgcolor: 'white', boxShadow: 'none' }}>
+              <Package size={64} color="#C97A40" style={{ opacity: 0.1, marginBottom: '1rem' }} />
+              <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.secondary' }}>No acquisitions yet</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 4, mt: 1 }}>Your curated ceramic history will appear here once you place an order.</Typography>
+              <Button component={Link} href="/products" variant="outlined" sx={{ borderRadius: '1rem', px: 4, fontWeight: 800 }}>Explore Collection</Button>
+            </Paper>
           ) : (
-            <div className="space-y-6">
-              {orders.map((order) => (
-                <Card key={order.id} className="border-none shadow-sm overflow-hidden">
-                  <CardHeader className="bg-muted/30 border-b flex flex-row items-center justify-between py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                        Order <span className="text-primary">{order.orderNumber}</span>
-                      </div>
-                      <Badge className={
-                        order.orderStatus === 'Canceled' ? 'bg-destructive text-white' : 
-                        order.orderStatus === 'Delivered' ? 'bg-green-600 text-white' :
-                        'bg-accent text-accent-foreground'
-                      }>
-                        {order.orderStatus}
-                      </Badge>
-                    </div>
-                    <div className="text-xs text-muted-foreground font-medium">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Date N/A'}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-full bg-primary/5 flex items-center justify-center text-primary">
-                          <Package className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-primary">Total Amount</p>
-                          <p className="text-lg font-extrabold text-primary">₹{(order.totalAmount || 0).toFixed(2)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <Badge variant="outline" color={order.paymentStatus === 'paid' ? 'success' : 'warning'}>
-                          Payment: {order.paymentStatus?.toUpperCase() || 'PENDING'}
-                        </Badge>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/orders/${order.orderNumber}`} className="flex items-center">
-                            Details <ChevronRight className="ml-1 h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+            <Grid container spacing={3}>
+              {orders.map((order: any) => (
+                <Grid item xs={12} key={order.id}>
+                  <Paper 
+                    component={Link}
+                    href={`/orders/${order.orderNumber}`}
+                    sx={{ 
+                      p: 3, 
+                      borderRadius: '2rem', 
+                      transition: 'all 0.3s',
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      display: 'block',
+                      border: '1px solid transparent',
+                      '&:hover': { 
+                        transform: 'translateY(-4px)', 
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+                        borderColor: '#C97A40'
+                      } 
+                    }}
+                  >
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} sm={4}>
+                        <Stack spacing={0.5}>
+                          <Typography variant="caption" sx={{ fontWeight: 900, color: '#C97A40', textTransform: 'uppercase', letterSpacing: 1 }}>REF: {order.orderNumber}</Typography>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
+                            <Calendar size={14} />
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{dayjs(order.createdAt).format('DD MMM YYYY')}</Typography>
+                          </Stack>
+                        </Stack>
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={3}>
+                        <Stack spacing={1}>
+                          <Chip 
+                            label={order.orderStatus.toUpperCase()} 
+                            size="small" 
+                            sx={{ 
+                              fontWeight: 900, 
+                              bgcolor: order.orderStatus === 'Delivered' ? '#6F8A7A' : '#C97A40',
+                              color: 'white',
+                              borderRadius: '6px',
+                              fontSize: '0.65rem'
+                            }} 
+                          />
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
+                            <Truck size={14} />
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>{order.orderStatus}</Typography>
+                          </Stack>
+                        </Stack>
+                      </Grid>
+
+                      <Grid item xs={12} sm={3}>
+                        <Stack spacing={1}>
+                          <Chip 
+                            label={order.paymentStatus.toUpperCase()} 
+                            variant="outlined"
+                            size="small"
+                            color={order.paymentStatus === 'paid' ? 'success' : 'warning'}
+                            sx={{ fontWeight: 900, fontSize: '0.65rem', borderRadius: '6px' }}
+                          />
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
+                            <CreditCard size={14} />
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                              {order.paymentVerified ? 'Verified Transaction' : 'Verification Pending'}
+                            </Typography>
+                          </Stack>
+                        </Stack>
+                      </Grid>
+
+                      <Grid item xs={12} sm={2} sx={{ textAlign: { sm: 'right' } }}>
+                        <Typography variant="h6" sx={{ fontWeight: 900, color: '#271E1B' }}>₹{order.totalAmount?.toLocaleString()}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Total Value</Typography>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                </Grid>
               ))}
-            </div>
+            </Grid>
           )}
-        </div>
+        </Container>
       </main>
       <Footer />
-    </div>
+    </Box>
   );
 }
