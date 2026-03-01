@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,18 +8,61 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Mail, Phone, MapPin, Send, MessageSquare } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, MessageSquare, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ContactPage() {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    message: ''
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Message Sent",
-      description: "Our artisan support team will get back to you within 24 hours.",
-    });
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Something went wrong');
+      }
+
+      toast({
+        title: "Message Delivered",
+        description: "Our artisan support team has received your inquiry and will reach out shortly.",
+      });
+
+      // Reset form
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        message: ''
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Delivery Failed",
+        description: error.message || "We encountered an issue sending your message. Please try again or call us directly.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -80,23 +123,60 @@ export default function ContactPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="firstName" className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">First Name</Label>
-                      <Input id="firstName" placeholder="Aarav" className="h-12 rounded-xl border-border bg-background px-4" required />
+                      <Input 
+                        id="firstName" 
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        placeholder="Aarav" 
+                        className="h-12 rounded-xl border-border bg-background px-4" 
+                        required 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName" className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Last Name</Label>
-                      <Input id="lastName" placeholder="Sharma" className="h-12 rounded-xl border-border bg-background px-4" required />
+                      <Input 
+                        id="lastName" 
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        placeholder="Sharma" 
+                        className="h-12 rounded-xl border-border bg-background px-4" 
+                        required 
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Email Address</Label>
-                    <Input id="email" type="email" placeholder="aarav@example.com" className="h-12 rounded-xl border-border bg-background px-4" required />
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="aarav@example.com" 
+                      className="h-12 rounded-xl border-border bg-background px-4" 
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="message" className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">How can we help?</Label>
-                    <Textarea id="message" placeholder="Tell us about your requirement..." className="min-h-[150px] rounded-xl border-border bg-background p-4 resize-none" required />
+                    <Textarea 
+                      id="message" 
+                      value={formData.message}
+                      onChange={handleChange}
+                      placeholder="Tell us about your requirement..." 
+                      className="min-h-[150px] rounded-xl border-border bg-background p-4 resize-none" 
+                      required 
+                    />
                   </div>
-                  <Button type="submit" className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95">
-                    Send Message <Send className="ml-3 h-5 w-5" />
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95"
+                  >
+                    {isSubmitting ? (
+                      <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Sending...</>
+                    ) : (
+                      <>Send Message <Send className="ml-3 h-5 w-5" /></>
+                    )}
                   </Button>
                 </form>
               </CardContent>
