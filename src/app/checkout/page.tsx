@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -13,7 +12,7 @@ import {
   Grid, 
   Paper, 
   Typography, 
-  Box, 
+  Box as MuiBox, 
   TextField, 
   Button, 
   Divider, 
@@ -284,7 +283,7 @@ export default function CheckoutPage() {
               <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.03em', mb: 1, fontSize: { xs: '2rem', md: '3rem' } }}>Checkout</Typography>
               <Typography color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '0.875rem', md: '1rem' } }}>Confirm your selection and shipping destination.</Typography>
             </MuiBox>
-            <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: 'white', px: { xs: 2, md: 3 }, py: 1.5, rounded: '1rem', border: '1px solid', borderColor: muiAlpha('#EA781E', 0.1), boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+            <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: 'white', px: { xs: 2, md: 3 }, py: 1.5, borderRadius: '1rem', border: '1px solid', borderColor: muiAlpha('#EA781E', 0.1), boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
               <ShieldCheck size={18} color="#EA781E" />
               <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#EA781E', fontSize: '0.65rem' }}>Secure Cashfree® Integration</Typography>
             </MuiBox>
@@ -426,7 +425,7 @@ export default function CheckoutPage() {
                   {cartItems?.map((item) => (
                     <MuiBox key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
                       <MuiBox sx={{ position: 'relative', width: 56, height: 56, borderRadius: '1rem', overflow: 'hidden', bgcolor: 'muted.main', flexShrink: 0, border: '1px solid', borderColor: 'divider' }}>
-                        <Image src={item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} sizes="56px" />
+                        <Image src={item.imageUrl || `https://picsum.photos/seed/${item.id}/100/100`} alt={item.name} fill style={{ objectFit: 'cover' }} sizes="56px" />
                       </MuiBox>
                       <MuiBox sx={{ flex: 1, minWidth: 0 }}>
                         <Typography noWrap sx={{ fontWeight: 800, color: '#271E1B', fontSize: '0.875rem' }}>{item.name}</Typography>
