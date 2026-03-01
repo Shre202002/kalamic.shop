@@ -1,3 +1,4 @@
+
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -170,6 +171,20 @@ export async function getDashboardChartData() {
     users: userGrowth,
     categories: categories.length > 0 ? categories : [{ id: 0, value: 1, label: 'None' }]
   };
+}
+
+export async function getProductPerformanceData() {
+  await dbConnect();
+  try {
+    const products = await KalamicProduct.find({ is_deleted: { $ne: true } })
+      .select('name price analytics images sku')
+      .sort({ 'analytics.total_orders': -1, 'analytics.total_views': -1 })
+      .lean();
+    
+    return JSON.parse(JSON.stringify(products));
+  } catch (error) {
+    return [];
+  }
 }
 
 export async function saveProduct(adminId: string, product: any) {
