@@ -2,11 +2,11 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * @fileOverview Official Schema for finalized acquisitions in the Kalamic ecosystem.
- * Standardized to camelCase. Includes legacy field 'order_number' to prevent 
- * unique index collisions in existing databases.
+ * Standardized to camelCase. "Initiated" is the entry state before payment verification.
  */
 
 export type OrderStatus = 
+  | "Initiated"
   | "Placed" 
   | "Confirmed" 
   | "Preparing" 
@@ -24,7 +24,6 @@ export interface IOrderedItem extends Document {
   userPhone: string;
   userEmail?: string;
   orderNumber: string;
-  order_number?: string; // Legacy support for DB indexes
   subtotal: number;
   charges: {
     shipping: number;
@@ -72,9 +71,6 @@ const OrderedItemSchema: Schema = new Schema({
   // Primary unique field
   orderNumber: { type: String, required: true, unique: true, index: true },
   
-  // Legacy field support to satisfy old 'order_number_1' unique index in DB
-  order_number: { type: String }, 
-  
   subtotal: { type: Number, required: true },
   charges: {
     shipping: { type: Number, default: 20 },
@@ -107,8 +103,8 @@ const OrderedItemSchema: Schema = new Schema({
 
   orderStatus: { 
     type: String, 
-    enum: ["Placed", "Confirmed", "Preparing", "Developing", "Completed", "Dispatched", "Delivered", "Canceled"],
-    default: "Placed"
+    enum: ["Initiated", "Placed", "Confirmed", "Preparing", "Developing", "Completed", "Dispatched", "Delivered", "Canceled"],
+    default: "Initiated"
   },
 
   paymentMethod: { type: String, required: true, default: 'online' },

@@ -7,9 +7,8 @@ import { syncOrderToFirestore } from '@/lib/firebase-admin';
 
 /**
  * @fileOverview Direct Status Reconciliation API.
- * Ensures local database matches payment gateway state using camelCase fields.
- * Triggers Firestore sync and analytics updates on state changes.
- * Next.js 15: params must be awaited in route handlers.
+ * Ensures local database matches payment gateway state.
+ * Transitions 'Initiated' orders to 'Placed' if payment is confirmed.
  */
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -49,7 +48,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               paymentVerified: true,
               paymentId: cfOrder.cf_order_id || cfOrder.order_id,
               paymentTimestamp: new Date(),
-              transactionId: cfOrder.cf_order_id || cfOrder.order_id
+              transactionId: cfOrder.cf_order_id || cfOrder.order_id,
+              orderStatus: 'Placed' // 🔥 Sync status to Placed
             }
           },
           { new: true }
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         return NextResponse.json({ 
           orderStatus: updatedOrder?.orderStatus || order.orderStatus, 
-          paymentStatus: 'paid',
+          paymentStatus: 'paid', 
           paymentVerified: true 
         });
       }
