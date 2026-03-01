@@ -40,20 +40,20 @@ export async function getOrCreateProfile(firebaseId: string, email?: string | nu
     const role = cleanEmail === PERMANENT_SUPER_ADMIN ? 'super_admin' : 'buyer';
     
     const onInsert: any = {
-      firebaseId, // Explicitly include in the insert payload
+      firebaseId, 
       role,
       emailVerified: false,
       phoneVerified: false,
       status: 'active',
-      createdAt: new Date(),
-      updatedAt: new Date()
+      // Note: createdAt and updatedAt are managed automatically by Mongoose timestamps: true
     };
 
     if (cleanEmail) {
       onInsert.email = cleanEmail;
     }
 
-    // Use $setOnInsert to only apply fields if creating a new document
+    // Use $setOnInsert to only apply fields if creating a new document.
+    // Mongoose handles 'updatedAt' via $set and 'createdAt' via $setOnInsert internally.
     const user = await User.findOneAndUpdate(
       { firebaseId },
       { $setOnInsert: onInsert },
@@ -63,7 +63,7 @@ export async function getOrCreateProfile(firebaseId: string, email?: string | nu
     return JSON.parse(JSON.stringify(user));
   } catch (error: any) {
     console.error(`[DB_ERROR] getOrCreateProfile failed:`, error.message);
-    // Re-throw the original error to surface the root cause (e.g. Duplicate Key or Connection failure)
+    // Re-throw the original error to surface the root cause
     throw new Error(`Profile Provisioning Failed: ${error.message}`);
   }
 }
@@ -76,7 +76,7 @@ export async function verifyUserEmail(firebaseId: string, email: string) {
     await dbConnect();
     const user = await User.findOneAndUpdate(
       { firebaseId },
-      { $set: { emailVerified: true, email: email.toLowerCase(), updatedAt: new Date() } },
+      { $set: { emailVerified: true, email: email.toLowerCase() } },
       { new: true, upsert: true }
     ).lean();
     return JSON.parse(JSON.stringify(user));
@@ -97,7 +97,7 @@ export async function updateProfile(firebaseId: string, data: any) {
     
     const user = await User.findOneAndUpdate(
       { firebaseId },
-      { $set: { ...updateData, updatedAt: new Date() } },
+      { $set: updateData },
       { new: true, upsert: true, runValidators: true }
     ).lean();
     return JSON.parse(JSON.stringify(user));
