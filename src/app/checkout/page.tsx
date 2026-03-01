@@ -49,6 +49,7 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
   const [formData, setFormData] = useState({
@@ -63,9 +64,14 @@ export default function CheckoutPage() {
     paymentMethod: 'card'
   });
 
+  // Ensure component is mounted to prevent hydration errors with MUI/Emotion
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     async function checkVerify() {
-      if (!isUserLoading && user) {
+      if (mounted && !isUserLoading && user) {
         const profile = await getProfile(user.uid);
         const isComplete = profile?.firstName && profile?.lastName && profile?.phone && profile?.address && profile?.city && profile?.state && profile?.pincode;
         
@@ -77,12 +83,12 @@ export default function CheckoutPage() {
           });
           router.push('/profile');
         }
-      } else if (!isUserLoading && !user) {
+      } else if (mounted && !isUserLoading && !user) {
         router.push('/auth/login');
       }
     }
     checkVerify();
-  }, [user, isUserLoading, router, toast]);
+  }, [user, isUserLoading, router, toast, mounted]);
 
   const cartQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -93,7 +99,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     async function loadUserData() {
-      if (!user) return;
+      if (!user || !mounted) return;
       try {
         const profile = await getProfile(user.uid);
         if (profile) {
@@ -114,7 +120,7 @@ export default function CheckoutPage() {
       }
     }
     loadUserData();
-  }, [user]);
+  }, [user, mounted]);
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
   const shipping = cartItems && cartItems.length > 0 ? 150 : 0;
@@ -178,6 +184,9 @@ export default function CheckoutPage() {
       setIsProcessing(false);
     }
   };
+
+  // Prevent hydration mismatch by returning null until mounted on client
+  if (!mounted) return null;
 
   if (isUserLoading || isCartLoading) {
     return (
