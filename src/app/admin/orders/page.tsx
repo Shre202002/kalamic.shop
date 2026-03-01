@@ -1,23 +1,50 @@
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Typography, Paper, Chip, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl } from '@mui/material';
+import { 
+  Box, 
+  Typography, 
+  Paper, 
+  Chip, 
+  IconButton, 
+  Tooltip, 
+  Skeleton, 
+  Select, 
+  MenuItem, 
+  FormControl, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
+  Button, 
+  Divider,
+  Grid,
+  Avatar,
+  Stack,
+  alpha,
+  useTheme
+} from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Visibility, FileDownload } from '@mui/icons-material';
-import { getAllOrders, updateOrderStatus } from '@/lib/actions/admin-actions';
+import { Visibility, CheckCircle2, AlertCircle, ShoppingBag, MapPin, CreditCard } from '@mui/icons-material';
+import { getAllOrders } from '@/lib/actions/admin-actions';
 import dayjs from 'dayjs';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 
-const STATUS_OPTIONS = ['Placed', 'Crafting', 'Developing', 'Packed', 'Dispatched', 'Delivered', 'cancelled', 'refunded'];
+const STATUS_OPTIONS = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
 
 export default function OrdersManagement() {
   const { user } = useUser();
+  const theme = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
+
+  const [selectedOrder, setSelectedUserOrder] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [statusUpdate, setStatusUpdate] = useState({ id: '', status: '' });
 
   const load = async () => {
     setLoading(true);
@@ -36,24 +63,41 @@ export default function OrdersManagement() {
     load();
   }, []);
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
+  const handleStatusChangeClick = (id: string, newStatus: string) => {
+    setStatusUpdate({ id, status: newStatus });
+    setConfirmOpen(true);
+  };
+
+  const confirmStatusUpdate = async () => {
     if (!user) return;
+    setConfirmOpen(false);
     try {
-      await updateOrderStatus(user.uid, id, newStatus);
-      toast({ title: "Status Updated", description: `Order is now marked as ${newStatus}.` });
-      setOrders((prev: any) => prev.map((o: any) => o._id === id ? { ...o, status: newStatus } : o));
-    } catch (e) {
-      toast({ variant: "destructive", title: "Update Failed", description: "Could not change order status." });
+      const res = await fetch('/api/admin/orders/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminId: user.uid,
+          orderId: statusUpdate.id,
+          newStatus: statusUpdate.status
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      toast({ title: "Status Synchronized", description: `Order updated to ${statusUpdate.status}.` });
+      setOrders((prev: any) => prev.map((o: any) => o._id === statusUpdate.id ? { ...o, status: statusUpdate.status } : o));
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     }
   };
 
   const columns: GridColDef[] = useMemo(() => [
     { 
       field: 'order_number', 
-      headerName: 'Order #', 
+      headerName: 'Master Reference', 
       width: 180,
       renderCell: (params) => (
-        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'primary.main' }}>
+        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 900, color: 'primary.main' }}>
           {params.value}
         </Typography>
       )
@@ -61,33 +105,41 @@ export default function OrdersManagement() {
     { 
       field: 'user_name', 
       headerName: 'Collector', 
-      width: 180,
+      width: 200,
       renderCell: (params) => (
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>{params.value}</Typography>
+        <Box sx={{ py: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 700 }}>{params.value}</Typography>
           <Typography variant="caption" color="text.secondary">{params.row.user_phone}</Typography>
         </Box>
       )
     },
     { 
       field: 'total_amount', 
-      headerName: 'Amount', 
+      headerName: 'Valuation', 
       width: 120,
-      renderCell: (params) => `₹${(params.value ?? 0).toLocaleString()}`
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 900 }}>₹{(params.value ?? 0).toLocaleString()}</Typography>
+      )
     },
     { 
       field: 'status', 
-      headerName: 'Workflow Status', 
+      headerName: 'Artisanal Stage', 
       width: 200,
       renderCell: (params) => (
         <FormControl fullWidth size="small">
           <Select
             value={params.value}
-            onChange={(e) => handleStatusChange(params.row._id, e.target.value)}
-            sx={{ fontSize: '0.75rem', fontWeight: 700 }}
+            onChange={(e) => handleStatusChangeClick(params.row._id, e.target.value)}
+            sx={{ 
+              fontSize: '0.7rem', 
+              fontWeight: 900, 
+              textTransform: 'uppercase',
+              bgcolor: alpha(theme.palette.primary.main, 0.05),
+              borderRadius: '8px'
+            }}
           >
             {STATUS_OPTIONS.map((opt) => (
-              <MenuItem key={opt} value={opt} sx={{ fontSize: '0.75rem' }}>{opt}</MenuItem>
+              <MenuItem key={opt} value={opt} sx={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>{opt}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -95,7 +147,7 @@ export default function OrdersManagement() {
     },
     { 
       field: 'payment_status', 
-      headerName: 'Payment', 
+      headerName: 'Financials', 
       width: 130,
       renderCell: (params) => (
         <Chip 
@@ -103,76 +155,144 @@ export default function OrdersManagement() {
           size="small" 
           color={params.value === 'paid' ? 'success' : 'error'} 
           variant={params.row.payment_verified ? 'filled' : 'outlined'}
-          sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.6rem' }}
+          sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '0.6rem', height: 24 }}
         />
       )
     },
     { 
       field: 'created_at', 
-      headerName: 'Acquired On', 
-      width: 180,
-      renderCell: (params) => params.value ? dayjs(params.value).format('DD MMM YYYY, HH:mm') : 'N/A'
+      headerName: 'Acquired', 
+      width: 160,
+      renderCell: (params) => (
+        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+          {dayjs(params.value).format('DD MMM YYYY')}
+        </Typography>
+      )
     },
     {
       field: 'actions',
       headerName: '',
-      width: 80,
+      width: 60,
       sortable: false,
       renderCell: (params) => (
-        <Tooltip title="View Full Details">
-          <IconButton size="small"><Visibility /></IconButton>
-        </Tooltip>
+        <IconButton size="small" color="primary" onClick={() => { setSelectedUserOrder(params.row); setDetailOpen(true); }}>
+          <Visibility fontSize="small" />
+        </IconButton>
       )
     }
-  ], [user]);
+  ], [theme.palette]);
 
-  if (!mounted) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Skeleton variant="rectangular" height={400} />
-      </Box>
-    );
-  }
+  if (!mounted) return <Skeleton variant="rectangular" height={400} />;
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4">Logistics Command</Typography>
-          <Typography variant="body2" color="text.secondary">Oversee the artisanal journey from kiln to collector.</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Tooltip title="Export Acquisition Log">
-            <IconButton sx={{ bgcolor: 'white', border: '1px solid rgba(0,0,0,0.1)' }}><FileDownload /></IconButton>
-          </Tooltip>
-        </Box>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 900 }}>Logistics Command</Typography>
+        <Typography variant="body2" color="text.secondary">Managing the primary Kalamic acquisition pipeline.</Typography>
       </Box>
-      <Paper sx={{ border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+
+      <Paper sx={{ border: 'none', borderRadius: 4, boxShadow: '0 10px 40px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
         <DataGrid
           rows={orders}
           getRowId={(row) => row._id}
           columns={columns}
           loading={loading}
-          initialState={{ 
-            pagination: { 
-              paginationModel: { pageSize: 10 } 
-            } 
-          }}
-          pageSizeOptions={[10, 25, 50]}
-          disableRowSelectionOnClick
           autoHeight
+          pageSizeOptions={[10, 25, 50]}
+          initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+          disableRowSelectionOnClick
           sx={{ 
             border: 'none',
-            '& .MuiDataGrid-cell:focus': {
-              outline: 'none',
-            },
+            '& .MuiDataGrid-cell:focus': { outline: 'none' },
             '& .MuiDataGrid-columnHeaders': {
-              bgcolor: 'rgba(234,120,30,0.03)',
-              borderBottom: '1px solid rgba(0,0,0,0.05)',
+              bgcolor: alpha(theme.palette.primary.main, 0.02),
+              borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`
             }
           }}
         />
       </Paper>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} PaperProps={{ sx: { borderRadius: 4, p: 1 } }}>
+        <DialogTitle sx={{ fontWeight: 900 }}>Confirm Status Sync</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">Are you sure you want to transition this acquisition to <b>{statusUpdate.status.toUpperCase()}</b>?</Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setConfirmOpen(false)} sx={{ fontWeight: 700, color: 'text.secondary' }}>Cancel</Button>
+          <Button variant="contained" onClick={confirmStatusUpdate} sx={{ borderRadius: 2, fontWeight: 900, px: 3 }}>Confirm Transition</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 6, overflow: 'hidden' } }}>
+        {selectedOrder && (
+          <>
+            <DialogTitle sx={{ p: 4, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: 1, borderColor: 'divider' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 900 }}>Acquisition Archive</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main' }}>REF: {selectedOrder.order_number}</Typography>
+                </Box>
+                <Chip label={selectedOrder.status.toUpperCase()} color="primary" sx={{ fontWeight: 900, height: 28 }} />
+              </Box>
+            </DialogTitle>
+            <DialogContent sx={{ p: 4 }}>
+              <Grid container spacing={4}>
+                <Grid item xs={12} md={7}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3, textTransform: 'uppercase', letterSpacing: 1 }}>Curation Details</Typography>
+                  <Stack spacing={2}>
+                    {(selectedOrder.items || []).map((item: any, idx: number) => (
+                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: alpha(theme.palette.common.black, 0.02), borderRadius: 3 }}>
+                        <Avatar src={item.imageUrl} variant="rounded" sx={{ width: 48, height: 48, borderRadius: 2 }}><ShoppingBag /></Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 800 }}>{item.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">Qty: {item.quantity} × ₹{item.price.toLocaleString()}</Typography>
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 900 }}>₹{(item.price * item.quantity).toLocaleString()}</Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                </Grid>
+                <Grid item xs={12} md={5}>
+                  <Stack spacing={4}>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2, textTransform: 'uppercase', letterSpacing: 1 }}>Financials</Typography>
+                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, borderStyle: 'dashed' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="caption" fontWeight={700}>Payment Status</Typography>
+                          <Typography variant="caption" fontWeight={900} color={selectedOrder.payment_status === 'paid' ? 'success.main' : 'error.main'}>
+                            {selectedOrder.payment_status.toUpperCase()}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="caption" fontWeight={700}>Transaction ID</Typography>
+                          <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>{selectedOrder.transaction_id || 'N/A'}</Typography>
+                        </Box>
+                      </Paper>
+                    </Box>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2, textTransform: 'uppercase', letterSpacing: 1 }}>Destination</Typography>
+                      <Box sx={{ display: 'flex', gap: 2 }}>
+                        <MapPin sx={{ color: 'primary.main', fontSize: 20 }} />
+                        <Box>
+                          <Typography variant="body2" fontWeight={800}>{selectedOrder.shipping_address.full_name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {selectedOrder.shipping_address.address_line1}, {selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} — {selectedOrder.shipping_address.pincode}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Stack>
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
+              <Button onClick={() => setDetailOpen(false)} fullWidth sx={{ fontWeight: 900, color: 'text.secondary' }}>Close Archive</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </Box>
   );
 }

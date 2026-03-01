@@ -1,167 +1,246 @@
-
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, getDocs } from 'firebase/firestore';
+import { useUser } from '@/firebase';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { 
-  Package, 
-  Truck, 
+  Container, 
+  Paper, 
+  Typography, 
+  Box, 
+  Stepper, 
+  Step, 
+  StepLabel, 
+  Grid, 
+  Divider, 
+  Chip, 
+  CircularProgress,
+  Button,
+  Avatar,
+  Stack,
+  Alert,
+  AlertTitle,
+  alpha
+} from '@mui/material';
+import { 
   CheckCircle2, 
+  ChevronLeft, 
+  ShoppingBag, 
+  Truck, 
   Clock, 
   MapPin, 
-  ChevronLeft, 
-  Loader2, 
-  Hammer, 
-  Zap, 
-  Box, 
-  Award,
-  ShieldCheck,
+  CreditCard,
   AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { cn } from '@/lib/utils';
+import dayjs from 'dayjs';
 
-const STATUS_STEPS = [
-  { id: 'placed', label: 'Placed', icon: Clock },
-  { id: 'crafting', label: 'Crafting', icon: Hammer },
-  { id: 'developing', label: 'Developing', icon: Zap },
-  { id: 'packed', label: 'Packed', icon: Box },
-  { id: 'dispatched', label: 'Dispatched', icon: Truck },
-  { id: 'delivered', label: 'Delivered', icon: Award }
-];
+const STEPS = ['Confirmed', 'Processing', 'Shipped', 'Delivered'];
+const STEP_MAP: Record<string, number> = {
+  'pending': 0,
+  'confirmed': 0,
+  'processing': 1,
+  'shipped': 2,
+  'out_for_delivery': 2,
+  'delivered': 3,
+};
 
 export default function OrderDetailPage() {
   const params = useParams();
   const { user, isUserLoading } = useUser();
   const [order, setOrder] = useState<any>(null);
-  const [items, setItems] = useState<any[]>([]);
-  const [isSyncing, setIsSyncing] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const orderId = params.id as string;
 
-  useEffect(() => {
-    async function syncStatus() {
-      if (isUserLoading || !user) return;
+  const fetchOrder = useCallback(async () => {
+    try {
+      // 1. Reconcile payment status first
+      await fetch(`/api/orders/${orderId}/status`);
       
-      try {
-        // PROACTIVE SERVER SYNC
-        const res = await fetch(`/api/orders/${orderId}/status`);
-        const data = await res.json();
-        
-        if (!res.ok) throw new Error(data.message);
-
-        // Fetch remaining details from DB
-        const dbRes = await fetch(`/api/orders/${orderId}`); // Assuming a GET route exists or use Firestore
-        // For this implementation, we rely on the status API for status and Firestore for data
-        setIsSyncing(false);
-      } catch (err: any) {
-        setError(err.message);
-        setIsSyncing(false);
-      }
+      // 2. Fetch full details from DB
+      const res = await fetch(`/api/orders/${orderId}`);
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.message);
+      setOrder(data);
+      setIsLoading(false);
+    } catch (err: any) {
+      setError(err.message);
+      setIsLoading(false);
     }
-    syncStatus();
-  }, [user, isUserLoading, orderId]);
+  }, [orderId]);
 
-  // Use Firestore for real-time item updates
-  const firestore = useFirestore();
-  const orderRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid, 'orders', orderId);
-  }, [firestore, user, orderId]);
-
-  const itemsRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return collection(firestore, 'users', user.uid, 'orders', orderId, 'items');
-  }, [firestore, user, orderId]);
-
-  // Fallback to fetch data if API not fully ready
   useEffect(() => {
-    async function loadData() {
-      if (!orderRef || !itemsRef) return;
-      // Note: In real app, use the useDoc/useCollection hooks here. 
-      // For this example, I'll assume they provide data.
+    if (!isUserLoading && user) {
+      fetchOrder();
+      
+      // Polling for updates every 20 seconds if order is not delivered or cancelled
+      const interval = setInterval(() => {
+        if (order && !['delivered', 'cancelled'].includes(order.status)) {
+          fetchOrder();
+        }
+      }, 20000);
+      
+      return () => clearInterval(interval);
     }
-    loadData();
-  }, [orderRef, itemsRef]);
+  }, [user, isUserLoading, fetchOrder, order?.status]);
 
-  if (isUserLoading || isSyncing) {
+  if (isUserLoading || isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
-        <Navbar />
-        <main className="flex-1 flex flex-col items-center justify-center p-12">
-          <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-          <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Reconciling with Gateway...</p>
-        </main>
-        <Footer />
-      </div>
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
+        <CircularProgress sx={{ color: '#EA781E' }} />
+      </Box>
     );
   }
 
-  // NOTE: Full UI omitted for brevity in this specific response to keep tokens low, 
-  // but status logic is now driven by backend verification.
+  if (error || !order) {
+    return (
+      <Container maxWidth="md" sx={{ py: 10, textAlign: 'center' }}>
+        <AlertCircle size={64} color="#EA781E" style={{ marginBottom: 24 }} />
+        <Typography variant="h4" gutterBottom>Acquisition Not Found</Typography>
+        <Typography color="text.secondary" sx={{ mb: 4 }}>We couldn't retrieve the details for order {orderId}.</Typography>
+        <Button component={Link} href="/orders" variant="contained" sx={{ bgcolor: '#EA781E' }}>Return to History</Button>
+      </Container>
+    );
+  }
+
+  const currentStep = STEP_MAP[order.status] ?? 0;
+  const isCancelled = order.status === 'cancelled';
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
+    <Box sx={{ minHeight: '100vh', bgcolor: '#FAF4EB', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <main className="flex-1 py-16">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <div className="mb-10 flex items-center justify-between">
-            <Button variant="ghost" asChild className="font-bold gap-2">
-              <Link href="/orders"><ChevronLeft className="h-4 w-4" /> My Acquisitions</Link>
-            </Button>
-            <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 rounded-full">
-              ID: {orderId}
-            </Badge>
-          </div>
+      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 4, md: 8 } }}>
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Button component={Link} href="/orders" startIcon={<ChevronLeft size={18} />} sx={{ color: 'text.secondary', fontWeight: 800 }}>
+            Back to Orders
+          </Button>
+          <Typography variant="caption" sx={{ fontWeight: 900, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+            ID: {order.order_number}
+          </Typography>
+        </Box>
 
-          <Card className="rounded-[3rem] border-none shadow-2xl overflow-hidden bg-white">
-            <CardContent className="p-12 text-center space-y-8">
-              <div className="h-24 w-24 rounded-[2.5rem] bg-green-50 text-green-600 flex items-center justify-center mx-auto shadow-inner border border-green-100">
-                <CheckCircle2 className="h-12 w-12" />
-              </div>
-              <div className="space-y-2">
-                <h1 className="text-4xl font-black text-primary tracking-tight">Acquisition Secured</h1>
-                <p className="text-muted-foreground font-medium">Your payment has been verified directly with our gateway.</p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-8">
-                <div className="p-6 rounded-[2rem] bg-[#FAF4EB] border border-primary/5 text-left">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Logistics Timeline</p>
-                  <div className="space-y-4">
-                    {STATUS_STEPS.slice(0, 3).map((step, i) => (
-                      <div key={step.id} className="flex items-center gap-4">
-                        <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", i === 0 ? "bg-primary text-white" : "bg-white text-muted-foreground")}>
-                          <step.icon className="h-5 w-5" />
-                        </div>
-                        <p className="text-xs font-black uppercase tracking-widest">{step.label}</p>
-                      </div>
+        <Grid container spacing={4}>
+          <Grid item xs={12} lg={8}>
+            <Stack spacing={4}>
+              {/* Progress Card */}
+              <Paper sx={{ p: { xs: 4, md: 6 }, borderRadius: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
+                <Box sx={{ mb: 6, textAlign: 'center' }}>
+                  <Typography variant="h5" sx={{ fontWeight: 900, mb: 1 }}>Acquisition Journey</Typography>
+                  <Typography variant="body2" color="text.secondary">Estimated Delivery: {dayjs(order.expected_delivery).format('DD MMM YYYY')}</Typography>
+                </Box>
+
+                {isCancelled ? (
+                  <Alert severity="error" sx={{ borderRadius: '1rem' }}>
+                    <AlertTitle sx={{ fontWeight: 800 }}>Acquisition Cancelled</AlertTitle>
+                    This order was cancelled and is no longer being processed.
+                  </Alert>
+                ) : (
+                  <Stepper activeStep={currentStep} alternativeLabel>
+                    {STEPS.map((label) => (
+                      <Step key={label}>
+                        <StepLabel StepIconProps={{ sx: { color: currentStep >= STEPS.indexOf(label) ? '#EA781E' : 'inherit' } }}>
+                          <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.65rem', textTransform: 'uppercase' }}>{label}</Typography>
+                        </StepLabel>
+                      </Step>
                     ))}
-                  </div>
-                </div>
-                <div className="p-6 rounded-[2rem] bg-white border-2 border-dashed border-primary/10 text-left flex flex-col justify-center">
-                  <ShieldCheck className="h-8 w-8 text-primary mb-4" />
-                  <p className="text-sm font-bold text-primary mb-1">Authenticated Verification</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed italic">"Status confirmed via server-to-gateway fetch. No client-side tampering detected."</p>
-                </div>
-              </div>
+                  </Stepper>
+                )}
+              </Paper>
 
-              <Button asChild className="h-14 px-12 rounded-2xl bg-[#1E1E1E] text-white font-bold shadow-xl">
-                <Link href="/products">Explore More Art</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+              {/* Items Card */}
+              <Paper sx={{ p: { xs: 4, md: 6 }, borderRadius: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, mb: 4 }}>Curation Breakdown</Typography>
+                <Stack spacing={3}>
+                  {order.items.map((item: any, idx: number) => (
+                    <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <Avatar src={item.imageUrl} variant="rounded" sx={{ width: 64, height: 64, borderRadius: '1rem', border: '1px solid', borderColor: 'divider' }}>
+                        <ShoppingBag size={24} />
+                      </Avatar>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: '0.9rem' }}>{item.name}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Qty: {item.quantity}</Typography>
+                      </Box>
+                      <Typography sx={{ fontWeight: 900 }}>₹{(item.price * item.quantity).toLocaleString()}</Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </Paper>
+            </Stack>
+          </Grid>
+
+          <Grid item xs={12} lg={4}>
+            <Stack spacing={4}>
+              {/* Payment Summary */}
+              <Paper sx={{ p: 4, borderRadius: '2.5rem', bgcolor: 'white', boxShadow: '0 20px 50px rgba(0,0,0,0.05)' }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, mb: 3 }}>Financial Record</Typography>
+                
+                <Box sx={{ mb: 4 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.disabled', textTransform: 'uppercase' }}>Payment Status</Typography>
+                    <Chip 
+                      label={order.payment_status.toUpperCase()} 
+                      size="small"
+                      color={order.payment_status === 'paid' ? 'success' : order.payment_status === 'failed' ? 'error' : 'warning'}
+                      sx={{ fontWeight: 900, fontSize: '0.6rem', borderRadius: '6px' }}
+                    />
+                  </Box>
+                  {order.payment_verified ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                      <CheckCircle2 size={14} color="#2e7d32" />
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: 'success.main' }}>Directly Verified with Gateway</Typography>
+                    </Box>
+                  ) : (
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>Reconciling with secure server...</Typography>
+                  )}
+                </Box>
+
+                <Stack spacing={1.5} sx={{ mb: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Net Acquisition</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>₹{(order.total_amount - 150).toLocaleString()}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">FragileCare™ Shipping</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>₹150</Typography>
+                  </Box>
+                  <Divider sx={{ my: 1 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <Typography sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '0.75rem' }}>Grand Total</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{order.total_amount.toLocaleString()}</Typography>
+                  </Box>
+                </Stack>
+
+                {order.transaction_id && (
+                  <Box sx={{ mt: 4, p: 2, bgcolor: alpha('#EA781E', 0.05), borderRadius: '1rem', border: '1px dashed', borderColor: alpha('#EA781E', 0.2) }}>
+                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, color: 'text.disabled', mb: 0.5 }}>TRANSACTION REF</Typography>
+                    <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#EA781E' }}>{order.transaction_id}</Typography>
+                  </Box>
+                )}
+              </Paper>
+
+              {/* Destination */}
+              <Paper sx={{ p: 4, borderRadius: '2rem', border: '1px solid', borderColor: 'divider' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <MapPin size={20} color="#EA781E" />
+                  <Typography sx={{ fontWeight: 900 }}>Destination</Typography>
+                </Box>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>{order.shipping_address.full_name}</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {order.shipping_address.address_line1}<br />
+                  {order.shipping_address.city}, {order.shipping_address.state} — {order.shipping_address.pincode}
+                </Typography>
+                <Typography variant="caption" sx={{ display: 'block', mt: 2, fontWeight: 800 }}>{order.shipping_address.phone}</Typography>
+              </Paper>
+            </Stack>
+          </Grid>
+        </Grid>
+      </Container>
       <Footer />
-    </div>
+    </Box>
   );
 }

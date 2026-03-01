@@ -5,11 +5,6 @@ import OrderedItem from '@/lib/models/OrderedItem';
 import { createCashfreeOrder } from '@/lib/actions/cashfree';
 import crypto from 'crypto';
 
-/**
- * @fileOverview Secure order creation API.
- * Validates prices from the DB and generates a dynamic return URL.
- */
-
 export async function POST(req: NextRequest) {
   await dbConnect();
 
@@ -20,7 +15,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Missing required order details' }, { status: 400 });
     }
 
-    // 1. Calculate and Verify Totals Server-Side
     let subtotal = 0;
     const validatedItems = [];
 
@@ -30,27 +24,26 @@ export async function POST(req: NextRequest) {
       
       subtotal += product.price * item.quantity;
       validatedItems.push({
-        productId: product._id,
+        productId: product._id.toString(),
         name: product.name,
         price: product.price,
         quantity: item.quantity,
-        imageUrl: product.images?.[0]?.url
+        imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url
       });
     }
 
     const shippingCost = 150;
     const totalAmount = subtotal + shippingCost;
-
-    // 2. Generate Unique Order Number
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    // 3. Create Pending Order in DB
     const newOrder = await OrderedItem.create({
       user_id: userId,
       user_name: customerName,
       user_phone: customerPhone,
+      user_email: customerEmail,
       order_number: orderNumber,
       total_amount: totalAmount,
+      items: validatedItems,
       shipping_address: {
         full_name: shippingDetails.fullName,
         phone: shippingDetails.phone,
@@ -59,18 +52,16 @@ export async function POST(req: NextRequest) {
         state: shippingDetails.state,
         pincode: shippingDetails.zip,
       },
-      status: 'Placed',
+      status: 'pending',
       payment_method: 'online',
       payment_gateway: 'cashfree',
       payment_status: 'pending',
-      expected_delivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      expected_delivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
-    // 4. Determine Dynamic Return URL
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
-    const returnUrl = `${origin}/orders/${orderNumber}?cf_id={order_id}`;
+    const returnUrl = `${origin}/orders/${orderNumber}`;
 
-    // 5. Initialize Cashfree Order
     const cashfreeResult = await createCashfreeOrder({
       orderId: orderNumber,
       orderAmount: totalAmount,
@@ -84,7 +75,6 @@ export async function POST(req: NextRequest) {
       returnUrl
     });
 
-    // 6. Store Gateway ID in DB for reconciliation
     if (!cashfreeResult.isMock) {
       await OrderedItem.findByIdAndUpdate(newOrder._id, { 
         gateway_order_id: cashfreeResult.orderId 
