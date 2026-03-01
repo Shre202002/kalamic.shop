@@ -32,31 +32,38 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const shippingCost = 150;
-    const totalAmount = subtotal + shippingCost;
+    // Default Charges based on Schema
+    const charges = {
+      shipping: 20,
+      handling: 80,
+      premium: 50
+    };
+    const totalAmount = subtotal + charges.shipping + charges.handling + charges.premium;
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
     const newOrder = await OrderedItem.create({
-      user_id: userId,
-      user_name: customerName,
-      user_phone: customerPhone,
-      user_email: customerEmail,
-      order_number: orderNumber,
-      total_amount: totalAmount,
+      userId,
+      userName: customerName,
+      userPhone: customerPhone,
+      userEmail: customerEmail,
+      orderNumber,
+      subtotal,
+      charges,
+      totalAmount,
       items: validatedItems,
-      shipping_address: {
-        full_name: shippingDetails.fullName,
+      shippingAddress: {
+        fullName: shippingDetails.fullName,
         phone: shippingDetails.phone,
-        address_line1: shippingDetails.address,
+        addressLine1: shippingDetails.address,
         city: shippingDetails.city,
         state: shippingDetails.state,
         pincode: shippingDetails.zip,
       },
-      status: 'pending',
-      payment_method: 'online',
-      payment_gateway: 'cashfree',
-      payment_status: 'pending',
-      expected_delivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      orderStatus: 'Placed',
+      paymentMethod: 'online',
+      paymentGateway: 'cashfree',
+      paymentStatus: 'pending',
+      expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
@@ -77,7 +84,7 @@ export async function POST(req: NextRequest) {
 
     if (!cashfreeResult.isMock) {
       await OrderedItem.findByIdAndUpdate(newOrder._id, { 
-        gateway_order_id: cashfreeResult.orderId 
+        gatewayOrderId: cashfreeResult.orderId 
       });
     }
 

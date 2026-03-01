@@ -5,7 +5,7 @@ import { verifyCashfreeSignature, getCashfreeOrderStatus } from '@/lib/actions/c
 
 /**
  * @fileOverview Secure Cashfree Webhook Handler.
- * Verifies signature and performs a proactive server-to-gateway status check.
+ * Updated for camelCase schema fields.
  */
 
 export async function POST(req: NextRequest) {
@@ -30,24 +30,21 @@ export async function POST(req: NextRequest) {
     const { order_id } = payload.data.order;
 
     // 2. PROACTIVE VERIFICATION (Server-to-Gateway)
-    // We don't trust the payload alone; we fetch the status directly from Cashfree.
     const cfOrder = await getCashfreeOrderStatus(order_id);
 
     if (cfOrder.order_status === 'PAID') {
       console.log(`[PAYMENT_SUCCESS] Verified order: ${order_id}`);
       
       await OrderedItem.findOneAndUpdate(
-        { order_number: order_id },
+        { orderNumber: order_id },
         { 
-          payment_status: 'paid',
-          payment_verified: true,
-          payment_id: cfOrder.cf_order_id || cfOrder.order_id,
-          payment_timestamp: new Date(),
-          transaction_id: cfOrder.cf_order_id || cfOrder.order_id // Store ref
+          paymentStatus: 'paid',
+          paymentVerified: true,
+          paymentId: cfOrder.cf_order_id || cfOrder.order_id,
+          paymentTimestamp: new Date(),
+          transactionId: cfOrder.cf_order_id || cfOrder.order_id 
         }
       );
-    } else {
-      console.log(`[PAYMENT_UPDATE] Status for ${order_id} is ${cfOrder.order_status}`);
     }
 
     return NextResponse.json({ received: true });

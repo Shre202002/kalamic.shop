@@ -5,16 +5,18 @@ import User from '@/lib/models/User';
 
 /**
  * @fileOverview Secure admin API for updating order status with transition validation.
+ * Supports new artisanal lifecycle enums.
  */
 
 const ALLOWED_TRANSITIONS: Record<string, OrderStatus[]> = {
-  pending: ['confirmed', 'cancelled'],
-  confirmed: ['processing', 'cancelled'],
-  processing: ['shipped', 'cancelled'],
-  shipped: ['out_for_delivery', 'cancelled'],
-  out_for_delivery: ['delivered', 'cancelled'],
-  delivered: [],
-  cancelled: [],
+  Placed: ['Confirmed', 'Canceled'],
+  Confirmed: ['Preparing', 'Canceled'],
+  Preparing: ['Developing', 'Canceled'],
+  Developing: ['Completed', 'Canceled'],
+  Completed: ['Dispatched', 'Canceled'],
+  Dispatched: ['Delivered', 'Canceled'],
+  Delivered: [],
+  Canceled: [],
 };
 
 export async function POST(req: NextRequest) {
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Validate Transition
-    const currentStatus = order.status;
+    const currentStatus = order.orderStatus;
     const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
     
     if (!allowed.includes(newStatus as OrderStatus)) {
@@ -46,10 +48,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Update
-    order.status = newStatus;
+    order.orderStatus = newStatus;
     await order.save();
 
-    return NextResponse.json({ success: true, status: order.status });
+    return NextResponse.json({ success: true, status: order.orderStatus });
 
   } catch (error: any) {
     return NextResponse.json({ message: error.message }, { status: 500 });

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { id } = params;
 
   try {
-    const order = await OrderedItem.findOne({ order_number: id }).lean();
+    const order = await OrderedItem.findOne({ orderNumber: id }).lean();
     if (!order) return NextResponse.json({ message: 'Order not found' }, { status: 404 });
 
     return NextResponse.json(JSON.parse(JSON.stringify(order)));

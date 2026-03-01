@@ -1,20 +1,35 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 /**
- * @fileOverview Represents finalized order records in the Kalamic ecosystem.
- * This collection is the source of truth for post-acquisition logistics and payment audits.
+ * @fileOverview Official Schema for finalized acquisitions in the Kalamic ecosystem.
+ * Updated to use camelCase and include specific artisanal charges.
  */
 
-export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'out_for_delivery' | 'delivered' | 'cancelled';
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+export type OrderStatus = 
+  | "Placed" 
+  | "Confirmed" 
+  | "Preparing" 
+  | "Developing" 
+  | "Completed" 
+  | "Dispatched" 
+  | "Delivered" 
+  | "Canceled";
+
+export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
 export interface IOrderedItem extends Document {
-  user_id: string; // Firebase UID
-  user_name: string;
-  user_phone: string;
-  user_email: string;
-  order_number: string; // Unique human-readable ID
-  total_amount: number;
+  userId: string;
+  userName: string;
+  userPhone: string;
+  userEmail?: string;
+  orderNumber: string;
+  subtotal: number;
+  charges: {
+    shipping: number;
+    handling: number;
+    premium: number;
+  };
+  totalAmount: number;
   items: Array<{
     productId: string;
     name: string;
@@ -22,36 +37,44 @@ export interface IOrderedItem extends Document {
     quantity: number;
     imageUrl?: string;
   }>;
-  shipping_address: {
-    full_name: string;
+  shippingAddress: {
+    fullName: string;
     phone: string;
-    address_line1: string;
-    address_line2?: string | null;
+    addressLine1: string;
+    addressLine2?: string | null;
     city: string;
     state: string;
     pincode: string;
   };
-  status: OrderStatus;
-  payment_method: string;
-  payment_gateway: string;
-  payment_status: PaymentStatus;
-  transaction_id?: string | null;
-  gateway_order_id?: string | null;
-  payment_id?: string | null;
-  payment_verified: boolean;
-  payment_timestamp?: Date | null;
-  expected_delivery: Date;
-  created_at: Date;
-  updated_at: Date;
+  orderStatus: OrderStatus;
+  paymentMethod?: string;
+  paymentGateway?: string;
+  paymentStatus: PaymentStatus;
+  transactionId?: string | null;
+  gatewayOrderId?: string | null;
+  paymentId?: string | null;
+  paymentVerified: boolean;
+  paymentTimestamp?: Date | null;
+  expectedDelivery: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const OrderedItemSchema: Schema = new Schema({
-  user_id: { type: String, required: true, index: true },
-  user_name: { type: String, required: true },
-  user_phone: { type: String, required: true },
-  user_email: { type: String },
-  order_number: { type: String, required: true, unique: true, index: true },
-  total_amount: { type: Number, required: true, min: [0, 'Amount cannot be negative'] },
+  userId: { type: String, required: true, index: true },
+  userName: { type: String, required: true },
+  userPhone: { type: String, required: true },
+  userEmail: { type: String },
+  orderNumber: { type: String, required: true, unique: true, index: true },
+  
+  subtotal: { type: Number, required: true },
+  charges: {
+    shipping: { type: Number, default: 20 },
+    handling: { type: Number, default: 80 },
+    premium: { type: Number, default: 50 }
+  },
+  totalAmount: { type: Number, required: true },
+
   items: {
     type: [{
       productId: String,
@@ -62,38 +85,43 @@ const OrderedItemSchema: Schema = new Schema({
     }],
     _id: false
   },
-  shipping_address: {
-    full_name: { type: String, required: true },
-    phone: { type: String, required: true },
-    address_line1: { type: String, required: true },
-    address_line2: { type: String, default: null },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
-    pincode: { type: String, required: true },
+
+  shippingAddress: {
+    fullName: { type: String },
+    phone: { type: String },
+    addressLine1: { type: String },
+    addressLine2: { type: String, default: null },
+    city: { type: String },
+    state: { type: String },
+    pincode: { type: String },
   },
-  status: { 
+
+  orderStatus: { 
     type: String, 
-    enum: ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'],
-    default: 'pending'
+    enum: ["Placed", "Confirmed", "Preparing", "Developing", "Completed", "Dispatched", "Delivered", "Canceled"],
+    default: "Placed"
   },
-  payment_method: { type: String, required: true },
-  payment_gateway: { type: String, required: true },
-  payment_status: { 
+
+  paymentMethod: { type: String },
+  paymentGateway: { type: String },
+  paymentStatus: { 
     type: String, 
-    enum: ['pending', 'paid', 'failed', 'refunded'],
-    default: 'pending'
+    enum: ["pending", "paid", "failed", "refunded"],
+    default: "pending"
   },
-  transaction_id: { type: String, default: null },
-  gateway_order_id: { type: String, default: null },
-  payment_id: { type: String, default: null, index: true },
-  payment_verified: { type: Boolean, default: false },
-  payment_timestamp: { type: Date, default: null },
-  expected_delivery: { type: Date, required: true },
+
+  transactionId: { type: String, default: null },
+  gatewayOrderId: { type: String, default: null },
+  paymentId: { type: String, default: null, index: true },
+  
+  paymentVerified: { type: Boolean, default: false },
+  paymentTimestamp: { type: Date, default: null },
+  expectedDelivery: { type: Date },
 }, { 
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+  timestamps: true,
   collection: 'Ordered_Items' 
 });
 
-OrderedItemSchema.index({ created_at: -1 });
+OrderedItemSchema.index({ createdAt: -1 });
 
 export default mongoose.models.OrderedItem || mongoose.model<IOrderedItem>('OrderedItem', OrderedItemSchema);

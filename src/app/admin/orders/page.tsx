@@ -31,7 +31,7 @@ import dayjs from 'dayjs';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 
-const STATUS_OPTIONS = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
+const STATUS_OPTIONS = ["Placed", "Confirmed", "Preparing", "Developing", "Completed", "Dispatched", "Delivered", "Canceled"];
 
 export default function OrdersManagement() {
   const { user } = useUser();
@@ -85,7 +85,7 @@ export default function OrdersManagement() {
       if (!res.ok) throw new Error(data.message);
 
       toast({ title: "Status Synchronized", description: `Order updated to ${statusUpdate.status}.` });
-      setOrders((prev: any) => prev.map((o: any) => o._id === statusUpdate.id ? { ...o, status: statusUpdate.status } : o));
+      setOrders((prev: any) => prev.map((o: any) => o._id === statusUpdate.id ? { ...o, orderStatus: statusUpdate.status } : o));
     } catch (e: any) {
       toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     }
@@ -93,8 +93,8 @@ export default function OrdersManagement() {
 
   const columns: GridColDef[] = useMemo(() => [
     { 
-      field: 'order_number', 
-      headerName: 'Master Reference', 
+      field: 'orderNumber', 
+      headerName: 'Reference', 
       width: 180,
       renderCell: (params) => (
         <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 900, color: 'primary.main' }}>
@@ -103,27 +103,27 @@ export default function OrdersManagement() {
       )
     },
     { 
-      field: 'user_name', 
+      field: 'userName', 
       headerName: 'Collector', 
       width: 200,
       renderCell: (params) => (
         <Box sx={{ py: 1 }}>
           <Typography variant="body2" sx={{ fontWeight: 700 }}>{params.value}</Typography>
-          <Typography variant="caption" color="text.secondary">{params.row.user_phone}</Typography>
+          <Typography variant="caption" color="text.secondary">{params.row.userPhone}</Typography>
         </Box>
       )
     },
     { 
-      field: 'total_amount', 
-      headerName: 'Valuation', 
+      field: 'totalAmount', 
+      headerName: 'Total (₹)', 
       width: 120,
       renderCell: (params) => (
         <Typography variant="body2" sx={{ fontWeight: 900 }}>₹{(params.value ?? 0).toLocaleString()}</Typography>
       )
     },
     { 
-      field: 'status', 
-      headerName: 'Artisanal Stage', 
+      field: 'orderStatus', 
+      headerName: 'Status', 
       width: 200,
       renderCell: (params) => (
         <FormControl fullWidth size="small">
@@ -146,22 +146,22 @@ export default function OrdersManagement() {
       )
     },
     { 
-      field: 'payment_status', 
-      headerName: 'Financials', 
+      field: 'paymentStatus', 
+      headerName: 'Payment', 
       width: 130,
       renderCell: (params) => (
         <Chip 
           label={params.value || 'pending'} 
           size="small" 
           color={params.value === 'paid' ? 'success' : 'error'} 
-          variant={params.row.payment_verified ? 'filled' : 'outlined'}
+          variant={params.row.paymentVerified ? 'filled' : 'outlined'}
           sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '0.6rem', height: 24 }}
         />
       )
     },
     { 
-      field: 'created_at', 
-      headerName: 'Acquired', 
+      field: 'createdAt', 
+      headerName: 'Date', 
       width: 160,
       renderCell: (params) => (
         <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
@@ -187,8 +187,8 @@ export default function OrdersManagement() {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 900 }}>Logistics Command</Typography>
-        <Typography variant="body2" color="text.secondary">Managing the primary Kalamic acquisition pipeline.</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 900 }}>Artisanal Acquisitions</Typography>
+        <Typography variant="body2" color="text.secondary">Overseeing the finalized collection pipeline.</Typography>
       </Box>
 
       <Paper sx={{ border: 'none', borderRadius: 4, boxShadow: '0 10px 40px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
@@ -203,48 +203,44 @@ export default function OrdersManagement() {
           disableRowSelectionOnClick
           sx={{ 
             border: 'none',
-            '& .MuiDataGrid-cell:focus': { outline: 'none' },
-            '& .MuiDataGrid-columnHeaders': {
-              bgcolor: alpha(theme.palette.primary.main, 0.02),
-              borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`
-            }
+            '& .MuiDataGrid-cell:focus': { outline: 'none' }
           }}
         />
       </Paper>
 
       {/* Confirmation Dialog */}
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} PaperProps={{ sx: { borderRadius: 4, p: 1 } }}>
-        <DialogTitle sx={{ fontWeight: 900 }}>Confirm Status Sync</DialogTitle>
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle sx={{ fontWeight: 900 }}>Synchronize Status</DialogTitle>
         <DialogContent>
-          <Typography variant="body2">Are you sure you want to transition this acquisition to <b>{statusUpdate.status.toUpperCase()}</b>?</Typography>
+          <Typography variant="body2">Transition this acquisition to <b>{statusUpdate.status.toUpperCase()}</b>?</Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setConfirmOpen(false)} sx={{ fontWeight: 700, color: 'text.secondary' }}>Cancel</Button>
-          <Button variant="contained" onClick={confirmStatusUpdate} sx={{ borderRadius: 2, fontWeight: 900, px: 3 }}>Confirm Transition</Button>
+          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={confirmStatusUpdate}>Confirm</Button>
         </DialogActions>
       </Dialog>
 
       {/* Detail Dialog */}
-      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 6, overflow: 'hidden' } }}>
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="md" fullWidth>
         {selectedOrder && (
           <>
             <DialogTitle sx={{ p: 4, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: 1, borderColor: 'divider' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 900 }}>Acquisition Archive</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main' }}>REF: {selectedOrder.order_number}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 900 }}>Acquisition Breakdown</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main' }}>REF: {selectedOrder.orderNumber}</Typography>
                 </Box>
-                <Chip label={selectedOrder.status.toUpperCase()} color="primary" sx={{ fontWeight: 900, height: 28 }} />
+                <Chip label={selectedOrder.orderStatus.toUpperCase()} color="primary" sx={{ fontWeight: 900 }} />
               </Box>
             </DialogTitle>
             <DialogContent sx={{ p: 4 }}>
               <Grid container spacing={4}>
                 <Grid item xs={12} md={7}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3, textTransform: 'uppercase', letterSpacing: 1 }}>Curation Details</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3 }}>Curated Items</Typography>
                   <Stack spacing={2}>
                     {(selectedOrder.items || []).map((item: any, idx: number) => (
                       <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: alpha(theme.palette.common.black, 0.02), borderRadius: 3 }}>
-                        <Avatar src={item.imageUrl} variant="rounded" sx={{ width: 48, height: 48, borderRadius: 2 }}><ShoppingBag /></Avatar>
+                        <Avatar src={item.imageUrl} variant="rounded" sx={{ width: 48, height: 48 }}><ShoppingBag /></Avatar>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="body2" sx={{ fontWeight: 800 }}>{item.name}</Typography>
                           <Typography variant="caption" color="text.secondary">Qty: {item.quantity} × ₹{item.price.toLocaleString()}</Typography>
@@ -257,28 +253,31 @@ export default function OrdersManagement() {
                 <Grid item xs={12} md={5}>
                   <Stack spacing={4}>
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2, textTransform: 'uppercase', letterSpacing: 1 }}>Financials</Typography>
-                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, borderStyle: 'dashed' }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2 }}>Financial Record</Typography>
+                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="caption" fontWeight={700}>Payment Status</Typography>
-                          <Typography variant="caption" fontWeight={900} color={selectedOrder.payment_status === 'paid' ? 'success.main' : 'error.main'}>
-                            {selectedOrder.payment_status.toUpperCase()}
-                          </Typography>
+                          <Typography variant="caption" fontWeight={700}>Subtotal</Typography>
+                          <Typography variant="caption">₹{selectedOrder.subtotal?.toLocaleString()}</Typography>
                         </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="caption" fontWeight={700}>Logistics (Charges)</Typography>
+                          <Typography variant="caption">₹{(selectedOrder.charges?.shipping + selectedOrder.charges?.handling + selectedOrder.charges?.premium).toLocaleString()}</Typography>
+                        </Box>
+                        <Divider sx={{ my: 1 }} />
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="caption" fontWeight={700}>Transaction ID</Typography>
-                          <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>{selectedOrder.transaction_id || 'N/A'}</Typography>
+                          <Typography variant="caption" fontWeight={900}>Total Amount</Typography>
+                          <Typography variant="caption" fontWeight={900} color="primary.main">₹{selectedOrder.totalAmount?.toLocaleString()}</Typography>
                         </Box>
                       </Paper>
                     </Box>
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2, textTransform: 'uppercase', letterSpacing: 1 }}>Destination</Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2 }}>Destination</Typography>
                       <Box sx={{ display: 'flex', gap: 2 }}>
                         <LocationOn sx={{ color: 'primary.main', fontSize: 20 }} />
                         <Box>
-                          <Typography variant="body2" fontWeight={800}>{selectedOrder.shipping_address.full_name}</Typography>
+                          <Typography variant="body2" fontWeight={800}>{selectedOrder.shippingAddress?.fullName}</Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {selectedOrder.shipping_address.address_line1}, {selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} — {selectedOrder.shipping_address.pincode}
+                            {selectedOrder.shippingAddress?.addressLine1}, {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} — {selectedOrder.shippingAddress?.pincode}
                           </Typography>
                         </Box>
                       </Box>
@@ -288,7 +287,7 @@ export default function OrdersManagement() {
               </Grid>
             </DialogContent>
             <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
-              <Button onClick={() => setDetailOpen(false)} fullWidth sx={{ fontWeight: 900, color: 'text.secondary' }}>Close Archive</Button>
+              <Button onClick={() => setDetailOpen(false)} fullWidth>Close Record</Button>
             </DialogActions>
           </>
         )}
