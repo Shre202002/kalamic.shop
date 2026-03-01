@@ -7,7 +7,7 @@ import crypto from 'crypto';
 
 /**
  * @fileOverview Production-safe Order Creation API.
- * Uses camelCase fields to match the OrderedItem schema.
+ * Uses camelCase fields to match the OrderedItem schema exactly.
  */
 
 export async function POST(req: NextRequest) {
@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
     const totalAmount = subtotal + charges.shipping + charges.handling + charges.premium;
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    // 3. Create the Database Record (Ensures camelCase)
+    // 3. Create the Database Record (Ensures strict camelCase)
+    // Map shippingDetails zip/landmark to pincode/nearestLandmark
     const newOrder = await OrderedItem.create({
       userId,
       userName: customerName,
@@ -72,10 +73,12 @@ export async function POST(req: NextRequest) {
       paymentGateway: 'cashfree',
       paymentStatus: 'pending',
       paymentVerified: false,
-      expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Standard 7 day lead time
+      expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
     });
 
-    // 4. Construct Multi-Environment Return URL
+    console.log(`[DB] Order Created: ${orderNumber} (_id: ${newOrder._id})`);
+
+    // 4. Construct Return URL
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
     const returnUrl = `${origin}/orders/${orderNumber}`;
 
@@ -107,6 +110,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[ORDER_CREATION_ERROR]:', error.message);
+    // Explicitly return error message to prevent frontend "crash"
     return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }

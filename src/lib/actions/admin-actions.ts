@@ -113,3 +113,64 @@ export async function getDashboardChartData() {
     ]
   };
 }
+
+export async function saveProduct(adminId: string, product: any) {
+  const actor = await validateRole(adminId, ['super_admin', 'admin']);
+  await dbConnect();
+  
+  const id = product._id;
+  const data = { ...product, updated_by_admin: actor.firebaseId };
+  delete data._id;
+
+  let result;
+  if (id) {
+    result = await KalamicProduct.findByIdAndUpdate(id, { $set: data }, { new: true });
+    await logAction(actor, 'UPDATE_PRODUCT', 'Product', id, `Updated piece: ${product.name}`);
+  } else {
+    data.created_by_admin = actor.firebaseId;
+    result = await KalamicProduct.create(data);
+    await logAction(actor, 'CREATE_PRODUCT', 'Product', result._id, `Created new piece: ${product.name}`);
+  }
+  
+  revalidatePath('/admin/products');
+  revalidatePath('/products');
+  return JSON.parse(JSON.stringify(result));
+}
+
+export async function deleteProduct(adminId: string, productId: string) {
+  const actor = await validateRole(adminId, ['super_admin', 'admin']);
+  await dbConnect();
+  await KalamicProduct.findByIdAndUpdate(productId, { is_deleted: true });
+  await logAction(actor, 'DELETE_PRODUCT', 'Product', productId, `Archived piece`);
+  revalidatePath('/admin/products');
+}
+
+export async function toggleProductVisibility(adminId: string, productId: string, active: boolean) {
+  const actor = await validateRole(adminId, ['super_admin', 'admin']);
+  await dbConnect();
+  await KalamicProduct.findByIdAndUpdate(productId, { is_active: active });
+  await logAction(actor, 'TOGGLE_VISIBILITY', 'Product', productId, `Set visibility to: ${active}`);
+  revalidatePath('/admin/products');
+}
+
+export async function updateAdminRole(actorId: string, targetId: string, role: string) {
+  const actor = await validateRole(actorId, ['super_admin']);
+  await dbConnect();
+  await User.findByIdAndUpdate(targetId, { role });
+  await logAction(actor, 'UPDATE_ADMIN_ROLE', 'User', targetId, `Changed role to: ${role}`);
+}
+
+export async function removeAdminAccess(actorId: string, targetId: string) {
+  const actor = await validateRole(actorId, ['super_admin']);
+  await dbConnect();
+  await User.findByIdAndUpdate(targetId, { role: 'buyer' });
+  await logAction(actor, 'REVOKE_ADMIN_ACCESS', 'User', targetId, `Revoked administrative clearance`);
+}
+
+export async function provisionAdmin(actorId: string, email: string, role: string) {
+  const actor = await validateRole(actorId, ['super_admin']);
+  await dbConnect();
+  const user = await User.findOneAndUpdate({ email: email.toLowerCase() }, { role }, { new: true });
+  if (!user) throw new Error("Collector not found. They must sign in once before being elevated.");
+  await logAction(actor, 'PROVISION_ADMIN', 'User', user._id, `Granted ${role} status to ${email}`);
+}

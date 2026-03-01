@@ -5,7 +5,7 @@ import { verifyCashfreeSignature, getCashfreeOrderStatus } from '@/lib/actions/c
 
 /**
  * @fileOverview Secure Cashfree Webhook Handler.
- * Synchronized with camelCase OrderedItem schema.
+ * Strictly aligned with the camelCase OrderedItem schema.
  */
 
 export async function POST(req: NextRequest) {
@@ -29,23 +29,30 @@ export async function POST(req: NextRequest) {
     const payload = JSON.parse(rawBody);
     const { order_id } = payload.data.order;
 
-    // 2. Server-to-Gateway Confirmation
+    // 2. Server-to-Gateway Confirmation (Trusted Source)
     const cfOrder = await getCashfreeOrderStatus(order_id);
 
     if (cfOrder.order_status === 'PAID') {
-      console.log(`[PAYMENT_SUCCESS] Reconciled order: ${order_id}`);
+      console.log(`[PAYMENT_SUCCESS] Reconciling: ${order_id}`);
       
-      // 3. Update using correct camelCase fields
-      await OrderedItem.findOneAndUpdate(
+      // 3. Atomic Update using camelCase fields
+      const updatedOrder = await OrderedItem.findOneAndUpdate(
         { orderNumber: order_id },
         { 
-          paymentStatus: 'paid',
-          paymentVerified: true,
-          paymentId: cfOrder.cf_order_id || cfOrder.order_id,
-          paymentTimestamp: new Date(),
-          transactionId: cfOrder.cf_order_id || cfOrder.order_id 
-        }
+          $set: {
+            paymentStatus: 'paid',
+            paymentVerified: true,
+            paymentId: cfOrder.cf_order_id || cfOrder.order_id,
+            paymentTimestamp: new Date(),
+            transactionId: cfOrder.cf_order_id || cfOrder.order_id 
+          }
+        },
+        { new: true }
       );
+
+      if (!updatedOrder) {
+        console.warn(`[WEBHOOK_WARNING] Payment received for unknown order: ${order_id}`);
+      }
     }
 
     return NextResponse.json({ received: true });

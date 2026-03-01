@@ -121,12 +121,13 @@ const OrderedItemSchema: Schema = new Schema({
   expectedDelivery: { type: Date, required: true },
 }, { 
   timestamps: true,
-  collection: 'Ordered_Items' 
+  collection: 'Ordered_Items',
+  strict: true 
 });
 
 // For debugging: verify correct schema paths are loaded
 if (process.env.NODE_ENV === 'development') {
-  console.log('[OrderedItem] Loaded Schema Paths:', Object.keys(OrderedItemSchema.paths));
+  console.log('[OrderedItem] Active Schema Paths:', Object.keys(OrderedItemSchema.paths));
 }
 
 export default mongoose.models.OrderedItem || mongoose.model<IOrderedItem>('OrderedItem', OrderedItemSchema);
