@@ -65,7 +65,7 @@ export default function AnalyticsPage() {
                   <Typography variant="h4" sx={{ fontWeight: 900 }}>₹{stats.avgOrderValue}</Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>Mean transaction value recorded</Typography>
                 </CardContent>
-              </Grid>
+              </Card>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Card sx={{ borderRadius: 4, bgcolor: 'white', border: '1px solid', borderColor: 'divider' }}>
