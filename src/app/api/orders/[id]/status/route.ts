@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
+import KalamicProduct from '@/lib/models/KalamicProduct';
 import { getCashfreeOrderStatus } from '@/lib/actions/cashfree';
 import { syncOrderToFirestore } from '@/lib/firebase-admin';
 
 /**
  * @fileOverview Direct Status Reconciliation API.
  * Ensures local database matches payment gateway state using camelCase fields.
- * Triggers Firestore sync on state changes.
+ * Triggers Firestore sync and analytics updates on state changes.
  * Next.js 15: params must be awaited in route handlers.
  */
 
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // If already verified locally, return early
     if (order.paymentStatus === 'paid' && order.paymentVerified) {
-      return NextResponse.json({ orderStatus: order.orderStatus, paymentStatus: 'paid' });
+      return NextResponse.json({ orderStatus: order.orderStatus, paymentStatus: 'paid', paymentVerified: true });
     }
 
     // Proactive check with Cashfree API
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
       if (cfOrder.order_status === 'PAID') {
         const updatedOrder = await OrderedItem.findOneAndUpdate(
-          { orderNumber: order.orderNumber },
+          { orderNumber: order.orderNumber, paymentVerified: { $ne: true } },
           { 
             $set: {
               paymentStatus: 'paid',
@@ -56,9 +57,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         if (updatedOrder) {
           await syncOrderToFirestore(updatedOrder);
+          
+          // Update Product Analytics
+          for (const item of updatedOrder.items) {
+            await KalamicProduct.findByIdAndUpdate(item.productId, {
+              $inc: { 'analytics.total_orders': item.quantity }
+            });
+          }
         }
 
-        return NextResponse.json({ orderStatus: updatedOrder?.orderStatus || order.orderStatus, paymentStatus: 'paid' });
+        return NextResponse.json({ 
+          orderStatus: updatedOrder?.orderStatus || order.orderStatus, 
+          paymentStatus: 'paid',
+          paymentVerified: true 
+        });
       }
     } catch (cfError) {
       console.warn(`[RECONCILE] Gateway check failed for ${order.orderNumber}:`, cfError);
@@ -66,7 +78,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({ 
       orderStatus: order.orderStatus, 
-      paymentStatus: order.paymentStatus 
+      paymentStatus: order.paymentStatus,
+      paymentVerified: order.paymentVerified
     });
 
   } catch (error: any) {

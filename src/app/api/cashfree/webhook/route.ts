@@ -1,13 +1,13 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
+import KalamicProduct from '@/lib/models/KalamicProduct';
 import { verifyCashfreeSignature, getCashfreeOrderStatus } from '@/lib/actions/cashfree';
 import { syncOrderToFirestore } from '@/lib/firebase-admin';
 
 /**
  * @fileOverview Secure Cashfree Webhook Handler.
- * Triggers Firestore synchronization upon successful payment reconciliation.
+ * Triggers Firestore synchronization and product analytics updates upon successful payment reconciliation.
  */
 
 export async function POST(req: NextRequest) {
@@ -37,9 +37,9 @@ export async function POST(req: NextRequest) {
     if (cfOrder.order_status === 'PAID') {
       console.log(`[PAYMENT_SUCCESS] Reconciling: ${order_id}`);
       
-      // 3. Atomic Update in MongoDB
+      // 3. Atomic Update in MongoDB - only update if not already verified
       const updatedOrder = await OrderedItem.findOneAndUpdate(
-        { orderNumber: order_id },
+        { orderNumber: order_id, paymentVerified: { $ne: true } },
         { 
           $set: {
             paymentStatus: 'paid',
@@ -55,8 +55,15 @@ export async function POST(req: NextRequest) {
       if (updatedOrder) {
         // 4. Sync to Firestore
         await syncOrderToFirestore(updatedOrder);
+
+        // 5. Update Product Analytics (Acquisitions)
+        for (const item of updatedOrder.items) {
+          await KalamicProduct.findByIdAndUpdate(item.productId, {
+            $inc: { 'analytics.total_orders': item.quantity }
+          });
+        }
       } else {
-        console.warn(`[WEBHOOK_WARNING] Payment received for unknown order: ${order_id}`);
+        console.warn(`[WEBHOOK_WARNING] Payment received for already verified or unknown order: ${order_id}`);
       }
     }
 

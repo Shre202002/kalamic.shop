@@ -1,4 +1,3 @@
-
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -55,10 +54,10 @@ export async function getAdminDashboardStats() {
   try {
     const [revenueData, orderCount, activeUsers, pendingOrders, totalUsers, wishlistActivity] = await Promise.all([
       OrderedItem.aggregate([
-        { $match: { paymentStatus: 'paid' } },
+        { $match: { paymentStatus: 'paid', paymentVerified: true } },
         { $group: { _id: null, total: { $sum: '$totalAmount' } } }
       ]),
-      OrderedItem.countDocuments(),
+      OrderedItem.countDocuments({ paymentStatus: 'paid', paymentVerified: true }),
       User.countDocuments({ status: 'active' }),
       OrderedItem.countDocuments({ orderStatus: { $in: ['Placed', 'Confirmed', 'Preparing', 'Developing'] } }),
       User.countDocuments(),
@@ -136,7 +135,7 @@ export async function getDashboardChartData() {
 
   const salesTrend = await Promise.all(last7Days.map(async (slot) => {
     const result = await OrderedItem.aggregate([
-      { $match: { createdAt: { $gte: slot.start, $lte: slot.end }, paymentStatus: 'paid' } },
+      { $match: { createdAt: { $gte: slot.start, $lte: slot.end }, paymentStatus: 'paid', paymentVerified: true } },
       { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ]);
     return { day: slot.label, value: result[0]?.total || 0 };
@@ -153,7 +152,7 @@ export async function getDashboardChartData() {
 
   // 3. Product Popularity Mix (based on order items)
   const productMix = await OrderedItem.aggregate([
-    { $match: { paymentStatus: 'paid' } },
+    { $match: { paymentStatus: 'paid', paymentVerified: true } },
     { $unwind: '$items' },
     { $group: { _id: '$items.name', value: { $sum: 1 } } },
     { $sort: { value: -1 } },

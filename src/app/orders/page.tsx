@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -109,83 +108,87 @@ export default function OrdersPage() {
             </Paper>
           ) : (
             <Grid container spacing={3}>
-              {orders.map((order: any) => (
-                <Grid item xs={12} key={order.orderNumber}>
-                  <Paper 
-                    component={Link}
-                    href={`/orders/${order.orderNumber}`}
-                    sx={{ 
-                      p: 3, 
-                      borderRadius: '2rem', 
-                      transition: 'all 0.3s',
-                      textDecoration: 'none',
-                      color: 'inherit',
-                      display: 'block',
-                      border: '1px solid transparent',
-                      '&:hover': { 
-                        transform: 'translateY(-4px)', 
-                        boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-                        borderColor: '#C97A40'
-                      } 
-                    }}
-                  >
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} sm={4}>
-                        <Stack spacing={0.5}>
-                          <Typography variant="caption" sx={{ fontWeight: 900, color: '#C97A40', textTransform: 'uppercase', letterSpacing: 1 }}>ID: {order.orderNumber}</Typography>
-                          <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
-                            <Calendar size={14} />
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{dayjs(order.createdAt).format('DD MMM YYYY')}</Typography>
+              {orders.map((order: any) => {
+                const isPaid = order.paymentStatus === 'paid' && order.paymentVerified;
+                
+                return (
+                  <Grid item xs={12} key={order.orderNumber}>
+                    <Paper 
+                      component={Link}
+                      href={`/orders/${order.orderNumber}`}
+                      sx={{ 
+                        p: 3, 
+                        borderRadius: '2rem', 
+                        transition: 'all 0.3s',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                        display: 'block',
+                        border: '1px solid transparent',
+                        '&:hover': { 
+                          transform: 'translateY(-4px)', 
+                          boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+                          borderColor: '#C97A40'
+                        } 
+                      }}
+                    >
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} sm={4}>
+                          <Stack spacing={0.5}>
+                            <Typography variant="caption" sx={{ fontWeight: 900, color: '#C97A40', textTransform: 'uppercase', letterSpacing: 1 }}>ID: {order.orderNumber}</Typography>
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
+                              <Calendar size={14} />
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{dayjs(order.createdAt).format('DD MMM YYYY')}</Typography>
+                            </Stack>
                           </Stack>
-                        </Stack>
-                      </Grid>
-                      
-                      <Grid item xs={12} sm={3}>
-                        <Stack spacing={1}>
-                          <Chip 
-                            label={(order.orderStatus || 'Placed').toUpperCase()} 
-                            size="small" 
-                            sx={{ 
-                              fontWeight: 900, 
-                              bgcolor: order.orderStatus === 'Delivered' ? '#6F8A7A' : '#C97A40',
-                              color: 'white',
-                              borderRadius: '6px',
-                              fontSize: '0.65rem'
-                            }} 
-                          />
-                          <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
-                            <Truck size={14} />
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>{order.orderStatus || 'Placed'}</Typography>
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={3}>
+                          <Stack spacing={1}>
+                            <Chip 
+                              label={(order.orderStatus || 'Placed').toUpperCase()} 
+                              size="small" 
+                              sx={{ 
+                                fontWeight: 900, 
+                                bgcolor: order.orderStatus === 'Delivered' ? '#6F8A7A' : '#C97A40',
+                                color: 'white',
+                                borderRadius: '6px',
+                                fontSize: '0.65rem'
+                              }} 
+                            />
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
+                              <Truck size={14} />
+                              <Typography variant="caption" sx={{ fontWeight: 700 }}>{order.orderStatus || 'Placed'}</Typography>
+                            </Stack>
                           </Stack>
-                        </Stack>
-                      </Grid>
+                        </Grid>
 
-                      <Grid item xs={12} sm={3}>
-                        <Stack spacing={1}>
-                          <Chip 
-                            label={(order.paymentStatus || 'pending').toUpperCase()} 
-                            variant="outlined"
-                            size="small"
-                            color={order.paymentStatus === 'paid' ? 'success' : 'warning'}
-                            sx={{ fontWeight: 900, fontSize: '0.65rem', borderRadius: '6px' }}
-                          />
-                          <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
-                            <CreditCard size={14} />
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                              {order.paymentVerified ? 'Payment Verified' : 'Verification Pending'}
-                            </Typography>
+                        <Grid item xs={12} sm={3}>
+                          <Stack spacing={1}>
+                            <Chip 
+                              label={isPaid ? 'PAID' : (order.paymentStatus || 'pending').toUpperCase()} 
+                              variant="outlined"
+                              size="small"
+                              color={isPaid ? 'success' : 'warning'}
+                              sx={{ fontWeight: 900, fontSize: '0.65rem', borderRadius: '6px' }}
+                            />
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
+                              <CreditCard size={14} />
+                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                {order.paymentVerified ? 'Payment Verified' : 'Verification Pending'}
+                              </Typography>
+                            </Stack>
                           </Stack>
-                        </Stack>
-                      </Grid>
+                        </Grid>
 
-                      <Grid item xs={12} sm={2} sx={{ textAlign: { sm: 'right' } }}>
-                        <Typography variant="h6" sx={{ fontWeight: 900, color: '#271E1B' }}>₹{order.totalAmount?.toLocaleString()}</Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Total</Typography>
+                        <Grid item xs={12} sm={2} sx={{ textAlign: { sm: 'right' } }}>
+                          <Typography variant="h6" sx={{ fontWeight: 900, color: '#271E1B' }}>₹{order.totalAmount?.toLocaleString()}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Total</Typography>
+                        </Grid>
                       </Grid>
-                    </Grid>
-                  </Paper>
-                </Grid>
-              ))}
+                    </Paper>
+                  </Grid>
+                );
+              })}
             </Grid>
           )}
         </Container>
