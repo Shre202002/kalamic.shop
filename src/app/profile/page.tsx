@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -20,7 +21,8 @@ import {
   Calendar,
   Home,
   CheckCircle2,
-  Key
+  Key,
+  Map as MapIcon
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getProfile, updateProfile, getUserOrders, getWishlistItems, verifyUserEmail, getOrCreateProfile } from '@/lib/actions/user-actions';
@@ -152,7 +154,7 @@ export default function ProfilePage() {
     }
   };
 
-  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.pincode);
+  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.state && formData.pincode);
   const isEmailVerified = profile?.emailVerified;
   const isFullyVerified = isProfileComplete && isEmailVerified;
 
@@ -291,10 +293,17 @@ export default function ProfilePage() {
                           <Input required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="House No, Street Name" className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City *</Label>
                           <Input required value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} placeholder="Jaipur" className="pl-6 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
+                        </div>
+                        <div className="space-y-2.5">
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">State *</Label>
+                          <div className="relative">
+                            <MapIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                            <Input required value={formData.state} onChange={(e) => setFormData({...formData, state: e.target.value})} placeholder="Rajasthan" className="pl-12 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
+                          </div>
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Pincode *</Label>

@@ -67,7 +67,7 @@ export default function CheckoutPage() {
     async function checkVerify() {
       if (!isUserLoading && user) {
         const profile = await getProfile(user.uid);
-        const isComplete = profile?.firstName && profile?.lastName && profile?.phone && profile?.address && profile?.city && profile?.pincode;
+        const isComplete = profile?.firstName && profile?.lastName && profile?.phone && profile?.address && profile?.city && profile?.state && profile?.pincode;
         
         if (!isComplete) {
           toast({
@@ -126,14 +126,13 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length) return;
     
-    if (!formData.fullName || !formData.address || !formData.city || !formData.phone) {
-      toast({ variant: "destructive", title: "Incomplete Details", description: "All fields are required." });
+    if (!formData.fullName || !formData.address || !formData.city || !formData.state || !formData.zip || !formData.phone) {
+      toast({ variant: "destructive", title: "Incomplete Details", description: "All shipping details are required." });
       return;
     }
 
     setIsProcessing(true);
     try {
-      // 1. Create order via Backend API (Securely calculate totals)
       const response = await fetch('/api/checkout/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -232,10 +231,13 @@ export default function CheckoutPage() {
                   <Grid item xs={12}>
                     <TextField fullWidth label="Street Address" name="address" value={formData.address} onChange={handleInputChange} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12} sm={4}>
                     <TextField fullWidth label="City" name="city" value={formData.city} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12} sm={4}>
+                    <TextField fullWidth label="State" name="state" value={formData.state} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
                     <TextField fullWidth label="ZIP / Pincode" name="zip" value={formData.zip} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
                   </Grid>
                   <Grid item xs={12}>
