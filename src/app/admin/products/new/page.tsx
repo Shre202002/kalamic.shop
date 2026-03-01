@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import { adminGenerateSeoContent, AdminGenerateSeoContentOutput } from '@/ai/flows/admin-generate-seo-content';
+// import { adminGenerateSeoContent, AdminGenerateSeoContentOutput } from '@/ai/flows/admin-generate-seo-content';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
