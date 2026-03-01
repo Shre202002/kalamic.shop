@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
@@ -19,8 +18,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const resolvedParams = await params;
     const { id } = resolvedParams;
 
-    const order = await OrderedItem.findOne({ orderNumber: id });
-    if (!order) return NextResponse.json({ message: 'Order not found' }, { status: 404 });
+    if (!id) return NextResponse.json({ message: 'Missing ID' }, { status: 400 });
+
+    // Search by orderNumber or fallback to _id
+    let order = await OrderedItem.findOne({ orderNumber: id });
+    if (!order && /^[0-9a-fA-F]{24}$/.test(id)) {
+      order = await OrderedItem.findById(id);
+    }
+
+    if (!order) {
+      return NextResponse.json({ message: 'Order not found' }, { status: 404 });
+    }
 
     // If already verified locally, return early
     if (order.paymentStatus === 'paid' && order.paymentVerified) {
@@ -28,28 +36,32 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     // Proactive check with Cashfree API
-    const cfOrder = await getCashfreeOrderStatus(id);
+    try {
+      const cfOrder = await getCashfreeOrderStatus(order.orderNumber);
 
-    if (cfOrder.order_status === 'PAID') {
-      const updatedOrder = await OrderedItem.findOneAndUpdate(
-        { orderNumber: id },
-        { 
-          $set: {
-            paymentStatus: 'paid',
-            paymentVerified: true,
-            paymentId: cfOrder.cf_order_id || cfOrder.order_id,
-            paymentTimestamp: new Date(),
-            transactionId: cfOrder.cf_order_id || cfOrder.order_id
-          }
-        },
-        { new: true }
-      );
+      if (cfOrder.order_status === 'PAID') {
+        const updatedOrder = await OrderedItem.findOneAndUpdate(
+          { orderNumber: order.orderNumber },
+          { 
+            $set: {
+              paymentStatus: 'paid',
+              paymentVerified: true,
+              paymentId: cfOrder.cf_order_id || cfOrder.order_id,
+              paymentTimestamp: new Date(),
+              transactionId: cfOrder.cf_order_id || cfOrder.order_id
+            }
+          },
+          { new: true }
+        );
 
-      if (updatedOrder) {
-        await syncOrderToFirestore(updatedOrder);
+        if (updatedOrder) {
+          await syncOrderToFirestore(updatedOrder);
+        }
+
+        return NextResponse.json({ orderStatus: updatedOrder?.orderStatus || order.orderStatus, paymentStatus: 'paid' });
       }
-
-      return NextResponse.json({ orderStatus: updatedOrder?.orderStatus || order.orderStatus, paymentStatus: 'paid' });
+    } catch (cfError) {
+      console.warn(`[RECONCILE] Gateway check failed for ${order.orderNumber}:`, cfError);
     }
 
     return NextResponse.json({ 
@@ -58,6 +70,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
   } catch (error: any) {
+    console.error(`[API_ERROR] /api/orders/[id]/status:`, error.message);
     return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }
