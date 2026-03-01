@@ -5,6 +5,7 @@ import User from '@/lib/models/User';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import AdminLog from '@/lib/models/AdminLog';
 import OrderedItem from '@/lib/models/OrderedItem';
+import WishlistItem from '@/lib/models/WishlistItem';
 import AdminNotification from '@/lib/models/AdminNotification';
 import { revalidatePath } from 'next/cache';
 import dayjs from 'dayjs';
@@ -51,7 +52,7 @@ export async function getAllOrders() {
 export async function getAdminDashboardStats() {
   await dbConnect();
   try {
-    const [revenueData, orderCount, activeUsers, pendingOrders, totalUsers] = await Promise.all([
+    const [revenueData, orderCount, activeUsers, pendingOrders, totalUsers, wishlistActivity] = await Promise.all([
       OrderedItem.aggregate([
         { $match: { paymentStatus: 'paid' } },
         { $group: { _id: null, total: { $sum: '$totalAmount' } } }
@@ -59,19 +60,26 @@ export async function getAdminDashboardStats() {
       OrderedItem.countDocuments(),
       User.countDocuments({ status: 'active' }),
       OrderedItem.countDocuments({ orderStatus: { $in: ['Placed', 'Confirmed', 'Preparing', 'Developing'] } }),
-      User.countDocuments()
+      User.countDocuments(),
+      WishlistItem.countDocuments()
     ]);
 
+    const revenue = revenueData[0]?.total || 0;
+    const avgOrderValue = orderCount > 0 ? (revenue / orderCount).toFixed(0) : 0;
+    const conversionRate = totalUsers > 0 ? ((orderCount / totalUsers) * 100).toFixed(1) : 0;
+
     return {
-      revenue: revenueData[0]?.total || 0,
+      revenue,
       orders: orderCount,
       activeUsers,
       users: totalUsers,
       pendingOrders,
-      conversionRate: totalUsers > 0 ? ((orderCount / totalUsers) * 100).toFixed(1) : 0,
+      conversionRate,
+      avgOrderValue,
+      wishlistActivity
     };
   } catch (error) {
-    return { revenue: 0, orders: 0, activeUsers: 0, users: 0, pendingOrders: 0, conversionRate: 0 };
+    return { revenue: 0, orders: 0, activeUsers: 0, users: 0, pendingOrders: 0, conversionRate: 0, avgOrderValue: 0, wishlistActivity: 0 };
   }
 }
 
@@ -113,15 +121,54 @@ export async function toggleUserStatus(adminId: string, targetUserId: string, ne
 
 export async function getDashboardChartData() {
   await dbConnect();
-  const last7Days = Array.from({ length: 7 }, (_, i) => dayjs().subtract(6 - i, 'day').format('YYYY-MM-DD'));
+  
+  // 1. Sales Trend (Last 7 Days)
+  const last7Days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = dayjs().subtract(i, 'day').startOf('day');
+    last7Days.push({
+      start: d.toDate(),
+      end: d.endOf('day').toDate(),
+      label: d.format('DD MMM')
+    });
+  }
+
+  const salesTrend = await Promise.all(last7Days.map(async (slot) => {
+    const result = await OrderedItem.aggregate([
+      { $match: { createdAt: { $gte: slot.start, $lte: slot.end }, paymentStatus: 'paid' } },
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+    ]);
+    return { day: slot.label, value: result[0]?.total || 0 };
+  }));
+
+  // 2. User Growth (Last 6 Months)
+  const userGrowth = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = dayjs().subtract(i, 'month').startOf('month');
+    const end = d.endOf('month');
+    const count = await User.countDocuments({ createdAt: { $gte: d.toDate(), $lte: end.toDate() } });
+    userGrowth.push({ month: d.format('MMM'), count });
+  }
+
+  // 3. Product Popularity Mix (based on order items)
+  const productMix = await OrderedItem.aggregate([
+    { $match: { paymentStatus: 'paid' } },
+    { $unwind: '$items' },
+    { $group: { _id: '$items.name', value: { $sum: 1 } } },
+    { $sort: { value: -1 } },
+    { $limit: 5 }
+  ]);
+
+  const categories = productMix.map((p, i) => ({
+    id: i,
+    value: p.value,
+    label: p._id.length > 15 ? p._id.substring(0, 12) + '...' : p._id
+  }));
+
   return {
-    sales: last7Days.map(day => ({ day: dayjs(day).format('DD MMM'), value: Math.floor(Math.random() * 5000) })),
-    users: last7Days.map(day => ({ month: dayjs(day).format('DD MMM'), count: Math.floor(Math.random() * 10) })),
-    categories: [
-      { id: 0, value: 45, label: 'Tableware' },
-      { id: 1, value: 25, label: 'Decorative' },
-      { id: 2, value: 30, label: 'Limited' }
-    ]
+    sales: salesTrend,
+    users: userGrowth,
+    categories: categories.length > 0 ? categories : [{ id: 0, value: 1, label: 'None' }]
   };
 }
 
