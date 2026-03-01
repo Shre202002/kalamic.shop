@@ -29,12 +29,14 @@ import {
   Search as SearchIcon,
   Menu as MenuIcon,
   FiberManualRecord,
-  Launch as ViewSiteIcon
+  Launch as ViewSiteIcon,
+  ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { getAdminNotifications, markNotificationsAsRead } from '@/lib/actions/admin-actions';
-import dayjs from 'dayjs';
 import Link from 'next/link';
+
+const DRAWER_WIDTH = 240;
 
 const adminTheme = createTheme({
   palette: {
@@ -63,6 +65,7 @@ const adminTheme = createTheme({
 });
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -85,7 +88,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+    if (isMobile) {
+      setMobileOpen(!mobileOpen);
+    } else {
+      setOpen(!open);
+    }
   };
 
   const handleOpenNotifications = (event: React.MouseEvent<HTMLElement>) => {
@@ -112,22 +119,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             bgcolor: 'white', 
             color: 'text.primary', 
             boxShadow: 'none', 
-            borderBottom: '1px solid rgba(0,0,0,0.08)' 
+            borderBottom: '1px solid rgba(0,0,0,0.08)',
+            width: '100%',
+            transition: theme.transitions.create(['width', 'margin'], {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.leavingScreen,
+            }),
           }}
         >
           <Toolbar sx={{ justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              {isMobile && (
-                <IconButton
-                  color="inherit"
-                  aria-label="open drawer"
-                  edge="start"
-                  onClick={handleDrawerToggle}
-                  sx={{ mr: 2 }}
-                >
-                  <MenuIcon />
-                </IconButton>
-              )}
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2 }}
+              >
+                <MenuIcon />
+              </IconButton>
               <Typography variant="h6" noWrap component="div" sx={{ fontFamily: '"Playfair Display", serif', fontSize: '1.2rem', color: '#C97A40', fontWeight: 700 }}>
                 Control Hub
               </Typography>
@@ -143,7 +153,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     color: 'secondary.main', 
                     fontWeight: 800, 
                     fontSize: '0.75rem',
-                    '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.05) }
+                    '&:hover': { bgcolor: alpha(adminTheme.palette.secondary.main, 0.05) }
                   }}
                 >
                   View Store
@@ -211,6 +221,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </AppBar>
         
         <AdminSidebar 
+          open={open}
           mobileOpen={mobileOpen} 
           handleDrawerToggle={handleDrawerToggle} 
         />
@@ -222,7 +233,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             p: { xs: 2, sm: 3 }, 
             bgcolor: 'background.default', 
             minHeight: '100vh',
-            width: { md: `calc(100% - 240px)` }
+            transition: theme.transitions.create('margin', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.leavingScreen,
+            }),
+            width: isMobile ? '100%' : `calc(100% - ${open ? DRAWER_WIDTH : 70}px)`
           }}
         >
           <Toolbar />
