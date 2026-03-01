@@ -1,11 +1,14 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { getCashfreeOrderStatus } from '@/lib/actions/cashfree';
+import { syncOrderToFirestore } from '@/lib/firebase-admin';
 
 /**
  * @fileOverview Direct Status Reconciliation API.
  * Ensures local database matches payment gateway state using camelCase fields.
+ * Triggers Firestore sync on state changes.
  */
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -25,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const cfOrder = await getCashfreeOrderStatus(id);
 
     if (cfOrder.order_status === 'PAID') {
-      await OrderedItem.findOneAndUpdate(
+      const updatedOrder = await OrderedItem.findOneAndUpdate(
         { orderNumber: id },
         { 
           $set: {
@@ -35,9 +38,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             paymentTimestamp: new Date(),
             transactionId: cfOrder.cf_order_id || cfOrder.order_id
           }
-        }
+        },
+        { new: true }
       );
-      return NextResponse.json({ orderStatus: order.orderStatus, paymentStatus: 'paid' });
+
+      if (updatedOrder) {
+        await syncOrderToFirestore(updatedOrder);
+      }
+
+      return NextResponse.json({ orderStatus: updatedOrder?.orderStatus || order.orderStatus, paymentStatus: 'paid' });
     }
 
     return NextResponse.json({ 

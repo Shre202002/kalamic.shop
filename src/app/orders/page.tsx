@@ -12,6 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Package, Clock, Loader2, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
+/**
+ * @fileOverview Real-time Order List Page.
+ * Subscribes to Firestore for instant updates while linking to MongoDB-driven detail pages.
+ */
+
 export default function OrdersPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -73,12 +78,18 @@ export default function OrdersPage() {
                   <CardHeader className="bg-muted/30 border-b flex flex-row items-center justify-between py-4">
                     <div className="flex items-center gap-4">
                       <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                        Order <span className="text-primary">{order.id}</span>
+                        Order <span className="text-primary">{order.orderNumber}</span>
                       </div>
-                      <Badge className="bg-accent text-accent-foreground capitalize">{order.orderStatus}</Badge>
+                      <Badge className={
+                        order.orderStatus === 'Canceled' ? 'bg-destructive text-white' : 
+                        order.orderStatus === 'Delivered' ? 'bg-green-600 text-white' :
+                        'bg-accent text-accent-foreground'
+                      }>
+                        {order.orderStatus}
+                      </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground font-medium">
-                      {new Date(order.orderDate).toLocaleDateString()}
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Date N/A'}
                     </div>
                   </CardHeader>
                   <CardContent className="p-6">
@@ -89,14 +100,19 @@ export default function OrdersPage() {
                         </div>
                         <div>
                           <p className="text-sm font-bold text-primary">Total Amount</p>
-                          <p className="text-lg font-extrabold text-primary">₹{order.totalAmount.toFixed(2)}</p>
+                          <p className="text-lg font-extrabold text-primary">₹{(order.totalAmount || 0).toFixed(2)}</p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/orders/${order.id}`} className="flex items-center">
-                          Details <ChevronRight className="ml-1 h-4 w-4" />
-                        </Link>
-                      </Button>
+                      <div className="flex items-center gap-4">
+                        <Badge variant="outline" color={order.paymentStatus === 'paid' ? 'success' : 'warning'}>
+                          Payment: {order.paymentStatus?.toUpperCase() || 'PENDING'}
+                        </Badge>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/orders/${order.orderNumber}`} className="flex items-center">
+                            Details <ChevronRight className="ml-1 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

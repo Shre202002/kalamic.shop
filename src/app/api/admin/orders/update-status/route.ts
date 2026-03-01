@@ -1,11 +1,13 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem, { OrderStatus } from '@/lib/models/OrderedItem';
 import User from '@/lib/models/User';
+import { syncOrderToFirestore } from '@/lib/firebase-admin';
 
 /**
  * @fileOverview Secure admin API for updating order status with transition validation.
- * Supports new artisanal lifecycle enums.
+ * Supports Firestore synchronization for cross-database consistency.
  */
 
 const ALLOWED_TRANSITIONS: Record<string, OrderStatus[]> = {
@@ -47,9 +49,12 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // 4. Update
+    // 4. Update MongoDB
     order.orderStatus = newStatus;
     await order.save();
+
+    // 5. Sync to Firestore
+    await syncOrderToFirestore(order);
 
     return NextResponse.json({ success: true, status: order.orderStatus });
 

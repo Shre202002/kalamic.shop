@@ -1,14 +1,15 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { createCashfreeOrder } from '@/lib/actions/cashfree';
+import { syncOrderToFirestore } from '@/lib/firebase-admin';
 import crypto from 'crypto';
 
 /**
  * @fileOverview Production-safe Order Creation API.
- * Maps frontend shipping data to the camelCase OrderedItem schema.
- * Explicitly populates both orderNumber and order_number to satisfy DB indexes.
+ * Maps frontend shipping data to the camelCase OrderedItem schema and syncs to Firestore.
  */
 
 export async function POST(req: NextRequest) {
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
     const totalAmount = subtotal + charges.shipping + charges.handling + charges.premium;
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    // 3. Create the Database Record
+    // 3. Create the MongoDB Record
     const newOrder = await OrderedItem.create({
       userId,
       userName: customerName,
@@ -77,13 +78,16 @@ export async function POST(req: NextRequest) {
       expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
     });
 
+    // 4. Initial Sync to Firestore
+    await syncOrderToFirestore(newOrder);
+
     console.log(`[DB] Order Created Successfully: ${orderNumber}`);
 
-    // 4. Construct Return URL
+    // 5. Construct Return URL
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
     const returnUrl = `${origin}/orders/${orderNumber}`;
 
-    // 5. Initiate Gateway Transaction
+    // 6. Initiate Gateway Transaction
     const cashfreeResult = await createCashfreeOrder({
       orderId: orderNumber,
       orderAmount: totalAmount,

@@ -1,11 +1,13 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { verifyCashfreeSignature, getCashfreeOrderStatus } from '@/lib/actions/cashfree';
+import { syncOrderToFirestore } from '@/lib/firebase-admin';
 
 /**
  * @fileOverview Secure Cashfree Webhook Handler.
- * Strictly aligned with the camelCase OrderedItem schema.
+ * Triggers Firestore synchronization upon successful payment reconciliation.
  */
 
 export async function POST(req: NextRequest) {
@@ -35,7 +37,7 @@ export async function POST(req: NextRequest) {
     if (cfOrder.order_status === 'PAID') {
       console.log(`[PAYMENT_SUCCESS] Reconciling: ${order_id}`);
       
-      // 3. Atomic Update using camelCase fields
+      // 3. Atomic Update in MongoDB
       const updatedOrder = await OrderedItem.findOneAndUpdate(
         { orderNumber: order_id },
         { 
@@ -50,7 +52,10 @@ export async function POST(req: NextRequest) {
         { new: true }
       );
 
-      if (!updatedOrder) {
+      if (updatedOrder) {
+        // 4. Sync to Firestore
+        await syncOrderToFirestore(updatedOrder);
+      } else {
         console.warn(`[WEBHOOK_WARNING] Payment received for unknown order: ${order_id}`);
       }
     }

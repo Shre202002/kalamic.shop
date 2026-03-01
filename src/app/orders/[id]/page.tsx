@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useUser } from '@/firebase';
 import { Navbar } from '@/components/layout/Navbar';
@@ -54,17 +55,24 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use a ref to store current status to avoid stale closure in polling interval
+  const statusRef = useRef<string>('');
 
   const orderId = params.id as string;
 
   const fetchOrder = useCallback(async () => {
     try {
+      // Proactively reconcile with gateway
       await fetch(`/api/orders/${orderId}/status`);
+      
       const res = await fetch(`/api/orders/${orderId}`);
       const data = await res.json();
       
       if (!res.ok) throw new Error(data.message);
+      
       setOrder(data);
+      statusRef.current = data.orderStatus;
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message);
@@ -75,14 +83,21 @@ export default function OrderDetailPage() {
   useEffect(() => {
     if (!isUserLoading && user) {
       fetchOrder();
+
       const interval = setInterval(() => {
-        if (order && !['Delivered', 'Canceled'].includes(order.orderStatus)) {
+        const terminalStates = ['Delivered', 'Canceled'];
+        if (statusRef.current && !terminalStates.includes(statusRef.current)) {
+          console.log('[POLLING] Refreshing order status:', orderId);
           fetchOrder();
+        } else if (terminalStates.includes(statusRef.current)) {
+          console.log('[POLLING] Terminal state reached. Stopping poll.');
+          clearInterval(interval);
         }
       }, 20000);
+
       return () => clearInterval(interval);
     }
-  }, [user, isUserLoading, fetchOrder, order?.orderStatus]);
+  }, [user, isUserLoading, fetchOrder, orderId]);
 
   if (isUserLoading || isLoading) {
     return (
