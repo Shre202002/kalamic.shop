@@ -1,8 +1,7 @@
 'use client';
 
-import React from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { useUser } from '@/firebase';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { 
@@ -17,7 +16,6 @@ import {
   Stack,
   Breadcrumbs,
   Link as MuiLink,
-  alpha
 } from '@mui/material';
 import { 
   Package, 
@@ -29,22 +27,30 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
+import { getUserOrders } from '@/lib/actions/user-actions';
 
 export default function OrdersPage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'users', user.uid, 'orders'),
-      orderBy('createdAt', 'desc')
-    );
-  }, [firestore, user]);
+  useEffect(() => {
+    async function loadOrders() {
+      if (!user) return;
+      setIsLoading(true);
+      try {
+        const data = await getUserOrders(user.uid);
+        setOrders(data);
+      } catch (error) {
+        console.error("Failed to load acquisitions:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadOrders();
+  }, [user]);
 
-  const { data: orders, isLoading: isOrdersLoading } = useCollection(ordersQuery);
-
-  if (isUserLoading || isOrdersLoading) {
+  if (isUserLoading || isLoading) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
         <Navbar />
@@ -103,7 +109,7 @@ export default function OrdersPage() {
           ) : (
             <Grid container spacing={3}>
               {orders.map((order: any) => (
-                <Grid item xs={12} key={order.id}>
+                <Grid item xs={12} key={order.orderNumber}>
                   <Paper 
                     component={Link}
                     href={`/orders/${order.orderNumber}`}
