@@ -7,6 +7,7 @@ import User from '@/lib/models/User';
 import { sendEmail } from '@/lib/email';
 import { verifyCashfreeSignature, getCashfreeOrderStatus } from '@/lib/actions/cashfree';
 import { syncOrderToFirestore } from '@/lib/firebase-admin';
+import { revalidatePath } from 'next/cache';
 
 /**
  * @fileOverview Secure Cashfree Webhook Handler.
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
             paymentId: cfOrder.cf_order_id || cfOrder.order_id,
             paymentTimestamp: new Date(),
             transactionId: cfOrder.cf_order_id || cfOrder.order_id,
-            orderStatus: 'Placed' // 🔥 Transition to Placed after verification
+            orderStatus: 'Placed'
           }
         },
         { new: true }
@@ -68,14 +69,18 @@ export async function POST(req: NextRequest) {
         // 5. Sync to Firestore
         await syncOrderToFirestore(updatedOrder);
 
-        // 6. Update Product Analytics (Acquisitions)
+        // 6. Next.js Cache Invalidation
+        revalidatePath(`/orders/${updatedOrder.orderNumber}`);
+        revalidatePath('/orders');
+
+        // 7. Update Product Analytics (Acquisitions)
         for (const item of updatedOrder.items) {
           await KalamicProduct.findByIdAndUpdate(item.productId, {
             $inc: { 'analytics.total_orders': item.quantity }
           });
         }
 
-        // 7. Notify Admins via Email
+        // 8. Notify Admins via Email
         const admins = await User.find({ role: { $in: ['super_admin', 'admin'] } });
         const adminEmails = admins.map(a => a.email).filter(Boolean) as string[];
 
