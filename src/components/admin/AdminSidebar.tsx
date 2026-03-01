@@ -14,7 +14,8 @@ import {
   Divider,
   Box,
   useMediaQuery,
-  useTheme
+  useTheme,
+  ListSubheader
 } from '@mui/material';
 import { 
   Dashboard as DashboardIcon, 
@@ -23,7 +24,10 @@ import {
   Inventory as ProductsIcon, 
   Analytics as AnalyticsIcon,
   Settings as SettingsIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Home as HomeIcon,
+  Storefront as StoreIcon,
+  AutoAwesome as AboutIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -38,6 +42,12 @@ const MENU_ITEMS = [
   { text: 'Collectors', icon: <UsersIcon />, href: '/admin/users', roles: ['super_admin', 'admin'] },
   { text: 'Inventory', icon: <ProductsIcon />, href: '/admin/products', roles: ['super_admin', 'admin'] },
   { text: 'Analytics', icon: <AnalyticsIcon />, href: '/admin/analytics', roles: ['super_admin', 'admin'] },
+];
+
+const WEBSITE_LINKS = [
+  { text: 'Studio Home', icon: <HomeIcon />, href: '/' },
+  { text: 'Live Catalog', icon: <StoreIcon />, href: '/products' },
+  { text: 'Our Story', icon: <AboutIcon />, href: '/about' },
 ];
 
 interface AdminSidebarProps {
@@ -71,7 +81,15 @@ export function AdminSidebar({ mobileOpen, handleDrawerToggle }: AdminSidebarPro
         </Typography>
       </Toolbar>
       <Box sx={{ overflow: 'auto', mt: 2 }}>
-        <List sx={{ px: 2 }}>
+        {/* Admin Section */}
+        <List 
+          sx={{ px: 2 }}
+          subheader={
+            <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 800, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, color: 'text.disabled', lineHeight: '32px' }}>
+              Control Hub
+            </ListSubheader>
+          }
+        >
           {MENU_ITEMS.filter(item => item.roles.includes(role)).map((item) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton 
@@ -86,6 +104,32 @@ export function AdminSidebar({ mobileOpen, handleDrawerToggle }: AdminSidebarPro
                 }}
               >
                 <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+        
+        <Divider sx={{ my: 2, mx: 2 }} />
+
+        {/* Website Links Section */}
+        <List 
+          sx={{ px: 2 }}
+          subheader={
+            <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 800, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, color: 'text.disabled', lineHeight: '32px' }}>
+              Public Studio
+            </ListSubheader>
+          }
+        >
+          {WEBSITE_LINKS.map((item) => (
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton 
+                component={Link} 
+                href={item.href}
+                onClick={isMobile ? handleDrawerToggle : undefined}
+                sx={{ borderRadius: 2 }}
+              >
+                <ListItemIcon sx={{ minWidth: 40, color: 'secondary.main' }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }} />
               </ListItemButton>
             </ListItem>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -20,13 +21,15 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  alpha
+  alpha,
+  Button
 } from '@mui/material';
 import { 
   Notifications as NotificationsIcon, 
   Search as SearchIcon,
   Menu as MenuIcon,
-  FiberManualRecord
+  FiberManualRecord,
+  Launch as ViewSiteIcon
 } from '@mui/icons-material';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { getAdminNotifications, markNotificationsAsRead } from '@/lib/actions/admin-actions';
@@ -130,6 +133,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+              {!isMobile && (
+                <Button 
+                  component={Link} 
+                  href="/" 
+                  startIcon={<ViewSiteIcon sx={{ fontSize: 16 }} />}
+                  sx={{ 
+                    mr: 2, 
+                    color: 'secondary.main', 
+                    fontWeight: 800, 
+                    fontSize: '0.75rem',
+                    '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.05) }
+                  }}
+                >
+                  View Store
+                </Button>
+              )}
+              
               <IconButton><SearchIcon /></IconButton>
               <IconButton onClick={handleOpenNotifications}>
                 <Badge badgeContent={unreadCount} color="error">
