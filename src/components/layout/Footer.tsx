@@ -1,74 +1,67 @@
+
 "use client"
 
 import React from 'react';
 import Link from 'next/link';
-import { Facebook, Instagram, Twitter, Mail, MapPin, Phone } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Mail, MapPin, Phone, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 export function Footer() {
   return (
-    <footer className="bg-[#E8DFC9] text-[#2E2E2E] pt-16 pb-8 border-t border-primary/10">
+    <footer className="bg-white text-[#2E2E2E] pt-24 pb-12 border-t border-primary/10">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 md:gap-12">
           {/* Brand & About */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold tracking-tight text-primary">Kalamic</h2>
-            <p className="text-[#6B6B6B] text-sm leading-relaxed max-w-xs">
-              Handcrafting elegance for your home and spiritual spaces. Traditionally inspired, modernly curated from the heart of Uttar Pradesh.
+          <div className="space-y-6">
+            <h2 className="text-2xl font-display font-bold tracking-tight text-[#271E1B]">Kalamic</h2>
+            <p className="text-[#6B6B6B] text-sm leading-relaxed max-w-xs font-medium">
+              Slow-made ceramics for intentional living. Handcrafted in our studio since 1994.
             </p>
-            <div className="flex gap-4">
-              <Button variant="ghost" size="icon" className="hover:bg-primary/10 text-primary">
-                <Facebook className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="hover:bg-primary/10 text-primary">
-                <Instagram className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="hover:bg-primary/10 text-primary">
-                <Twitter className="h-5 w-5" />
-              </Button>
+            <div className="flex gap-6">
+              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors"><Globe className="h-4 w-4" /></Link>
+              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors"><Instagram className="h-4 w-4" /></Link>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-bold mb-6 uppercase tracking-widest text-xs">Explore</h3>
-            <ul className="space-y-4 text-sm text-[#6B6B6B]">
-              <li><Link href="/products" className="hover:text-primary transition-colors">Catalog</Link></li>
-              <li><Link href="/about" className="hover:text-primary transition-colors">Artisan Story</Link></li>
-              <li><Link href="/faq" className="hover:text-primary transition-colors">Curiosity Corner (FAQs)</Link></li>
-              <li><Link href="/sitemap" className="hover:text-primary transition-colors">Sitemap</Link></li>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#271E1B] mb-8">Shop</h3>
+            <ul className="space-y-4 text-sm text-[#6B6B6B] font-medium">
+              <li><Link href="/products" className="hover:text-primary transition-colors">All Collections</Link></li>
+              <li><Link href="/products?sort=newest" className="hover:text-primary transition-colors">New Arrivals</Link></li>
+              <li><Link href="/products?filter=bestsellers" className="hover:text-primary transition-colors">Best Sellers</Link></li>
+              <li><Link href="/contact" className="hover:text-primary transition-colors">Gift Cards</Link></li>
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Support */}
           <div>
-            <h3 className="text-lg font-bold mb-6 uppercase tracking-widest text-xs">Studio</h3>
-            <ul className="space-y-4 text-sm text-[#6B6B6B]">
-              <li className="flex gap-3"><MapPin className="h-5 w-5 text-primary opacity-60 shrink-0" /> Kanpur, Uttar Pradesh, India</li>
-              <li className="flex gap-3"><Phone className="h-5 w-5 text-primary opacity-60 shrink-0" /> +91 63875 62920</li>
-              <li className="flex gap-3"><Mail className="h-5 w-5 text-primary opacity-60 shrink-0" /> contact@kalamic.shop</li>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#271E1B] mb-8">Support</h3>
+            <ul className="space-y-4 text-sm text-[#6B6B6B] font-medium">
+              <li><Link href="/returns" className="hover:text-primary transition-colors">Shipping & Returns</Link></li>
+              <li><Link href="/faq" className="hover:text-primary transition-colors">Care Guide</Link></li>
+              <li><Link href="/faq" className="hover:text-primary transition-colors">FAQs</Link></li>
+              <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
             </ul>
           </div>
 
-          {/* Newsletter */}
+          {/* Company */}
           <div>
-            <h3 className="text-lg font-bold mb-6 uppercase tracking-widest text-xs">Join the Community</h3>
-            <p className="text-sm text-[#6B6B6B] mb-4">Get updates on new collections and artisan stories.</p>
-            <div className="flex flex-col gap-2">
-              <Input placeholder="Enter your email" className="bg-white/50 border-primary/20 text-[#2E2E2E] placeholder:text-[#9A9A9A]" />
-              <Button className="bg-primary text-white hover:bg-[#A95C2B] rounded-lg font-bold">Subscribe</Button>
-            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#271E1B] mb-8">Company</h3>
+            <ul className="space-y-4 text-sm text-[#6B6B6B] font-medium">
+              <li><Link href="/about" className="hover:text-primary transition-colors">Our Story</Link></li>
+              <li><Link href="/about" className="hover:text-primary transition-colors">Studio Journal</Link></li>
+              <li><Link href="/contact" className="hover:text-primary transition-colors">Wholesale</Link></li>
+              <li><Link href="/about" className="hover:text-primary transition-colors">Careers</Link></li>
+            </ul>
           </div>
         </div>
 
-        <div className="border-t border-primary/10 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase font-bold tracking-widest text-[#9A9A9A]">
-          <p>© 2024 Kalamic. All rights reserved.</p>
-          <div className="flex gap-6">
-            <Link href="/privacy" className="hover:text-[#2E2E2E] transition-colors">Privacy</Link>
-            <Link href="/returns" className="hover:text-[#2E2E2E] transition-colors">Returns & Refunds</Link>
-            <Link href="/terms" className="hover:text-[#2E2E2E] transition-colors">Terms</Link>
-          </div>
+        <div className="border-t border-primary/10 mt-24 pt-12 text-center">
+          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-[#9A9A9A]">
+            © 2024 Kalamic Ceramic Studio. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
