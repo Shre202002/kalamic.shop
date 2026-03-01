@@ -8,7 +8,7 @@ import { Instagram, Globe } from 'lucide-react';
 export function Footer() {
   return (
     <footer className="bg-white text-[#2E2E2E] pt-24 pb-12 border-t border-primary/10">
-      <div className="container mx-auto px-4">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 md:gap-12">
           {/* Brand & About */}
           <div className="space-y-6">

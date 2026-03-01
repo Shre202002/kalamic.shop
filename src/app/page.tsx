@@ -53,7 +53,7 @@ const CategoryCard = ({ name, slug, description }: { name: string, slug: string,
     <motion.div 
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.98 }}
-      className="relative overflow-hidden rounded-[2rem] border border-primary/10 bg-gradient-to-br from-primary/[0.03] to-accent/[0.03] p-8 md:p-10 text-center hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500"
+      className="relative overflow-hidden rounded-[2rem] border border-primary/10 bg-gradient-to-br from-primary/[0.03] to-accent/[0.03] p-8 md:p-10 text-center hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 h-full flex flex-col justify-center"
     >
       <h3 className="text-xl md:text-2xl font-display font-bold text-primary">{name}</h3>
       {description && <p className="text-xs md:text-sm text-muted-foreground mt-2 font-medium">{description}</p>}
@@ -114,11 +114,11 @@ export default function Home() {
         
         {/* 1. HERO SLIDER */}
         <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
-          <div className="container mx-auto px-4 py-12 md:py-24">
+          <div className="max-w-[1200px] mx-auto px-6 md:px-10 py-12 md:py-24">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[450px] md:min-h-[550px]">
               
               {/* Text Content */}
-              <div className="relative z-10">
+              <div className="relative z-10 order-2 lg:order-1 text-center lg:text-left">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`text-${currentSlide}`}
@@ -133,10 +133,10 @@ export default function Home() {
                       {slide.title} <br />
                       <span className="italic text-primary font-normal">{slide.highlight}</span>
                     </h1>
-                    <p className="text-base md:text-xl text-muted-foreground max-w-lg leading-relaxed font-medium">
+                    <p className="text-base md:text-xl text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium">
                       {slide.subtitle}
                     </p>
-                    <div className="flex flex-wrap gap-4 pt-4">
+                    <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-4">
                       <Button asChild size="lg" className="h-14 px-10 rounded-full bg-primary text-white font-bold text-sm shadow-xl shadow-primary/20 hover:scale-105 transition-all">
                         <Link href={slide.link}>{slide.cta} <ArrowRight className="ml-2 h-5 w-5" /></Link>
                       </Button>
@@ -149,7 +149,7 @@ export default function Home() {
               </div>
 
               {/* Slider Image */}
-              <div className="relative flex justify-center lg:justify-end">
+              <div className="relative flex justify-center lg:justify-end order-1 lg:order-2">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`img-${currentSlide}`}
@@ -157,10 +157,10 @@ export default function Home() {
                     animate={{ opacity: 1, scale: 1, rotate: 0 }}
                     exit={{ opacity: 0, scale: 0.9, rotate: 5 }}
                     transition={{ duration: 0.8, ease: "circOut" }}
-                    className="relative w-full max-w-[450px] aspect-square"
+                    className="relative w-full max-w-[400px] aspect-square"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-[100px] scale-110 opacity-50" />
-                    <div className="relative w-full h-full rounded-[3rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] bg-white">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-[80px] scale-110 opacity-50" />
+                    <div className="relative w-full h-full rounded-[3rem] overflow-hidden shadow-2xl bg-white border-4 border-white/50">
                       <Image 
                         src={slide.image} 
                         alt={slide.title} 
@@ -204,20 +204,20 @@ export default function Home() {
         </section>
 
         {/* 2. TRUST BAR */}
-        <section className="border-y border-primary/5 bg-white/50 backdrop-blur-sm py-6 md:py-8">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
+        <section className="border-y border-primary/5 bg-white/50 backdrop-blur-sm py-8 md:py-10">
+          <div className="max-w-[1200px] mx-auto px-6 md:px-10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
               {[
                 { icon: Truck, text: 'Free Delivery above ₹999' },
                 { icon: ShieldCheck, text: 'Secure Payments' },
                 { icon: RotateCcw, text: '7-Day Returns' },
                 { icon: Sparkles, text: '100% Handmade' },
               ].map(({ icon: Icon, text }, idx) => (
-                <div key={idx} className="flex items-center justify-center gap-3 text-center md:text-left">
-                  <div className="h-10 w-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                    <Icon className="h-5 w-5" />
+                <div key={idx} className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0 shadow-inner">
+                    <Icon className="h-6 w-6" />
                   </div>
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#271E1B]/70">{text}</span>
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#271E1B]/70 leading-tight">{text}</span>
                 </div>
               ))}
             </div>
@@ -226,7 +226,7 @@ export default function Home() {
 
         {/* 3. CATEGORIES */}
         <section className="py-24">
-          <div className="container mx-auto px-4">
+          <div className="max-w-[1200px] mx-auto px-6 md:px-10">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -234,10 +234,10 @@ export default function Home() {
               className="text-center mb-16 space-y-4"
             >
               <h2 className="text-3xl md:text-5xl font-display font-semibold text-[#271E1B]">Shop by Category</h2>
-              <p className="text-sm text-muted-foreground font-medium max-w-lg mx-auto">Explore our curated artisanal collections for every corner of your home.</p>
+              <p className="text-sm md:text-base text-muted-foreground font-medium max-w-lg mx-auto">Explore our curated artisanal collections for every corner of your home.</p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
               <CategoryCard name="Spiritual Decor" slug="temple" description="Pillars and Mandala wheels for your sacred spaces." />
               <CategoryCard name="Wall Artistry" slug="wall-art" description="Hand-molded mirrors and decorative plates." />
               <CategoryCard name="Home Accents" slug="decor" description="Small ceramic treasures that anchor a story." />
@@ -247,7 +247,7 @@ export default function Home() {
 
         {/* 4. FEATURED PRODUCTS */}
         <section className="py-24 bg-white">
-          <div className="container mx-auto px-4">
+          <div className="max-w-[1200px] mx-auto px-6 md:px-10">
             <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-6">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
@@ -256,7 +256,7 @@ export default function Home() {
                 className="space-y-2 text-center md:text-left"
               >
                 <h2 className="text-3xl md:text-5xl font-display font-semibold text-[#271E1B]">Featured Products</h2>
-                <p className="text-sm text-muted-foreground font-medium">Curated favorites from our latest kiln firing.</p>
+                <p className="text-sm md:text-base text-muted-foreground font-medium">Curated favorites from our latest kiln firing.</p>
               </motion.div>
               <Button asChild variant="ghost" className="text-primary font-black uppercase tracking-widest text-[10px] hover:bg-primary/5">
                 <Link href="/products" className="flex items-center gap-2">
@@ -291,13 +291,13 @@ export default function Home() {
         </section>
 
         {/* 5. CRAFT CTA */}
-        <section className="py-24 md:py-32">
-          <div className="container mx-auto px-4">
+        <section className="py-24 md:py-32 bg-[#F5EFE9]">
+          <div className="max-w-[1200px] mx-auto px-6 md:px-10">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="relative bg-primary rounded-[3rem] md:rounded-[4rem] p-12 md:p-24 overflow-hidden text-center text-white"
+              className="relative bg-primary rounded-[3rem] md:rounded-[4rem] p-12 md:p-24 overflow-hidden text-center text-white shadow-2xl shadow-primary/20"
             >
               <div className="relative z-10 space-y-8">
                 <h2 className="text-4xl md:text-6xl font-display font-semibold tracking-tight">Made with ❤️ by <br className="hidden md:block" /> Kanpur Artisans</h2>

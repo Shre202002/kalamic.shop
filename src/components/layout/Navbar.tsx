@@ -75,7 +75,7 @@ export function Navbar() {
       "sticky top-0 z-50 w-full transition-all duration-500",
       isScrolled ? "bg-white/90 backdrop-blur-xl h-16 border-b border-primary/5 shadow-sm" : "bg-transparent h-20 md:h-24"
     )}>
-      <div className="container mx-auto px-4 h-full flex items-center justify-between">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10 h-full flex items-center justify-between">
         {/* Left: Mobile Menu Trigger */}
         <div className="flex items-center md:hidden">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
