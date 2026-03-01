@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -12,6 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableRow, 
+  Paper 
+} from '@mui/material';
 import { 
   ShoppingCart, 
   Heart, 
@@ -30,7 +39,6 @@ import {
   Scale,
   MapPin,
   Maximize2,
-  MessageCircle,
   HelpCircle,
   Hammer,
   Camera,
@@ -246,16 +254,12 @@ export default function ProductDetailPage() {
       });
       
       if (response.success) {
-        // Clear form
         setReviewComment('');
         setReviewFiles([]);
         setReviewPreviews([]);
         setReviewRating(5);
-        
-        // Reload all data and refresh cache
         await loadData();
         router.refresh();
-        
         toast({ title: "Feedback Saved", description: "Your experience has been immortalized in our archive." });
       }
     } catch (error: any) {
@@ -360,9 +364,9 @@ export default function ProductDetailPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border rounded-2xl overflow-hidden shadow-sm">
                   {(product.specifications || []).slice(0, 3).map((spec: any, i: number) => (
-                    <div key={i} className="bg-white p-4 flex flex-col gap-1">
-                      <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{spec.key}</span>
-                      <span className="text-[10px] font-bold text-primary leading-tight">{spec.value}</span>
+                    <div key={i} className="bg-white p-4 flex flex-col gap-1 h-full">
+                      <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground whitespace-normal">{spec.key}</span>
+                      <span className="text-[10px] font-bold text-primary leading-tight whitespace-normal">{spec.value}</span>
                     </div>
                   ))}
                 </div>
@@ -414,14 +418,33 @@ export default function ProductDetailPage() {
                     </div>
                   </TabsContent>
                   <TabsContent value="specs" className="animate-in fade-in duration-500">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-                      {(product.specifications || []).map((spec: any, i: number) => (
-                        <div key={i} className="flex justify-between border-b pb-4">
-                          <span className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60">{spec.key}</span>
-                          <span className="text-sm font-bold text-primary">{spec.value}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <TableContainer component={Paper} elevation={0} className="rounded-[2rem] border border-primary/10 overflow-hidden bg-white/50 backdrop-blur-sm">
+                      <Table>
+                        <TableBody>
+                          {(product.specifications || []).map((spec: any, i: number) => (
+                            <TableRow 
+                              key={i} 
+                              className="hover:bg-primary/[0.02] transition-colors"
+                              sx={{ 
+                                '&:last-child td, &:last-child th': { border: 0 },
+                                '&:nth-of-type(odd)': { bgcolor: 'rgba(28, 89, 52, 0.01)' }
+                              }}
+                            >
+                              <TableCell className="border-primary/5 py-6">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-70">
+                                  {spec.key}
+                                </span>
+                              </TableCell>
+                              <TableCell align="right" className="border-primary/5 py-6">
+                                <span className="text-sm font-bold text-primary">
+                                  {spec.value}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   </TabsContent>
                 </Tabs>
               </div>
@@ -582,7 +605,7 @@ export default function ProductDetailPage() {
                             {review.review_images.map((img: any, i: number) => (
                               <div key={i} className="relative aspect-video rounded-2xl overflow-hidden cursor-zoom-in border border-border/50 group/img" onClick={() => { setLightboxImage(img.url); setIsLightboxOpen(true); }}>
                                 <Image 
-                                  src={`${img.url}?tr=w-400,q-80,f-webp`} 
+                                  src={img.url} 
                                   alt={img.alt || 'Review photo'} 
                                   fill 
                                   className="object-cover transition-transform duration-500 group-hover/img:scale-110" 
@@ -640,25 +663,5 @@ export default function ProductDetailPage() {
       </div>
       <Footer />
     </div>
-  );
-}
-
-function UserIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
   );
 }
