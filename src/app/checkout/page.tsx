@@ -348,7 +348,7 @@ export default function CheckoutPage() {
                     {cartItems?.map((item) => (
                       <div key={item.id} className="flex gap-6 items-center group">
                         <div className="relative h-20 w-20 rounded-2xl overflow-hidden bg-muted flex-shrink-0 shadow-inner">
-                          <Image src={item.imageUrl} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <Image src={item.imageUrl} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" sizes="80px" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-base font-black text-primary truncate">{item.name}</p>

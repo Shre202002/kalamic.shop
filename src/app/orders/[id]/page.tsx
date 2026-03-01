@@ -258,6 +258,7 @@ export default function OrderDetailPage() {
                             alt={item.name || 'Ceramic Piece'} 
                             fill 
                             className="object-cover" 
+                            sizes="160px"
                           />
                         </div>
                         <div className="flex-1 text-center sm:text-left space-y-2">

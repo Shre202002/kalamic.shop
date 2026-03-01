@@ -57,6 +57,7 @@ export default function Home() {
               fill
               className="object-cover object-right animate-in fade-in duration-1000"
               priority
+              sizes="100vw"
               data-ai-hint="pottery workshop"
             />
           </div>

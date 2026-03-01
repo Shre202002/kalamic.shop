@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -302,7 +301,14 @@ export default function ProductDetailPage() {
                     )}
                     onClick={() => { setLightboxImage(img.url); setIsLightboxOpen(true); }}
                   >
-                    <Image src={img.url} alt={img.alt || product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" priority={idx === 0} />
+                    <Image 
+                      src={img.url} 
+                      alt={img.alt || product.name} 
+                      fill 
+                      className="object-cover transition-transform duration-700 group-hover:scale-105" 
+                      priority={idx === 0}
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
                   </div>
                 ))}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none z-20 flex items-center justify-center">
@@ -322,7 +328,13 @@ export default function ProductDetailPage() {
                       {galleryImages.map((img, idx) => (
                         <CarouselItem key={idx} className="pl-4 basis-1/4 sm:basis-1/5 md:basis-1/6">
                           <div className={cn("relative aspect-square rounded-2xl overflow-hidden border-2 shadow-md cursor-pointer transition-all", activeImageIndex === idx ? "border-primary scale-90 ring-4 ring-primary/10" : "border-white hover:border-primary/30")} onClick={() => setActiveImageIndex(idx)}>
-                            <Image src={img.url} alt={img.alt || `Angle ${idx + 1}`} fill className="object-cover" />
+                            <Image 
+                              src={img.url} 
+                              alt={img.alt || `Angle ${idx + 1}`} 
+                              fill 
+                              className="object-cover" 
+                              sizes="(max-width: 768px) 25vw, 15vw"
+                            />
                           </div>
                         </CarouselItem>
                       ))}
@@ -569,7 +581,13 @@ export default function ProductDetailPage() {
                           <div className={cn("grid gap-2", review.review_images.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
                             {review.review_images.map((img: any, i: number) => (
                               <div key={i} className="relative aspect-video rounded-2xl overflow-hidden cursor-zoom-in border border-border/50 group/img" onClick={() => { setLightboxImage(img.url); setIsLightboxOpen(true); }}>
-                                <Image src={`${img.url}?tr=w-400,q-80,f-webp`} alt={img.alt || 'Review photo'} fill className="object-cover transition-transform duration-500 group-hover/img:scale-110" />
+                                <Image 
+                                  src={`${img.url}?tr=w-400,q-80,f-webp`} 
+                                  alt={img.alt || 'Review photo'} 
+                                  fill 
+                                  className="object-cover transition-transform duration-500 group-hover/img:scale-110" 
+                                  sizes="(max-width: 768px) 100vw, 400px"
+                                />
                                 <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/img:opacity-100 transition-opacity" />
                               </div>
                             ))}
@@ -598,7 +616,16 @@ export default function ProductDetailPage() {
             <DialogDescription>High resolution examination</DialogDescription>
           </DialogHeader>
           <div className="relative w-full h-full min-h-[85vh] flex items-center justify-center">
-            {lightboxImage && <Image src={lightboxImage} alt="Large preview" fill className="object-contain" priority />}
+            {lightboxImage && (
+              <Image 
+                src={lightboxImage} 
+                alt="Large preview" 
+                fill 
+                className="object-contain" 
+                priority 
+                sizes="95vw"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

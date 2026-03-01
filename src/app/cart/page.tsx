@@ -116,6 +116,7 @@ export default function CartPage() {
                           alt={item.name} 
                           fill 
                           className="object-cover"
+                          sizes="(max-width: 768px) 64px, 96px"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
