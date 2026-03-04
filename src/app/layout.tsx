@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { TopLoader } from '@/components/layout/TopLoader';
+import { SurveyPopup } from '@/components/survey/SurveyPopup';
 
 export const metadata: Metadata = {
   title: 'Kalamic | Handcrafted Ceramic Artistry',
@@ -30,6 +31,7 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <TopLoader />
           {children}
+          <SurveyPopup />
           <Toaster />
         </FirebaseClientProvider>
       </body>
