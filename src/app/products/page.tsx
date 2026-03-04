@@ -11,12 +11,12 @@ import { Search, SlidersHorizontal, Package, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
+import SurveyModal from '@/components/survey/SurveyModal';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
 
   useEffect(() => {
@@ -37,11 +37,6 @@ export default function ProductsPage() {
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.short_description || p.description || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const handleReviewAction = (product: any) => {
-    setSelectedProduct(product);
-    setIsSurveyOpen(true);
-  };
 
   const gridVariants = {
     hidden: { opacity: 0 },
@@ -125,7 +120,6 @@ export default function ProductsPage() {
                     image={product.images?.[0] || 'https://placehold.co/600x800?text=Kalamic'}
                     rating={product.analytics?.average_rating || 4.8}
                     tag={product.tags?.[0] || "Artisan"}
-                    onAction={() => handleReviewAction(product)}
                   />
                 </motion.div>
               ))}
@@ -153,7 +147,12 @@ export default function ProductsPage() {
           )}
         </div>
 
-        {/* Survey Modal for quick feedback from listing */}
+        <SurveyModal 
+          isOpen={isSurveyOpen} 
+          onClose={() => setIsSurveyOpen(false)} 
+          product={null} 
+          isSinglePage={false} 
+        />
       </main>
       <Footer />
     </div>

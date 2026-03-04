@@ -72,8 +72,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   
-  // Survey states
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  // Survey state for global scroll trigger
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
 
   useEffect(() => {
@@ -89,11 +88,6 @@ export default function Home() {
     }
     loadData();
   }, []);
-
-  const handleReviewAction = (product: any) => {
-    setSelectedProduct(product);
-    setIsSurveyOpen(true);
-  };
 
   // Auto-slide logic
   useEffect(() => {
@@ -294,7 +288,6 @@ export default function Home() {
                     image={product.images?.[0] || 'https://placehold.co/600x800?text=Kalamic'}
                     rating={product.analytics?.average_rating || 4.8}
                     tag={product.tags?.[0] || "Artisan"}
-                    onAction={() => handleReviewAction(product)}
                   />
                 </motion.div>
               ))}
@@ -331,11 +324,10 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Survey Modal for immediate feedback from home grid */}
         <SurveyModal 
           isOpen={isSurveyOpen} 
           onClose={() => setIsSurveyOpen(false)} 
-          product={selectedProduct} 
+          product={null} 
           isSinglePage={false} 
         />
 

@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Heart, ShoppingBag, Zap, Star, Eye } from 'lucide-react';
+import { Heart, ShoppingBag, ShoppingCart, Star, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,6 @@ interface ProductCardProps {
   tag?: string;
   description?: string;
   isInitiallyFavorited?: boolean;
-  onAction?: () => void;
 }
 
 export function ProductCard({ 
@@ -40,8 +39,7 @@ export function ProductCard({
   tag, 
   description, 
   rating, 
-  isInitiallyFavorited = false,
-  onAction
+  isInitiallyFavorited = false
 }: ProductCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
@@ -58,6 +56,7 @@ export function ProductCard({
     e.stopPropagation();
     if (!user) {
       toast({ title: "Welcome back", description: "Please sign in to add this treasure to your bag." });
+      router.push('/auth/login');
       return;
     }
 
@@ -78,16 +77,33 @@ export function ProductCard({
     toast({ title: "Bag Updated", description: `${name} has been added to your collection.` });
   };
 
-  const handlePrimaryAction = async (e: React.MouseEvent) => {
+  const handleBuyNow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // If a custom action is provided (like in the survey hub), execute it.
-    // Otherwise, default to the survey route for this product.
-    if (onAction) {
-      onAction();
-    } else {
-      router.push(`/products/${slug || id}/survey`);
+    if (!user) {
+      toast({ title: "Welcome back", description: "Please sign in to buy this treasure." });
+      router.push('/auth/login');
+      return;
+    }
+
+    try {
+      const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
+      await setDoc(cartItemRef, {
+        id,
+        productVariantId: id,
+        cartId: user.uid,
+        name,
+        priceAtAddToCart: price,
+        imageUrl: displayImage,
+        quantity: 1,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
+      await trackProductAction(id, 'cart_add_count');
+      router.push('/checkout');
+    } catch (error) {
+      toast({ variant: "destructive", title: "Action Failed", description: "Could not initiate checkout." });
     }
   };
 
@@ -234,9 +250,9 @@ export function ProductCard({
             </Button>
             <Button 
               className="h-12 rounded-xl gradient-saffron text-primary-foreground border-none text-[9px] font-black uppercase tracking-[0.15em] gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95"
-              onClick={handlePrimaryAction}
+              onClick={handleBuyNow}
             >
-              <Zap className="h-4 w-4" /> Review Now
+              <ShoppingCart className="h-4 w-4" /> Buy Now
             </Button>
           </div>
         </CardFooter>
