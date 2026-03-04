@@ -10,7 +10,7 @@ export const products = [
     "name": "Mor Stambh Ceramic Customized Pillar",
     "slug": "mor_stambh",
     "short_description": "Handmade traditional ceramic pillar for temple and home decor.",
-    "description": "Bahut sundar handmade ceramic pillar jo Bhagwan ke Jhula ke liye perfect hai. Traditional Indian cultural designs ke saath. Religious occasions jaise Diwali, Navratri ya ghar ke mandir decor ke liye best choice.",
+    "description": "An exquisite handmade ceramic pillar designed specifically for temple decor and divine swings. Adorned with traditional Indian motifs, it serves as a perfect spiritual accent for festive occasions like Diwali or as a permanent fixture in your home mandir.",
     "category_id": "699026a7ae873e1fa69cb187",
     "tags": ["decor", "pillar", "handmade", "ceramic", "temple"],
     "images": [
@@ -21,7 +21,7 @@ export const products = [
     "compare_at_price": 1999,
     "currency": "INR",
     "stock": 5,
-    "sku": "MS-001",
+    "uuid": "MS-001",
     "is_active": true,
     "is_featured": true,
     "visibility_priority": 1,

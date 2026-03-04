@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -68,10 +69,10 @@ export default function ProductsPage() {
                 <Package className="h-4 w-4" /> The Collection
               </div>
               <h1 className="text-4xl md:text-5xl font-display font-bold text-primary tracking-tight">
-                हमारा पूरा संग्रह
+                Our Complete Collection
               </h1>
               <p className="text-sm md:text-base text-muted-foreground max-w-lg leading-relaxed font-body">
-                Handmade ceramic products jo dil se banaye gaye hain – Jhula pillars, mandala wheels, photo frames aur bohot kuch!
+                Exquisite handcrafted ceramic pieces created with passion – from sacred temple pillars to ornate mandala wheels and decorative accents.
               </p>
             </div>
             

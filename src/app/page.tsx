@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -24,7 +25,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const heroSlides = [
   {
     title: 'Handmade Ceramics,',
-    highlight: 'Dil Se',
+    highlight: 'With Passion',
     subtitle: 'Discover beautiful handcrafted ceramic products made by Kanpur\'s finest artisans.',
     image: 'https://i.imgur.com/wqfAvmq.png',
     cta: 'Shop Now',
@@ -249,7 +250,7 @@ export default function Home() {
                 <div className="flex items-center justify-center md:justify-start gap-2 text-accent font-bold text-[10px] uppercase tracking-widest">
                   <Package className="h-4 w-4" /> Artisan Selects
                 </div>
-                <h2 className="text-3xl md:text-5xl font-display font-semibold text-[#271E1B]">विशेष संग्रह</h2>
+                <h2 className="text-3xl md:text-5xl font-display font-semibold text-[#271E1B]">Special Collection</h2>
                 <p className="text-sm md:text-base text-muted-foreground font-medium">Curated favorites from our latest kiln firing.</p>
               </motion.div>
               <Button asChild variant="ghost" className="text-primary font-black uppercase tracking-widest text-[10px] hover:bg-primary/5">
