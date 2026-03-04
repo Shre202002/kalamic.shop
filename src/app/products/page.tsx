@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -11,13 +10,11 @@ import { Search, SlidersHorizontal, Package, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
-import SurveyModal from '@/components/survey/SurveyModal';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSurveyOpen, setIsSurveyOpen] = useState(false);
 
   useEffect(() => {
     async function loadAllProducts() {
@@ -146,13 +143,6 @@ export default function ProductsPage() {
             </motion.div>
           )}
         </div>
-
-        <SurveyModal 
-          isOpen={isSurveyOpen} 
-          onClose={() => setIsSurveyOpen(false)} 
-          product={null} 
-          isSinglePage={false} 
-        />
       </main>
       <Footer />
     </div>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -7,11 +6,9 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/product/ProductCard';
 import { ProductCardSkeleton } from '@/components/product/ProductCardSkeleton';
-import SurveyModal from '@/components/survey/SurveyModal';
 import { getProducts } from '@/lib/actions/products';
 import { 
   ArrowRight, 
-  Loader2, 
   Truck, 
   ShieldCheck, 
   RotateCcw, 
@@ -71,9 +68,6 @@ export default function Home() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
-  
-  // Survey state for global scroll trigger
-  const [isSurveyOpen, setIsSurveyOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -323,13 +317,6 @@ export default function Home() {
             </motion.div>
           </div>
         </section>
-
-        <SurveyModal 
-          isOpen={isSurveyOpen} 
-          onClose={() => setIsSurveyOpen(false)} 
-          product={null} 
-          isSinglePage={false} 
-        />
 
       </main>
       

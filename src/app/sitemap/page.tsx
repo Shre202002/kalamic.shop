@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from 'react';
@@ -14,8 +13,7 @@ const SITEMAP_DATA = [
     links: [
       { name: "Home", href: "/" },
       { name: "Products", href: "/products" },
-      { name: "About", href: "/about" },
-      { name: "Discovery Quiz", href: "/survey" }
+      { name: "About", href: "/about" }
     ]
   },
   {

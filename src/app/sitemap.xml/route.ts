@@ -17,7 +17,6 @@ export async function GET() {
     '/faq',
     '/privacy',
     '/returns',
-    '/survey',
     '/sitemap'
   ];
 
