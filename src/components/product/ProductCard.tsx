@@ -1,6 +1,8 @@
+
 "use client"
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Heart, ShoppingBag, Zap, Star, Eye } from 'lucide-react';
@@ -25,9 +27,22 @@ interface ProductCardProps {
   tag?: string;
   description?: string;
   isInitiallyFavorited?: boolean;
+  onAction?: () => void;
 }
 
-export function ProductCard({ id, slug, name, price, originalPrice, image, tag, description, rating, isInitiallyFavorited = false }: ProductCardProps) {
+export function ProductCard({ 
+  id, 
+  slug, 
+  name, 
+  price, 
+  originalPrice, 
+  image, 
+  tag, 
+  description, 
+  rating, 
+  isInitiallyFavorited = false,
+  onAction
+}: ProductCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -63,11 +78,17 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
     toast({ title: "Bag Updated", description: `${name} has been added to your collection.` });
   };
 
-  const handleBuyNow = async (e: React.MouseEvent) => {
+  const handlePrimaryAction = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    await handleAddToCart(e);
-    if (user) router.push('/checkout');
+    
+    // If a custom action is provided (like in the survey hub), execute it.
+    // Otherwise, default to the survey route for this product.
+    if (onAction) {
+      onAction();
+    } else {
+      router.push(`/products/${slug || id}/survey`);
+    }
   };
 
   const handleAddToWishlist = async (e: React.MouseEvent) => {
@@ -113,16 +134,18 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6, ease: "easeOut" }}
+      whileHover={{ y: -8, transition: { duration: 0.3 } }}
+      whileTap={{ scale: 0.98 }}
       className="h-full"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <Card 
-        className="group border-none bg-white rounded-[2.5rem] overflow-hidden premium-shadow transition-all duration-700 hover:-translate-y-3 cursor-pointer h-full flex flex-col relative"
+        className="group border-none bg-card rounded-[2rem] overflow-hidden shadow-md hover:shadow-2xl hover:shadow-primary/10 transition-all duration-700 cursor-pointer h-full flex flex-col relative"
         onClick={() => router.push(`/products/${slug || id}`)}
       >
         {/* Image Container */}
-        <div className="relative aspect-[4/5] overflow-hidden bg-[#F6F1E9]">
+        <div className="relative aspect-square overflow-hidden bg-muted">
           <Image
             src={displayImage}
             alt={imageAlt}
@@ -135,8 +158,8 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
           {/* Overlays */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-700" />
           
-          <div className="absolute top-6 left-6 z-10">
-            <Badge className="bg-white/90 backdrop-blur-md text-primary border-none text-[8px] font-black px-4 py-1.5 rounded-full shadow-lg uppercase tracking-[0.2em] animate-in slide-in-from-left duration-700">
+          <div className="absolute top-4 left-4 z-10">
+            <Badge className="gradient-saffron text-primary-foreground border-none text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-[0.15em] animate-in slide-in-from-left duration-700">
               {tag || "Artisan"}
             </Badge>
           </div>
@@ -144,7 +167,7 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
           <button 
             onClick={handleAddToWishlist}
             className={cn(
-              "absolute top-6 right-6 p-3 rounded-2xl backdrop-blur-xl transition-all duration-500 shadow-2xl z-10",
+              "absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-xl transition-all duration-500 shadow-xl z-10",
               isFavorited ? "bg-primary text-white scale-110" : "bg-white/80 opacity-0 group-hover:opacity-100 text-primary hover:bg-white"
             )}
           >
@@ -154,13 +177,14 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
           <AnimatePresence>
             {isHovered && (
               <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
+                exit={{ opacity: 0, scale: 0.85 }}
+                transition={{ duration: 0.2 }}
                 className="absolute inset-0 flex items-center justify-center pointer-events-none"
               >
                 <div className="bg-primary/90 text-white p-4 rounded-full shadow-2xl backdrop-blur-sm">
-                  <Eye className="h-6 w-6" />
+                  <Eye className="h-5 w-5" />
                 </div>
               </motion.div>
             )}
@@ -168,49 +192,51 @@ export function ProductCard({ id, slug, name, price, originalPrice, image, tag, 
         </div>
 
         {/* Content */}
-        <CardHeader className="p-8 pb-2 space-y-2">
-          <div className="flex items-center gap-1.5 text-accent mb-1">
+        <CardHeader className="p-6 pb-2 space-y-1.5">
+          <div className="flex items-center gap-1 text-accent mb-1">
             {[1,2,3,4,5].map(i => (
               <Star key={i} className={cn("h-3 w-3", i <= Math.round(rating) ? "fill-current" : "opacity-20")} />
             ))}
-            <span className="text-[10px] font-black text-muted-foreground ml-1 tabular-nums">{rating.toFixed(1)}</span>
+            <span className="text-[10px] font-bold text-muted-foreground ml-1 tabular-nums">{rating.toFixed(1)}</span>
           </div>
-          <h3 className="font-display text-2xl font-semibold text-primary leading-[1.1] line-clamp-2 min-h-[3.3rem]">
-            {name}
-          </h3>
+          <Link href={`/products/${slug || id}`} className="hover:text-primary transition-colors">
+            <h3 className="font-serif text-xl font-semibold text-black line-clamp-2 leading-snug min-h-[2.8rem]">
+              {name}
+            </h3>
+          </Link>
         </CardHeader>
 
-        <CardContent className="px-8 pb-6 flex-1">
+        <CardContent className="px-6 pb-4 flex-1">
           {description && (
-            <p className="text-[11px] font-medium text-muted-foreground line-clamp-2 leading-relaxed opacity-70">
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed font-normal">
               {description}
             </p>
           )}
         </CardContent>
 
-        <CardFooter className="px-8 pb-10 flex flex-col gap-6 mt-auto">
+        <CardFooter className="px-6 pb-8 flex flex-col gap-4 mt-auto">
           <div className="w-full flex items-baseline justify-between">
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-black text-primary tracking-tighter tabular-nums">₹{price.toLocaleString()}</span>
+              <span className="text-2xl font-black text-primary tracking-tight tabular-nums">₹{price.toLocaleString()}</span>
               {originalPrice && (
-                <span className="text-sm text-muted-foreground line-through decoration-primary/20 opacity-40 font-bold tabular-nums">₹{originalPrice.toLocaleString()}</span>
+                <span className="text-sm text-muted-foreground line-through opacity-40 font-semibold tabular-nums">₹{originalPrice.toLocaleString()}</span>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 w-full">
+          <div className="grid grid-cols-2 gap-3 w-full">
             <Button 
               variant="outline"
-              className="h-14 rounded-2xl border-primary/10 text-primary hover:bg-primary/5 text-[9px] font-black uppercase tracking-[0.2em] gap-2 transition-all active:scale-95 premium-shadow"
+              className="h-12 rounded-xl border-primary/20 text-primary hover:bg-primary/5 text-[9px] font-black uppercase tracking-[0.15em] gap-2 transition-all active:scale-95"
               onClick={handleAddToCart}
             >
               <ShoppingBag className="h-4 w-4" /> Add
             </Button>
             <Button 
-              className="h-14 rounded-2xl gradient-saffron text-white border-none text-[9px] font-black uppercase tracking-[0.2em] gap-2 shadow-2xl shadow-primary/20 transition-all active:scale-95"
-              onClick={handleBuyNow}
+              className="h-12 rounded-xl gradient-saffron text-primary-foreground border-none text-[9px] font-black uppercase tracking-[0.15em] gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95"
+              onClick={handlePrimaryAction}
             >
-              <Zap className="h-4 w-4" /> Buy
+              <Zap className="h-4 w-4" /> Review Now
             </Button>
           </div>
         </CardFooter>
