@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -6,6 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/product/ProductCard';
 import { ProductCardSkeleton } from '@/components/product/ProductCardSkeleton';
+import SurveyModal from '@/components/survey/SurveyModal';
 import { getProducts } from '@/lib/actions/products';
 import { 
   ArrowRight, 
@@ -15,7 +17,8 @@ import {
   RotateCcw, 
   Sparkles, 
   ChevronLeft, 
-  ChevronRight 
+  ChevronRight,
+  Package
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -68,6 +71,10 @@ export default function Home() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  
+  // Survey states
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [isSurveyOpen, setIsSurveyOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -82,6 +89,11 @@ export default function Home() {
     }
     loadData();
   }, []);
+
+  const handleReviewAction = (product: any) => {
+    setSelectedProduct(product);
+    setIsSurveyOpen(true);
+  };
 
   // Auto-slide logic
   useEffect(() => {
@@ -246,7 +258,10 @@ export default function Home() {
                 viewport={{ once: true }}
                 className="space-y-2 text-center md:text-left"
               >
-                <h2 className="text-3xl md:text-5xl font-display font-semibold text-[#271E1B]">Featured Products</h2>
+                <div className="flex items-center justify-center md:justify-start gap-2 text-accent font-bold text-[10px] uppercase tracking-widest">
+                  <Package className="h-4 w-4" /> Artisan Selects
+                </div>
+                <h2 className="text-3xl md:text-5xl font-display font-semibold text-[#271E1B]">विशेष संग्रह</h2>
                 <p className="text-sm md:text-base text-muted-foreground font-medium">Curated favorites from our latest kiln firing.</p>
               </motion.div>
               <Button asChild variant="ghost" className="text-primary font-black uppercase tracking-widest text-[10px] hover:bg-primary/5">
@@ -273,11 +288,13 @@ export default function Home() {
                     id={product._id} 
                     slug={product.slug}
                     name={product.name}
+                    description={product.short_description || product.description}
                     price={product.price}
                     originalPrice={product.compare_at_price}
                     image={product.images?.[0] || 'https://placehold.co/600x800?text=Kalamic'}
                     rating={product.analytics?.average_rating || 4.8}
                     tag={product.tags?.[0] || "Artisan"}
+                    onAction={() => handleReviewAction(product)}
                   />
                 </motion.div>
               ))}
@@ -313,6 +330,14 @@ export default function Home() {
             </motion.div>
           </div>
         </section>
+
+        {/* Survey Modal for immediate feedback from home grid */}
+        <SurveyModal 
+          isOpen={isSurveyOpen} 
+          onClose={() => setIsSurveyOpen(false)} 
+          product={selectedProduct} 
+          isSinglePage={false} 
+        />
 
       </main>
       
