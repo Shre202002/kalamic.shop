@@ -101,7 +101,7 @@ export default function CartPage() {
           <div className="h-16 w-16 bg-muted/20 rounded-full flex items-center justify-center mb-6">
             <ShoppingBag className="h-8 w-8 text-muted-foreground opacity-50" />
           </div>
-          <h1 className="text-xl font-bold text-primary mb-2">Your Bag is Waiting</h1>
+          <h1 className="text-xl font-bold text-foreground mb-2">Your Bag is Waiting</h1>
           <p className="text-xs text-muted-foreground mb-8 max-w-xs">Sign in to retrieve your artisan selections and complete your acquisition.</p>
           <Button asChild className="w-full max-w-xs h-10 rounded-xl"><Link href="/auth/login">Sign In</Link></Button>
         </main>
@@ -116,7 +116,7 @@ export default function CartPage() {
       <main className="flex-1 py-8 md:py-12">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-2xl md:text-4xl font-extrabold text-primary tracking-tight">Shopping Bag</h1>
+            <h1 className="text-2xl md:text-4xl font-extrabold text-foreground tracking-tight">Shopping Bag</h1>
             <Badge variant="outline" className="h-7 rounded-full border-primary/20 text-primary text-[10px]">
               {cartItems?.length || 0} Items
             </Badge>
@@ -147,7 +147,7 @@ export default function CartPage() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-primary text-sm md:text-base line-clamp-1">{item.name || 'Ceramic Piece'}</h3>
+                        <h3 className="font-bold text-foreground text-sm md:text-base line-clamp-1">{item.name || 'Ceramic Piece'}</h3>
                         <p className="text-xs text-accent font-bold mt-0.5">₹{item.priceAtAddToCart.toFixed(2)}</p>
                         
                         <div className="flex items-center justify-between mt-3 md:mt-4">
@@ -166,7 +166,7 @@ export default function CartPage() {
                         </div>
                       </div>
                       <div className="text-right hidden sm:block">
-                        <p className="font-bold text-primary text-base">₹{(item.priceAtAddToCart * item.quantity).toFixed(2)}</p>
+                        <p className="font-bold text-foreground text-base">₹{(item.priceAtAddToCart * item.quantity).toFixed(2)}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -182,7 +182,7 @@ export default function CartPage() {
               <div className="space-y-6">
                 <Card className="border-none shadow-xl bg-white rounded-3xl sticky top-24">
                   <CardContent className="p-6 md:p-8 space-y-6">
-                    <h3 className="text-lg font-bold text-primary border-b pb-4">Order Summary</h3>
+                    <h3 className="text-lg font-bold text-foreground border-b pb-4">Order Summary</h3>
                     <div className="space-y-3 text-xs md:text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Subtotal</span>
@@ -214,7 +214,7 @@ export default function CartPage() {
                       </div>
                     </div>
                     
-                    <div className="flex justify-between font-bold text-lg md:text-xl pt-6 border-t text-primary">
+                    <div className="flex justify-between font-bold text-lg md:text-xl pt-6 border-t text-foreground">
                       <span>Total</span>
                       <span className="text-accent">₹{charges.total.toLocaleString()}</span>
                     </div>

@@ -56,7 +56,7 @@ const CategoryCard = ({ name, slug, description }: { name: string, slug: string,
       whileTap={{ scale: 0.98 }}
       className="relative overflow-hidden rounded-[2rem] border border-primary/10 bg-gradient-to-br from-primary/[0.03] to-accent/[0.03] p-8 md:p-10 text-center hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 h-full flex flex-col justify-center"
     >
-      <h3 className="text-xl md:text-2xl font-display font-bold text-primary">{name}</h3>
+      <h3 className="text-xl md:text-2xl font-display font-bold text-foreground">{name}</h3>
       {description && <p className="text-xs md:text-sm text-muted-foreground mt-2 font-medium">{description}</p>}
       <div className="mt-4 inline-flex items-center text-[10px] font-black uppercase tracking-widest text-primary/60">
         Explore <ChevronRight className="ml-1 h-3 w-3" />
@@ -99,7 +99,7 @@ export default function Home() {
   const slide = heroSlides[currentSlide];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5EFE9] selection:bg-primary/10">
+    <div className="min-h-screen flex flex-col bg-background selection:bg-primary/10">
       <Navbar />
       
       <main className="flex-1">
@@ -121,7 +121,7 @@ export default function Home() {
                     className="space-y-6 md:space-y-8"
                   >
                     <Badge label="New Arrivals" />
-                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-display font-semibold text-[#271E1B] leading-[1.1] tracking-tight">
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-display font-semibold text-foreground leading-[1.1] tracking-tight">
                       {slide.title} <br />
                       <span className="italic text-primary font-normal">{slide.highlight}</span>
                     </h1>
@@ -209,7 +209,7 @@ export default function Home() {
                   <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0 shadow-inner">
                     <Icon className="h-6 w-6" />
                   </div>
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#271E1B]/70 leading-tight">{text}</span>
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-foreground/70 leading-tight">{text}</span>
                 </div>
               ))}
             </div>
@@ -225,7 +225,7 @@ export default function Home() {
               viewport={{ once: true }}
               className="text-center mb-16 space-y-4"
             >
-              <h2 className="text-3xl md:text-5xl font-display font-semibold text-[#271E1B]">Shop by Category</h2>
+              <h2 className="text-3xl md:text-5xl font-display font-semibold text-foreground">Shop by Category</h2>
               <p className="text-sm md:text-base text-muted-foreground font-medium max-w-lg mx-auto">Explore our curated artisanal collections for every corner of your home.</p>
             </motion.div>
 
@@ -250,7 +250,7 @@ export default function Home() {
                 <div className="flex items-center justify-center md:justify-start gap-2 text-accent font-bold text-[10px] uppercase tracking-widest">
                   <Package className="h-4 w-4" /> Artisan Selects
                 </div>
-                <h2 className="text-3xl md:text-5xl font-display font-semibold text-[#271E1B]">Special Collection</h2>
+                <h2 className="text-3xl md:text-5xl font-display font-semibold text-foreground">Special Collection</h2>
                 <p className="text-sm md:text-base text-muted-foreground font-medium">Curated favorites from our latest kiln firing.</p>
               </motion.div>
               <Button asChild variant="ghost" className="text-primary font-black uppercase tracking-widest text-[10px] hover:bg-primary/5">
@@ -291,7 +291,7 @@ export default function Home() {
         </section>
 
         {/* 5. CRAFT CTA */}
-        <section className="py-24 md:py-32 bg-[#F5EFE9]">
+        <section className="py-24 md:py-32 bg-background">
           <div className="max-w-[1200px] mx-auto px-6 md:px-10">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}

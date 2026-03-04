@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -30,7 +31,7 @@ export default function AboutPage() {
   const whyScroll = useScrollAnimation(0.15);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5EFE9]">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1">
         
@@ -42,7 +43,7 @@ export default function AboutPage() {
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-[0.2em]">
                   <Sparkles className="h-3 w-3" /> Crafting Culture
                 </div>
-                <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-semibold text-primary leading-[1.1] tracking-tight text-balance">
+                <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-semibold text-foreground leading-[1.1] tracking-tight text-balance">
                   Preserving Culture. <br className="hidden sm:block" />
                   <span className="italic">Designing for</span> <br className="hidden sm:block" />
                   Modern Homes.
@@ -85,8 +86,8 @@ export default function AboutPage() {
         >
           <div className="container mx-auto px-4 max-w-4xl text-center space-y-8 md:space-y-12">
             <div className="space-y-4">
-              <h2 className="text-[10px] md:text-sm font-black uppercase tracking-[0.3em] text-primary/60">Our Beginning</h2>
-              <h3 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-primary tracking-tight">Reviving the Soul of Decor</h3>
+              <h2 className="text-[10px] md:text-sm font-black uppercase tracking-[0.3em] text-muted-foreground">Our Beginning</h2>
+              <h3 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-foreground tracking-tight">Reviving the Soul of Decor</h3>
             </div>
             <div className="prose prose-stone max-w-none space-y-6 text-sm sm:text-base md:text-lg text-muted-foreground leading-relaxed font-medium italic">
               <p>
@@ -95,7 +96,7 @@ export default function AboutPage() {
               <p>
                 We grew up surrounded by carved pillars, temple motifs, handcrafted décor, and sacred symbolism. Today, mass production dominates interiors, replacing character with convenience.
               </p>
-              <p className="text-primary font-bold not-italic text-lg sm:text-xl md:text-2xl border-y border-primary/10 py-8 md:py-10">
+              <p className="text-foreground font-bold not-italic text-lg sm:text-xl md:text-2xl border-y border-primary/10 py-8 md:py-10">
                 Kalamic was created to bring back meaning.
               </p>
               <p>
@@ -185,8 +186,8 @@ export default function AboutPage() {
                 </div>
               </div>
               <div className="w-full lg:w-1/2 space-y-8 md:space-y-10">
-                <h2 className="text-[10px] md:text-sm font-black uppercase tracking-[0.3em] text-primary/60">The Craft</h2>
-                <h3 className="text-3xl sm:text-4xl md:text-5xl font-display font-semibold text-primary tracking-tight">Quality Over Scale</h3>
+                <h2 className="text-[10px] md:text-sm font-black uppercase tracking-[0.3em] text-muted-foreground">The Craft</h2>
+                <h3 className="text-3xl sm:text-4xl md:text-5xl font-display font-semibold text-foreground tracking-tight">Quality Over Scale</h3>
                 <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-medium">
                   Each product is thoughtfully designed and finished with traditional methods. From Mor Stambh pillars to handcrafted décor accents, every piece undergoes careful inspection before reaching you.
                 </p>
@@ -198,7 +199,7 @@ export default function AboutPage() {
                     "Premium finishing standards",
                     "Functional placement consideration"
                   ].map((item, idx) => (
-                    <li key={idx} className="flex items-center gap-4 font-bold text-primary text-sm sm:text-base">
+                    <li key={idx} className="flex items-center gap-4 font-bold text-foreground text-sm sm:text-base">
                       <CheckCircle2 className="h-5 w-5 text-[#C97A40] shrink-0" /> {item}
                     </li>
                   ))}
@@ -218,8 +219,8 @@ export default function AboutPage() {
         >
           <div className="container mx-auto px-4 max-w-[1200px] text-center space-y-12 md:space-y-20">
             <div className="space-y-4">
-              <h2 className="text-[10px] md:text-sm font-black uppercase tracking-[0.3em] text-primary/60">Why Kalamic?</h2>
-              <h3 className="text-3xl sm:text-4xl font-display font-semibold text-primary tracking-tight">Tradition, Refined for Today</h3>
+              <h2 className="text-[10px] md:text-sm font-black uppercase tracking-[0.3em] text-muted-foreground">Why Kalamic?</h2>
+              <h3 className="text-3xl sm:text-4xl font-display font-semibold text-foreground tracking-tight">Tradition, Refined for Today</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10 text-left">
               {[
@@ -234,7 +235,7 @@ export default function AboutPage() {
                   <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-500">
                     <item.icon className="h-7 w-7" />
                   </div>
-                  <h4 className="text-sm font-black text-primary uppercase tracking-[0.2em]">{item.title}</h4>
+                  <h4 className="text-sm font-black text-foreground uppercase tracking-[0.2em]">{item.title}</h4>
                   <p className="text-muted-foreground text-sm leading-relaxed font-medium">{item.desc}</p>
                 </div>
               ))}
@@ -245,7 +246,7 @@ export default function AboutPage() {
         {/* 6. CTA SECTION */}
         <section className="py-20 md:py-32 relative overflow-hidden">
           <div className="container mx-auto px-4 max-w-[1200px] text-center space-y-10 md:space-y-12 relative z-10">
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-display font-semibold text-primary tracking-tighter leading-tight text-balance">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-display font-semibold text-foreground tracking-tighter leading-tight text-balance">
               Bring Meaning Back <br className="hidden md:block" /> Into Your Space.
             </h2>
             <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-white h-16 md:h-20 px-10 md:px-16 rounded-[1.5rem] md:rounded-[2rem] font-bold text-base md:text-lg shadow-2xl shadow-primary/20 transition-all active:scale-95 group w-full sm:w-auto">

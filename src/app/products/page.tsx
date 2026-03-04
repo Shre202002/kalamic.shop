@@ -68,7 +68,7 @@ export default function ProductsPage() {
               <div className="flex items-center gap-2 text-accent font-bold text-[10px] uppercase tracking-widest">
                 <Package className="h-4 w-4" /> The Collection
               </div>
-              <h1 className="text-4xl md:text-5xl font-display font-bold text-primary tracking-tight">
+              <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground tracking-tight">
                 Our Complete Collection
               </h1>
               <p className="text-sm md:text-base text-muted-foreground max-w-lg leading-relaxed font-body">
@@ -132,7 +132,7 @@ export default function ProductsPage() {
               <div className="h-20 w-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Search className="h-8 w-8 text-muted-foreground opacity-30" />
               </div>
-              <h2 className="text-xl font-display font-bold text-primary">No masterpieces found</h2>
+              <h2 className="text-xl font-display font-bold text-foreground">No masterpieces found</h2>
               <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto font-body">We couldn't find any ceramic pieces matching "{searchQuery}". Try a different keyword.</p>
               <Button 
                 variant="link" 

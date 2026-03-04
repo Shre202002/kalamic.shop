@@ -271,7 +271,7 @@ export default function ProductDetailPage() {
   };
 
   if (isLoading) return <div className="min-h-screen flex flex-col items-center justify-center bg-background"><Loader2 className="animate-spin text-primary h-10 w-10" /><p className="mt-4 text-primary font-bold uppercase tracking-widest text-[10px]">Curation in Progress...</p></div>;
-  if (!product) return <div className="p-20 text-center bg-background min-h-screen flex flex-col items-center justify-center"><h1 className="text-3xl font-display font-semibold text-primary mb-6">Piece Not Found</h1><Button asChild className="rounded-2xl h-12 px-8 font-body"><Link href="/products">Return to Shop</Link></Button></div>;
+  if (!product) return <div className="p-20 text-center bg-background min-h-screen flex flex-col items-center justify-center"><h1 className="text-3xl font-display font-semibold text-foreground mb-6">Piece Not Found</h1><Button asChild className="rounded-2xl h-12 px-8 font-body"><Link href="/products">Return to Shop</Link></Button></div>;
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
   
@@ -280,7 +280,6 @@ export default function ProductDetailPage() {
       <Navbar />
       <main className="flex-1">
         <div className="container mx-auto px-4 max-w-7xl pt-6 md:pt-12">
-          {/* Back Button Animation */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -296,7 +295,6 @@ export default function ProductDetailPage() {
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 mb-20 items-start">
-            {/* Left: Gallery Animation */}
             <motion.div 
               initial={{ opacity: 0, x: -40 }}
               animate={{ opacity: 1, x: 0 }}
@@ -360,7 +358,6 @@ export default function ProductDetailPage() {
               )}
             </motion.div>
 
-            {/* Right: Info Animation */}
             <motion.div 
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
@@ -388,7 +385,6 @@ export default function ProductDetailPage() {
                   ))}
                 </div>
 
-                {/* Buy Now Button Style Update */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -433,7 +429,7 @@ export default function ProductDetailPage() {
           <section className="mb-32">
             <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
               <div className="w-full lg:w-1/3 space-y-4">
-                <h2 className="text-2xl sm:text-3xl font-black text-primary uppercase tracking-tight">Behind the Craft</h2>
+                <h2 className="text-2xl sm:text-3xl font-black text-foreground uppercase tracking-tight">Behind the Craft</h2>
                 <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">The technical precision behind our artistry ensures longevity for generations to come.</p>
               </div>
               <div className="flex-1">
@@ -484,7 +480,7 @@ export default function ProductDetailPage() {
           {/* Shipping */}
           <section className="mb-32">
             <div className="text-center space-y-4 mb-16 px-4">
-              <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-primary tracking-tight">FragileCare™ Shipping</h2>
+              <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-foreground tracking-tight">FragileCare™ Shipping</h2>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] max-w-md mx-auto leading-relaxed">Expert Logistics for Handcrafted Masterpieces</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -511,14 +507,14 @@ export default function ProductDetailPage() {
             <section className="mb-32">
               <div className="max-w-4xl mx-auto px-4">
                 <div className="text-center space-y-4 mb-16">
-                  <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-primary">Curiosity Corner</h2>
+                  <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-foreground">Curiosity Corner</h2>
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Artisanal FAQ & Preservation</p>
                 </div>
                 <Accordion type="single" collapsible className="space-y-4">
                   {product.faqs.map((faq: any, i: number) => (
                     <AccordionItem key={i} value={`item-${i}`} className="border rounded-2xl px-6 bg-white overflow-hidden data-[state=open]:border-primary/30 transition-all shadow-sm">
                       <AccordionTrigger className="hover:no-underline py-6">
-                        <span className="text-left font-black text-primary text-sm sm:text-base">{faq.question}</span>
+                        <span className="text-left font-black text-foreground text-sm sm:text-base">{faq.question}</span>
                       </AccordionTrigger>
                       <AccordionContent className="pb-6 text-muted-foreground leading-relaxed text-sm font-medium">
                         {faq.answer}
@@ -533,18 +529,18 @@ export default function ProductDetailPage() {
           {/* Reviews */}
           <section className="mb-32">
             <div className="text-center space-y-4 mb-16 px-4">
-              <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-primary tracking-tight">Collector Experiences</h2>
+              <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-foreground tracking-tight">Collector Experiences</h2>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Authentic feedback from the Kalamic Community</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
               <div className="lg:col-span-4 space-y-8">
                 <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-xl border border-border sticky top-28">
-                  <h3 className="text-lg sm:text-xl font-black text-primary mb-8 flex items-center gap-3">
+                  <h3 className="text-lg sm:text-xl font-black text-foreground mb-8 flex items-center gap-3">
                     <MessageSquare className="h-5 w-5 text-accent" /> Collector Verdict
                   </h3>
                   <div className="flex items-center gap-6 mb-10">
-                    <p className="text-5xl sm:text-6xl md:text-7xl font-black text-primary tracking-tighter">{product.analytics?.average_rating || 4.8}</p>
+                    <p className="text-5xl sm:text-6xl md:text-7xl font-black text-foreground tracking-tighter">{product.analytics?.average_rating || 4.8}</p>
                     <div>
                       <div className="flex gap-1 text-primary mb-1">
                         {[1,2,3,4,5].map(i => <Star key={i} className={cn("h-4 w-4", i <= Math.floor(product.analytics?.average_rating || 5) ? "fill-current" : "opacity-20")} />)}
@@ -614,7 +610,7 @@ export default function ProductDetailPage() {
                               {review.user_avatar ? <img src={review.user_avatar} className="h-full w-full object-cover" /> : review.user_name?.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <p className="text-sm font-black text-primary flex items-center gap-2">
+                              <p className="text-sm font-black text-foreground flex items-center gap-2">
                                 {review.user_name || 'Collector'}
                                 {review.is_verified_purchase && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                               </p>
@@ -652,7 +648,7 @@ export default function ProductDetailPage() {
                 ) : (
                   <div className="text-center py-24 bg-white rounded-[3rem] sm:rounded-[4rem] border border-dashed border-border shadow-inner">
                     <MessageSquare className="mx-auto h-16 w-16 text-primary opacity-10 mb-6" />
-                    <p className="text-xl sm:text-2xl font-display font-semibold text-primary/60">Be the first to share your verdict</p>
+                    <p className="text-xl sm:text-2xl font-display font-semibold text-foreground/60">Be the first to share your verdict</p>
                   </div>
                 )}
               </div>
@@ -660,38 +656,6 @@ export default function ProductDetailPage() {
           </section>
         </div>
       </main>
-
-      {/* Sticky Mobile Buy Bar */}
-      <div className={cn("lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-2xl border-t border-border z-50 transition-transform duration-500 rounded-t-[2rem] shadow-2xl", isScrolled ? "translate-y-0" : "translate-y-full")}>
-        <div className="flex items-center gap-6">
-          <div className="shrink-0 pl-2">
-            <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter">₹{product?.price?.toLocaleString() || '0'}</p>
-          </div>
-          <Button onClick={handleBuyNow} className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all">Buy Now</Button>
-        </div>
-      </div>
-
-      {/* Lightbox Dialog */}
-      <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-black/95 flex items-center justify-center overflow-hidden rounded-[2.5rem]">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Detail View</DialogTitle>
-            <DialogDescription>High resolution examination</DialogDescription>
-          </DialogHeader>
-          <div className="relative w-full h-full min-h-[85vh] flex items-center justify-center">
-            {lightboxImage && (
-              <Image 
-                src={lightboxImage} 
-                alt="Large preview" 
-                fill 
-                className="object-contain" 
-                priority 
-                sizes="95vw"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Footer />
     </div>
