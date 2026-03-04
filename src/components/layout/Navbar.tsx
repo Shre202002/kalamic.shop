@@ -78,10 +78,11 @@ export function Navbar() {
       <div className="max-w-[1200px] mx-auto px-6 md:px-10 h-full flex items-center justify-between">
         {/* Left: Mobile Menu Trigger */}
         <div className="flex items-center md:hidden">
+          <span id="recaptcha-container"></span>
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="hover:bg-primary/5 rounded-full">
-                <Menu className="h-6 w-6 text-primary" />
+                <Menu className="h-6 w-6 text-foreground" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-none bg-background">
@@ -182,20 +183,20 @@ export function Navbar() {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="hidden sm:flex hover:bg-primary/5 rounded-full text-primary/60 hover:text-primary transition-colors"
+            className="hidden sm:flex hover:bg-primary/5 rounded-full text-foreground/60 hover:text-foreground transition-colors"
             onClick={() => setIsSearchOpen(!isSearchOpen)}
           >
             <Search className="h-5 w-5" />
           </Button>
 
           <Link href="/wishlist" className="hidden sm:block">
-            <Button variant="ghost" size="icon" className="hover:bg-primary/5 rounded-full text-primary/60 hover:text-primary transition-colors">
+            <Button variant="ghost" size="icon" className="hover:bg-primary/5 rounded-full text-foreground/60 hover:text-foreground transition-colors">
               <Heart className="h-5 w-5" />
             </Button>
           </Link>
 
           <Link href="/cart">
-            <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 rounded-full text-primary/60 hover:text-primary transition-colors">
+            <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 rounded-full text-foreground/60 hover:text-foreground transition-colors">
               <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary text-white border-2 border-background text-[9px] font-black rounded-full animate-in zoom-in duration-300">
@@ -268,7 +269,7 @@ export function Navbar() {
               <Button className="hidden sm:flex bg-primary text-white font-black h-10 px-6 md:h-11 md:px-8 rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest">
                 Sign In
               </Button>
-              <Button variant="ghost" size="icon" className="sm:hidden text-primary rounded-full hover:bg-primary/5">
+              <Button variant="ghost" size="icon" className="sm:hidden text-foreground rounded-full hover:bg-primary/5">
                 <User className="h-5 w-5" />
               </Button>
             </Link>
