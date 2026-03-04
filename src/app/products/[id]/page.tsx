@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -43,7 +44,8 @@ import {
   HelpCircle,
   Hammer,
   Camera,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +57,7 @@ import { doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import dayjs from 'dayjs';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -132,6 +135,7 @@ export default function ProductDetailPage() {
   const handleAddToCart = async () => {
     if (!user || !firestore || !product) {
       toast({ title: "Please sign in", description: "You need an account to add items to your cart." });
+      router.push('/auth/login');
       return;
     }
     const id = product._id;
@@ -276,18 +280,29 @@ export default function ProductDetailPage() {
       <Navbar />
       <main className="flex-1">
         <div className="container mx-auto px-4 max-w-7xl pt-6 md:pt-12">
-          {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-8">
-            <Link href="/" className="hover:text-primary transition-colors shrink-0">Home</Link>
-            <ChevronRight className="h-3 w-3 shrink-0" />
-            <Link href="/products" className="hover:text-primary transition-colors shrink-0">Catalog</Link>
-            <ChevronRight className="h-3 w-3 shrink-0" />
-            <span className="text-primary truncate">{product.name}</span>
-          </nav>
+          {/* Back Button Animation */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
+            <Link 
+              href="/products" 
+              className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+            >
+              <ArrowLeft className="h-3 w-3" /> Back to Collection
+            </Link>
+          </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 mb-20 items-start">
-            {/* Left: Slider */}
-            <div className="lg:col-span-7 space-y-6 lg:sticky lg:top-28 self-start">
+            {/* Left: Gallery Animation */}
+            <motion.div 
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7 }}
+              className="lg:col-span-7 space-y-6 lg:sticky lg:top-28 self-start"
+            >
               <div 
                 className="relative aspect-square rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl bg-white border-2 sm:border-4 border-white group"
                 onMouseEnter={() => setIsSliderPaused(true)}
@@ -343,12 +358,17 @@ export default function ProductDetailPage() {
                   </Carousel>
                 </div>
               )}
-            </div>
+            </motion.div>
 
-            {/* Right: Info */}
-            <div className="lg:col-span-5 space-y-8 sm:space-y-10">
+            {/* Right: Info Animation */}
+            <motion.div 
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="lg:col-span-5 space-y-8 sm:space-y-10"
+            >
               <div className="space-y-6">
-                <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-primary tracking-tight leading-[1.05]">{product.name}</h1>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-foreground tracking-tight leading-[1.05]">{product.name}</h1>
                 <div className="flex items-baseline gap-5 py-4">
                   <span className="text-3xl sm:text-4xl md:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
                   {product.compare_at_price && (
@@ -368,10 +388,23 @@ export default function ProductDetailPage() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button onClick={handleAddToCart} className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] bg-primary text-white font-black text-base md:text-lg shadow-2xl transition-all active:scale-95">Add to Bag</Button>
-                  <Button onClick={handleBuyNow} className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] bg-[#1E1E1E] text-white font-black text-base md:text-lg shadow-2xl transition-all active:scale-95">Buy Now</Button>
-                </div>
+                {/* Buy Now Button Style Update */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="grid grid-cols-1 gap-4"
+                >
+                  <Button 
+                    size="lg"
+                    onClick={handleBuyNow} 
+                    className="w-full h-16 md:h-20 rounded-2xl gradient-saffron text-primary-foreground font-bold text-lg px-10 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all"
+                  >
+                    <ShoppingCart className="mr-3 h-6 w-6" />
+                    Buy Now
+                  </Button>
+                </motion.div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Button asChild variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-primary/20 text-primary font-black text-sm"><Link href={`https://wa.me/916387562920?text=Hi, I am interested in ${encodeURIComponent(product.name)}`} target="_blank">Enquire Now</Link></Button>
                   <Button onClick={handleShare} variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-border text-muted-foreground font-black text-sm">Share Piece</Button>
@@ -393,7 +426,7 @@ export default function ProductDetailPage() {
                   <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">{isFavorited ? "In Wishlist" : "Wishlist"}</p>
                 </button>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* Details Section */}
@@ -634,7 +667,7 @@ export default function ProductDetailPage() {
           <div className="shrink-0 pl-2">
             <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter">₹{product?.price?.toLocaleString() || '0'}</p>
           </div>
-          <Button onClick={handleAddToCart} className="flex-1 h-12 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all">Add to Bag</Button>
+          <Button onClick={handleBuyNow} className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all">Buy Now</Button>
         </div>
       </div>
 
