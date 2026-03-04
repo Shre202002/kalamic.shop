@@ -81,11 +81,13 @@ export default function ProductDetailPage() {
   const [reviewPreviews, setReviewPreviews] = useState<string[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
 
+  // Use the canonical ID for Firestore references
+  const productId = typeof params?.id === 'string' ? params.id : '';
+
   const wishlistDocRef = useMemoFirebase(() => {
-    const id = product?._id || product?.id;
-    if (!firestore || !user || !id) return null;
-    return doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
-  }, [firestore, user, product]);
+    if (!firestore || !user || !productId) return null;
+    return doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', productId);
+  }, [firestore, user, productId]);
 
   const { data: wishlistDoc } = useDoc(wishlistDocRef);
   const isFavorited = !!wishlistDoc;
@@ -107,9 +109,9 @@ export default function ProductDetailPage() {
   }, [product, isSliderPaused]);
 
   async function loadData() {
+    if (!productId) return;
     try {
-      const id = params.id as string;
-      const data = await getProductById(id);
+      const data = await getProductById(productId);
       if (data) {
         setProduct(data);
         incrementProductViews(data._id);
@@ -125,10 +127,10 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     loadData();
-  }, [params.id]);
+  }, [productId]);
 
   const handleAddToCart = async () => {
-    if (!user || !firestore) {
+    if (!user || !firestore || !product) {
       toast({ title: "Please sign in", description: "You need an account to add items to your cart." });
       return;
     }
@@ -154,27 +156,27 @@ export default function ProductDetailPage() {
   };
 
   const handleAddToWishlist = async () => {
-    if (!user || !firestore) {
+    if (!user || !firestore || !product) {
       toast({ title: "Please sign in", description: "You need an account to save pieces." });
       return;
     }
-    const productId = product._id;
-    const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', productId);
+    const id = product._id;
+    const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
     try {
       if (isFavorited) {
         await deleteDoc(wishlistItemRef);
-        await untrackWishlistAction(productId);
+        await untrackWishlistAction(id);
         toast({ title: "Removed from favorites" });
       } else {
         await setDoc(wishlistItemRef, {
-          id: productId,
-          productId,
+          id,
+          productId: id,
           name: product.name,
           price: product.price ?? 0,
           imageUrl: product.images?.[0]?.url,
           addedAt: new Date().toISOString()
         });
-        await trackProductAction(productId, 'wishlist_count');
+        await trackProductAction(id, 'wishlist_count');
         toast({ title: "Saved to wishlist" });
       }
     } catch (e) {
@@ -183,6 +185,7 @@ export default function ProductDetailPage() {
   };
 
   const handleShare = async () => {
+    if (!product) return;
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
@@ -629,7 +632,7 @@ export default function ProductDetailPage() {
       <div className={cn("lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-2xl border-t border-border z-50 transition-transform duration-500 rounded-t-[2rem] shadow-2xl", isScrolled ? "translate-y-0" : "translate-y-full")}>
         <div className="flex items-center gap-6">
           <div className="shrink-0 pl-2">
-            <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</p>
+            <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter">₹{product?.price?.toLocaleString() || '0'}</p>
           </div>
           <Button onClick={handleAddToCart} className="flex-1 h-12 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all">Add to Bag</Button>
         </div>

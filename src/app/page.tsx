@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -6,6 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/product/ProductCard';
+import { ProductCardSkeleton } from '@/components/product/ProductCardSkeleton';
 import { getProducts } from '@/lib/actions/products';
 import { 
   ArrowRight, 
@@ -34,7 +34,7 @@ const heroSlides = [
     title: 'Stunning Mandala',
     highlight: 'Wheels',
     subtitle: 'Divine beauty crafted in ceramic — perfect for Jhula, mandir, or wall decor.',
-    image: 'https://i.imgur.com/wqfAvmq.png', // Reusing high quality imgur asset
+    image: 'https://i.imgur.com/wqfAvmq.png',
     cta: 'Explore Collection',
     link: '/products',
   },
@@ -94,15 +94,6 @@ export default function Home() {
   const goToSlide = useCallback((index: number) => {
     setCurrentSlide((index + heroSlides.length) % heroSlides.length);
   }, []);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF4EB]">
-        <Loader2 className="h-12 w-12 text-primary animate-spin" />
-        <p className="mt-6 text-primary font-black uppercase tracking-[0.3em] text-[10px]">Curation in Progress</p>
-      </div>
-    );
-  }
 
   const slide = heroSlides[currentSlide];
 
@@ -251,7 +242,7 @@ export default function Home() {
             <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-6">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 className="space-y-2 text-center md:text-left"
               >
@@ -266,7 +257,11 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
-              {products.slice(0, 8).map((product, idx) => (
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))
+              ) : products.slice(0, 8).map((product, idx) => (
                 <motion.div
                   key={product._id}
                   initial={{ opacity: 0, y: 30 }}

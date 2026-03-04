@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/product/ProductCard';
+import { ProductCardSkeleton } from '@/components/product/ProductCardSkeleton';
 import { getProducts } from '@/lib/actions/products';
 import { Loader2, Search, SlidersHorizontal, Package } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -67,14 +68,13 @@ export default function ProductsPage() {
           </div>
 
           {/* Grid Section */}
-          {isLoading ? (
-            <div className="flex flex-col justify-center items-center py-32 space-y-4">
-              <Loader2 className="h-10 w-10 text-primary animate-spin" />
-              <p className="text-muted-foreground font-body font-medium">Revealing artisan treasures...</p>
-            </div>
-          ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-              {filteredProducts.map((product) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+            {isLoading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))
+            ) : filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
                 <ProductCard 
                   key={product._id} 
                   id={product._id} 
@@ -87,24 +87,24 @@ export default function ProductsPage() {
                   rating={product.averageRating || 4.8}
                   tag={product.tags?.[0] || "Artisan"}
                 />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-32 bg-white rounded-[40px] shadow-sm border border-dashed border-primary/20 px-8 font-body">
-              <div className="h-20 w-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Search className="h-8 w-8 text-muted-foreground opacity-30" />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-32 bg-white rounded-[40px] shadow-sm border border-dashed border-primary/20 px-8 font-body">
+                <div className="h-20 w-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Search className="h-8 w-8 text-muted-foreground opacity-30" />
+                </div>
+                <h2 className="text-xl font-display font-bold text-primary">No masterpieces found</h2>
+                <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">We couldn't find any ceramic pieces matching "{searchQuery}". Try a different keyword.</p>
+                <Button 
+                  variant="link" 
+                  className="text-accent font-bold mt-4 text-base"
+                  onClick={() => setSearchQuery('')}
+                >
+                  View all items
+                </Button>
               </div>
-              <h2 className="text-xl font-display font-bold text-primary">No masterpieces found</h2>
-              <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">We couldn't find any ceramic pieces matching "{searchQuery}". Try a different keyword.</p>
-              <Button 
-                variant="link" 
-                className="text-accent font-bold mt-4 text-base"
-                onClick={() => setSearchQuery('')}
-              >
-                View all items
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </main>
       <Footer />
