@@ -93,7 +93,7 @@ export function Navbar() {
                 <Link 
                   href="/" 
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
+                  className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-foreground hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
                 >
                   Home
                 </Link>
@@ -102,7 +102,7 @@ export function Navbar() {
                     key={link.name}
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
+                    className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-foreground hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
                   >
                     <span>{link.name}</span>
                     <ChevronRight className="h-4 w-4 opacity-30" />
@@ -114,7 +114,7 @@ export function Navbar() {
                 <Link 
                   href="/wishlist" 
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
+                  className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-foreground hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
                 >
                   <span className="flex items-center gap-3">
                     <Heart className="h-4 w-4" /> Wishlist
@@ -126,7 +126,7 @@ export function Navbar() {
                     <Link 
                       href="/profile" 
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
+                      className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-foreground hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
                     >
                       <span className="flex items-center gap-3">
                         <User className="h-4 w-4" /> Profile
@@ -145,7 +145,7 @@ export function Navbar() {
                   <Link 
                     href="/auth/login" 
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-primary hover:bg-primary/5 transition-colors rounded-2xl mt-4"
+                    className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-foreground hover:bg-primary/5 transition-colors rounded-2xl mt-4"
                   >
                     Sign In
                   </Link>
@@ -171,7 +171,7 @@ export function Navbar() {
             <Link 
               key={link.name} 
               href={link.href} 
-              className="text-[10px] font-black uppercase tracking-[0.25em] transition-all hover:text-primary opacity-50 hover:opacity-100 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-px after:bg-primary hover:after:w-full after:transition-all duration-300"
+              className="text-[10px] font-black uppercase tracking-[0.25em] transition-all hover:text-primary text-foreground relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-px after:bg-primary hover:after:w-full after:transition-all duration-300"
             >
               {link.name}
             </Link>
@@ -183,20 +183,20 @@ export function Navbar() {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="hidden sm:flex hover:bg-primary/5 rounded-full text-foreground/60 hover:text-foreground transition-colors"
+            className="hidden sm:flex hover:bg-primary/5 rounded-full text-foreground transition-colors"
             onClick={() => setIsSearchOpen(!isSearchOpen)}
           >
             <Search className="h-5 w-5" />
           </Button>
 
           <Link href="/wishlist" className="hidden sm:block">
-            <Button variant="ghost" size="icon" className="hover:bg-primary/5 rounded-full text-foreground/60 hover:text-foreground transition-colors">
+            <Button variant="ghost" size="icon" className="hover:bg-primary/5 rounded-full text-foreground transition-colors">
               <Heart className="h-5 w-5" />
             </Button>
           </Link>
 
           <Link href="/cart">
-            <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 rounded-full text-foreground/60 hover:text-foreground transition-colors">
+            <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 rounded-full text-foreground transition-colors">
               <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary text-white border-2 border-background text-[9px] font-black rounded-full animate-in zoom-in duration-300">
@@ -266,7 +266,7 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <Link href="/auth/login">
-              <Button className="hidden sm:flex bg-primary text-white font-black h-10 px-6 md:h-11 md:px-8 rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest">
+              <Button className="hidden sm:flex bg-primary text-foreground font-black h-10 px-6 md:h-11 md:px-8 rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-[10px] uppercase tracking-widest">
                 Sign In
               </Button>
               <Button variant="ghost" size="icon" className="sm:hidden text-foreground rounded-full hover:bg-primary/5">
@@ -282,7 +282,7 @@ export function Navbar() {
         <div className="absolute top-0 left-0 w-full h-[100vh] bg-black/40 backdrop-blur-md z-[60] flex items-start pt-24 justify-center animate-in fade-in duration-500" onClick={() => setIsSearchOpen(false)}>
           <div className="w-full max-w-3xl px-4" onClick={e => e.stopPropagation()}>
             <div className="relative group animate-in slide-in-from-top-10 duration-700">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-primary/40 group-focus-within:text-primary transition-colors" />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-foreground/40 group-focus-within:text-foreground transition-colors" />
               <Input 
                 placeholder="Search products..." 
                 className="pl-16 h-16 md:h-20 rounded-2xl md:rounded-3xl bg-white border-none shadow-2xl focus-visible:ring-4 focus-visible:ring-primary/10 transition-all text-lg md:text-xl font-medium" 
@@ -290,7 +290,7 @@ export function Navbar() {
               />
               <button 
                 onClick={() => setIsSearchOpen(false)}
-                className="absolute right-6 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-primary/5 text-primary/40 hover:text-primary transition-all"
+                className="absolute right-6 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-primary/5 text-foreground/40 hover:text-foreground transition-all"
               >
                 <X className="h-6 w-6" />
               </button>
