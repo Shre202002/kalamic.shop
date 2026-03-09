@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { TopLoader } from '@/components/layout/TopLoader';
 import { SurveyPopup } from '@/components/survey/SurveyPopup';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://kalamic.shop'),
@@ -33,6 +34,12 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;500;700&family=Noto+Serif+Devanagari:wght@400;700&display=swap" rel="stylesheet" />
+        <Script 
+          src="https://analytics.ahrefs.com/analytics.js" 
+          data-key="rQSQWyZyJZov3LquVI1C5w" 
+          async 
+          strategy="afterInteractive"
+        />
       </head>
       <body className="font-body antialiased selection:bg-accent/30 min-h-screen flex flex-col" suppressHydrationWarning>
         <FirebaseClientProvider>
