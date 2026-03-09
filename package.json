@@ -59,6 +59,7 @@
     "lucide-react": "^0.475.0",
     "mongoose": "^8.9.5",
     "next": "15.5.9",
+    "nextjs-toploader": "^3.7.15",
     "nodemailer": "^6.9.13",
     "nprogress": "^0.2.0",
     "patch-package": "^8.0.0",

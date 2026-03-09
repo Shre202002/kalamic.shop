@@ -1,7 +1,9 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useNavigation } from '@/hooks/useNavigation';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getProfile } from '@/lib/actions/user-actions';
@@ -15,13 +17,12 @@ import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Loader2, ChevronLeft, Che
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 
 export default function CartPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const router = useRouter();
+  const router = useNavigation();
 
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);

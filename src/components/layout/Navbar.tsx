@@ -1,8 +1,9 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useNavigation } from '@/hooks/useNavigation';
 import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -32,7 +33,7 @@ export function Navbar() {
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
-  const router = useRouter();
+  const router = useNavigation();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -66,9 +67,10 @@ export function Navbar() {
 
   const handleSignOut = async () => {
     await auth.signOut();
-    // Cookie is cleared by the onIdTokenChanged listener in FirebaseProvider
+    // Clear session cookie for Middleware access
+    document.cookie = '__session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.push('/');
-    router.refresh(); // Clear any cached auth-specific state
+    router.refresh();
     setIsMobileMenuOpen(false);
   };
 
@@ -82,7 +84,6 @@ export function Navbar() {
       <div className="max-w-[1200px] mx-auto px-6 md:px-10 h-full flex items-center justify-between">
         {/* Left: Mobile Menu Trigger */}
         <div className="flex items-center md:hidden">
-          <span id="recaptcha-container"></span>
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="hover:bg-primary/5 rounded-full">

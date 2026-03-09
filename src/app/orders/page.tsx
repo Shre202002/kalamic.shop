@@ -1,7 +1,9 @@
+
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useUser } from '@/firebase';
+import { useNavigation } from '@/hooks/useNavigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { 
@@ -34,6 +36,7 @@ import { getUserOrders } from '@/lib/actions/user-actions';
 
 export default function OrdersPage() {
   const { user, isUserLoading } = useUser();
+  const router = useNavigation();
   const [orders, setOrders] = useState<any[]>([]);
   const [pendingInfo, setPendingInfo] = useState<{ count: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);

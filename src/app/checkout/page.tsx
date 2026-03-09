@@ -1,8 +1,10 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
+import { useNavigation } from '@/hooks/useNavigation';
 import { collection } from 'firebase/firestore';
 import { getProfile } from '@/lib/actions/user-actions';
 import { 
@@ -36,7 +38,6 @@ import {
   Info
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Script from 'next/script';
 import Link from 'next/link';
@@ -64,7 +65,7 @@ export default function CheckoutPage() {
   const { user, loading: isAuthLoading } = useProtectedRoute();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const router = useRouter();
+  const router = useNavigation();
 
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -416,7 +417,7 @@ export default function CheckoutPage() {
                   <Skeleton width={100} height={40} />
                 ) : (
                   <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>
-                    ₹{chargesPreview?.total.toLocaleString() || (subtotal + 210).toLocaleString()}
+                    ₹{chargesPreview?.total.toLocaleString() || (subtotal + 60).toLocaleString()}
                   </Typography>
                 )}
               </MuiBox>
@@ -428,7 +429,7 @@ export default function CheckoutPage() {
                 onClick={handlePlaceOrder}
                 sx={{ borderRadius: '1.5rem', height: '5rem', fontSize: '1.25rem', fontWeight: 900, bgcolor: '#EA781E', '&:hover': { bgcolor: '#D66A18' }, textTransform: 'none' }}
               >
-                {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay ₹${(chargesPreview?.total || subtotal + 210).toLocaleString()}`}
+                {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay ₹${(chargesPreview?.total || subtotal + 60).toLocaleString()}`}
               </Button>
             </Paper>
           </Grid>

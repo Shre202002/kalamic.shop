@@ -1,74 +1,54 @@
 
 'use client';
 
-import { useEffect, Suspense } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+import NextTopLoader from 'nextjs-toploader';
 import NProgress from 'nprogress';
 
-function TopLoaderContent() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
+/**
+ * TopLoader component provides a visual progress bar during route changes.
+ * includes a global click listener to catch all internal link navigations.
+ */
+export function TopLoader() {
   useEffect(() => {
-    // Configure NProgress with brand specific settings
-    NProgress.configure({ 
-      showSpinner: false,
-      trickleSpeed: 200,
-      minimum: 0.08,
-      easing: 'ease',
-      speed: 400
-    });
-  }, []);
+    const handleClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement).closest('a');
+      if (!target) return;
 
-  useEffect(() => {
-    // When the route fully changes, finish the progress bar
-    NProgress.done();
-  }, [pathname, searchParams]);
-
-  useEffect(() => {
-    /**
-     * Optimistic loading: detect clicks on links to show the bar instantly.
-     * This bridges the gap between the click and the Next.js route event.
-     */
-    const handleAnchorClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const anchor = target.closest('a');
+      const href = target.getAttribute('href');
+      const targetAttr = target.getAttribute('target');
       
-      if (
-        anchor && 
-        anchor.href && 
-        anchor.target !== '_blank' && 
-        !event.metaKey && 
-        !event.ctrlKey
-      ) {
-        const url = new URL(anchor.href);
-        const currentUrl = new URL(window.location.href);
+      // Skip if no href, external link, or opening in new tab
+      if (!href || targetAttr === '_blank' || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+        return;
+      }
+
+      // Only trigger for internal links
+      const isInternal = (href.startsWith('/') && !href.startsWith('//')) || href.startsWith('#');
+      
+      if (isInternal) {
+        // Don't trigger if it's the same page anchor
+        if (href.startsWith('#')) return;
         
-        // Only trigger if it's an internal link and the path is different
-        if (url.origin === currentUrl.origin && url.pathname !== currentUrl.pathname) {
-          NProgress.start();
-        }
+        NProgress.start();
       }
     };
 
-    window.addEventListener('click', handleAnchorClick);
-    return () => window.removeEventListener('click', handleAnchorClick);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  return null;
-}
-
-/**
- * TopLoader component provides a smooth animated page loader bar at the top
- * of the website during route changes. 
- * 
- * Wrapped in Suspense to prevent de-opting to client-side 
- * rendering for the entire layout when using useSearchParams.
- */
-export function TopLoader() {
   return (
-    <Suspense fallback={null}>
-      <TopLoaderContent />
-    </Suspense>
+    <NextTopLoader
+      color="hsl(28, 89%, 52%)" // Saffron primary color
+      initialPosition={0.08}
+      crawlSpeed={200}
+      height={3}
+      crawl={true}
+      showSpinner={false}
+      easing="ease"
+      speed={200}
+      shadow="0 0 10px hsl(28, 89%, 52%), 0 0 5px hsl(45, 85%, 55%)"
+    />
   );
 }

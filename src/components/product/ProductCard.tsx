@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useNavigation } from '@/hooks/useNavigation';
 import { Heart, ShoppingBag, ShoppingCart, Star, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
@@ -44,7 +44,7 @@ export function ProductCard({
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
-  const router = useRouter();
+  const router = useNavigation();
   const [isFavorited, setIsFavorited] = useState(isInitiallyFavorited);
   const [isHovered, setIsHovered] = useState(false);
 
