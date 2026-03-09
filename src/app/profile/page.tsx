@@ -1,8 +1,8 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useUser, useAuth } from '@/firebase';
+import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -26,14 +26,14 @@ import {
   Flag
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getProfile, updateProfile, getWishlistItems, verifyUserEmail, getOrCreateProfile } from '@/lib/actions/user-actions';
+import { getProfile, updateProfile, verifyUserEmail, getOrCreateProfile } from '@/lib/actions/user-actions';
 import { sendOtp, verifyOtp } from '@/lib/actions/otp-actions';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-  const { user, isUserLoading } = useUser();
+  const { user, loading: isAuthLoading } = useProtectedRoute();
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -56,12 +56,6 @@ export default function ProfilePage() {
     pincode: '',
     landmark: ''
   });
-
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/auth/login');
-    }
-  }, [user, isUserLoading, router]);
 
   useEffect(() => {
     async function loadData() {
@@ -149,13 +143,19 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSignOut = async () => {
+    await auth.signOut();
+    router.push('/');
+    router.refresh();
+  };
+
   const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.state && formData.pincode);
   const isEmailVerified = profile?.emailVerified;
   const isFullyVerified = isProfileComplete && isEmailVerified;
 
   const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : 2024;
 
-  if (isUserLoading || isLoadingData) {
+  if (isAuthLoading || isLoadingData) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
@@ -166,6 +166,8 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -346,7 +348,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <Separator className="my-8 opacity-50" />
-                <Button variant="ghost" className="w-full h-16 rounded-[1.5rem] text-muted-foreground hover:text-destructive hover:bg-destructive/5 border-2 border-dashed border-border font-black" onClick={() => auth.signOut()}>
+                <Button variant="ghost" className="w-full h-16 rounded-[1.5rem] text-muted-foreground hover:text-destructive hover:bg-destructive/5 border-2 border-dashed border-border font-black" onClick={handleSignOut}>
                   <LogOut className="mr-3 h-5 w-5" /> Sign Out
                 </Button>
               </Card>

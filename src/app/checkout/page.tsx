@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { collection } from 'firebase/firestore';
 import { getProfile } from '@/lib/actions/user-actions';
 import { 
@@ -60,7 +61,7 @@ interface ChargesPreview {
 }
 
 export default function CheckoutPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, loading: isAuthLoading } = useProtectedRoute();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -97,7 +98,6 @@ export default function CheckoutPage() {
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
 
-  // Live Charge Calculation
   const fetchCharges = async (city: string) => {
     if (subtotal === 0) return;
     setIsCalculating(true);
@@ -118,7 +118,6 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (mounted && subtotal > 0) {
-      // Immediate fetch for initial mount or subtotal change
       fetchCharges(formData.city);
     }
   }, [mounted, subtotal]);
@@ -134,7 +133,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     async function checkVerify() {
-      if (mounted && !isUserLoading && user) {
+      if (mounted && !isAuthLoading && user) {
         const profile = await getProfile(user.uid);
         const isComplete = profile?.firstName && profile?.lastName && profile?.phone && profile?.address && profile?.city && profile?.state && profile?.pincode;
         
@@ -146,12 +145,10 @@ export default function CheckoutPage() {
           });
           router.push('/profile');
         }
-      } else if (mounted && !isUserLoading && !user) {
-        router.push('/auth/login');
       }
     }
     checkVerify();
-  }, [user, isUserLoading, router, toast, mounted]);
+  }, [user, isAuthLoading, router, toast, mounted]);
 
   useEffect(() => {
     async function loadUserData() {
@@ -242,9 +239,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (!mounted) return null;
-
-  if (isUserLoading || isCartLoading) {
+  if (!mounted || isAuthLoading || isCartLoading) {
     return (
       <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
         <CircularProgress sx={{ color: '#EA781E' }} />
@@ -252,6 +247,8 @@ export default function CheckoutPage() {
       </MuiBox>
     );
   }
+
+  if (!user) return null;
 
   return (
     <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#FAF4EB' }}>

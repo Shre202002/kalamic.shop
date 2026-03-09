@@ -1,8 +1,8 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -32,6 +32,7 @@ export function Navbar() {
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -63,8 +64,11 @@ export function Navbar() {
     { name: 'Contact', href: '/contact' },
   ];
 
-  const handleSignOut = () => {
-    auth.signOut();
+  const handleSignOut = async () => {
+    await auth.signOut();
+    // Cookie is cleared by the onIdTokenChanged listener in FirebaseProvider
+    router.push('/');
+    router.refresh(); // Clear any cached auth-specific state
     setIsMobileMenuOpen(false);
   };
 

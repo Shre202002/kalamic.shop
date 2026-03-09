@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { 
   Container, 
   Typography, 
@@ -24,7 +25,8 @@ import {
   AlertTitle,
   alpha,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Skeleton
 } from '@mui/material';
 import { 
   ChevronLeft, 
@@ -44,6 +46,7 @@ import { useToast } from '@/hooks/use-toast';
 const STEPS = ["Initiated", "Placed", "Confirmed", "Preparing", "Developing", "Completed", "Dispatched", "Delivered"];
 
 export default function OrderDetailPage() {
+  const { user, loading: isAuthLoading } = useProtectedRoute();
   const params = useParams();
   const router = useRouter();
   const theme = useTheme();
@@ -51,7 +54,7 @@ export default function OrderDetailPage() {
   const { toast } = useToast();
   
   const [order, setOrder] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingOrder, setIsLoadingOrder] = useState(true);
   const [mounted, setMounted] = useState(false);
   const orderStatusRef = useRef<string>('');
 
@@ -71,7 +74,7 @@ export default function OrderDetailPage() {
       const data = await res.json();
       setOrder(data);
       orderStatusRef.current = data.orderStatus;
-      if (!isSilent) setIsLoading(false);
+      if (!isSilent) setIsLoadingOrder(false);
     } catch (err: any) {
       console.error("[FETCH_ORDER_ERROR]:", err.message);
       if (!isSilent) {
@@ -92,13 +95,12 @@ export default function OrderDetailPage() {
   };
 
   useEffect(() => {
-    if (!mounted || !params?.id) return;
+    if (!mounted || !params?.id || !user) return;
 
     fetchOrder();
     reconcilePayment();
 
     const interval = setInterval(() => {
-      // Stop polling if delivered or canceled, or if payment was just verified
       if (['Delivered', 'Canceled'].includes(orderStatusRef.current)) {
         clearInterval(interval);
         return;
@@ -107,17 +109,31 @@ export default function OrderDetailPage() {
     }, 20000);
 
     return () => clearInterval(interval);
-  }, [mounted, params?.id]);
+  }, [mounted, params?.id, user]);
 
-  if (!mounted) return null;
-
-  if (isLoading || !params?.id) {
+  if (!mounted || isAuthLoading) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
         <Navbar />
         <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <CircularProgress color="primary" />
         </Box>
+        <Footer />
+      </Box>
+    );
+  }
+
+  // Final guard: if no user (and middleware hasn't redirected yet), render nothing
+  if (!user) return null;
+
+  if (isLoadingOrder) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#F5EFE9' }}>
+        <Navbar />
+        <Container maxWidth="lg" sx={{ py: 10 }}>
+          <Skeleton variant="rectangular" height={200} sx={{ borderRadius: '2rem', mb: 4 }} />
+          <Skeleton variant="rectangular" height={400} sx={{ borderRadius: '2rem' }} />
+        </Container>
         <Footer />
       </Box>
     );
