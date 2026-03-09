@@ -73,9 +73,9 @@ const OrderedItemSchema: Schema = new Schema({
   
   subtotal: { type: Number, required: true },
   charges: {
-    shipping: { type: Number, default: 20 },
-    handling: { type: Number, default: 80 },
-    premium: { type: Number, default: 50 }
+    shipping: { type: Number, default: 150 },
+    handling: { type: Number, default: 40 },
+    premium: { type: Number, default: 20 }
   },
   totalAmount: { type: Number, required: true },
 

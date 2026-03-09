@@ -396,12 +396,18 @@ export default function CheckoutPage() {
 
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Artisan Handling</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.handling || 80}</Typography>
+                  {isCalculating ? (
+                    <Skeleton width={40} height={20} />
+                  ) : (
+                    <Typography sx={{ fontWeight: 700, color: chargesPreview?.charges.handling === 0 ? '#6F8A7A' : 'inherit' }}>
+                      {chargesPreview?.charges.handling === 0 ? 'FREE' : `₹${chargesPreview?.charges.handling ?? 40}`}
+                    </Typography>
+                  )}
                 </MuiBox>
 
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Premium Protection</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.premium || 50}</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.premium ?? 20}</Typography>
                 </MuiBox>
               </Stack>
 
@@ -413,7 +419,7 @@ export default function CheckoutPage() {
                   <Skeleton width={100} height={40} />
                 ) : (
                   <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>
-                    ₹{chargesPreview?.total.toLocaleString() || (subtotal + 280).toLocaleString()}
+                    ₹{chargesPreview?.total.toLocaleString() || (subtotal + 210).toLocaleString()}
                   </Typography>
                 )}
               </MuiBox>
@@ -425,7 +431,7 @@ export default function CheckoutPage() {
                 onClick={handlePlaceOrder}
                 sx={{ borderRadius: '1.5rem', height: '5rem', fontSize: '1.25rem', fontWeight: 900, bgcolor: '#EA781E', '&:hover': { bgcolor: '#D66A18' }, textTransform: 'none' }}
               >
-                {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay ₹${(chargesPreview?.total || subtotal + 280).toLocaleString()}`}
+                {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay ₹${(chargesPreview?.total || subtotal + 210).toLocaleString()}`}
               </Button>
             </Paper>
           </Grid>

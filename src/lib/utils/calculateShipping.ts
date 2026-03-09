@@ -5,8 +5,8 @@
 export const FREE_DELIVERY_CITIES = ['kanpur'];
 export const FREE_DELIVERY_THRESHOLD = 999;
 export const STANDARD_SHIPPING_CHARGE = 150;
-export const HANDLING_CHARGE = 80;
-export const PREMIUM_CHARGE = 50;
+export const HANDLING_CHARGE = 40;
+export const PREMIUM_CHARGE = 20;
 
 export interface OrderCharges {
   shipping: number;
@@ -45,7 +45,8 @@ export function calculateShippingCharge(subtotal: number, city: string): number 
  */
 export function calculateOrderCharges(subtotal: number, city: string): OrderCharges {
   const shipping = calculateShippingCharge(subtotal, city);
-  const handling = HANDLING_CHARGE;
+  // Rule: No handling charge if subtotal is above 999
+  const handling = subtotal > 999 ? 0 : HANDLING_CHARGE;
   const premium = PREMIUM_CHARGE;
   
   return {

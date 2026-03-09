@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -205,7 +204,9 @@ export default function CartPage() {
 
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Artisan Handling</span>
-                        <span className="font-medium">₹{charges.handling}</span>
+                        <span className={`font-medium ${charges.handling === 0 ? 'text-green-600' : ''}`}>
+                          {charges.handling === 0 ? 'FREE' : `₹${charges.handling}`}
+                        </span>
                       </div>
 
                       <div className="flex justify-between">
