@@ -12,6 +12,8 @@ export default {
       fontFamily: {
         display: ['"Playfair Display"', '"Noto Serif Devanagari"', 'serif'],
         body: ['Poppins', '"Noto Sans Devanagari"', 'sans-serif'],
+        sans: ['Poppins', '"Noto Sans Devanagari"', 'sans-serif'],
+        serif: ['"Playfair Display"', '"Noto Serif Devanagari"', 'serif'],
         code: ['monospace'],
       },
       colors: {
