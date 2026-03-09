@@ -1,4 +1,3 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -7,11 +6,18 @@ import { TopLoader } from '@/components/layout/TopLoader';
 import { SurveyPopup } from '@/components/survey/SurveyPopup';
 
 export const metadata: Metadata = {
-  title: 'Kalamic | Handcrafted Ceramic Artistry',
+  metadataBase: new URL('https://kalamic.shop'),
+  title: {
+    default: 'Kalamic | Handcrafted Ceramic Artistry',
+    template: '%s | Kalamic',
+  },
   description: 'Discover Kalamic - your home for premium handmade ceramics, from spiritual pillars to modern home decor. Handcrafted with love in India.',
+  keywords: ['handmade ceramics', 'Indian handicraft', 'ceramic art', 'Kalamic shop', 'Mor Stambh', 'Mandala wheels'],
   openGraph: {
     title: 'Kalamic | Handcrafted Ceramic Artistry',
     description: 'Modern ceramic art for the next generation.',
+    siteName: 'Kalamic',
+    locale: 'en_IN',
     type: 'website',
   }
 };
