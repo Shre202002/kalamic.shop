@@ -2,12 +2,18 @@ import { getProducts } from '@/lib/actions/products';
 
 /**
  * @fileOverview Generates a dynamic XML sitemap for search engines.
- * Includes static routes and dynamic product links.
+ * Fix: Removed template literal leading whitespace to ensure valid XML.
  */
 
 export async function GET() {
   const baseUrl = 'https://kalamic.shop';
-  const products = await getProducts();
+  
+  let products = [];
+  try {
+    products = await getProducts();
+  } catch (error) {
+    console.error('[SITEMAP_ERROR] Failed to fetch products:', error);
+  }
 
   const staticPages = [
     '',
@@ -20,38 +26,38 @@ export async function GET() {
     '/sitemap'
   ];
 
+  // Map static pages to XML tags
+  const staticXml = staticPages
+    .map((url) => `
+  <url>
+    <loc>${baseUrl}${url}</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`)
+    .join('');
+
+  // Map products to XML tags
+  const productXml = products
+    .map((p: any) => `
+  <url>
+    <loc>${baseUrl}/products/${p.slug || p._id}</loc>
+    <lastmod>${new Date(p.updatedAt || new Date()).toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>`)
+    .join('');
+
+  // Construct final XML string with NO leading whitespace before the declaration
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-      ${staticPages
-        .map((url) => {
-          return `
-            <url>
-              <loc>${baseUrl}${url}</loc>
-              <lastmod>${new Date().toISOString()}</lastmod>
-              <changefreq>weekly</changefreq>
-              <priority>0.8</priority>
-            </url>
-          `;
-        })
-        .join('')}
-      ${products
-        .map((p: any) => {
-          return `
-            <url>
-              <loc>${baseUrl}/products/${p.slug || p._id}</loc>
-              <lastmod>${new Date(p.updatedAt || new Date()).toISOString()}</lastmod>
-              <changefreq>daily</changefreq>
-              <priority>1.0</priority>
-            </url>
-          `;
-        })
-        .join('')}
-    </urlset>
-  `;
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticXml}${productXml}
+</urlset>`.trim();
 
   return new Response(sitemap, {
     headers: {
       'Content-Type': 'application/xml',
+      'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=43200'
     },
   });
 }
