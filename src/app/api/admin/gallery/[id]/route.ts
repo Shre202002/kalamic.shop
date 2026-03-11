@@ -1,15 +1,20 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import GalleryItem from '@/lib/models/GalleryItem';
 import User from '@/lib/models/User';
 import ImageKit from 'imagekit';
 
-const imagekit = new ImageKit({
-  publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!,
-  privateKey: process.env.IMAGEKIT_PRIVATE_KEY!,
-  urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT!,
-});
+const getImageKit = () => {
+  const publicKey = process.env.IMAGEKIT_PUBLIC_KEY || process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
+  const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+  const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
+
+  if (!publicKey || !privateKey || !urlEndpoint) {
+    throw new Error('ImageKit environment variables are missing');
+  }
+
+  return new ImageKit({ publicKey, privateKey, urlEndpoint });
+};
 
 async function validateAdmin(userId: string) {
   await dbConnect();
@@ -58,15 +63,15 @@ export async function DELETE(
     const item = await GalleryItem.findById(id);
     if (!item) return NextResponse.json({ message: 'Item not found' }, { status: 404 });
 
-    // 1. Delete from ImageKit
+    // Delete from ImageKit
     try {
+      const imagekit = getImageKit();
       await imagekit.deleteFile(item.fileId);
     } catch (ikError) {
       console.warn('[IMAGEKIT_DELETE_WARNING]', ikError);
-      // Continue to delete from DB even if IK fails (maybe file already gone)
     }
 
-    // 2. Delete from MongoDB
+    // Delete from MongoDB
     await GalleryItem.findByIdAndDelete(id);
 
     return NextResponse.json({ success: true });

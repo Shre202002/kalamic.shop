@@ -4,23 +4,27 @@ import ImageKit from 'imagekit';
 /**
  * @fileOverview Secure and resilient visual asset upload API.
  * Handles server-side WebP conversion for images with a safe fallback.
+ * Checks for both standard and NEXT_PUBLIC environment variables.
  */
 
 const getImageKit = () => {
-  const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
+  const publicKey = process.env.IMAGEKIT_PUBLIC_KEY || process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
   const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-  const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
+  const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
 
   if (!publicKey || !privateKey || !urlEndpoint) {
-    throw new Error('ImageKit environment variables are missing');
+    console.error('[IMAGEKIT_CONFIG_ERROR] Missing variables:', {
+      hasPublicKey: !!publicKey,
+      hasPrivateKey: !!privateKey,
+      hasUrlEndpoint: !!urlEndpoint
+    });
+    throw new Error('Server media configuration is missing.');
   }
 
   return new ImageKit({ publicKey, privateKey, urlEndpoint });
 };
 
 export async function POST(request: NextRequest) {
-  console.log('[GALLERY_UPLOAD] Request received');
-  
   try {
     let formData: FormData;
     try {
@@ -37,19 +41,16 @@ export async function POST(request: NextRequest) {
     const name = formData.get('name') as string || 'gallery-item';
     const mediaType = formData.get('mediaType') as string || 'image';
     
-    // Aligned with home > kalamic > gallery path requirement
     const folder = mediaType === 'video' 
       ? '/kalamic/gallery/videos' 
       : '/kalamic/gallery/images';
 
     if (!file) {
       return NextResponse.json(
-        { success: false, error: 'No file was provided in the request' },
+        { success: false, error: 'No file was provided' },
         { status: 400 }
       );
     }
-
-    console.log(`[GALLERY_UPLOAD] Processing ${mediaType}: ${file.name} (${file.size} bytes)`);
 
     // 50MB limit
     const maxSize = 50 * 1024 * 1024;
@@ -72,8 +73,6 @@ export async function POST(request: NextRequest) {
 
     if (mediaType === 'image') {
       try {
-        console.log('[GALLERY_UPLOAD] Attempting Sharp processing');
-        // Dynamic import to handle potential native module issues in some environments
         const sharpModule = await import('sharp');
         const sharp = sharpModule.default;
         
@@ -94,11 +93,9 @@ export async function POST(request: NextRequest) {
         height = finalMeta.height;
         fileName = `${fileName}.webp`;
         format = 'webp';
-        console.log('[GALLERY_UPLOAD] Sharp processing successful');
 
       } catch (sharpError: any) {
-        // SAFE FALLBACK: If sharp fails (e.g. binary issues), upload original file
-        console.warn('[SHARP_FALLBACK] Image processing failed, uploading original:', sharpError.message);
+        console.warn('[SHARP_FALLBACK] Processing failed, uploading original:', sharpError.message);
         uploadBuffer = fileBuffer;
         const ext = file.name.split('.').pop() || 'jpg';
         fileName = `${fileName}.${ext}`;
@@ -109,7 +106,7 @@ export async function POST(request: NextRequest) {
       const validVideoTypes = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-matroska'];
       if (!validVideoTypes.includes(file.type)) {
         return NextResponse.json(
-          { success: false, error: 'Invalid video format. Please use MP4, MOV or WebM.' },
+          { success: false, error: 'Invalid video format. Use MP4, MOV or WebM.' },
           { status: 400 }
         );
       }
@@ -121,14 +118,12 @@ export async function POST(request: NextRequest) {
     try {
       imagekit = getImageKit();
     } catch (envError: any) {
-      console.error('[GALLERY_UPLOAD] ImageKit Config Error:', envError.message);
       return NextResponse.json(
-        { success: false, error: 'Server media configuration is missing.' },
+        { success: false, error: envError.message },
         { status: 500 }
       );
     }
 
-    console.log(`[GALLERY_UPLOAD] Sending to ImageKit folder: ${folder}`);
     const uploadResponse = await imagekit.upload({
       file: uploadBuffer,
       fileName,
@@ -136,8 +131,6 @@ export async function POST(request: NextRequest) {
       useUniqueFileName: false,
       tags: ['kalamic', 'gallery', mediaType],
     });
-
-    console.log('[GALLERY_UPLOAD] ImageKit upload complete:', uploadResponse.fileId);
 
     return NextResponse.json({
       success: true,

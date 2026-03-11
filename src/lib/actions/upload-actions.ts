@@ -18,10 +18,10 @@ export async function uploadToImageKit(formData: FormData) {
     throw new Error('No file provided for upload.');
   }
 
-  // Validate environment variables
-  const publicKey = process.env.IMAGEKIT_PUBLIC_KEY;
+  // Validate environment variables - checking both variants for robustness
+  const publicKey = process.env.IMAGEKIT_PUBLIC_KEY || process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
   const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-  const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT;
+  const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
 
   if (!publicKey || !privateKey || !urlEndpoint) {
     console.error('[IMAGEKIT] Missing configuration environment variables.');
