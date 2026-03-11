@@ -31,7 +31,8 @@ import {
   Logout as LogoutIcon,
   Home as HomeIcon,
   Storefront as StoreIcon,
-  AutoAwesome as AboutIcon
+  AutoAwesome as AboutIcon,
+  PhotoLibrary as PhotoLibraryIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -81,6 +82,7 @@ const DesktopDrawer = styled(Drawer, { shouldForwardProp: (prop) => prop !== 'op
 const MENU_ITEMS = [
   { text: 'Dashboard', icon: <DashboardIcon />, href: '/admin/dashboard', roles: ['super_admin', 'admin', 'support'] },
   { text: 'Orders', icon: <OrdersIcon />, href: '/admin/orders', roles: ['super_admin', 'admin', 'support'] },
+  { text: 'Gallery Studio', icon: <PhotoLibraryIcon />, href: '/admin/gallery', roles: ['super_admin', 'admin'] },
   { text: 'Users', icon: <UsersIcon />, href: '/admin/users', roles: ['super_admin', 'admin'] },
   { text: 'Products', icon: <ProductsIcon />, href: '/admin/products', roles: ['super_admin', 'admin'] },
   { text: 'Analytics', icon: <AnalyticsIcon />, href: '/admin/analytics', roles: ['super_admin', 'admin'] },
