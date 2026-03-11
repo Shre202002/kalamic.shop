@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -70,6 +71,7 @@ export default function GalleryStudio() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
   
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -103,10 +105,33 @@ export default function GalleryStudio() {
   }, []);
 
   const handleFileSelect = (f: File) => {
-    setFile(f);
-    const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target?.result as string);
-    reader.readAsDataURL(f);
+    if (uploadDialogType === 'video') {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        if (video.duration > 40) {
+          toast({ 
+            variant: 'destructive', 
+            title: 'Reel Too Long', 
+            description: `This reel is ${Math.round(video.duration)}s. Max allowed is 40s.` 
+          });
+          setFile(null);
+          setPreview(null);
+          setVideoDuration(null);
+        } else {
+          setVideoDuration(video.duration);
+          setFile(f);
+          setPreview(URL.createObjectURL(f));
+        }
+      };
+      video.src = URL.createObjectURL(f);
+    } else {
+      setFile(f);
+      const reader = new FileReader();
+      reader.onload = (e) => setPreview(e.target?.result as string);
+      reader.readAsDataURL(f);
+    }
   };
 
   const handleUpload = async () => {
@@ -146,7 +171,7 @@ export default function GalleryStudio() {
         format: upData.format,
         width: upData.width,
         height: upData.height,
-        duration: upData.duration,
+        duration: videoDuration || upData.duration,
         mediaType: uploadDialogType,
         uploadedBy: user.uid
       };
@@ -208,6 +233,7 @@ export default function GalleryStudio() {
   const resetForm = () => {
     setFile(null);
     setPreview(null);
+    setVideoDuration(null);
     setUploadForm({
       name: '',
       altText: '',
@@ -443,6 +469,9 @@ export default function GalleryStudio() {
                     <Box sx={{ p: 4, textAlign: 'center' }}>
                       <VideoIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
                       <Typography variant="caption" fontWeight={700} display="block">{file?.name}</Typography>
+                      {videoDuration && (
+                        <Chip label={`${Math.round(videoDuration)}s`} size="small" color="primary" sx={{ mt: 1, fontWeight: 800 }} />
+                      )}
                     </Box>
                   )}
                   {uploadDialogType === 'image' && (
@@ -454,17 +483,17 @@ export default function GalleryStudio() {
                         bottom: 12,
                         left: '50%',
                         transform: 'translateX(-50%)',
+                        backdropFilter: 'blur(4px)',
                         bgcolor: alpha('#000', 0.7),
                         color: 'white',
                         fontWeight: 700,
                         fontSize: '0.65rem',
-                        backdropFilter: 'blur(4px)',
                       }}
                     />
                   )}
                   <IconButton
                     size="small"
-                    onClick={(e) => { e.stopPropagation(); setFile(null); setPreview(null); }}
+                    onClick={(e) => { e.stopPropagation(); resetForm(); }}
                     sx={{
                       position: 'absolute',
                       top: 8, right: 8,
