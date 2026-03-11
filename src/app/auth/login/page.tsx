@@ -32,14 +32,19 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  // Handle authenticated redirect
   useEffect(() => {
     if (user) {
       router.push('/profile');
     }
   }, [user, router]);
 
+  // Initialize reCAPTCHA
   useEffect(() => {
     if (auth && !recaptchaVerifier) {
+      const container = document.getElementById('recaptcha-container');
+      if (!container) return;
+
       try {
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
@@ -54,6 +59,7 @@ export default function LoginPage() {
     }
   }, [auth, recaptchaVerifier]);
 
+  // Centralized error handling
   useEffect(() => {
     const handleLoginError = (err: { code: string; message: string }) => {
       setIsLoading(false);
@@ -128,7 +134,7 @@ export default function LoginPage() {
     setIsLoading(true);
     const success = await confirmPhoneCode(otpCode);
     if (success) {
-      router.push('/profile');
+      // User is automatically redirected by the user effect above
     }
     setIsLoading(false);
   };
@@ -136,6 +142,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
+      {/* Container for invisible reCAPTCHA */}
       <div id="recaptcha-container"></div>
       
       <main className="flex-1 flex items-center justify-center p-4 py-12 md:py-20">
@@ -162,7 +169,7 @@ export default function LoginPage() {
             }} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted p-1 rounded-xl">
                 <TabsTrigger value="password" disabled={isLoading} className="rounded-lg font-bold text-xs">Password</TabsTrigger>
-                <TabsTrigger value="email-otp" disabled={true} className="rounded-lg font-bold text-xs opacity-50 cursor-not-allowed">Email (Offline)</TabsTrigger>
+                <TabsTrigger value="email-otp" disabled={true} className="rounded-lg font-bold text-xs opacity-50 cursor-not-allowed">Email</TabsTrigger>
                 <TabsTrigger value="phone" disabled={isLoading} className="rounded-lg font-bold text-xs">Phone</TabsTrigger>
               </TabsList>
 
@@ -223,7 +230,7 @@ export default function LoginPage() {
                             className="pl-14 h-12 rounded-xl focus-visible:ring-primary border-border bg-background"
                           />
                         </div>
-                        <p className="text-[10px] text-muted-foreground ml-1 font-bold">Must include + and country code.</p>
+                        <p className="text-[10px] text-muted-foreground ml-1 font-bold">Include country code (e.g., +91...)</p>
                       </div>
                       <Button onClick={handleRequestPhoneOtp} className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/10" disabled={isLoading}>
                         {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
