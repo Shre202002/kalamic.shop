@@ -16,7 +16,6 @@ import {
   Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { IGalleryItem } from '@/lib/models/GalleryItem';
 
 const CATEGORIES = ['All', 'Pillars & Stambh', 'Photo Frames', 'Wall Art', 'Mandala', 'Gifting', 'Other'];
 
@@ -88,44 +87,44 @@ export default function GalleryClient({ items }: { items: any[] }) {
   }, [lightboxItem, nextItem, prevItem, closeLightbox]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background selection:bg-primary/10 overflow-x-hidden">
       <Navbar />
       
-      <main className="flex-1">
+      <main className="flex-1 w-full max-w-full">
         
         {/* Section 1: Hero */}
-        <section className="relative pt-20 pb-32 overflow-hidden">
+        <section className="relative pt-12 md:pt-20 pb-20 md:pb-32 overflow-hidden">
           <div className="absolute inset-0 pattern-paisley opacity-5 pointer-events-none" />
-          <div className="container mx-auto px-6 max-w-6xl relative z-10 text-center space-y-8">
+          <div className="container mx-auto px-4 md:px-6 max-w-6xl relative z-10 text-center space-y-6 md:space-y-8">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
+              className="space-y-4 md:space-y-6"
             >
               <div className="flex items-center justify-center gap-4">
-                <div className="h-px w-8 bg-accent" />
+                <div className="h-px w-6 md:w-8 bg-accent" />
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Visual Archive</span>
-                <div className="h-px w-8 bg-accent" />
+                <div className="h-px w-6 md:w-8 bg-accent" />
               </div>
               
-              <h1 className="text-4xl md:text-7xl font-serif font-bold text-foreground leading-tight tracking-tight">
+              <h1 className="text-3xl md:text-7xl font-serif font-bold text-foreground leading-tight tracking-tight text-balance">
                 The Kalamic Gallery
               </h1>
               
-              <p className="text-sm md:text-xl text-muted-foreground max-w-2xl mx-auto font-medium leading-relaxed">
+              <p className="text-sm md:text-xl text-muted-foreground max-w-2xl mx-auto font-medium leading-relaxed px-4">
                 Handcrafted ceramic art — captured in every detail. Browse our collection of artisan pieces and studio reels.
               </p>
 
-              <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-                <div className="px-6 py-3 rounded-2xl bg-primary text-white flex items-center gap-3 shadow-xl shadow-primary/20">
-                  <Camera className="h-4 w-4" />
-                  <span className="text-xs font-bold uppercase tracking-widest">
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-4 px-4">
+                <div className="px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl bg-primary text-white flex items-center gap-2 md:gap-3 shadow-xl shadow-primary/20">
+                  <Camera className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <span className="text-[9px] md:text-xs font-bold uppercase tracking-widest">
                     {items.filter(i => i.mediaType === 'image').length} Artisan Pieces
                   </span>
                 </div>
-                <div className="px-6 py-3 rounded-2xl bg-accent text-foreground flex items-center gap-3 shadow-xl shadow-accent/20">
-                  <Film className="h-4 w-4" />
-                  <span className="text-xs font-bold uppercase tracking-widest">
+                <div className="px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl bg-accent text-foreground flex items-center gap-2 md:gap-3 shadow-xl shadow-accent/20">
+                  <Film className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <span className="text-[9px] md:text-xs font-bold uppercase tracking-widest">
                     {items.filter(i => i.mediaType === 'video').length} Studio Reels
                   </span>
                 </div>
@@ -136,20 +135,20 @@ export default function GalleryClient({ items }: { items: any[] }) {
 
         {/* Section 2: Filter Bar */}
         <section className={cn(
-          "sticky top-16 z-40 transition-all duration-500 py-4",
+          "sticky top-16 z-40 transition-all duration-500 py-4 w-full max-w-full",
           isScrolled ? "bg-background/95 backdrop-blur-md shadow-lg border-b border-primary/5" : "bg-transparent"
         )}>
-          <div className="container mx-auto px-6 max-w-7xl">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6">
               
               {/* Category Pills */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-none w-full lg:w-auto">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar w-full lg:w-auto -mx-4 px-4 lg:mx-0 lg:px-0">
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
                     className={cn(
-                      "whitespace-nowrap px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+                      "whitespace-nowrap px-5 md:px-6 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-300",
                       activeCategory === cat 
                         ? "gradient-saffron text-white shadow-lg" 
                         : "bg-card border border-border text-muted-foreground hover:border-primary/30"
@@ -161,7 +160,7 @@ export default function GalleryClient({ items }: { items: any[] }) {
               </div>
 
               {/* View & Media Toggles */}
-              <div className="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-end">
+              <div className="flex items-center gap-3 md:gap-4 w-full lg:w-auto justify-between lg:justify-end">
                 <div className="flex bg-muted p-1 rounded-xl">
                   <button 
                     onClick={() => setMediaFilter('all')}
@@ -183,18 +182,18 @@ export default function GalleryClient({ items }: { items: any[] }) {
                   </button>
                 </div>
 
-                <div className="h-8 w-px bg-border hidden sm:block" />
+                <div className="h-6 w-px bg-border hidden sm:block" />
 
                 <div className="flex bg-muted p-1 rounded-xl">
                   <button 
                     onClick={() => setViewMode('grid')}
-                    className={cn("px-4 py-2 rounded-lg text-[10px] font-black flex items-center gap-2 transition-all", viewMode === 'grid' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
+                    className={cn("px-3 md:px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black flex items-center gap-2 transition-all", viewMode === 'grid' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
                   >
                     <Grid3x3 className="h-3.5 w-3.5" /> GRID
                   </button>
                   <button 
                     onClick={() => setViewMode('masonry')}
-                    className={cn("px-4 py-2 rounded-lg text-[10px] font-black flex items-center gap-2 transition-all", viewMode === 'masonry' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
+                    className={cn("px-3 md:px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black flex items-center gap-2 transition-all", viewMode === 'masonry' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
                   >
                     <LayoutGrid className="h-3.5 w-3.5" /> MASONRY
                   </button>
@@ -206,14 +205,14 @@ export default function GalleryClient({ items }: { items: any[] }) {
 
         {/* Section 3: Featured Reel */}
         {featuredVideo && activeCategory === 'All' && mediaFilter !== 'image' && (
-          <section className="py-20 bg-foreground text-white overflow-hidden">
-            <div className="container mx-auto px-6 max-w-7xl">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <section className="py-12 md:py-20 bg-foreground text-white overflow-hidden w-full max-w-full">
+            <div className="container mx-auto px-4 md:px-6 max-w-7xl">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
                 <motion.div 
                   initial={{ opacity: 0, x: -40 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  className="relative aspect-video lg:aspect-[4/5] max-h-[600px] rounded-[2rem] overflow-hidden group cursor-pointer"
+                  className="relative aspect-video lg:aspect-[4/5] max-h-[500px] md:max-h-[600px] rounded-[1.5rem] md:rounded-[2rem] overflow-hidden group cursor-pointer w-full"
                   onClick={() => openLightbox(featuredVideo)}
                 >
                   <video 
@@ -225,18 +224,18 @@ export default function GalleryClient({ items }: { items: any[] }) {
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
-                  <div className="absolute top-6 right-6 flex gap-3">
+                  <div className="absolute top-4 md:top-6 right-4 md:right-6 flex gap-2 md:gap-3">
                     <button 
                       onClick={(e) => { e.stopPropagation(); setIsVideoMuted(!isVideoMuted); }}
-                      className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center hover:bg-black/60 transition-all"
+                      className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center hover:bg-black/60 transition-all"
                     >
-                      {isVideoMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                      {isVideoMuted ? <VolumeX className="h-3.5 w-3.5 md:h-4 md:w-4" /> : <Volume2 className="h-3.5 w-3.5 md:h-4 md:w-4" />}
                     </button>
-                    <div className="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                    <div className="px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-black/40 backdrop-blur-md flex items-center gap-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest">
                       <Film className="h-3 w-3 text-primary" /> Reel
                     </div>
                   </div>
-                  <div className="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all">
+                  <div className="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all hidden md:block">
                     <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center shadow-2xl scale-90 group-hover:scale-100 transition-transform">
                       <Play className="h-6 w-6 fill-current text-white ml-1" />
                     </div>
@@ -247,32 +246,34 @@ export default function GalleryClient({ items }: { items: any[] }) {
                   initial={{ opacity: 0, x: 40 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  className="space-y-8"
+                  className="space-y-6 md:space-y-8"
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4 text-center lg:text-left">
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Featured Reel</span>
-                    <h2 className="text-3xl md:text-5xl font-serif font-bold leading-tight">{featuredVideo.name}</h2>
+                    <h2 className="text-2xl md:text-5xl font-serif font-bold leading-tight">{featuredVideo.name}</h2>
                     {featuredVideo.caption && (
-                      <p className="text-white/70 text-lg font-medium italic">"{featuredVideo.caption}"</p>
+                      <p className="text-white/70 text-base md:text-lg font-medium italic">"{featuredVideo.caption}"</p>
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-6 py-6 border-y border-white/10">
+                  <div className="flex items-center justify-center lg:justify-start gap-6 py-6 border-y border-white/10">
                     <div className="space-y-1">
                       <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Category</p>
-                      <p className="text-sm font-bold">{featuredVideo.category}</p>
+                      <p className="text-xs md:text-sm font-bold">{featuredVideo.category}</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Duration</p>
-                      <p className="text-sm font-bold">0:{featuredVideo.duration || '32'}</p>
+                      <p className="text-xs md:text-sm font-bold">0:{featuredVideo.duration || '32'}</p>
                     </div>
                   </div>
 
-                  <Button asChild size="lg" className="h-14 px-10 rounded-full bg-primary text-white font-black uppercase tracking-widest text-xs border-none shadow-xl shadow-primary/20 hover:scale-105 transition-all">
-                    <Link href="/products" className="flex items-center gap-3">
-                      View All Creations <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
+                  <div className="flex justify-center lg:justify-start">
+                    <Button asChild size="lg" className="h-12 md:h-14 px-8 md:px-10 rounded-full bg-primary text-white font-black uppercase tracking-widest text-[10px] md:text-xs border-none shadow-xl shadow-primary/20 hover:scale-105 transition-all w-full sm:w-auto">
+                      <Link href="/products" className="flex items-center justify-center gap-3">
+                        View All Creations <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 </motion.div>
               </div>
             </div>
@@ -280,21 +281,22 @@ export default function GalleryClient({ items }: { items: any[] }) {
         )}
 
         {/* Section 4: Main Gallery Grid */}
-        <section className="py-20 md:py-32">
-          <div className="container mx-auto px-6 max-w-7xl">
+        <section className="py-12 md:py-32 w-full max-w-full">
+          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
             
             {filteredItems.length === 0 ? (
-              <div className="py-32 text-center bg-card rounded-[3rem] border-2 border-dashed border-primary/20">
-                <Camera className="mx-auto h-16 w-16 text-primary opacity-10 mb-6" />
-                <h3 className="font-serif text-2xl text-foreground/60">No pieces in this collection yet</h3>
-                <p className="text-muted-foreground text-sm mt-2">Check back soon — our studio is always creating.</p>
+              <div className="py-20 md:py-32 text-center bg-card rounded-[2rem] md:rounded-[3rem] border-2 border-dashed border-primary/20 px-6">
+                <Camera className="mx-auto h-12 w-12 md:h-16 md:w-16 text-primary opacity-10 mb-6" />
+                <h3 className="font-serif text-xl md:text-2xl text-foreground/60">No pieces in this collection yet</h3>
+                <p className="text-muted-foreground text-xs md:text-sm mt-2">Check back soon — our studio is always creating.</p>
               </div>
             ) : (
               <>
                 <div className={cn(
+                  "w-full",
                   viewMode === 'grid' 
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8" 
-                    : "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 md:gap-8 space-y-6 md:space-y-8"
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8" 
+                    : "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 md:gap-8 space-y-4 md:space-y-8"
                 )}>
                   {displayedItems.map((item, idx) => (
                     <motion.div
@@ -307,11 +309,11 @@ export default function GalleryClient({ items }: { items: any[] }) {
                     >
                       <div 
                         onClick={() => openLightbox(item)}
-                        className="group relative rounded-[2rem] overflow-hidden bg-card border border-border shadow-sm hover:shadow-2xl hover:border-primary/30 transition-all duration-500 cursor-pointer"
+                        className="group relative rounded-[1.5rem] md:rounded-[2rem] overflow-hidden bg-card border border-border shadow-sm hover:shadow-2xl hover:border-primary/30 transition-all duration-500 cursor-pointer"
                       >
                         <div className={cn(
                           "relative overflow-hidden",
-                          viewMode === 'grid' ? "aspect-square" : "h-auto min-h-[250px]"
+                          viewMode === 'grid' ? "aspect-square" : "h-auto min-h-[200px] md:min-h-[250px]"
                         )}>
                           <Image
                             src={item.mediaType === 'video' ? (item.thumbnailUrl || '/video-placeholder.jpg') : item.url}
@@ -324,15 +326,15 @@ export default function GalleryClient({ items }: { items: any[] }) {
                           
                           {item.mediaType === 'video' && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <div className="h-12 w-12 rounded-full bg-primary/90 text-white flex items-center justify-center shadow-2xl backdrop-blur-sm group-hover:scale-110 transition-transform">
-                                <Play className="h-5 w-5 fill-current ml-1" />
+                              <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/90 text-white flex items-center justify-center shadow-2xl backdrop-blur-sm group-hover:scale-110 transition-transform">
+                                <Play className="h-4 w-4 md:h-5 md:w-5 fill-current ml-1" />
                               </div>
                             </div>
                           )}
 
                           {/* Hover Overlay */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-500 flex items-end p-6">
-                            <div className="translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                          <div className="absolute inset-0 bg-black/0 md:group-hover:bg-black/40 transition-all duration-500 flex items-end p-4 md:p-6">
+                            <div className="translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 hidden md:block">
                               <p className="text-white font-black text-sm uppercase tracking-wider">{item.name}</p>
                               {item.caption && (
                                 <p className="text-white/70 text-xs mt-1 font-medium italic line-clamp-2">"{item.caption}"</p>
@@ -340,18 +342,18 @@ export default function GalleryClient({ items }: { items: any[] }) {
                             </div>
                           </div>
 
-                          <div className="absolute top-4 right-4">
-                            <button className="h-8 w-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Maximize2 className="h-4 w-4 text-white" />
+                          <div className="absolute top-3 md:top-4 right-3 md:right-4">
+                            <button className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-white" />
                             </button>
                           </div>
                         </div>
 
-                        <div className="p-4 flex items-center justify-between bg-white">
-                          <Badge className="gradient-saffron text-white text-[8px] font-black uppercase tracking-[0.15em] border-none py-1 px-3">
+                        <div className="p-3 md:p-4 flex items-center justify-between bg-white">
+                          <Badge className="gradient-saffron text-white text-[7px] md:text-[8px] font-black uppercase tracking-[0.15em] border-none py-0.5 md:py-1 px-2 md:px-3">
                             {item.mediaType === 'video' ? 'Reel' : item.category}
                           </Badge>
-                          <span className="text-[8px] text-muted-foreground font-black uppercase tracking-widest">
+                          <span className="text-[7px] md:text-[8px] text-muted-foreground font-black uppercase tracking-widest">
                             {item.format === 'webp' ? 'Optimized WebP' : 'Studio MP4'}
                           </span>
                         </div>
@@ -362,10 +364,10 @@ export default function GalleryClient({ items }: { items: any[] }) {
 
                 {/* Load More */}
                 {hasMore && (
-                  <div className="mt-20 flex justify-center">
+                  <div className="mt-12 md:mt-20 flex justify-center px-4">
                     <Button 
                       onClick={() => setVisibleCount(prev => prev + 12)}
-                      className="h-14 px-12 rounded-full gradient-saffron text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                      className="h-12 md:h-14 px-8 md:px-12 rounded-full gradient-saffron text-white font-black uppercase tracking-widest text-[9px] md:text-xs shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
                     >
                       Explore More Pieces ({filteredItems.length - visibleCount} remaining)
                     </Button>
@@ -377,7 +379,7 @@ export default function GalleryClient({ items }: { items: any[] }) {
         </section>
 
         {/* Section 5: Bottom CTA */}
-        <section className="py-20 md:py-40 relative overflow-hidden">
+        <section className="py-20 md:py-40 relative overflow-hidden w-full max-w-full">
           <div className="absolute inset-0 gradient-maroon" />
           <div className="absolute inset-0 pattern-paisley opacity-5 pointer-events-none scale-150" />
           
@@ -385,16 +387,16 @@ export default function GalleryClient({ items }: { items: any[] }) {
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="container mx-auto max-w-4xl relative z-10 text-center text-white space-y-10"
+            className="container mx-auto px-4 md:px-6 max-w-4xl relative z-10 text-center text-white space-y-8 md:space-y-10"
           >
-            <h2 className="text-4xl md:text-7xl font-serif font-bold tracking-tight leading-tight">Love What You See?</h2>
-            <p className="text-lg md:text-2xl opacity-80 max-w-2xl mx-auto font-medium italic">
+            <h2 className="text-3xl md:text-7xl font-serif font-bold tracking-tight leading-tight text-balance">Love What You See?</h2>
+            <p className="text-base md:text-2xl opacity-80 max-w-2xl mx-auto font-medium italic text-balance">
               "Every piece in this gallery is available to bring home. Handcrafted, shipped with care."
             </p>
-            <div className="pt-6">
-              <Button asChild size="lg" className="h-16 px-12 rounded-full bg-accent hover:bg-accent/90 text-foreground font-black text-lg shadow-2xl transition-all active:scale-95">
-                <Link href="/products" className="flex items-center gap-3">
-                  Shop the Collection <ArrowRight className="h-6 w-6" />
+            <div className="pt-4 md:pt-6 flex justify-center">
+              <Button asChild size="lg" className="h-14 md:h-16 px-10 md:px-12 rounded-full bg-accent hover:bg-accent/90 text-foreground font-black text-base md:text-lg shadow-2xl transition-all active:scale-95 w-full sm:w-auto">
+                <Link href="/products" className="flex items-center justify-center gap-3">
+                  Shop the Collection <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>
             </div>
@@ -417,34 +419,34 @@ export default function GalleryClient({ items }: { items: any[] }) {
             {/* Close Button */}
             <button 
               onClick={closeLightbox}
-              className="absolute top-8 right-8 z-[110] text-white/50 hover:text-white transition-colors"
+              className="absolute top-6 md:top-8 right-6 md:right-8 z-[110] text-white/50 hover:text-white transition-colors"
             >
-              <X className="h-10 w-10" />
+              <X className="h-8 w-8 md:h-10 md:w-10" />
             </button>
 
             {/* Navigation */}
             <button 
               onClick={(e) => { e.stopPropagation(); prevItem(); }}
-              className="absolute left-4 md:left-8 z-[110] h-12 w-12 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/10 transition-all"
+              className="absolute left-2 md:left-8 z-[110] h-10 w-10 md:h-12 md:w-12 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/10 transition-all"
             >
-              <ChevronLeft className="h-8 w-8" />
+              <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); nextItem(); }}
-              className="absolute right-4 md:right-8 z-[110] h-12 w-12 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/10 transition-all"
+              className="absolute right-2 md:right-8 z-[110] h-10 w-10 md:h-12 md:w-12 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/10 transition-all"
             >
-              <ChevronRight className="h-8 w-8" />
+              <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
             </button>
 
             {/* Content Container */}
             <div className="relative w-full max-w-6xl h-full flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
-              <div className="relative w-full h-[70vh] flex items-center justify-center">
+              <div className="relative w-full h-[60vh] md:h-[70vh] flex items-center justify-center">
                 {lightboxItem.mediaType === 'video' ? (
                   <video 
                     src={lightboxItem.url} 
                     controls 
                     autoPlay 
-                    className="max-w-full max-h-full rounded-2xl shadow-2xl"
+                    className="max-w-full max-h-full rounded-xl md:rounded-2xl shadow-2xl"
                   />
                 ) : (
                   <div className="relative w-full h-full">
@@ -453,7 +455,7 @@ export default function GalleryClient({ items }: { items: any[] }) {
                       alt={lightboxItem.altText} 
                       fill 
                       className="object-contain"
-                      sizes="90vw"
+                      sizes="95vw"
                       priority
                     />
                   </div>
@@ -464,27 +466,27 @@ export default function GalleryClient({ items }: { items: any[] }) {
               <motion.div 
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="mt-8 text-center text-white space-y-2 max-w-2xl"
+                className="mt-6 md:mt-8 text-center text-white space-y-2 max-w-2xl px-4"
               >
                 <div className="flex items-center justify-center gap-3 mb-2">
-                  <Badge variant="outline" className="text-accent border-accent text-[9px] font-black tracking-widest px-3 uppercase">
+                  <Badge variant="outline" className="text-accent border-accent text-[8px] md:text-[9px] font-black tracking-widest px-2 md:px-3 uppercase">
                     {lightboxItem.category}
                   </Badge>
                   {lightboxItem.mediaType === 'video' && (
-                    <Badge variant="outline" className="text-primary border-primary text-[9px] font-black tracking-widest px-3 uppercase">
+                    <Badge variant="outline" className="text-primary border-primary text-[8px] md:text-[9px] font-black tracking-widest px-2 md:px-3 uppercase">
                       Studio Reel
                     </Badge>
                   )}
                 </div>
-                <h3 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">{lightboxItem.name}</h3>
+                <h3 className="text-xl md:text-3xl font-serif font-bold tracking-tight">{lightboxItem.name}</h3>
                 {lightboxItem.caption && (
-                  <p className="text-white/60 font-medium italic text-sm md:text-lg">"{lightboxItem.caption}"</p>
+                  <p className="text-white/60 font-medium italic text-xs md:text-lg">"{lightboxItem.caption}"</p>
                 )}
-                <div className="pt-4 flex items-center justify-center gap-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
+                <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-2 md:gap-4">
+                  <p className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
                     Piece {filteredItems.findIndex(i => i._id === lightboxItem._id) + 1} of {filteredItems.length}
                   </p>
-                  <Button asChild variant="link" className="text-accent font-black uppercase text-[10px] tracking-widest p-0 h-auto">
+                  <Button asChild variant="link" className="text-accent font-black uppercase text-[8px] md:text-[10px] tracking-widest p-0 h-auto">
                     <Link href="/products">Shop Artisan Creations</Link>
                   </Button>
                 </div>
