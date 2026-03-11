@@ -97,7 +97,7 @@ function generateJsonLd(product: any) {
         '@type': 'OfferShippingDetails',
         shippingRate: {
           '@type': 'MonetaryAmount',
-          value: 150,
+          value: 50,
           currency: 'INR',
         },
         shippingDestination: {
