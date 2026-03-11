@@ -20,4 +20,5 @@ export default function robots(): MetadataRoute.Robots {
     },
     sitemap: 'https://kalamic.shop/sitemap.xml',
     host: 'https://kalamic.shop',
+};
 }
