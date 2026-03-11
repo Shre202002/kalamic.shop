@@ -35,7 +35,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   ChevronLeft,
-  Info
+  Info,
+  RefreshCcw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
@@ -410,6 +411,16 @@ export default function CheckoutPage() {
               </Stack>
 
               <Divider sx={{ mb: 4 }} />
+
+              {/* Acquisition Disclaimer Highlight */}
+              <MuiBox sx={{ mb: 4, p: 2, borderRadius: '1.25rem', bgcolor: muiAlpha('#EA781E', 0.05), border: '1px dashed', borderColor: muiAlpha('#EA781E', 0.2) }}>
+                <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                  <RefreshCcw size={16} color="#EA781E" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.5 }}>
+                    <strong>Acquisition Note:</strong> By confirming, you agree to our <Link href="/returns" className="text-primary underline font-bold">Returns Policy</Link>. Damage claims must be reported within 48 hours. Custom orders are final and non-returnable.
+                  </Typography>
+                </Stack>
+              </MuiBox>
 
               <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
                 <Typography sx={{ fontWeight: 900, textTransform: 'uppercase' }}>Total</Typography>

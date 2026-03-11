@@ -127,6 +127,7 @@ function generateJsonLd(product: any) {
         merchantReturnDays: 7,
         returnMethod: 'https://schema.org/ReturnByMail',
         returnFees: 'https://schema.org/FreeReturn',
+        url: 'https://kalamic.shop/returns',
       },
     },
     aggregateRating: product.analytics?.review_count > 0 ? {
