@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   Box, 
   Typography, 
@@ -40,10 +39,12 @@ import {
   Search, 
   Edit as EditIcon, 
   Delete as DeleteIcon, 
-  CloudUpload, 
+  CloudUpload as CloudUploadIcon, 
   PlayArrow, 
   Star as StarIcon,
-  FilterList
+  FilterList,
+  Close as CloseIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +56,7 @@ export default function GalleryStudio() {
   const theme = useTheme();
   const { user } = useUser();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,18 +65,19 @@ export default function GalleryStudio() {
   const [mediaFilter, setMediaFilter] = useState('all');
   
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [uploadType, setUploadType] = useState<'image' | 'video'>('image');
-  const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadDialogType, setUploadDialogType] = useState<'image' | 'video'>('image');
+  const [isUploading, setIsUploading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingItem, setEditingProduct] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<any>(null);
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
 
-  const [formData, setFormData] = useState({
+  const [uploadForm, setUploadForm] = useState({
     name: '',
     altText: '',
     caption: '',
@@ -83,7 +86,7 @@ export default function GalleryStudio() {
     isFeatured: false
   });
 
-  const loadItems = async () => {
+  const loadGalleryItems = async () => {
     setLoading(true);
     try {
       const data = await getGalleryItems();
@@ -96,39 +99,55 @@ export default function GalleryStudio() {
   };
 
   useEffect(() => {
-    loadItems();
+    loadGalleryItems();
   }, []);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
+  const handleFileSelect = (f: File) => {
+    setFile(f);
+    const reader = new FileReader();
+    reader.onload = (e) => setPreview(e.target?.result as string);
+    reader.readAsDataURL(f);
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !user) return;
+    if (!file || !uploadForm.name || !uploadForm.altText || !user) {
+      toast({ variant: 'destructive', title: 'Missing Information', description: 'Name, Alt Text, and File are required.' });
+      return;
+    }
     
-    setUploading(true);
+    setIsUploading(true);
     try {
-      const uploadForm = new FormData();
-      uploadForm.append('file', selectedFile);
-      uploadForm.append('name', formData.name);
-      uploadForm.append('type', uploadType);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', uploadForm.name);
+      formData.append('mediaType', uploadDialogType);
 
       const upRes = await fetch('/api/admin/gallery/upload', {
         method: 'POST',
-        body: uploadForm
+        body: formData
       });
       
-      const upData = await upRes.json();
-      if (!upRes.ok) throw new Error(upData.message);
+      const text = await upRes.text();
+      let upData: any;
+      
+      try {
+        upData = JSON.parse(text);
+      } catch (jsonErr) {
+        console.error('Non-JSON response from server:', text.substring(0, 200));
+        throw new Error('Server returned an invalid response format.');
+      }
+
+      if (!upRes.ok || !upData.success) throw new Error(upData.error || 'Upload failed');
 
       const finalItem = {
-        ...formData,
-        ...upData,
-        mediaType: uploadType,
+        ...uploadForm,
+        url: upData.url,
+        fileId: upData.fileId,
+        format: upData.format,
+        width: upData.width,
+        height: upData.height,
+        duration: upData.duration,
+        mediaType: uploadDialogType,
         uploadedBy: user.uid
       };
 
@@ -138,16 +157,17 @@ export default function GalleryStudio() {
         body: JSON.stringify(finalItem)
       });
 
-      if (res.ok) {
-        toast({ title: 'Uploaded Successfully', description: 'Visual asset added to studio gallery.' });
-        setUploadDialogOpen(false);
-        resetUpload();
-        loadItems();
-      }
+      const saveResult = await res.json();
+      if (!res.ok) throw new Error(saveResult.message || 'Database sync failed');
+
+      toast({ title: '✅ Upload Successful', description: `${uploadForm.name} added to visual archive.` });
+      setUploadDialogOpen(false);
+      resetForm();
+      loadGalleryItems();
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Upload Failed', description: e.message });
+      toast({ variant: 'destructive', title: 'Action Failed', description: e.message });
     } finally {
-      setUploading(false);
+      setIsUploading(false);
     }
   };
 
@@ -162,7 +182,7 @@ export default function GalleryStudio() {
       if (res.ok) {
         toast({ title: 'Asset Updated' });
         setEditDialogOpen(false);
-        loadItems();
+        loadGalleryItems();
       }
     } catch (e) {
       toast({ variant: 'destructive', title: 'Update Failed' });
@@ -178,17 +198,17 @@ export default function GalleryStudio() {
       if (res.ok) {
         toast({ title: 'Permanently Deleted' });
         setDeleteDialogOpen(false);
-        loadItems();
+        loadGalleryItems();
       }
     } catch (e) {
       toast({ variant: 'destructive', title: 'Deletion Failed' });
     }
   };
 
-  const resetUpload = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    setFormData({
+  const resetForm = () => {
+    setFile(null);
+    setPreview(null);
+    setUploadForm({
       name: '',
       altText: '',
       caption: '',
@@ -199,8 +219,8 @@ export default function GalleryStudio() {
   };
 
   const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || 
-                          item.altText.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (item.name || '').toLowerCase().includes(search.toLowerCase()) || 
+                          (item.altText || '').toLowerCase().includes(search.toLowerCase());
     const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
     const matchesType = mediaFilter === 'all' || item.mediaType === mediaFilter;
     return matchesSearch && matchesCategory && matchesType;
@@ -224,7 +244,7 @@ export default function GalleryStudio() {
           <Button 
             variant="outlined" 
             startIcon={<ImageIcon />} 
-            onClick={() => { setUploadType('image'); setUploadDialogOpen(true); }}
+            onClick={() => { resetForm(); setUploadDialogType('image'); setUploadDialogOpen(true); }}
             sx={{ borderRadius: 3, px: 3, fontWeight: 800 }}
           >
             Upload Image
@@ -232,12 +252,12 @@ export default function GalleryStudio() {
           <Button 
             variant="contained" 
             startIcon={<VideoIcon />} 
-            onClick={() => { setUploadType('video'); setUploadDialogOpen(true); }}
+            onClick={() => { resetForm(); setUploadDialogType('video'); setUploadDialogOpen(true); }}
             sx={{ 
               borderRadius: 3, 
               px: 3, 
               fontWeight: 800,
-              bgcolor: theme.palette.primary.main,
+              background: 'linear-gradient(135deg, hsl(28,89%,52%), hsl(35,85%,55%))',
               boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.2)}`
             }}
           >
@@ -334,7 +354,7 @@ export default function GalleryStudio() {
                     />
                   )}
                   <Chip 
-                    label={item.format.toUpperCase()} 
+                    label={(item.format || 'file').toUpperCase()} 
                     size="small" 
                     sx={{ position: 'absolute', top: 10, right: 10, fontWeight: 900, fontSize: '0.6rem', bgcolor: 'rgba(255,255,255,0.9)' }} 
                   />
@@ -347,7 +367,7 @@ export default function GalleryStudio() {
                   </Stack>
                 </CardContent>
                 <CardActions sx={{ borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between', px: 2 }}>
-                  <IconButton size="small" onClick={() => { setEditingProduct(item); setEditDialogOpen(true); }}><EditIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" onClick={() => { setEditingItem(item); setEditDialogOpen(true); }}><EditIcon fontSize="small" /></IconButton>
                   <IconButton size="small" color="error" onClick={() => { setItemToDelete(item); setDeleteDialogOpen(true); }}><DeleteIcon fontSize="small" /></IconButton>
                 </CardActions>
               </Card>
@@ -356,73 +376,214 @@ export default function GalleryStudio() {
         </Grid>
       )}
 
-      {/* Upload Dialog */}
-      <Dialog open={uploadDialogOpen} onClose={() => !uploading && setUploadDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 900 }}>{uploadType === 'image' ? 'Studio Image Upload' : 'Artisan Reel Upload'}</DialogTitle>
-        <DialogContent dividers>
-          <Box 
-            sx={{ 
-              border: '2px dashed', 
-              borderColor: selectedFile ? 'primary.main' : 'divider',
-              borderRadius: 4,
-              p: 4,
-              textAlign: 'center',
-              mb: 3,
-              bgcolor: alpha(theme.palette.background.default, 0.5),
-              cursor: 'pointer'
-            }}
-            component="label"
-          >
-            <input type="file" hidden accept={uploadType === 'image' ? "image/*" : "video/mp4,video/mov,video/webm"} onChange={handleFileSelect} />
-            {previewUrl ? (
-              uploadType === 'image' ? (
-                <img src={previewUrl} style={{ width: '100%', height: 200, objectFit: 'contain' }} />
-              ) : (
-                <Box sx={{ p: 4 }}>
-                  <VideoIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-                  <Typography variant="body2" fontWeight={700}>{selectedFile?.name}</Typography>
-                </Box>
-              )
-            ) : (
-              <>
-                <CloudUpload sx={{ fontSize: 40, opacity: 0.3, mb: 1 }} />
-                <Typography variant="body2" fontWeight={700}>Click to select {uploadType} file</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {uploadType === 'image' ? 'JPG, PNG, WebP supported. Auto-conversion to WebP.' : 'Max 50MB, max 40 seconds.'}
-                </Typography>
-              </>
-            )}
-          </Box>
+      {/* REFINED UPLOAD DIALOG */}
+      <Dialog open={uploadDialogOpen} 
+              onClose={() => !isUploading && setUploadDialogOpen(false)}
+              maxWidth="sm" fullWidth
+              PaperProps={{ sx: { borderRadius: 4 } }}>
+        
+        <DialogTitle sx={{ fontWeight: 900, pb: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Box sx={{ 
+              p: 1.5, borderRadius: 2,
+              bgcolor: alpha(theme.palette.primary.main, 0.1) 
+            }}>
+              {uploadDialogType === 'image' ? <ImageIcon sx={{ color: 'primary.main' }} /> : <VideoIcon sx={{ color: 'primary.main' }} />}
+            </Box>
+            <Box>
+              <Typography fontWeight={900}>Upload Gallery {uploadDialogType === 'image' ? 'Image' : 'Reel'}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {uploadDialogType === 'image' ? 'Auto-converted to WebP for optimal performance' : 'Max 50MB, MP4/MOV/WebM supported'}
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
 
+        <DialogContent dividers>
           <Stack spacing={3}>
-            <TextField fullWidth label="Asset Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
-            <TextField fullWidth label="Alt Text (SEO) *" value={formData.altText} onChange={(e) => setFormData({...formData, altText: e.target.value})} />
-            <TextField fullWidth label="Display Caption" value={formData.caption} onChange={(e) => setFormData({...formData, caption: e.target.value})} />
-            <FormControl fullWidth>
+
+            {/* Drag & Drop Zone */}
+            <Box
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                const dropped = e.dataTransfer.files[0];
+                if (dropped) handleFileSelect(dropped);
+              }}
+              onClick={() => !preview && fileInputRef.current?.click()}
+              sx={{
+                border: '2px dashed',
+                borderColor: isDragging 
+                  ? 'primary.main' 
+                  : preview ? 'success.main' : 'divider',
+                borderRadius: 3,
+                p: 3,
+                textAlign: 'center',
+                cursor: preview ? 'default' : 'pointer',
+                bgcolor: isDragging 
+                  ? alpha(theme.palette.primary.main, 0.04) 
+                  : 'background.default',
+                transition: 'all 0.2s',
+                minHeight: 180,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              {preview ? (
+                <>
+                  {uploadDialogType === 'image' ? (
+                    <Box component="img" src={preview} sx={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 2 }} />
+                  ) : (
+                    <Box sx={{ p: 4, textAlign: 'center' }}>
+                      <VideoIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
+                      <Typography variant="caption" fontWeight={700} display="block">{file?.name}</Typography>
+                    </Box>
+                  )}
+                  {uploadDialogType === 'image' && (
+                    <Chip
+                      label="⚡ Will be converted to WebP"
+                      size="small"
+                      sx={{
+                        position: 'absolute',
+                        bottom: 12,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        bgcolor: alpha('#000', 0.7),
+                        color: 'white',
+                        fontWeight: 700,
+                        fontSize: '0.65rem',
+                        backdropFilter: 'blur(4px)',
+                      }}
+                    />
+                  )}
+                  <IconButton
+                    size="small"
+                    onClick={(e) => { e.stopPropagation(); setFile(null); setPreview(null); }}
+                    sx={{
+                      position: 'absolute',
+                      top: 8, right: 8,
+                      bgcolor: alpha('#000', 0.6),
+                      color: 'white',
+                      '&:hover': { bgcolor: 'error.main' }
+                    }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </>
+              ) : (
+                <Stack spacing={1.5} alignItems="center">
+                  <Box sx={{ p: 2, borderRadius: '50%', bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
+                    <CloudUploadIcon sx={{ fontSize: 36, color: 'primary.main', opacity: 0.6 }} />
+                  </Box>
+                  <Typography fontWeight={700} color="text.secondary">Drag & drop {uploadDialogType} here</Typography>
+                  <Typography variant="caption" color="text.disabled">or click to browse</Typography>
+                </Stack>
+              )}
+            </Box>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              hidden
+              accept={uploadDialogType === 'image' ? 'image/*' : 'video/*'}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleFileSelect(f);
+              }}
+            />
+
+            {file && (
+              <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <CheckCircleIcon sx={{ color: 'success.main', fontSize: 18 }} />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="caption" fontWeight={700} noWrap>{file.name}</Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">{(file.size / 1024 / 1024).toFixed(2)} MB</Typography>
+                  </Box>
+                  {uploadDialogType === 'image' && <Chip label="→ .webp" size="small" color="primary" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />}
+                </Stack>
+              </Paper>
+            )}
+
+            <TextField
+              label="Asset Name *"
+              value={uploadForm.name}
+              onChange={(e) => setUploadForm(p => ({ ...p, name: e.target.value }))}
+              fullWidth size="small"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+
+            <TextField
+              label="Alt Text * (for SEO)"
+              value={uploadForm.altText}
+              onChange={(e) => setUploadForm(p => ({ ...p, altText: e.target.value }))}
+              fullWidth size="small"
+              helperText="Describe the visual for search engines"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+
+            <TextField
+              label="Display Caption"
+              value={uploadForm.caption}
+              onChange={(e) => setUploadForm(p => ({ ...p, caption: e.target.value }))}
+              fullWidth size="small"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+
+            <FormControl fullWidth size="small">
               <InputLabel>Category *</InputLabel>
-              <Select value={formData.category} label="Category *" onChange={(e) => setFormData({...formData, category: e.target.value})}>
-                {CATEGORIES.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+              <Select
+                value={uploadForm.category}
+                onChange={(e) => setUploadForm(p => ({ ...p, category: e.target.value }))}
+                label="Category *"
+                sx={{ borderRadius: 2 }}
+              >
+                {CATEGORIES.map(cat => (
+                  <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                ))}
               </Select>
             </FormControl>
-            <FormControlLabel 
-              control={<Switch checked={formData.isFeatured} onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})} />} 
-              label={<Typography variant="body2" fontWeight={700}>Feature on Homepage</Typography>}
-            />
+
+            <Stack direction="row" justifyContent="space-between" alignItems="center"
+                   sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
+              <Box>
+                <Typography variant="body2" fontWeight={700}>Featured Item</Typography>
+                <Typography variant="caption" color="text.secondary">Show on gallery hero</Typography>
+              </Box>
+              <Switch
+                checked={uploadForm.isFeatured}
+                onChange={(e) => setUploadForm(p => ({ ...p, isFeatured: e.target.checked }))}
+                color="primary"
+              />
+            </Stack>
           </Stack>
-          
-          {uploading && <LinearProgress sx={{ mt: 3, borderRadius: 1 }} />}
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setUploadDialogOpen(false)} disabled={uploading}>Cancel</Button>
-          <Button 
-            variant="contained" 
-            onClick={handleUpload} 
-            disabled={uploading || !selectedFile || !formData.name || !formData.altText}
-            sx={{ borderRadius: 2, fontWeight: 800, px: 4 }}
+
+        <DialogActions sx={{ p: 3, gap: 1 }}>
+          <Button onClick={() => setUploadDialogOpen(false)} disabled={isUploading}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleUpload}
+            disabled={!file || !uploadForm.name || !uploadForm.altText || isUploading}
+            startIcon={isUploading ? <CircularProgress size={16} color="inherit" /> : <CloudUploadIcon />}
+            sx={{ 
+              borderRadius: 2, fontWeight: 900, minWidth: 140,
+              background: isUploading ? undefined : 'linear-gradient(135deg, hsl(28,89%,52%), hsl(35,85%,55%))'
+            }}
           >
-            {uploading ? 'Processing...' : 'Upload to Gallery'}
+            {isUploading ? 'Uploading...' : `Upload ${uploadDialogType === 'image' ? 'Image' : 'Reel'}`}
           </Button>
         </DialogActions>
+
+        {isUploading && (
+          <LinearProgress sx={{ height: 3, bgcolor: alpha(theme.palette.primary.main, 0.1), '& .MuiLinearProgress-bar': { background: 'linear-gradient(90deg, hsl(28,89%,52%), hsl(45,85%,55%))' } }} />
+        )}
       </Dialog>
 
       {/* Edit Dialog */}
@@ -431,21 +592,21 @@ export default function GalleryStudio() {
         <DialogContent dividers>
           {editingItem && (
             <Stack spacing={3}>
-              <TextField fullWidth label="Asset Name" value={editingItem.name} onChange={(e) => setEditingProduct({...editingItem, name: e.target.value})} />
-              <TextField fullWidth label="Alt Text" value={editingItem.altText} onChange={(e) => setEditingProduct({...editingItem, altText: e.target.value})} />
-              <TextField fullWidth label="Caption" value={editingItem.caption} onChange={(e) => setEditingProduct({...editingItem, caption: e.target.value})} />
+              <TextField fullWidth label="Asset Name" value={editingItem.name} onChange={(e) => setEditingItem({...editingItem, name: e.target.value})} />
+              <TextField fullWidth label="Alt Text" value={editingItem.altText} onChange={(e) => setEditingItem({...editingItem, altText: e.target.value})} />
+              <TextField fullWidth label="Caption" value={editingItem.caption} onChange={(e) => setEditingItem({...editingItem, caption: e.target.value})} />
               <FormControl fullWidth>
                 <InputLabel>Category</InputLabel>
-                <Select value={editingItem.category} label="Category" onChange={(e) => setEditingProduct({...editingItem, category: e.target.value})}>
+                <Select value={editingItem.category} label="Category" onChange={(e) => setEditingItem({...editingItem, category: e.target.value})}>
                   {CATEGORIES.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
                 </Select>
               </FormControl>
-              <TextField fullWidth multiline rows={3} label="Description" value={editingItem.description} onChange={(e) => setEditingProduct({...editingItem, description: e.target.value})} />
+              <TextField fullWidth multiline rows={3} label="Description" value={editingItem.description} onChange={(e) => setEditingItem({...editingItem, description: e.target.value})} />
               <Box sx={{ display: 'flex', gap: 4 }}>
-                <FormControlLabel control={<Switch checked={editingItem.isFeatured} onChange={(e) => setEditingProduct({...editingItem, isFeatured: e.target.checked})} />} label="Featured" />
-                <FormControlLabel control={<Switch checked={editingItem.isActive} onChange={(e) => setEditingProduct({...editingItem, isActive: e.target.checked})} />} label="Active" />
+                <FormControlLabel control={<Switch checked={editingItem.isFeatured} onChange={(e) => setEditingItem({...editingItem, isFeatured: e.target.checked})} />} label="Featured" />
+                <FormControlLabel control={<Switch checked={editingItem.isActive} onChange={(e) => setEditingItem({...editingItem, isActive: e.target.checked})} />} label="Active" />
               </Box>
-              <TextField type="number" label="Sort Order" value={editingItem.sortOrder} onChange={(e) => setEditingProduct({...editingItem, sortOrder: parseInt(e.target.value)})} />
+              <TextField type="number" label="Sort Order" value={editingItem.sortOrder} onChange={(e) => setEditingItem({...editingItem, sortOrder: parseInt(e.target.value)})} />
             </Stack>
           )}
         </DialogContent>
