@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -164,26 +163,25 @@ export default function GalleryStudio() {
 
       if (!upRes.ok || !upData.success) throw new Error(upData.error || 'Upload failed');
 
-      const finalItem = {
-        ...uploadForm,
-        url: upData.url,
-        fileId: upData.fileId,
-        format: upData.format,
-        width: upData.width,
-        height: upData.height,
-        duration: videoDuration || upData.duration,
-        mediaType: uploadDialogType,
-        uploadedBy: user.uid
-      };
-
+      // Sync to MongoDB
       const res = await fetch('/api/admin/gallery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalItem)
+        body: JSON.stringify({
+          ...uploadForm,
+          url: upData.url,
+          fileId: upData.fileId,
+          format: upData.format,
+          width: upData.width,
+          height: upData.height,
+          duration: videoDuration || upData.duration,
+          mediaType: uploadDialogType,
+          uploadedBy: user.uid
+        })
       });
 
       const saveResult = await res.json();
-      if (!res.ok) throw new Error(saveResult.message || 'Database sync failed');
+      if (!res.ok) throw new Error(saveResult.message || 'Database synchronization failed');
 
       toast({ title: '✅ Upload Successful', description: `${uploadForm.name} added to visual archive.` });
       setUploadDialogOpen(false);
