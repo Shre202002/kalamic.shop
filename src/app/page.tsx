@@ -16,36 +16,41 @@ import {
   Sparkles, 
   ChevronLeft, 
   ChevronRight,
-  Package
+  Package,
+  Star
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 const heroSlides = [
   {
-    title: 'Handmade Ceramics,',
-    highlight: 'With Passion',
-    subtitle: 'Discover beautiful handcrafted ceramic products made by Kanpur\'s finest artisans.',
-    image: 'https://i.imgur.com/wqfAvmq.png',
-    cta: 'Shop Now',
-    link: '/products',
-  },
-  {
-    title: 'Stunning Mandala',
-    highlight: 'Wheels',
-    subtitle: 'Divine beauty crafted in ceramic — perfect for Jhula, mandir, or wall decor.',
-    image: 'https://i.imgur.com/wqfAvmq.png',
+    title: 'Heritage in Every',
+    highlight: 'Curve',
+    subtitle: 'Reviving the soul of traditional Indian ceramics for modern spaces. Handcrafted in Lucknow, delivered to your doorstep.',
+    image: 'https://ik.imagekit.io/ari07rsa2/kalamic/products/22_IvfYSYJoa.png?updatedAt=1772308420053',
     cta: 'Explore Collection',
     link: '/products',
+    badge: 'Artisan Heritage'
   },
   {
-    title: 'Artisan Wall',
-    highlight: 'Masterpieces',
-    subtitle: 'Elevate your space with hand-painted ceramic mirrors and decorative plates.',
-    image: 'https://i.imgur.com/CjkQ8p3.png',
-    cta: 'Shop Decor',
+    title: 'Sacred Geometry for',
+    highlight: 'Modern Homes',
+    subtitle: 'Exquisite Mandala wheels designed to bring spiritual harmony and aesthetic balance to your sacred spaces.',
+    image: 'https://ik.imagekit.io/ari07rsa2/kalamic/products/Untitled%20design%20(4).png',
+    cta: 'Shop Mandalas',
+    link: '/products?category=mandala',
+    badge: 'Limited Edition'
+  },
+  {
+    title: 'Timeless Art for',
+    highlight: 'Your Walls',
+    subtitle: 'Elevate your interiors with hand-molded mirrors and decorative plates that anchor a story in every room.',
+    image: 'https://ik.imagekit.io/ari07rsa2/kalamic/products/6_ZMDHVtT3vw.png?updatedAt=1772658985377',
+    cta: 'Browse Wall Art',
     link: '/products?category=wall-art',
+    badge: 'New Arrivals'
   },
 ];
 
@@ -88,7 +93,7 @@ export default function Home() {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % heroSlides.length);
-    }, 6000);
+    }, 8000);
     return () => clearInterval(timer);
   }, []);
 
@@ -105,35 +110,42 @@ export default function Home() {
       <main className="flex-1">
         
         {/* 1. HERO SLIDER */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
-          <div className="max-w-[1200px] mx-auto px-4 md:px-10 py-8 md:py-24">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center min-h-[400px] md:min-h-[550px]">
+        <section className="relative overflow-hidden bg-gradient-to-b from-primary/[0.08] via-background to-background">
+          <div className="absolute inset-0 pattern-paisley opacity-[0.03] pointer-events-none" />
+          
+          <div className="container mx-auto px-6 md:px-10 py-8 md:py-24 max-w-[1400px]">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center min-h-[500px] md:min-h-[650px]">
               
               {/* Text Content */}
-              <div className="relative z-10 order-2 lg:order-1 text-center lg:text-left">
+              <div className="relative z-10 lg:col-span-7 text-center lg:text-left order-2 lg:order-1">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`text-${currentSlide}`}
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 30 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="space-y-4 md:space-y-8"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -30 }}
+                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                    className="space-y-6 md:space-y-10"
                   >
-                    <Badge label="New Arrivals" />
-                    <h1 className="text-3xl sm:text-5xl md:text-7xl font-display font-semibold text-foreground leading-[1.1] tracking-tight text-balance">
+                    <Badge label={slide.badge} />
+                    
+                    <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-semibold text-foreground leading-[1.05] tracking-tight text-balance">
                       {slide.title} <br />
                       <span className="italic text-primary font-normal">{slide.highlight}</span>
                     </h1>
-                    <p className="text-sm md:text-xl text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium">
+                    
+                    <p className="text-base md:text-2xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
                       {slide.subtitle}
                     </p>
-                    <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 md:gap-4 pt-4">
-                      <Button asChild size="lg" className="h-12 md:h-14 px-8 md:px-10 rounded-full bg-primary text-white font-bold text-xs md:text-sm shadow-xl shadow-primary/20 hover:scale-105 transition-all">
-                        <Link href={slide.link}>{slide.cta} <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" /></Link>
+                    
+                    <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 md:gap-6 pt-4">
+                      <Button asChild size="lg" className="h-14 md:h-16 px-10 md:px-12 rounded-full gradient-saffron text-white font-black text-sm uppercase tracking-widest shadow-2xl shadow-primary/20 hover:scale-105 transition-all active:scale-95">
+                        <Link href={slide.link} className="flex items-center gap-3">
+                          {slide.cta} <ArrowRight className="h-5 w-5" />
+                        </Link>
                       </Button>
-                      <Button asChild variant="outline" size="lg" className="h-12 md:h-14 px-8 md:px-10 rounded-full border-primary/20 text-primary font-bold text-xs md:text-sm hover:bg-primary/5">
-                        <Link href="/about">Our Story</Link>
+                      <Button asChild variant="outline" size="lg" className="h-14 md:h-16 px-10 md:px-12 rounded-full border-2 border-primary/20 text-primary font-black text-sm uppercase tracking-widest hover:bg-primary/5 transition-all">
+                        <Link href="/about">Our Studio Story</Link>
                       </Button>
                     </div>
                   </motion.div>
@@ -141,23 +153,25 @@ export default function Home() {
               </div>
 
               {/* Slider Image */}
-              <div className="relative flex justify-center lg:justify-end order-1 lg:order-2">
+              <div className="relative lg:col-span-5 flex justify-center lg:justify-end order-1 lg:order-2">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`img-${currentSlide}`}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.8, ease: "circOut" }}
-                    className="relative w-full max-w-[300px] md:max-w-[400px] aspect-square"
+                    initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, rotate: 2 }}
+                    transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                    className="relative w-full max-w-[320px] sm:max-w-[450px] lg:max-w-[550px] aspect-square"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-[60px] md:blur-[80px] scale-110 opacity-50" />
-                    <div className="relative w-full h-full rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl bg-white border-4 border-white/50">
+                    {/* Glowing background behind image */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full blur-[80px] md:blur-[120px] scale-110 opacity-40 animate-pulse" />
+                    
+                    <div className="relative w-full h-full rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] bg-white border-8 border-white/50 group">
                       <Image 
                         src={slide.image} 
                         alt={slide.title} 
                         fill 
-                        className="object-contain p-6 md:p-12 drop-shadow-2xl"
+                        className="object-contain p-8 md:p-16 drop-shadow-[0_20px_40px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform duration-1000"
                         priority
                       />
                     </div>
@@ -166,29 +180,38 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Slider Navigation */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 mt-8 md:mt-16">
-              <div className="flex gap-3">
+            {/* Slider Navigation Controls */}
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 mt-12 md:mt-20">
+              <div className="flex gap-4">
                 <button 
                   onClick={() => goToSlide(currentSlide - 1)} 
-                  className="h-10 w-10 md:h-12 md:w-12 rounded-full border border-primary/10 bg-white flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-300 shadow-sm"
+                  className="h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-primary/10 bg-white/80 backdrop-blur-md flex items-center justify-center text-primary hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 shadow-xl shadow-black/5 active:scale-90"
+                  aria-label="Previous slide"
                 >
-                  <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
+                  <ChevronLeft className="h-6 w-6" />
                 </button>
                 <button 
                   onClick={() => goToSlide(currentSlide + 1)} 
-                  className="h-10 w-10 md:h-12 md:w-12 rounded-full border border-primary/10 bg-white flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-300 shadow-sm"
+                  className="h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-primary/10 bg-white/80 backdrop-blur-md flex items-center justify-center text-primary hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 shadow-xl shadow-black/5 active:scale-90"
+                  aria-label="Next slide"
                 >
-                  <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
+                  <ChevronRight className="h-6 w-6" />
                 </button>
               </div>
-              <div className="flex gap-2">
+              
+              <div className="flex items-center gap-3">
                 {heroSlides.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentSlide(i)}
-                    className={`h-1.5 rounded-full transition-all duration-500 ${i === currentSlide ? 'w-8 md:w-10 bg-primary' : 'w-2 bg-primary/20'}`}
-                  />
+                    className="relative h-2 group"
+                    aria-label={`Go to slide ${i + 1}`}
+                  >
+                    <div className={cn(
+                      "h-full rounded-full transition-all duration-700 ease-in-out",
+                      i === currentSlide ? "w-12 md:w-16 bg-primary" : "w-2 md:w-3 bg-primary/20 group-hover:bg-primary/40"
+                    )} />
+                  </button>
                 ))}
               </div>
             </div>
@@ -196,20 +219,23 @@ export default function Home() {
         </section>
 
         {/* 2. TRUST BAR */}
-        <section className="border-y border-primary/5 bg-white/50 backdrop-blur-sm py-6 md:py-10">
-          <div className="max-w-[1200px] mx-auto px-4 md:px-10">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
+        <section className="relative z-20 border-y border-primary/5 bg-white/80 backdrop-blur-xl py-8 md:py-14">
+          <div className="container mx-auto px-6 md:px-10 max-w-[1200px]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-16">
               {[
-                { icon: Truck, text: 'Free Delivery above ₹999' },
-                { icon: ShieldCheck, text: 'Secure Payments' },
-                { icon: RotateCcw, text: '7-Day Returns' },
-                { icon: Sparkles, text: '100% Handmade' },
-              ].map(({ icon: Icon, text }, idx) => (
-                <div key={idx} className="flex flex-col sm:flex-row items-center justify-center gap-2 md:gap-3 text-center sm:text-left">
-                  <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0 shadow-inner">
-                    <Icon className="h-5 w-5 md:h-6 md:w-6" />
+                { icon: Truck, text: 'Free Delivery', sub: 'On orders above ₹999' },
+                { icon: ShieldCheck, text: 'Secure Checkout', sub: 'SSL-encrypted payments' },
+                { icon: RotateCcw, text: 'Artisan Warranty', sub: '7-day easy returns' },
+                { icon: Sparkles, text: '100% Handmade', sub: 'Crafted by local masters' },
+              ].map(({ icon: Icon, text, sub }, idx) => (
+                <div key={idx} className="flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-4 text-center md:text-left">
+                  <div className="h-12 w-12 md:h-14 md:w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0 shadow-inner group hover:bg-primary hover:text-white transition-all duration-500">
+                    <Icon className="h-6 w-6 md:h-7 md:w-7" />
                   </div>
-                  <span className="text-[9px] md:text-xs font-black uppercase tracking-widest text-foreground/70 leading-tight max-w-[100px] sm:max-w-none">{text}</span>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-foreground">{text}</p>
+                    <p className="text-[9px] md:text-[10px] text-muted-foreground font-bold leading-tight max-w-[120px] md:max-w-none">{sub}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -217,52 +243,55 @@ export default function Home() {
         </section>
 
         {/* 3. CATEGORIES */}
-        <section className="py-16 md:py-24">
-          <div className="max-w-[1200px] mx-auto px-4 md:px-10">
+        <section className="py-20 md:py-32">
+          <div className="container mx-auto px-6 md:px-10 max-w-[1200px]">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-10 md:mb-16 space-y-3"
+              className="text-center mb-12 md:mb-20 space-y-4"
             >
-              <h2 className="text-2xl md:text-5xl font-display font-semibold text-foreground">Shop by Category</h2>
-              <p className="text-xs md:text-base text-muted-foreground font-medium max-w-lg mx-auto">Explore our curated artisanal collections for every corner of your home.</p>
+              <div className="flex items-center justify-center gap-3 text-accent font-black text-[10px] uppercase tracking-[0.3em]">
+                <div className="h-px w-8 bg-accent/30" /> Discover Heritage <div className="h-px w-8 bg-accent/30" />
+              </div>
+              <h2 className="text-3xl md:text-6xl font-display font-semibold text-foreground tracking-tight">Shop by Collection</h2>
+              <p className="text-sm md:text-lg text-muted-foreground max-w-xl mx-auto font-medium">Explore curated artisanal ceramics designed for every corner of your contemporary home.</p>
             </motion.div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-10">
-              <CategoryCard name="Spiritual Decor" slug="temple" description="Pillars and Mandala wheels for your sacred spaces." />
-              <CategoryCard name="Wall Artistry" slug="wall-art" description="Hand-molded mirrors and decorative plates." />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-10">
+              <CategoryCard name="Spiritual Decor" slug="temple" description="Handcrafted Sthambs and Mandala wheels for your sacred spaces." />
+              <CategoryCard name="Wall Artistry" slug="wall-art" description="Hand-painted mirrors and decorative plates that tell a story." />
               <div className="sm:col-span-2 md:col-span-1">
-                <CategoryCard name="Home Accents" slug="decor" description="Small ceramic treasures that anchor a story." />
+                <CategoryCard name="Home Accents" slug="decor" description="Small ceramic treasures designed to bring character to any room." />
               </div>
             </div>
           </div>
         </section>
 
         {/* 4. FEATURED PRODUCTS */}
-        <section className="py-16 md:py-24 bg-white">
-          <div className="max-w-[1200px] mx-auto px-4 md:px-10">
-            <div className="flex flex-col md:flex-row items-center justify-between mb-10 md:mb-16 gap-4">
+        <section className="py-20 md:py-32 bg-white">
+          <div className="container mx-auto px-6 md:px-10 max-w-[1200px]">
+            <div className="flex flex-col md:flex-row items-center justify-between mb-12 md:mb-20 gap-6">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="space-y-2 text-center md:text-left"
+                className="space-y-3 text-center md:text-left"
               >
-                <div className="flex items-center justify-center md:justify-start gap-2 text-accent font-bold text-[9px] md:text-[10px] uppercase tracking-widest">
-                  <Package className="h-3 w-3 md:h-4 md:w-4" /> Artisan Selects
+                <div className="flex items-center justify-center md:justify-start gap-3 text-accent font-black text-[10px] uppercase tracking-[0.3em]">
+                  <Package className="h-4 w-4" /> Artisan Selects
                 </div>
-                <h2 className="text-2xl md:text-5xl font-display font-semibold text-foreground">Special Collection</h2>
-                <p className="text-xs md:text-base text-muted-foreground font-medium">Curated favorites from our latest kiln firing.</p>
+                <h2 className="text-3xl md:text-6xl font-display font-semibold text-foreground tracking-tight">Latest Kiln Firing</h2>
+                <p className="text-sm md:text-lg text-muted-foreground font-medium">Handcrafted favorites from our studio in Lucknow.</p>
               </motion.div>
-              <Button asChild variant="ghost" className="text-primary font-black uppercase tracking-widest text-[9px] md:text-[10px] hover:bg-primary/5">
-                <Link href="/products" className="flex items-center gap-2">
-                  View Full Catalog <ArrowRight className="h-3 w-3 md:h-4 md:w-4" />
+              <Button asChild variant="ghost" className="text-primary font-black uppercase tracking-[0.2em] text-[10px] hover:bg-primary/5 h-12 px-8 rounded-full border border-primary/10">
+                <Link href="/products" className="flex items-center gap-3">
+                  View Full Catalog <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <ProductCardSkeleton key={i} />
@@ -293,30 +322,32 @@ export default function Home() {
         </section>
 
         {/* 5. CRAFT CTA */}
-        <section className="py-16 md:py-32 bg-background">
-          <div className="max-w-[1200px] mx-auto px-4 md:px-10">
+        <section className="py-20 md:py-40 bg-background relative overflow-hidden">
+          <div className="container mx-auto px-6 md:px-10 max-w-[1200px]">
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="relative bg-primary rounded-[2rem] md:rounded-[4rem] px-6 py-12 md:p-24 overflow-hidden text-center text-white shadow-2xl shadow-primary/20"
+              className="relative bg-primary rounded-[3rem] md:rounded-[5rem] px-8 py-16 md:p-28 overflow-hidden text-center text-white shadow-2xl shadow-primary/20"
             >
-              <div className="relative z-10 space-y-6 md:space-y-8">
-                <h2 className="text-2xl sm:text-5xl md:text-6xl font-display font-semibold tracking-tight text-balance leading-tight">Made with ❤️ by <br className="hidden md:block" /> Kanpur Artisans</h2>
-                <p className="text-sm md:text-xl opacity-90 max-w-2xl mx-auto leading-relaxed font-medium">
-                  Support local craftsmanship by bringing authentic, hand-molded ceramics into your home. Every purchase sustains a heritage.
+              <div className="relative z-10 space-y-8 md:space-y-12">
+                <h2 className="text-3xl sm:text-5xl md:text-7xl font-display font-semibold tracking-tight text-balance leading-tight">Handcrafted with Heart <br className="hidden md:block" /> by Lucknow Artisans</h2>
+                <p className="text-base md:text-2xl opacity-90 max-w-3xl mx-auto leading-relaxed font-medium">
+                  Support local master-craftsmen by bringing authentic, hand-molded ceramic treasures into your home. Every acquisition helps sustain a generational heritage.
                 </p>
-                <div className="pt-4">
-                  <Button asChild size="lg" className="h-14 md:h-16 px-8 md:px-12 rounded-full bg-[#1E1E1E] hover:bg-black text-white font-bold text-sm md:text-lg shadow-2xl transition-all active:scale-95 w-full sm:w-auto">
-                    <Link href="/products">Explore the Collection</Link>
+                <div className="pt-6">
+                  <Button asChild size="lg" className="h-16 md:h-20 px-12 md:px-16 rounded-full bg-[#1E1E1E] hover:bg-black text-white font-black text-base md:text-lg uppercase tracking-widest shadow-2xl transition-all active:scale-95 w-full sm:w-auto">
+                    <Link href="/products" className="flex items-center gap-4 justify-center">
+                      Browse Full Collection <ArrowRight className="h-6 w-6" />
+                    </Link>
                   </Button>
                 </div>
               </div>
               
-              {/* Subtle background decoration */}
+              {/* Decorative elements */}
               <div className="absolute inset-0 pattern-paisley opacity-5 pointer-events-none scale-150" />
-              <div className="absolute top-0 right-0 w-48 h-48 md:w-64 md:h-64 bg-white/10 rounded-full blur-[60px] md:blur-[80px] -mr-24 -mt-24 md:-mr-32 md:-mt-32" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 md:w-64 md:h-64 bg-accent/20 rounded-full blur-[60px] md:blur-[80px] -ml-24 -mb-24 md:-ml-32 md:-mb-32" />
+              <div className="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96 bg-white/10 rounded-full blur-[80px] md:blur-[120px] -mr-32 -mt-32 md:-mr-48 md:-mt-48" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 md:w-96 md:h-96 bg-accent/20 rounded-full blur-[80px] md:blur-[120px] -ml-32 -mb-32 md:-ml-48 md:-mb-48" />
             </motion.div>
           </div>
         </section>
@@ -330,10 +361,14 @@ export default function Home() {
 
 const Badge = ({ label }: { label: string }) => (
   <motion.span 
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em]"
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="inline-flex items-center gap-3 px-5 py-2 md:px-6 md:py-2.5 rounded-full bg-primary/10 border-2 border-primary/20 text-primary text-[10px] md:text-xs font-black uppercase tracking-[0.25em] shadow-lg backdrop-blur-sm"
   >
-    <Sparkles className="h-2.5 w-2.5 md:h-3 md:w-3" />{label}
+    <div className="relative">
+      <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary animate-pulse" />
+      <div className="absolute inset-0 h-3.5 w-3.5 md:h-4 md:w-4 bg-primary/20 blur-md rounded-full" />
+    </div>
+    {label}
   </motion.span>
 );
