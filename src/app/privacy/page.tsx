@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Mail,
   MessageSquare,
+  MessageCircle,
   Scale
 } from 'lucide-react';
 
