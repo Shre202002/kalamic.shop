@@ -1,10 +1,9 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useNavigation } from '@/hooks/useNavigation';
-import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut, LayoutDashboard } from 'lucide-react';
+import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut, LayoutDashboard, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
@@ -61,6 +60,7 @@ export function Navbar() {
 
   const navLinks = [
     { name: 'Products', href: '/products' },
+    { name: 'Gallery', href: '/gallery' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
