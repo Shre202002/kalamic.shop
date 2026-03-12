@@ -1,3 +1,4 @@
+
 import mongoose from 'mongoose';
 
 /**
@@ -15,7 +16,8 @@ async function dbConnect() {
   const MONGODB_URI = process.env.MONGODB_URI;
 
   if (!MONGODB_URI) {
-    throw new Error('Please define the MONGODB_URI environment variable inside .env');
+    console.warn('[DB] MONGODB_URI is not defined. Skipping database connection.');
+    return null;
   }
 
   if (cached.conn) {

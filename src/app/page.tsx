@@ -28,7 +28,7 @@ const heroSlides = [
   {
     title: 'Heritage in Every',
     highlight: 'Curve',
-    subtitle: 'Reviving the soul of traditional Indian ceramics for modern spaces. Handcrafted in Lucknow, delivered to your doorstep.',
+    subtitle: 'Reviving the soul of traditional Indian ceramics for modern spaces. Handcrafted in Kanpur, delivered to your doorstep.',
     image: 'https://ik.imagekit.io/ari07rsa2/kalamic/products/22_IvfYSYJoa.png?updatedAt=1772308420053',
     cta: 'Explore Collection',
     link: '/products',
@@ -134,7 +134,7 @@ export default function Home() {
                       <span className="italic text-primary font-normal">{slide.highlight}</span>
                     </h1>
                     
-                    <p className="text-base md:text-2xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
+                    <p className="text-base md:text-2xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium text-balance">
                       {slide.subtitle}
                     </p>
                     
@@ -282,7 +282,7 @@ export default function Home() {
                   <Package className="h-4 w-4" /> Artisan Selects
                 </div>
                 <h2 className="text-3xl md:text-6xl font-display font-semibold text-foreground tracking-tight">Latest Kiln Firing</h2>
-                <p className="text-sm md:text-lg text-muted-foreground font-medium">Handcrafted favorites from our studio in Lucknow.</p>
+                <p className="text-sm md:text-lg text-muted-foreground font-medium">Handcrafted favorites from our studio in Kanpur.</p>
               </motion.div>
               <Button asChild variant="ghost" className="text-primary font-black uppercase tracking-[0.2em] text-[10px] hover:bg-primary/5 h-12 px-8 rounded-full border border-primary/10">
                 <Link href="/products" className="flex items-center gap-3">
@@ -331,8 +331,8 @@ export default function Home() {
               className="relative bg-primary rounded-[3rem] md:rounded-[5rem] px-8 py-16 md:p-28 overflow-hidden text-center text-white shadow-2xl shadow-primary/20"
             >
               <div className="relative z-10 space-y-8 md:space-y-12">
-                <h2 className="text-3xl sm:text-5xl md:text-7xl font-display font-semibold tracking-tight text-balance leading-tight">Handcrafted with Heart <br className="hidden md:block" /> by Lucknow Artisans</h2>
-                <p className="text-base md:text-2xl opacity-90 max-w-3xl mx-auto leading-relaxed font-medium">
+                <h2 className="text-2xl sm:text-5xl md:text-7xl font-display font-semibold tracking-tight text-balance leading-tight">Handcrafted with Heart <br className="hidden md:block" /> by Kanpur Artisans</h2>
+                <p className="text-base md:text-2xl opacity-90 max-w-3xl mx-auto leading-relaxed font-medium text-balance">
                   Support local master-craftsmen by bringing authentic, hand-molded ceramic treasures into your home. Every acquisition helps sustain a generational heritage.
                 </p>
                 <div className="pt-6">

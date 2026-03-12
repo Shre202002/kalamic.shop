@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -483,229 +484,50 @@ export default function ProductDetailClient() {
             </div>
           </section>
 
-          {/* Shipping */}
-          <section className="mb-32">
-            <div className="text-center space-y-4 mb-16 px-4">
-              <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-foreground tracking-tight">FragileCare™ Shipping</h2>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] max-w-md mx-auto leading-relaxed">Expert Logistics for Handcrafted Masterpieces</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-              <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:border-primary/20">
-                <Scale className="h-6 w-6 text-primary" />
-                <h4 className="text-xs font-bold text-primary uppercase tracking-widest">Weight Metrics</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed font-medium">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG.</p>
-              </div>
-              <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:border-primary/20">
-                <Box className="h-6 w-6 text-primary" />
-                <h4 className="text-xs font-bold text-primary uppercase tracking-widest">Package Profile</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed font-medium">Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'}x{product.shipping?.package_dimensions_cm?.width || '30'}x{product.shipping?.package_dimensions_cm?.height || '15'} CM.</p>
-              </div>
-              <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-primary text-white shadow-xl space-y-4 md:col-span-2 lg:col-span-1">
-                <Truck className="h-6 w-6" />
-                <h4 className="text-xs font-bold uppercase tracking-widest text-white">FragileCare™ Priority</h4>
-                <p className="text-sm opacity-80 leading-relaxed text-white font-medium">Every ceramic treasure is encased in reinforced honeycomb padding and insured transit.</p>
-              </div>
-            </div>
-          </section>
+          {/* Lightbox Overlay */}
+          <AnimatePresence>
+            {isLightboxOpen && lightboxImage && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-10"
+                onClick={() => setIsLightboxOpen(false)}
+              >
+                <motion.button
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="absolute top-6 right-6 z-[110] bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
+                >
+                  <X className="h-6 w-6" />
+                </motion.button>
 
-          {/* FAQ */}
-          {product.faqs?.length > 0 && (
-            <section className="mb-32">
-              <div className="max-w-4xl mx-auto px-4">
-                <div className="text-center space-y-4 mb-16">
-                  <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-foreground">Curiosity Corner</h2>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Artisanal FAQ & Preservation</p>
-                </div>
-                <Accordion type="single" collapsible className="space-y-4">
-                  {product.faqs.map((faq: any, i: number) => (
-                    <AccordionItem key={i} value={`item-${i}`} className="border rounded-2xl px-6 bg-white overflow-hidden data-[state=open]:border-primary/30 transition-all shadow-sm">
-                      <AccordionTrigger className="hover:no-underline py-6">
-                        <span className="text-left font-black text-foreground text-sm sm:text-base">{faq.question}</span>
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-6 text-muted-foreground leading-relaxed text-sm font-medium">
-                        {faq.answer}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </div>
-            </section>
-          )}
-
-          {/* Reviews */}
-          <section className="mb-32">
-            <div className="text-center space-y-4 mb-16 px-4">
-              <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-foreground tracking-tight">Collector Experiences</h2>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Authentic feedback from the Kalamic Community</p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-              <div className="lg:col-span-4 space-y-8">
-                <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-xl border border-border sticky top-28">
-                  <h3 className="text-lg sm:text-xl font-black text-foreground mb-8 flex items-center gap-3">
-                    <MessageSquare className="h-5 w-5 text-accent" /> Collector Verdict
-                  </h3>
-                  <div className="flex items-center gap-6 mb-10">
-                    <p className="text-5xl sm:text-6xl md:text-7xl font-black text-foreground tracking-tighter">{product.analytics?.average_rating || 4.8}</p>
-                    <div>
-                      <div className="flex gap-1 text-primary mb-1">
-                        {[1,2,3,4,5].map(i => <Star key={i} className={cn("h-4 w-4", i <= Math.floor(product.analytics?.average_rating || 5) ? "fill-current" : "opacity-20")} />)}
-                      </div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground leading-none">Community Trust Score</p>
-                    </div>
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                  className="relative w-full h-full max-w-5xl flex items-center justify-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={lightboxImage}
+                      alt="Full-screen artisan view"
+                      fill
+                      className="object-contain"
+                      sizes="100vw"
+                      priority
+                    />
                   </div>
-                  
-                  {user ? (
-                    <form onSubmit={handleSubmitReview} className="space-y-6">
-                      <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Artisan Rating</Label>
-                        <div className="flex gap-2">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button key={star} type="button" onClick={() => setReviewRating(star)} className={cn("h-10 w-10 rounded-xl flex items-center justify-center transition-all shadow-sm", reviewRating >= star ? "bg-primary text-white" : "bg-muted text-muted-foreground")}>
-                              <Star className={cn("h-5 w-5", reviewRating >= star && "fill-current")} />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Collector Feedback</Label>
-                        <textarea required value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder="Describe the texture, the intricate patterns..." className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none shadow-inner" />
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Artisan Photos (Max 3)</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {reviewPreviews.map((preview, i) => (
-                            <div key={i} className="relative h-20 w-20 rounded-xl overflow-hidden border border-border group">
-                              <img src={preview} className="h-full w-full object-cover" />
-                              <button type="button" onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
-                            </div>
-                          ))}
-                          {reviewPreviews.length < 3 && (
-                            <button type="button" onClick={() => fileInputRef.current?.click()} className="h-20 w-20 rounded-xl border-2 border-dashed border-primary/20 flex flex-col items-center justify-center text-primary/40 hover:bg-primary/5 transition-all">
-                              <Camera className="h-6 w-6" />
-                              <span className="text-[8px] font-black uppercase mt-1">Upload</span>
-                            </button>
-                          )}
-                        </div>
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
-                      </div>
-
-                      <Button type="submit" disabled={isSubmittingReview} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl transition-all active:scale-95 text-xs uppercase tracking-widest">
-                        {isSubmittingReview ? <Loader2 className="animate-spin h-5 w-5" /> : "Post Experience"}
-                      </Button>
-                    </form>
-                  ) : (
-                    <div className="p-8 rounded-[2rem] bg-muted/50 border border-dashed border-border text-center space-y-6">
-                      <Lock className="mx-auto h-8 w-8 text-primary opacity-20" />
-                      <p className="text-[10px] font-black text-muted-foreground uppercase leading-relaxed tracking-widest">Sign in to share your experience.</p>
-                      <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-12 hover:bg-primary hover:text-white transition-all"><Link href="/auth/login">Join the Community</Link></Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="lg:col-span-8 space-y-8">
-                {reviews.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {reviews.map((review, idx) => (
-                      <div key={idx} className="p-8 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-sm border border-border space-y-6 transition-all hover:shadow-xl group">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black overflow-hidden shadow-inner text-sm uppercase">
-                              {review.user_avatar ? <img src={review.user_avatar} className="h-full w-full object-cover" /> : review.user_name?.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="text-sm font-black text-foreground flex items-center gap-2">
-                                {review.user_name || 'Collector'}
-                                {review.is_verified_purchase && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-                              </p>
-                              <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{dayjs(review.createdAt).format('DD MMM YYYY')}</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-0.5 text-primary">
-                            {[...Array(5)].map((_, i) => <Star key={i} className={cn("h-3.5 w-3.5", i < review.rating ? "fill-current" : "opacity-20")} />)}
-                          </div>
-                        </div>
-                        
-                        <p className="text-sm font-medium text-muted-foreground leading-relaxed italic">
-                          "{review.comment || review.review_text}"
-                        </p>
-
-                        {review.review_images?.length > 0 && (
-                          <div className={cn("grid gap-2", review.review_images.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
-                            {review.review_images.map((img: any, i: number) => (
-                              <div key={i} className="relative aspect-video rounded-2xl overflow-hidden cursor-zoom-in border border-border/50 group/img" onClick={() => { setLightboxImage(img.url); setIsLightboxOpen(true); }}>
-                                <Image 
-                                  src={img.url} 
-                                  alt={img.alt || 'Review photo'} 
-                                  fill 
-                                  className="object-cover transition-transform duration-500 group-hover/img:scale-110" 
-                                  sizes="(max-width: 768px) 100vw, 400px"
-                                />
-                                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/img:opacity-100 transition-opacity" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-24 bg-white rounded-[3rem] sm:rounded-[4rem] border border-dashed border-border shadow-inner">
-                    <MessageSquare className="mx-auto h-16 w-16 text-primary opacity-10 mb-6" />
-                    <p className="text-xl sm:text-2xl font-display font-semibold text-foreground/60">Be the first to share your verdict</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
-
       <Footer />
-
-      {/* LIGHTBOX OVERLAY */}
-      <AnimatePresence>
-        {isLightboxOpen && lightboxImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-10"
-            onClick={() => setIsLightboxOpen(false)}
-          >
-            <motion.button
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="absolute top-6 right-6 z-[110] bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors"
-              onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
-            >
-              <X className="h-6 w-6" />
-            </motion.button>
-
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative w-full h-full max-w-5xl flex items-center justify-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="relative w-full h-full">
-                <Image
-                  src={lightboxImage}
-                  alt="Full-screen artisan view"
-                  fill
-                  className="object-contain"
-                  sizes="100vw"
-                  priority
-                />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
