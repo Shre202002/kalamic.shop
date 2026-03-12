@@ -8,13 +8,13 @@ import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/product/ProductCard';
 import { ProductCardSkeleton } from '@/components/product/ProductCardSkeleton';
 import { getProducts } from '@/lib/actions/products';
-import { 
-  ArrowRight, 
-  Truck, 
-  ShieldCheck, 
-  RotateCcw, 
-  Sparkles, 
-  ChevronLeft, 
+import {
+  ArrowRight,
+  Truck,
+  ShieldCheck,
+  RotateCcw,
+  Sparkles,
+  ChevronLeft,
   ChevronRight,
   Package,
   Star
@@ -56,7 +56,7 @@ const heroSlides = [
 
 const CategoryCard = ({ name, slug, description }: { name: string, slug: string, description?: string }) => (
   <Link href={`/products?category=${slug}`}>
-    <motion.div 
+    <motion.div
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.98 }}
       className="relative overflow-hidden rounded-[2rem] border border-primary/10 bg-gradient-to-br from-primary/[0.03] to-accent/[0.03] p-6 md:p-10 text-center hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 h-full flex flex-col justify-center"
@@ -106,16 +106,16 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary/10 overflow-x-hidden">
       <Navbar />
-      
+
       <main className="flex-1">
-        
+
         {/* 1. HERO SLIDER */}
         <section className="relative overflow-hidden bg-gradient-to-b from-primary/[0.08] via-background to-background">
           <div className="absolute inset-0 pattern-paisley opacity-[0.03] pointer-events-none" />
-          
+
           <div className="container mx-auto px-6 md:px-10 py-8 md:py-24 max-w-[1400px]">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center min-h-[500px] md:min-h-[650px]">
-              
+
               {/* Text Content */}
               <div className="relative z-10 lg:col-span-7 text-center lg:text-left order-2 lg:order-1">
                 <AnimatePresence mode="wait">
@@ -128,16 +128,16 @@ export default function Home() {
                     className="space-y-6 md:space-y-10"
                   >
                     <Badge label={slide.badge} />
-                    
+
                     <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-semibold text-foreground leading-[1.05] tracking-tight text-balance">
                       {slide.title} <br />
                       <span className="italic text-primary font-normal">{slide.highlight}</span>
                     </h1>
-                    
+
                     <p className="text-base md:text-2xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium text-balance">
                       {slide.subtitle}
                     </p>
-                    
+
                     <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 md:gap-6 pt-4">
                       <Button asChild size="lg" className="h-14 md:h-16 px-10 md:px-12 rounded-full gradient-saffron text-white font-black text-sm uppercase tracking-widest shadow-2xl shadow-primary/20 hover:scale-105 transition-all active:scale-95">
                         <Link href={slide.link} className="flex items-center gap-3">
@@ -165,12 +165,12 @@ export default function Home() {
                   >
                     {/* Glowing background behind image */}
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full blur-[80px] md:blur-[120px] scale-110 opacity-40 animate-pulse" />
-                    
+
                     <div className="relative w-full h-full rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] bg-white border-8 border-white/50 group">
-                      <Image 
-                        src={slide.image} 
-                        alt={slide.title} 
-                        fill 
+                      <Image
+                        src={slide.image}
+                        alt={slide.title}
+                        fill
                         className="object-contain p-0 md:p-0 drop-shadow-[0_20px_40px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform duration-1000"
                         priority
                       />
@@ -183,22 +183,22 @@ export default function Home() {
             {/* Slider Navigation Controls */}
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 mt-12 md:mt-20">
               <div className="flex gap-4">
-                <button 
-                  onClick={() => goToSlide(currentSlide - 1)} 
+                <button
+                  onClick={() => goToSlide(currentSlide - 1)}
                   className="h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-primary/10 bg-white/80 backdrop-blur-md flex items-center justify-center text-primary hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 shadow-xl shadow-black/5 active:scale-90"
                   aria-label="Previous slide"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </button>
-                <button 
-                  onClick={() => goToSlide(currentSlide + 1)} 
+                <button
+                  onClick={() => goToSlide(currentSlide + 1)}
                   className="h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-primary/10 bg-white/80 backdrop-blur-md flex items-center justify-center text-primary hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 shadow-xl shadow-black/5 active:scale-90"
                   aria-label="Next slide"
                 >
                   <ChevronRight className="h-6 w-6" />
                 </button>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 {heroSlides.map((_, i) => (
                   <button
@@ -245,7 +245,7 @@ export default function Home() {
         {/* 3. CATEGORIES */}
         <section className="py-20 md:py-32">
           <div className="container mx-auto px-6 md:px-10 max-w-[1200px]">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -272,7 +272,7 @@ export default function Home() {
         <section className="py-20 md:py-32 bg-white">
           <div className="container mx-auto px-6 md:px-10 max-w-[1200px]">
             <div className="flex flex-col md:flex-row items-center justify-between mb-12 md:mb-20 gap-6">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -304,8 +304,8 @@ export default function Home() {
                   viewport={{ once: true }}
                   transition={{ delay: idx * 0.05 }}
                 >
-                  <ProductCard 
-                    id={product._id} 
+                  <ProductCard
+                    id={product._id}
                     slug={product.slug}
                     name={product.name}
                     description={product.short_description || product.description}
@@ -324,26 +324,38 @@ export default function Home() {
         {/* 5. CRAFT CTA */}
         <section className="py-20 md:py-40 bg-background relative overflow-hidden">
           <div className="container mx-auto px-6 md:px-10 max-w-[1200px]">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               className="relative bg-primary rounded-[3rem] md:rounded-[5rem] px-8 py-16 md:p-28 overflow-hidden text-center text-white shadow-2xl shadow-primary/20"
             >
-              <div className="relative z-10 space-y-8 md:space-y-12">
-                <h2 className="text-2xl sm:text-5xl md:text-7xl font-display font-semibold tracking-tight text-balance leading-tight">Handcrafted with Heart <br className="hidden md:block" /> by Kanpur Artisans</h2>
-                <p className="text-base md:text-2xl opacity-90 max-w-3xl mx-auto leading-relaxed font-medium text-balance">
-                  Support local master-craftsmen by bringing authentic, hand-molded ceramic treasures into your home. Every acquisition helps sustain a generational heritage.
+              <div className="relative z-10 space-y-4 md:space-y-12 px-2">
+                <h2 className="text-lg sm:text-5xl md:text-7xl font-display font-semibold tracking-tight text-balance leading-tight">
+                  Handcrafted with Heart{' '}
+                  <br className="hidden md:block" />
+                  by Kanpur Artisans
+                </h2>
+                <p className="text-xs sm:text-base md:text-2xl opacity-90 max-w-3xl mx-auto leading-relaxed font-medium text-balance">
+                  Support local master-craftsmen by bringing authentic, hand-molded
+                  ceramic treasures into your home. Every acquisition helps sustain
+                  a generational heritage.
                 </p>
-                <div className="pt-6">
-                  <Button asChild size="lg" className="h-16 md:h-20 px-12 md:px-16 rounded-full bg-[#1E1E1E] hover:bg-black text-white font-black text-base md:text-lg uppercase tracking-widest shadow-2xl transition-all active:scale-95 w-full sm:w-auto">
-                    <Link href="/products" className="flex items-center gap-4 justify-center">
-                      Browse Full Collection <ArrowRight className="h-6 w-6" />
+                <div className="pt-2 md:pt-6 w-full overflow-hidden">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="h-12 md:h-20 px-6 md:px-16 rounded-full bg-[#1E1E1E] 
+                 hover:bg-black text-white font-black text-xs md:text-lg 
+                 uppercase tracking-wider shadow-2xl transition-all 
+                 active:scale-95 w-full max-w-full"
+                  >
+                    <Link href="/products" className="flex items-center gap-2 justify-center w-full">
+                      Browse Full Collection <ArrowRight className="h-4 w-4 shrink-0" />
                     </Link>
                   </Button>
                 </div>
               </div>
-              
               {/* Decorative elements */}
               <div className="absolute inset-0 pattern-paisley opacity-5 pointer-events-none scale-150" />
               <div className="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96 bg-white/10 rounded-full blur-[80px] md:blur-[120px] -mr-32 -mt-32 md:-mr-48 md:-mt-48" />
@@ -353,14 +365,14 @@ export default function Home() {
         </section>
 
       </main>
-      
+
       <Footer />
     </div>
   );
 }
 
 const Badge = ({ label }: { label: string }) => (
-  <motion.span 
+  <motion.span
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
     className="inline-flex items-center gap-3 px-5 py-2 md:px-6 md:py-2.5 rounded-full bg-primary/10 border-2 border-primary/20 text-primary text-[10px] md:text-xs font-black uppercase tracking-[0.25em] shadow-lg backdrop-blur-sm"

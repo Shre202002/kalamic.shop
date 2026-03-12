@@ -30,7 +30,7 @@ export function Navbar() {
   const [userRole, setUserRole] = useState<string>('buyer');
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -40,7 +40,7 @@ export function Navbar() {
     setMounted(true);
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
-    
+
     async function fetchRole() {
       if (user) {
         const profile = await getProfile(user.uid);
@@ -82,10 +82,10 @@ export function Navbar() {
   return (
     <>
       <header className={cn(
-        "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 transform-gpu ease-in-out",
+        "sticky top-0 left-0 right-0 z-50 w-full transition-all duration-500 transform-gpu ease-in-out",
         !mounted ? "bg-transparent h-20 md:h-24" : (
-          isScrolled 
-            ? "bg-white/90 backdrop-blur-md h-16 border-b border-primary/10 shadow-sm" 
+          isScrolled
+            ? "bg-white/90 backdrop-blur-md h-16 border-b border-primary/10 shadow-sm"
             : "bg-transparent h-20 md:h-24"
         )
       )}>
@@ -104,8 +104,8 @@ export function Navbar() {
                     <SheetTitle className="text-3xl font-display font-black text-primary tracking-tighter">Kalamic</SheetTitle>
                   </SheetHeader>
                   <nav className="flex flex-col p-6 space-y-1">
-                    <Link 
-                      href="/" 
+                    <Link
+                      href="/"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-foreground hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
                     >
@@ -122,11 +122,11 @@ export function Navbar() {
                         <ChevronRight className="h-4 w-4 opacity-30" />
                       </Link>
                     ))}
-                    
+
                     <DropdownMenuSeparator className="my-4 bg-primary/5" />
-                    
-                    <Link 
-                      href="/wishlist" 
+
+                    <Link
+                      href="/wishlist"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-foreground hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
                     >
@@ -137,8 +137,8 @@ export function Navbar() {
 
                     {user ? (
                       <>
-                        <Link 
-                          href="/profile" 
+                        <Link
+                          href="/profile"
                           onClick={() => setIsMobileMenuOpen(false)}
                           className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-foreground hover:text-primary transition-colors rounded-2xl hover:bg-primary/5"
                         >
@@ -146,7 +146,7 @@ export function Navbar() {
                             <User className="h-4 w-4" /> Profile
                           </span>
                         </Link>
-                        <button 
+                        <button
                           onClick={handleSignOut}
                           className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-destructive hover:bg-destructive/5 transition-colors rounded-2xl w-full text-left"
                         >
@@ -156,8 +156,8 @@ export function Navbar() {
                         </button>
                       </>
                     ) : (
-                      <Link 
-                        href="/auth/login" 
+                      <Link
+                        href="/auth/login"
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="flex items-center justify-between p-4 text-xs font-bold uppercase tracking-widest text-foreground hover:bg-primary/5 transition-colors rounded-2xl mt-4"
                       >
@@ -185,9 +185,9 @@ export function Navbar() {
           {/* Desktop Links */}
           <nav className="hidden md:flex items-center gap-10">
             {navLinks.map((link) => (
-              <Link 
-                key={link.name} 
-                href={link.href} 
+              <Link
+                key={link.name}
+                href={link.href}
                 className="text-[10px] font-black uppercase tracking-[0.25em] transition-all hover:text-primary text-foreground relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-px after:bg-primary hover:after:w-full after:transition-all duration-300"
               >
                 {link.name}
@@ -197,9 +197,9 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-1 md:gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="hidden sm:flex hover:bg-primary/5 rounded-full text-foreground transition-colors"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
             >
@@ -258,7 +258,7 @@ export function Navbar() {
                         </Link>
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
-                    
+
                     {isAdmin && (
                       <>
                         <DropdownMenuSeparator className="bg-primary/5 mx-2" />
@@ -272,7 +272,7 @@ export function Navbar() {
                         </DropdownMenuGroup>
                       </>
                     )}
-                    
+
                     <DropdownMenuSeparator className="bg-primary/5 mx-2" />
                     <div className="p-2">
                       <DropdownMenuItem onClick={handleSignOut} className="rounded-2xl cursor-pointer p-4 text-destructive focus:bg-destructive/5 focus:text-destructive font-black transition-all duration-300">
@@ -304,12 +304,12 @@ export function Navbar() {
             <div className="w-full max-w-3xl px-4" onClick={e => e.stopPropagation()}>
               <div className="relative group animate-in slide-in-from-top-10 duration-700">
                 <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-foreground/40 group-focus-within:text-foreground transition-colors" />
-                <Input 
-                  placeholder="Search products..." 
-                  className="pl-16 h-16 md:h-20 rounded-2xl md:rounded-3xl bg-white border-none shadow-2xl focus-visible:ring-4 focus-visible:ring-primary/10 transition-all text-lg md:text-xl font-medium" 
-                  autoFocus 
+                <Input
+                  placeholder="Search products..."
+                  className="pl-16 h-16 md:h-20 rounded-2xl md:rounded-3xl bg-white border-none shadow-2xl focus-visible:ring-4 focus-visible:ring-primary/10 transition-all text-lg md:text-xl font-medium"
+                  autoFocus
                 />
-                <button 
+                <button
                   onClick={() => setIsSearchOpen(false)}
                   className="absolute right-6 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-primary/5 text-foreground/40 hover:text-foreground transition-all"
                 >
