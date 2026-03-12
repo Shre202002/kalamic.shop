@@ -65,6 +65,7 @@ export default function ProductDetailClient() {
   const { user } = useUser();
   const firestore = useFirestore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasIncrementedView = useRef<string | null>(null);
   
   const [product, setProduct] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -116,7 +117,13 @@ export default function ProductDetailClient() {
       const data = await getProductById(productId);
       if (data) {
         setProduct(data);
-        incrementProductViews(data._id);
+        
+        // Prevent infinite view-tracking revalidation loop
+        if (hasIncrementedView.current !== data._id) {
+          incrementProductViews(data._id);
+          hasIncrementedView.current = data._id;
+        }
+
         const reviewData = await getProductReviews(data._id);
         setReviews(reviewData);
       }
@@ -657,6 +664,48 @@ export default function ProductDetailClient() {
       </main>
 
       <Footer />
+
+      {/* LIGHTBOX OVERLAY */}
+      <AnimatePresence>
+        {isLightboxOpen && lightboxImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-10"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <motion.button
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="absolute top-6 right-6 z-[110] bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors"
+              onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
+            >
+              <X className="h-6 w-6" />
+            </motion.button>
+
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full h-full max-w-5xl flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative w-full h-full">
+                <Image
+                  src={lightboxImage}
+                  alt="Full-screen artisan view"
+                  fill
+                  className="object-contain"
+                  sizes="100vw"
+                  priority
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
