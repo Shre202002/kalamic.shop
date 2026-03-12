@@ -171,7 +171,7 @@ export default function Home() {
                         src={slide.image} 
                         alt={slide.title} 
                         fill 
-                        className="object-contain p-8 md:p-16 drop-shadow-[0_20px_40px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform duration-1000"
+                        className="object-contain p-0 md:p-0 drop-shadow-[0_20px_40px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform duration-1000"
                         priority
                       />
                     </div>
