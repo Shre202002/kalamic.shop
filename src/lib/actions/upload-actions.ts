@@ -13,7 +13,10 @@ import ImageKit from 'imagekit';
 export async function uploadToImageKit(formData: FormData) {
   const file = formData.get('file') as File;
   const folder = (formData.get('folder') as string) || '/kalamic/products';
-  
+  const seoName = formData.get('seoName') as string | null; // ← ADD THIS
+
+
+
   if (!file) {
     throw new Error('No file provided for upload.');
   }
@@ -27,6 +30,8 @@ export async function uploadToImageKit(formData: FormData) {
     console.error('[IMAGEKIT] Missing configuration environment variables.');
     throw new Error('Server media configuration is missing. Please check ImageKit environment variables.');
   }
+
+
 
   // Validate file type
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
@@ -49,24 +54,32 @@ export async function uploadToImageKit(formData: FormData) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    const slugName = seoName
+      ? seoName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 80)
+      : `handcrafted-ceramic-decor`;
+
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const seoFileName = `${slugName}.${ext}`; // e.g. "handcrafted-ceramic-owl-photo-frame.jpg"
+
     const uploadResponse = await imagekit.upload({
       file: buffer,
-      fileName: file.name || `artisan-piece-${Date.now()}`,
+      fileName: seoFileName || `artisan-piece-${Date.now()}`,
       folder: folder,
       useUniqueFileName: true,
+      tags: ['kalamic', 'ceramic', 'handcrafted', 'decor'],
     });
 
     // We store the URL with default transformations for optimized frontend delivery
     const baseUrl = urlEndpoint.replace(/\/$/, '');
     const filePath = uploadResponse.filePath;
-    
+
     // Construct transformation-aware URL: tr:w-800,q-80 ensures optimized delivery
     const optimizedUrl = `${baseUrl}/tr:w-800,q-80${filePath}`;
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       url: optimizedUrl,
-      originalUrl: uploadResponse.url 
+      originalUrl: uploadResponse.url
     };
   } catch (error: any) {
     console.error('[IMAGEKIT] Upload execution failed:', error);

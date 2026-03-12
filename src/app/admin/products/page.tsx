@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
-  Chip, 
-  IconButton, 
-  Tooltip, 
-  Button, 
-  Avatar, 
-  Switch, 
+import {
+  Box,
+  Typography,
+  Paper,
+  Chip,
+  IconButton,
+  Tooltip,
+  Button,
+  Avatar,
+  Switch,
   alpha,
   useTheme,
   useMediaQuery,
@@ -31,11 +31,11 @@ import {
   FormHelperText
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { 
-  Edit, 
-  Delete, 
-  Add, 
-  Search, 
+import {
+  Edit,
+  Delete,
+  Add,
+  Search,
   Close,
   Save,
   Image as ImageIcon,
@@ -50,9 +50,9 @@ import {
   CloudUpload,
   QuestionAnswer as FaqIcon
 } from '@mui/icons-material';
-import { 
-  getAdminProducts, 
-  toggleProductVisibility, 
+import {
+  getAdminProducts,
+  toggleProductVisibility,
   toggleProductFeatured,
   deleteProduct,
   saveProduct
@@ -66,7 +66,7 @@ const INITIAL_PRODUCT = {
   slug: '',
   short_description: '',
   description: '',
-  category_id: '', 
+  category_id: '',
   price: 0,
   compare_at_price: undefined,
   stock: 0,
@@ -101,7 +101,7 @@ export default function ProductsManagement() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
-  
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -164,8 +164,19 @@ export default function ProductsManagement() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', '/kalamic/products');
+
+      const productName = editingProduct.name?.trim() || 'kalamic ceramic decor Kanpur';
+      const seoName = `${productName} img ${idx + 1} handcrafted ceramic Kanpur`;
+      formData.append('seoName', seoName);
+
+      const baseName = editingProduct.name
+        ? `${editingProduct.name} handcrafted ceramic`
+        : 'kalamic handcrafted ceramic decor lucknow';
+      formData.append('seoName', baseName);
+
+
       const result = await uploadToImageKit(formData);
-      
+
       const next = [...editingProduct.images];
       next[idx].url = result.url;
       setEditingProduct({ ...editingProduct, images: next });
@@ -179,7 +190,7 @@ export default function ProductsManagement() {
 
   const handleSaveProduct = async () => {
     if (!user) return;
-    
+
     // Validation
     if (!editingProduct.name || !editingProduct.slug || !editingProduct.description || !editingProduct.category_id) {
       toast({ variant: "destructive", title: "Validation Error", description: "Name, Slug, Description, and Category are required." });
@@ -228,9 +239,9 @@ export default function ProductsManagement() {
           return <Avatar variant="rounded" src={primary?.url || ''} sx={{ width: 40, height: 40, bgcolor: 'primary.light' }}><ImageIcon /></Avatar>;
         }
       },
-      { 
-        field: 'name', 
-        headerName: 'Artisan Piece', 
+      {
+        field: 'name',
+        headerName: 'Artisan Piece',
         flex: 1,
         minWidth: 180,
         renderCell: (params) => (
@@ -248,9 +259,9 @@ export default function ProductsManagement() {
     }
 
     if (!isTablet) {
-      baseCols.push({ 
-        field: 'analytics', 
-        headerName: 'Performance', 
+      baseCols.push({
+        field: 'analytics',
+        headerName: 'Performance',
         width: 240,
         renderCell: (params) => (
           <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
@@ -273,7 +284,7 @@ export default function ProductsManagement() {
         renderCell: (params) => (
           <Box>
             <IconButton size="small" onClick={() => handleOpenDialog(params.row)}><Edit fontSize="small" /></IconButton>
-            <IconButton size="small" color="error" onClick={() => { if(confirm("Archive piece?")) deleteProduct(user!.uid, params.row._id).then(load) }}><Delete fontSize="small" /></IconButton>
+            <IconButton size="small" color="error" onClick={() => { if (confirm("Archive piece?")) deleteProduct(user!.uid, params.row._id).then(load) }}><Delete fontSize="small" /></IconButton>
           </Box>
         )
       }
@@ -286,11 +297,11 @@ export default function ProductsManagement() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: { xs: 'column', md: 'row' }, 
-        justifyContent: 'space-between', 
-        alignItems: { xs: 'flex-start', md: 'flex-end' }, 
+      <Box sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', md: 'row' },
+        justifyContent: 'space-between',
+        alignItems: { xs: 'flex-start', md: 'flex-end' },
         mb: 4,
         gap: 2
       }}>
@@ -299,33 +310,33 @@ export default function ProductsManagement() {
           <Typography variant="body2" color="text.secondary">Managing the primary Kalamic_Products collection with ImageKit storage.</Typography>
         </Box>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: { xs: '100%', md: 'auto' } }}>
-          <Paper sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            bgcolor: 'white', 
-            px: 2, 
+          <Paper sx={{
+            display: 'flex',
+            alignItems: 'center',
+            bgcolor: 'white',
+            px: 2,
             py: 0.5,
-            borderRadius: 3, 
+            borderRadius: 3,
             border: '1px solid rgba(0,0,0,0.05)',
             boxShadow: 'none',
             width: { xs: '100%', sm: 250 }
           }}>
             <Search sx={{ color: 'text.disabled', mr: 1 }} />
-            <InputBase 
+            <InputBase
               fullWidth
-              placeholder="Search pieces..." 
-              value={searchQuery} 
-              onChange={(e) => setSearchQuery(e.target.value)} 
+              placeholder="Search pieces..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               sx={{ fontSize: '0.875rem' }}
             />
           </Paper>
-          <Button 
-            variant="contained" 
-            startIcon={<Add />} 
-            onClick={() => handleOpenDialog()} 
-            sx={{ 
-              borderRadius: 3, 
-              px: 3, 
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+            sx={{
+              borderRadius: 3,
+              px: 3,
               fontWeight: 800,
               height: 42,
               boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.2)}`
@@ -348,7 +359,7 @@ export default function ProductsManagement() {
             pagination: { paginationModel: { pageSize: 10 } }
           }}
           disableRowSelectionOnClick
-          sx={{ 
+          sx={{
             border: 'none',
             '& .MuiDataGrid-cell:focus': { outline: 'none' },
             '& .MuiDataGrid-columnHeaders': {
@@ -360,10 +371,10 @@ export default function ProductsManagement() {
       </Paper>
 
       {editingProduct && (
-        <Dialog 
-          open={dialogOpen} 
-          onClose={() => setDialogOpen(false)} 
-          maxWidth="md" 
+        <Dialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          maxWidth="md"
           fullWidth
           fullScreen={isMobile}
         >
@@ -375,10 +386,10 @@ export default function ProductsManagement() {
           </DialogTitle>
 
           <DialogContent sx={{ p: 0 }}>
-            <Tabs 
-              value={activeTab} 
-              onChange={(_, v) => setActiveTab(v)} 
-              variant="scrollable" 
+            <Tabs
+              value={activeTab}
+              onChange={(_, v) => setActiveTab(v)}
+              variant="scrollable"
               scrollButtons="auto"
               sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
             >
@@ -394,22 +405,22 @@ export default function ProductsManagement() {
               {activeTab === 0 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={8}>
-                    <TextField fullWidth label="Name *" value={editingProduct.name} onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})} sx={{ mb: 3 }} />
-                    <TextField fullWidth label="Slug *" value={editingProduct.slug} onChange={(e) => setEditingProduct({...editingProduct, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} sx={{ mb: 3 }} />
-                    <TextField fullWidth label="Category ID *" value={editingProduct.category_id} onChange={(e) => setEditingProduct({...editingProduct, category_id: e.target.value})} sx={{ mb: 3 }} />
-                    <TextField fullWidth multiline rows={4} label="Full Description *" value={editingProduct.description} onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})} sx={{ mb: 3 }} />
-                    <TextField fullWidth label="Short Description" value={editingProduct.short_description} onChange={(e) => setEditingProduct({...editingProduct, short_description: e.target.value})} />
+                    <TextField fullWidth label="Name *" value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} sx={{ mb: 3 }} />
+                    <TextField fullWidth label="Slug *" value={editingProduct.slug} onChange={(e) => setEditingProduct({ ...editingProduct, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} sx={{ mb: 3 }} />
+                    <TextField fullWidth label="Category ID *" value={editingProduct.category_id} onChange={(e) => setEditingProduct({ ...editingProduct, category_id: e.target.value })} sx={{ mb: 3 }} />
+                    <TextField fullWidth multiline rows={4} label="Full Description *" value={editingProduct.description} onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })} sx={{ mb: 3 }} />
+                    <TextField fullWidth label="Short Description" value={editingProduct.short_description} onChange={(e) => setEditingProduct({ ...editingProduct, short_description: e.target.value })} />
                   </Grid>
                   <Grid item xs={12} md={4}>
                     <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
-                      <TextField fullWidth type="number" label="Price (₹) *" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: parseFloat(e.target.value)})} sx={{ mb: 2 }} />
-                      <TextField fullWidth type="number" label="Compare Price" value={editingProduct.compare_at_price || ''} onChange={(e) => setEditingProduct({...editingProduct, compare_at_price: e.target.value ? parseFloat(e.target.value) : undefined})} sx={{ mb: 2 }} />
-                      <TextField fullWidth type="number" label="Stock" value={editingProduct.stock} onChange={(e) => setEditingProduct({...editingProduct, stock: parseInt(e.target.value)})} sx={{ mb: 2 }} />
-                      <TextField fullWidth label="SKU" value={editingProduct.sku} onChange={(e) => setEditingProduct({...editingProduct, sku: e.target.value})} />
+                      <TextField fullWidth type="number" label="Price (₹) *" value={editingProduct.price} onChange={(e) => setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) })} sx={{ mb: 2 }} />
+                      <TextField fullWidth type="number" label="Compare Price" value={editingProduct.compare_at_price || ''} onChange={(e) => setEditingProduct({ ...editingProduct, compare_at_price: e.target.value ? parseFloat(e.target.value) : undefined })} sx={{ mb: 2 }} />
+                      <TextField fullWidth type="number" label="Stock" value={editingProduct.stock} onChange={(e) => setEditingProduct({ ...editingProduct, stock: parseInt(e.target.value) })} sx={{ mb: 2 }} />
+                      <TextField fullWidth label="SKU" value={editingProduct.sku} onChange={(e) => setEditingProduct({ ...editingProduct, sku: e.target.value })} />
                     </Paper>
                     <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
-                      <FormControlLabel control={<Switch checked={!!editingProduct.is_active} onChange={(e) => setEditingProduct({...editingProduct, is_active: e.target.checked})} />} label="Active" />
-                      <FormControlLabel control={<Switch checked={!!editingProduct.is_featured} onChange={(e) => setEditingProduct({...editingProduct, is_featured: e.target.checked})} />} label="Featured" />
+                      <FormControlLabel control={<Switch checked={!!editingProduct.is_active} onChange={(e) => setEditingProduct({ ...editingProduct, is_active: e.target.checked })} />} label="Active" />
+                      <FormControlLabel control={<Switch checked={!!editingProduct.is_featured} onChange={(e) => setEditingProduct({ ...editingProduct, is_featured: e.target.checked })} />} label="Featured" />
                     </Paper>
                   </Grid>
                 </Grid>
@@ -422,29 +433,29 @@ export default function ProductsManagement() {
                     <Paper key={idx} variant="outlined" sx={{ p: 2, mb: 3, borderStyle: 'dashed', borderColor: alpha(theme.palette.divider, 0.2) }}>
                       <Grid container spacing={2} alignItems="center">
                         <Grid item xs={12} md={4}>
-                          <Box sx={{ 
-                            position: 'relative', 
-                            width: '100%', 
-                            height: 140, 
-                            bgcolor: alpha(theme.palette.background.default, 0.8), 
-                            borderRadius: 2, 
-                            overflow: 'hidden', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center', 
-                            border: '1px solid', 
-                            borderColor: 'divider' 
+                          <Box sx={{
+                            position: 'relative',
+                            width: '100%',
+                            height: 140,
+                            bgcolor: alpha(theme.palette.background.default, 0.8),
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid',
+                            borderColor: 'divider'
                           }}>
                             {img.url ? (
                               <>
                                 <img src={img.url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                <IconButton 
-                                  size="small" 
-                                  sx={{ 
-                                    position: 'absolute', 
-                                    top: 5, 
-                                    right: 5, 
-                                    bgcolor: 'rgba(255,255,255,0.9)', 
+                                <IconButton
+                                  size="small"
+                                  sx={{
+                                    position: 'absolute',
+                                    top: 5,
+                                    right: 5,
+                                    bgcolor: 'rgba(255,255,255,0.9)',
                                     '&:hover': { bgcolor: 'white' },
                                     boxShadow: theme.shadows[2]
                                   }}
@@ -461,10 +472,10 @@ export default function ProductsManagement() {
                               <Button
                                 component="label"
                                 disabled={uploadingIdx === idx}
-                                sx={{ 
-                                  width: '100%', 
-                                  height: '100%', 
-                                  flexDirection: 'column', 
+                                sx={{
+                                  width: '100%',
+                                  height: '100%',
+                                  flexDirection: 'column',
                                   gap: 1,
                                   color: 'text.secondary'
                                 }}
@@ -477,42 +488,42 @@ export default function ProductsManagement() {
                                     <Typography variant="caption" fontWeight={700}>Select File</Typography>
                                   </>
                                 )}
-                                <input 
-                                  type="file" 
-                                  hidden 
-                                  accept="image/*" 
-                                  onChange={(e) => handleFileChange(idx, e)} 
+                                <input
+                                  type="file"
+                                  hidden
+                                  accept="image/*"
+                                  onChange={(e) => handleFileChange(idx, e)}
                                 />
                               </Button>
                             )}
                           </Box>
                         </Grid>
                         <Grid item xs={12} md={8}>
-                          <TextField 
-                            fullWidth 
-                            size="small" 
-                            label="Image ALT Text (SEO) *" 
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Image ALT Text (SEO) *"
                             placeholder="Example: Handmade Ceramic Mandala Wheel with Golden Finish"
-                            value={img.alt} 
+                            value={img.alt}
                             error={img.url && img.alt.length < 5}
                             onChange={(e) => {
-                              const next = [...editingProduct.images]; next[idx].alt = e.target.value; setEditingProduct({...editingProduct, images: next});
-                            }} 
+                              const next = [...editingProduct.images]; next[idx].alt = e.target.value; setEditingProduct({ ...editingProduct, images: next });
+                            }}
                             sx={{ mb: 1 }}
                           />
                           <FormHelperText sx={{ mb: 2 }}>Tip: Describe what is visible in the image (min 5 chars). Required for search engines.</FormHelperText>
-                          
+
                           <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                             <FormControlLabel control={<Checkbox checked={!!img.is_primary} onChange={() => {
-                              const next = editingProduct.images.map((i: any, ii: number) => ({ ...i, is_primary: ii === idx })); setEditingProduct({...editingProduct, images: next});
+                              const next = editingProduct.images.map((i: any, ii: number) => ({ ...i, is_primary: ii === idx })); setEditingProduct({ ...editingProduct, images: next });
                             }} />} label={<Typography variant="caption" fontWeight={700}>Primary Cover</Typography>} />
-                            <Button size="small" color="error" startIcon={<Delete />} onClick={() => setEditingProduct({...editingProduct, images: editingProduct.images.filter((_: any, ii: number) => ii !== idx)})}>Remove Slot</Button>
+                            <Button size="small" color="error" startIcon={<Delete />} onClick={() => setEditingProduct({ ...editingProduct, images: editingProduct.images.filter((_: any, ii: number) => ii !== idx) })}>Remove Slot</Button>
                           </Stack>
                         </Grid>
                       </Grid>
                     </Paper>
                   ))}
-                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, images: [...editingProduct.images, { url: '', alt: '', is_primary: false }]})}>Add Another Image</Button>
+                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({ ...editingProduct, images: [...editingProduct.images, { url: '', alt: '', is_primary: false }] })}>Add Another Image</Button>
                 </Box>
               )}
 
@@ -522,15 +533,15 @@ export default function ProductsManagement() {
                   {(editingProduct.specifications || []).map((spec: any, idx: number) => (
                     <Box key={idx} sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
                       <TextField label="Key" fullWidth={isMobile} value={spec.key} onChange={(e) => {
-                        const next = [...editingProduct.specifications]; next[idx].key = e.target.value; setEditingProduct({...editingProduct, specifications: next});
+                        const next = [...editingProduct.specifications]; next[idx].key = e.target.value; setEditingProduct({ ...editingProduct, specifications: next });
                       }} />
                       <TextField label="Value" fullWidth value={spec.value} onChange={(e) => {
-                        const next = [...editingProduct.specifications]; next[idx].value = e.target.value; setEditingProduct({...editingProduct, specifications: next});
+                        const next = [...editingProduct.specifications]; next[idx].value = e.target.value; setEditingProduct({ ...editingProduct, specifications: next });
                       }} />
-                      <IconButton color="error" onClick={() => setEditingProduct({...editingProduct, specifications: editingProduct.specifications.filter((_: any, ii: number) => ii !== idx)})} sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}><Delete /></IconButton>
+                      <IconButton color="error" onClick={() => setEditingProduct({ ...editingProduct, specifications: editingProduct.specifications.filter((_: any, ii: number) => ii !== idx) })} sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}><Delete /></IconButton>
                     </Box>
                   ))}
-                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, specifications: [...editingProduct.specifications, { key: '', value: '' }]})}>Add Spec</Button>
+                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({ ...editingProduct, specifications: [...editingProduct.specifications, { key: '', value: '' }] })}>Add Spec</Button>
                 </Box>
               )}
 
@@ -543,74 +554,74 @@ export default function ProductsManagement() {
                         <Typography variant="caption" fontWeight={800} color="primary">FAQ #{idx + 1}</Typography>
                         <IconButton size="small" color="error" onClick={() => {
                           const next = editingProduct.faqs.filter((_: any, ii: number) => ii !== idx);
-                          setEditingProduct({...editingProduct, faqs: next.length ? next : [{ question: '', answer: '' }]});
+                          setEditingProduct({ ...editingProduct, faqs: next.length ? next : [{ question: '', answer: '' }] });
                         }}><Delete fontSize="small" /></IconButton>
                       </Box>
-                      <TextField 
-                        fullWidth 
-                        label="Question" 
-                        value={faq.question} 
+                      <TextField
+                        fullWidth
+                        label="Question"
+                        value={faq.question}
                         onChange={(e) => {
-                          const next = [...editingProduct.faqs]; 
+                          const next = [...editingProduct.faqs];
                           next[idx] = { ...next[idx], question: e.target.value };
-                          setEditingProduct({...editingProduct, faqs: next});
-                        }} 
-                        sx={{ mb: 2 }} 
+                          setEditingProduct({ ...editingProduct, faqs: next });
+                        }}
+                        sx={{ mb: 2 }}
                       />
-                      <TextField 
-                        fullWidth 
-                        multiline 
-                        rows={2} 
-                        label="Answer" 
-                        value={faq.answer} 
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={2}
+                        label="Answer"
+                        value={faq.answer}
                         onChange={(e) => {
-                          const next = [...editingProduct.faqs]; 
+                          const next = [...editingProduct.faqs];
                           next[idx] = { ...next[idx], answer: e.target.value };
-                          setEditingProduct({...editingProduct, faqs: next});
-                        }} 
+                          setEditingProduct({ ...editingProduct, faqs: next });
+                        }}
                       />
                     </Paper>
                   ))}
-                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({...editingProduct, faqs: [...editingProduct.faqs, { question: '', answer: '' }]})}>Add FAQ</Button>
+                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({ ...editingProduct, faqs: [...editingProduct.faqs, { question: '', answer: '' }] })}>Add FAQ</Button>
                 </Box>
               )}
 
               {activeTab === 4 && (
                 <Grid container spacing={3}>
                   <Grid item xs={12}><Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>FRAGILECARE™ LOGISTICS</Typography></Grid>
-                  <Grid item xs={12} md={4}><TextField fullWidth type="number" label="Weight (kg)" value={editingProduct.shipping?.weight_kg} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, weight_kg: parseFloat(e.target.value)}})} /></Grid>
-                  <Grid item xs={4}><TextField fullWidth label="L (cm)" value={editingProduct.shipping?.package_dimensions_cm?.length} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, length: parseFloat(e.target.value)}}})} /></Grid>
-                  <Grid item xs={4}><TextField fullWidth label="W (cm)" value={editingProduct.shipping?.package_dimensions_cm?.width} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, width: parseFloat(e.target.value)}}})} /></Grid>
-                  <Grid item xs={4}><TextField fullWidth label="H (cm)" value={editingProduct.shipping?.package_dimensions_cm?.height} onChange={(e) => setEditingProduct({...editingProduct, shipping: {...editingProduct.shipping, package_dimensions_cm: {...editingProduct.shipping.package_dimensions_cm, height: parseFloat(e.target.value)}}})} /></Grid>
+                  <Grid item xs={12} md={4}><TextField fullWidth type="number" label="Weight (kg)" value={editingProduct.shipping?.weight_kg} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, weight_kg: parseFloat(e.target.value) } })} /></Grid>
+                  <Grid item xs={4}><TextField fullWidth label="L (cm)" value={editingProduct.shipping?.package_dimensions_cm?.length} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, length: parseFloat(e.target.value) } } })} /></Grid>
+                  <Grid item xs={4}><TextField fullWidth label="W (cm)" value={editingProduct.shipping?.package_dimensions_cm?.width} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, width: parseFloat(e.target.value) } } })} /></Grid>
+                  <Grid item xs={4}><TextField fullWidth label="H (cm)" value={editingProduct.shipping?.package_dimensions_cm?.height} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, height: parseFloat(e.target.value) } } })} /></Grid>
                 </Grid>
               )}
 
               {activeTab === 5 && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>DISCOVERY METADATA</Typography>
-                  <TextField 
-                    fullWidth 
-                    label="Search Title" 
-                    value={editingProduct.seo?.meta_title} 
-                    onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_title: e.target.value}})} 
+                  <TextField
+                    fullWidth
+                    label="Search Title"
+                    value={editingProduct.seo?.meta_title}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, seo: { ...editingProduct.seo, meta_title: e.target.value } })}
                   />
-                  <TextField 
-                    fullWidth 
-                    label="Meta Keywords (Comma separated)" 
+                  <TextField
+                    fullWidth
+                    label="Meta Keywords (Comma separated)"
                     placeholder="handmade, ceramic, indian decor"
-                    value={Array.isArray(editingProduct.seo?.meta_keywords) ? editingProduct.seo.meta_keywords.join(', ') : (editingProduct.seo?.meta_keywords || '')} 
+                    value={Array.isArray(editingProduct.seo?.meta_keywords) ? editingProduct.seo.meta_keywords.join(', ') : (editingProduct.seo?.meta_keywords || '')}
                     onChange={(e) => setEditingProduct({
-                      ...editingProduct, 
+                      ...editingProduct,
                       seo: { ...editingProduct.seo, meta_keywords: e.target.value }
-                    })} 
+                    })}
                   />
-                  <TextField 
-                    fullWidth 
-                    multiline 
-                    rows={3} 
-                    label="Meta Description" 
-                    value={editingProduct.seo?.meta_description} 
-                    onChange={(e) => setEditingProduct({...editingProduct, seo: {...editingProduct.seo, meta_description: e.target.value}})} 
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    label="Meta Description"
+                    value={editingProduct.seo?.meta_description}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, seo: { ...editingProduct.seo, meta_description: e.target.value } })}
                   />
                 </Box>
               )}
@@ -619,10 +630,10 @@ export default function ProductsManagement() {
 
           <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.5) }}>
             <Button onClick={() => setDialogOpen(false)} color="inherit" sx={{ fontWeight: 700 }}>Discard</Button>
-            <Button 
-              variant="contained" 
-              startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <Save />} 
-              onClick={handleSaveProduct} 
+            <Button
+              variant="contained"
+              startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <Save />}
+              onClick={handleSaveProduct}
               disabled={isSaving || uploadingIdx !== null}
               sx={{ borderRadius: 2, px: 4, fontWeight: 800 }}
             >
