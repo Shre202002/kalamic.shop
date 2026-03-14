@@ -15,8 +15,9 @@ if (!cached) {
 async function dbConnect() {
   const MONGODB_URI = process.env.MONGODB_URI;
 
+  // Moved check inside function to prevent top-level crash during compilation
   if (!MONGODB_URI) {
-    console.warn('[DB] MONGODB_URI is not defined. Skipping database connection.');
+    console.warn('[DB] MONGODB_URI is not defined. Database operations will be disabled.');
     return null;
   }
 
@@ -32,9 +33,7 @@ async function dbConnect() {
 
     cached.promise = mongoose.connect(MONGODB_URI!, opts).then(async (m) => {
       /**
-       * SELF-HEALING: Cleanup legacy snake_case unique index.
-       * The 'order_number_1' index causes E11000 errors on the new schema
-       * because new documents lack the field (duplicate nulls).
+       * SELF-HEALING: Cleanup legacy snake_case unique index if it exists.
        */
       try {
         const collection = m.connection.db?.collection('Ordered_Items');
@@ -43,7 +42,7 @@ async function dbConnect() {
           console.log('[DB] Successfully purged legacy index: order_number_1');
         }
       } catch (e) {
-        // Index likely doesn't exist or collection is empty; ignore safely.
+        // Index likely doesn't exist; ignore safely.
       }
       
       return m;

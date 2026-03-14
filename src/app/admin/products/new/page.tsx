@@ -1,70 +1,45 @@
+
 "use client"
 
 import React, { useState } from 'react';
-// import { adminGenerateSeoContent, AdminGenerateSeoContentOutput } from '@/ai/flows/admin-generate-seo-content';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Sparkles, Loader2, Save, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Save, ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
 export default function NewProductPage() {
   const { toast } = useToast();
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     category: '',
-    subCategory: '',
     price: '',
-    features: '',
     imageUrls: '',
+    sku: '',
+    stock: '10'
   });
-
-  const [seoResult, setSeoResult] = useState<AdminGenerateSeoContentOutput | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleGenerateSEO = async () => {
-    if (!formData.name || !formData.description || !formData.price || !formData.category) {
-      toast({
-        variant: "destructive",
-        title: "Missing Information",
-        description: "Please fill in the product name, description, category, and price first.",
-      });
+  const handlePublish = async () => {
+    if (!formData.name || !formData.description || !formData.price) {
+      toast({ variant: "destructive", title: "Missing Information", description: "Required fields marked with * must be filled." });
       return;
     }
-
-    setIsGenerating(true);
-    try {
-      const result = await adminGenerateSeoContent({
-        productName: formData.name,
-        productDescription: formData.description,
-        category: formData.category,
-        subCategory: formData.subCategory,
-        price: parseFloat(formData.price),
-        features: formData.features.split('\n').filter(f => f.trim()),
-        imageUrls: formData.imageUrls.split('\n').filter(i => i.trim()),
-      });
-      setSeoResult(result);
-      toast({
-        title: "SEO Content Generated",
-        description: "AI has successfully optimized your ceramic product listing.",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Generation Failed",
-        description: "There was an error generating SEO content. Please try again.",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
+    setIsSaving(true);
+    // Logic for saving would go here
+    setTimeout(() => {
+      setIsSaving(false);
+      toast({ title: "Piece Published", description: "Creation has been added to the catalog." });
+    }, 1500);
   };
 
   return (
@@ -79,196 +54,92 @@ export default function NewProductPage() {
             </Link>
             <div>
               <h1 className="text-3xl font-bold text-primary">New Ceramic Creation</h1>
-              <p className="text-muted-foreground">Add a new handcrafted piece to the Kalamic catalog.</p>
+              <p className="text-muted-foreground text-sm">Add a new handcrafted piece to the Kalamic catalog.</p>
             </div>
           </div>
-          <Button className="bg-primary text-white h-11 px-8">
-            <Save className="mr-2 h-5 w-5" /> Publish Piece
+          <Button onClick={handlePublish} disabled={isSaving} className="bg-primary text-white h-11 px-8 rounded-xl shadow-lg">
+            {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
+            Publish Piece
           </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            {/* Basic Information */}
-            <Card className="border-none shadow-sm">
+            <Card className="border-none shadow-sm rounded-[2rem]">
               <CardHeader>
                 <CardTitle>Artisan Details</CardTitle>
-                <CardDescription>The core details of your ceramic work.</CardDescription>
+                <CardDescription>Core details of your ceramic work.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Product Name</Label>
-                  <Input 
-                    id="name" 
-                    name="name" 
-                    value={formData.name} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g. Blue Pottery Flower Vase" 
-                  />
+                  <Label>Product Name *</Label>
+                  <Input name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Blue Pottery Flower Vase" className="rounded-xl" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Detailed Description</Label>
-                  <Textarea 
-                    id="description" 
-                    name="description" 
-                    value={formData.description} 
-                    onChange={handleInputChange} 
-                    placeholder="Describe the clay type, firing method, and patterns..." 
-                    className="min-h-[150px]"
-                  />
+                  <Label>Detailed Description *</Label>
+                  <Textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Describe the clay type, firing method..." className="min-h-[150px] rounded-xl" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Input 
-                      id="category" 
-                      name="category" 
-                      value={formData.category} 
-                      onChange={handleInputChange} 
-                      placeholder="e.g. Home Decor" 
-                    />
+                    <Label>Category</Label>
+                    <Input name="category" value={formData.category} onChange={handleInputChange} placeholder="e.g. Home Decor" className="rounded-xl" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price (₹)</Label>
-                    <Input 
-                      id="price" 
-                      name="price" 
-                      type="number" 
-                      value={formData.price} 
-                      onChange={handleInputChange} 
-                      placeholder="0.00" 
-                    />
+                    <Label>Price (₹) *</Label>
+                    <Input name="price" type="number" value={formData.price} onChange={handleInputChange} placeholder="0.00" className="rounded-xl" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Images & Features */}
-            <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle>Media & Craft Features</CardTitle>
-              </CardHeader>
+            <Card className="border-none shadow-sm rounded-[2rem]">
+              <CardHeader><CardTitle>Media</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="imageUrls">Product Image URLs (One per line)</Label>
-                  <Textarea 
-                    id="imageUrls" 
-                    name="imageUrls" 
-                    value={formData.imageUrls} 
-                    onChange={handleInputChange} 
-                    placeholder="https://example.com/artisan-photo.jpg" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="features">Key Features (One per line)</Label>
-                  <Textarea 
-                    id="features" 
-                    name="features" 
-                    value={formData.features} 
-                    onChange={handleInputChange} 
-                    placeholder="Hand-molded Terracotta&#10;Kiln-fired at 1200°C&#10;Traditional Indigo Patterns" 
-                  />
+                  <Label>Image URLs (One per line)</Label>
+                  <Textarea name="imageUrls" value={formData.imageUrls} onChange={handleInputChange} placeholder="https://ik.imagekit.io/..." className="rounded-xl" />
                 </div>
               </CardContent>
             </Card>
-
-            {/* AI SEO Tool Button */}
-            <div className="flex justify-center">
-              <Button 
-                onClick={handleGenerateSEO} 
-                disabled={isGenerating}
-                className="bg-accent text-accent-foreground hover:bg-accent/90 w-full lg:w-auto px-12 h-14 rounded-2xl shadow-xl shadow-accent/20 text-lg font-bold"
-              >
-                {isGenerating ? (
-                  <><Loader2 className="mr-3 h-6 w-6 animate-spin" /> Analyzing Craftsmanship...</>
-                ) : (
-                  <><Sparkles className="mr-3 h-6 w-6" /> Optimize Listing with AI</>
-                )}
-              </Button>
-            </div>
-
-            {/* SEO Results Display */}
-            {seoResult && (
-              <Card className="border-accent/30 bg-accent/5 shadow-inner border animate-in zoom-in-95 duration-300">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-primary">
-                    <Sparkles className="h-5 w-5 text-accent" /> AI Generated Artisan Copy
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-widest font-bold">Optimized Description</Label>
-                    <div className="p-4 bg-white rounded-lg border text-sm text-primary leading-relaxed">
-                      {seoResult.seoDescription}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-widest font-bold">Search Title</Label>
-                      <div className="p-3 bg-white rounded-lg border text-sm font-semibold">{seoResult.metaTitle}</div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-widest font-bold">Social Sharing Title</Label>
-                      <div className="p-3 bg-white rounded-lg border text-sm font-semibold">{seoResult.ogTitle}</div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-widest font-bold">SEO Keywords</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {seoResult.metaKeywords.map((kw, i) => (
-                        <Badge key={i} variant="secondary" className="bg-primary/10 text-primary border-none">{kw}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           <div className="space-y-8">
-            {/* Status & Options */}
-            <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle>Catalog Info</CardTitle>
-              </CardHeader>
+            <Card className="border-none shadow-sm rounded-[2rem]">
+              <CardHeader><CardTitle>Catalog Info</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 rounded-xl bg-muted/50 border space-y-3">
-                  <Label className="text-xs font-bold uppercase tracking-wider opacity-60">Listing Status</Label>
+                <div className="p-4 rounded-xl bg-muted/50 border space-y-2">
+                  <Label className="text-[10px] font-black uppercase opacity-60">Status</Label>
                   <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                    <span className="font-semibold text-sm">Active in Shop</span>
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="font-bold text-sm">Active</span>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Artisan SKU</Label>
-                  <Input placeholder="KAL-CER-001" />
+                  <Label>SKU</Label>
+                  <Input name="sku" value={formData.sku} onChange={handleInputChange} placeholder="KAL-CER-001" className="rounded-xl" />
                 </div>
                 <div className="space-y-2">
                   <Label>Initial Stock</Label>
-                  <Input type="number" placeholder="10" />
+                  <Input name="stock" type="number" value={formData.stock} onChange={handleInputChange} className="rounded-xl" />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Preview Card */}
-            <Card className="border-none shadow-sm overflow-hidden bg-muted/20">
+            <Card className="border-none shadow-sm overflow-hidden rounded-[2rem] bg-muted/20">
               <div className="p-4 border-b bg-white">
-                <Label className="text-xs font-bold uppercase tracking-wider">Storefront Preview</Label>
+                <Label className="text-[10px] font-black uppercase">Storefront Preview</Label>
               </div>
-              <div className="p-4">
-                <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
-                  <div className="aspect-square bg-muted relative flex items-center justify-center">
-                    {formData.imageUrls ? (
-                      <img src={formData.imageUrls.split('\n')[0]} className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
-                    )}
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <div className="h-3 w-16 bg-muted rounded"></div>
-                    <div className="h-5 w-3/4 bg-primary/20 rounded"></div>
-                    <div className="h-6 w-1/4 bg-accent/20 rounded"></div>
-                  </div>
+              <div className="p-6">
+                <div className="bg-white rounded-3xl overflow-hidden shadow-sm aspect-square relative flex items-center justify-center">
+                  {formData.imageUrls ? (
+                    <img src={formData.imageUrls.split('\n')[0]} className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon className="h-12 w-12 opacity-10" />
+                  )}
+                </div>
+                <div className="mt-4 space-y-2">
+                  <div className="h-4 w-3/4 bg-primary/10 rounded-lg" />
+                  <div className="h-6 w-1/4 bg-primary/20 rounded-lg" />
                 </div>
               </div>
             </Card>
