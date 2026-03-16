@@ -27,7 +27,10 @@ import {
   alpha,
   useTheme,
   useMediaQuery,
-  Skeleton
+  Skeleton,
+  StepConnector,
+  stepConnectorClasses,
+  styled
 } from '@mui/material';
 import { 
   ChevronLeft, 
@@ -38,8 +41,8 @@ import {
   ShieldCheck, 
   MessageCircle,
   Clock,
-  Mail,
-  Phone
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -47,6 +50,32 @@ import dayjs from 'dayjs';
 import { useToast } from '@/hooks/use-toast';
 
 const STEPS = ["Initiated", "Placed", "Confirmed", "Preparing", "Developing", "Completed", "Dispatched", "Delivered"];
+
+const primarySaffron = '#EA781E';
+const warmCream = '#FAF4EB';
+const darkTerracotta = '#271E1B';
+
+const ColorlibConnector = styled(StepConnector)(({ theme }) => ({
+  [`&.${stepConnectorClasses.alternativeLabel}`]: {
+    top: 22,
+  },
+  [`&.${stepConnectorClasses.active}`]: {
+    [`& .${stepConnectorClasses.line}`]: {
+      backgroundImage: `linear-gradient( 95deg, ${primarySaffron} 0%, #ff9800 50%, #ffc107 100%)`,
+    },
+  },
+  [`&.${stepConnectorClasses.completed}`]: {
+    [`& .${stepConnectorClasses.line}`]: {
+      backgroundImage: `linear-gradient( 95deg, ${primarySaffron} 0%, #4caf50 100%)`,
+    },
+  },
+  [`& .${stepConnectorClasses.line}`]: {
+    height: 3,
+    border: 0,
+    backgroundColor: alpha(darkTerracotta, 0.1),
+    borderRadius: 1,
+  },
+}));
 
 export default function OrderDetailPage() {
   const { user, loading: isAuthLoading } = useProtectedRoute();
@@ -116,10 +145,10 @@ export default function OrderDetailPage() {
 
   if (!mounted || isAuthLoading) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.default }}>
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: warmCream }}>
         <Navbar />
         <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <CircularProgress color="primary" />
+          <CircularProgress sx={{ color: primarySaffron }} />
         </Box>
         <Footer />
       </Box>
@@ -130,11 +159,11 @@ export default function OrderDetailPage() {
 
   if (isLoadingOrder) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.default }}>
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: warmCream }}>
         <Navbar />
         <Container maxWidth="lg" sx={{ py: 16 }}>
-          <Skeleton variant="rectangular" height={200} sx={{ borderRadius: '2rem', mb: 4 }} />
-          <Skeleton variant="rectangular" height={400} sx={{ borderRadius: '2rem' }} />
+          <Skeleton variant="rectangular" height={200} sx={{ borderRadius: '3rem', mb: 4 }} />
+          <Skeleton variant="rectangular" height={400} sx={{ borderRadius: '3rem' }} />
         </Container>
         <Footer />
       </Box>
@@ -152,7 +181,7 @@ export default function OrderDetailPage() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.default, overflowX: 'hidden' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: warmCream, overflowX: 'hidden' }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <Container maxWidth="lg" sx={{ py: { xs: 12, md: 16 }, px: { xs: 2, sm: 4 } }}>
@@ -171,14 +200,14 @@ export default function OrderDetailPage() {
               spacing={2}
             >
               <Box sx={{ width: '100%' }}>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: theme.palette.text.primary, letterSpacing: '-0.04em', mb: 1.5, fontSize: { xs: '1.75rem', md: '3rem' } }}>
-                  Order Details
+                <Typography variant="h3" sx={{ fontWeight: 900, color: darkTerracotta, letterSpacing: '-0.04em', mb: 1.5, fontSize: { xs: '2rem', md: '3.5rem' }, fontFamily: 'Playfair Display' }}>
+                  Acquisition Dossier
                 </Typography>
                 <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" gap={1}>
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.08), px: 1.5, py: 0.5, borderRadius: 1.5, fontSize: '0.75rem' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 900, color: primarySaffron, bgcolor: alpha(primarySaffron, 0.08), px: 2, py: 0.75, borderRadius: 1.5, fontSize: '0.85rem', fontFamily: 'monospace' }}>
                     REF: {order?.orderNumber}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, fontSize: '0.9rem' }}>
                     Recorded on {formatDate(order?.createdAt)}
                   </Typography>
                 </Stack>
@@ -186,16 +215,17 @@ export default function OrderDetailPage() {
               {!isPaymentPending && (
                 <Chip 
                   label={currentStatus.toUpperCase()} 
-                  color={isCanceled ? "error" : "primary"}
                   sx={{ 
                     fontWeight: 900, 
-                    borderRadius: '1rem', 
-                    px: 2, 
-                    height: 40,
-                    fontSize: '0.7rem',
-                    letterSpacing: 1,
+                    borderRadius: '1.25rem', 
+                    px: 3, 
+                    height: 48,
+                    fontSize: '0.75rem',
+                    letterSpacing: 1.5,
                     width: { xs: '100%', sm: 'auto' },
-                    boxShadow: `0 8px 20px ${alpha(isCanceled ? theme.palette.error.main : theme.palette.primary.main, 0.15)}`
+                    bgcolor: isCanceled ? theme.palette.error.main : primarySaffron,
+                    color: 'white',
+                    boxShadow: `0 12px 30px ${alpha(isCanceled ? theme.palette.error.main : primarySaffron, 0.25)}`
                   }} 
                 />
               )}
@@ -203,32 +233,32 @@ export default function OrderDetailPage() {
           </Box>
 
           {isPaymentPending ? (
-            <Paper sx={{ p: { xs: 4, md: 8 }, borderRadius: '2.5rem', textAlign: 'center', bgcolor: 'white', border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.1) }}>
+            <Paper sx={{ p: { xs: 6, md: 10 }, borderRadius: '4rem', textAlign: 'center', bgcolor: 'white', border: `1px solid ${alpha(primarySaffron, 0.1)}`, boxShadow: `0 20px 60px ${alpha(primarySaffron, 0.05)}` }}>
               <Stack spacing={4} alignItems="center">
                 <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                  <CircularProgress size={80} sx={{ color: theme.palette.primary.main }} thickness={2} />
+                  <CircularProgress size={100} sx={{ color: primarySaffron }} thickness={2} />
                   <Box sx={{ top: 0, left: 0, bottom: 0, right: 0, position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Clock size={32} color={theme.palette.primary.main} />
+                    <Clock size={40} color={primarySaffron} />
                   </Box>
                 </Box>
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 900, mb: 2, color: theme.palette.text.primary }}>Reconciling Payment</Typography>
-                  <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto', fontWeight: 500, lineHeight: 1.6 }}>
-                    Your transaction is being confirmed by the payment gateway. This dashboard will automatically update once finalized.
+                  <Typography variant="h4" sx={{ fontWeight: 900, mb: 2, color: darkTerracotta, fontFamily: 'Playfair Display' }}>Reconciling Payment</Typography>
+                  <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto', fontWeight: 600, lineHeight: 1.8 }}>
+                    Your transaction is currently being confirmed by our financial gateway. This dossier will unlock automatically once finalized.
                   </Typography>
                 </Box>
               </Stack>
             </Paper>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={4}>
               <Grid item xs={12}>
-                <Paper sx={{ p: { xs: 3, md: 6 }, borderRadius: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', border: '1px solid', borderColor: alpha(theme.palette.divider, 0.3) }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 3, textTransform: 'uppercase', letterSpacing: 1.5, color: theme.palette.text.primary, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Truck size={20} color={theme.palette.primary.main} /> Logistics Path
+                <Paper sx={{ p: { xs: 4, md: 8 }, borderRadius: '3rem', boxShadow: `0 15px 50px ${alpha(darkTerracotta, 0.03)}`, border: '1px solid', borderColor: alpha(primarySaffron, 0.05), bgcolor: 'white' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 5, textTransform: 'uppercase', letterSpacing: 2, color: primarySaffron, display: 'flex', alignItems: 'center', gap: 2, fontSize: '0.8rem' }}>
+                    <Truck size={22} /> Generational Logistics Path
                   </Typography>
                   {isCanceled ? (
-                    <Alert severity="error" variant="outlined" sx={{ borderRadius: '1.5rem', fontWeight: 700, p: 2 }}>
-                      This order has been canceled.
+                    <Alert severity="error" variant="outlined" sx={{ borderRadius: '2rem', fontWeight: 800, p: 3, borderStyle: 'dashed' }}>
+                      This artisanal acquisition has been canceled and archived.
                     </Alert>
                   ) : (
                     <Box sx={{ width: '100%' }}>
@@ -236,10 +266,13 @@ export default function OrderDetailPage() {
                         activeStep={currentStep} 
                         orientation={isMobile ? "vertical" : "horizontal"}
                         alternativeLabel={!isMobile}
+                        connector={<ColorlibConnector />}
                         sx={{ 
-                          '& .MuiStepLabel-label': { fontWeight: 800, textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: 0.5, mt: isMobile ? 0 : 1 },
-                          '& .MuiStepIcon-root': { width: 24, height: 24 },
-                          '& .MuiStepIcon-root.Mui-active': { color: theme.palette.primary.main },
+                          '& .MuiStepLabel-label': { fontWeight: 900, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 1, mt: isMobile ? 0 : 2, color: alpha(darkTerracotta, 0.4) },
+                          '& .MuiStepLabel-label.Mui-active': { color: primarySaffron },
+                          '& .MuiStepLabel-label.Mui-completed': { color: theme.palette.success.main },
+                          '& .MuiStepIcon-root': { width: 28, height: 28 },
+                          '& .MuiStepIcon-root.Mui-active': { color: primarySaffron },
                           '& .MuiStepIcon-root.Mui-completed': { color: theme.palette.success.main },
                         }}
                       >
@@ -255,58 +288,60 @@ export default function OrderDetailPage() {
               </Grid>
 
               <Grid item xs={12} lg={8}>
-                <Stack spacing={3}>
-                  <Paper sx={{ p: { xs: 3, md: 6 }, borderRadius: '2rem', overflow: 'hidden' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center', gap: 2, color: theme.palette.text.primary }}>
-                      <Package size={22} color={theme.palette.primary.main} /> Items
+                <Stack spacing={4}>
+                  <Paper sx={{ p: { xs: 4, md: 6 }, borderRadius: '3rem', bgcolor: 'white', border: `1px solid ${alpha(primarySaffron, 0.05)}` }}>
+                    <Typography variant="h6" sx={{ fontWeight: 900, mb: 5, display: 'flex', alignItems: 'center', gap: 2, color: darkTerracotta, fontFamily: 'Playfair Display' }}>
+                      <Package size={24} color={primarySaffron} /> Artisan Selections
                     </Typography>
-                    <Stack spacing={4}>
+                    <Stack spacing={5}>
                       {(order?.items || []).map((item: any, idx: number) => (
-                        <Box key={idx} sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, gap: { xs: 2, md: 4 } }}>
-                          <Box sx={{ position: 'relative', width: { xs: '100%', sm: 100 }, height: { xs: 200, sm: 100 }, borderRadius: '1.5rem', overflow: 'hidden', flexShrink: 0, bgcolor: theme.palette.background.default, border: '1px solid', borderColor: alpha(theme.palette.divider, 0.5) }}>
-                            <Image src={item.imageUrl || 'https://placehold.co/200x200?text=Ceramic'} alt={item.name} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 100px" />
+                        <Box key={idx} sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, gap: { xs: 3, md: 5 } }}>
+                          <Box sx={{ position: 'relative', width: { xs: '100%', sm: 120 }, height: { xs: 240, sm: 120 }, borderRadius: '2rem', overflow: 'hidden', flexShrink: 0, bgcolor: warmCream, border: '4px solid white', boxShadow: `0 10px 30px ${alpha(darkTerracotta, 0.05)}` }}>
+                            <Image src={item.imageUrl || 'https://placehold.co/200x200?text=Ceramic'} alt={item.name} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 120px" />
                           </Box>
                           <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
-                            <Typography variant="body1" sx={{ fontWeight: 900, color: theme.palette.text.primary, mb: 0.5, lineHeight: 1.3 }}>{item.name}</Typography>
-                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', textTransform: 'uppercase', letterSpacing: 1 }}>Qty: {item.quantity}</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: theme.palette.primary.main, mt: 0.5 }}>₹{item.price.toLocaleString()}</Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 900, color: darkTerracotta, mb: 1, lineHeight: 1.2, fontFamily: 'Playfair Display' }}>{item.name}</Typography>
+                            <Stack direction="row" spacing={3} alignItems="center">
+                              <Typography variant="caption" sx={{ fontWeight: 900, color: primarySaffron, textTransform: 'uppercase', letterSpacing: 1.5, bgcolor: alpha(primarySaffron, 0.05), px: 1.5, py: 0.5, borderRadius: 1 }}>Qty: {item.quantity}</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.secondary' }}>₹{item.price.toLocaleString()} / unit</Typography>
+                            </Stack>
                           </Box>
-                          <Typography variant="h6" sx={{ fontWeight: 900, color: theme.palette.text.primary, textAlign: { xs: 'left', sm: 'right' }, width: { xs: '100%', sm: 'auto' } }}>₹{(item.price * item.quantity).toLocaleString()}</Typography>
+                          <Typography variant="h5" sx={{ fontWeight: 900, color: primarySaffron, textAlign: { xs: 'left', sm: 'right' }, width: { xs: '100%', sm: 'auto' } }}>₹{(item.price * item.quantity).toLocaleString()}</Typography>
                         </Box>
                       ))}
                     </Stack>
                   </Paper>
 
-                  <Grid container spacing={3}>
+                  <Grid container spacing={4}>
                     <Grid item xs={12} md={6}>
-                      <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: '2rem', height: '100%', border: '1px solid', borderColor: alpha(theme.palette.divider, 0.2) }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, textTransform: 'uppercase', letterSpacing: 1.5, color: 'text.secondary', fontSize: '0.75rem' }}><MapPin size={18} color={theme.palette.primary.main} /> Shipping</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 900, mb: 0.5, fontSize: '1rem' }}>{order?.shippingAddress?.fullName}</Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6, fontWeight: 500, fontSize: '0.85rem' }}>
+                      <Paper sx={{ p: 5, borderRadius: '3rem', height: '100%', border: '1px solid', borderColor: alpha(primarySaffron, 0.1), bgcolor: 'white' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center', gap: 2, textTransform: 'uppercase', letterSpacing: 2, color: primarySaffron, fontSize: '0.75rem' }}><MapPin size={20} /> Destination</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 900, mb: 1, fontSize: '1.1rem', color: darkTerracotta }}>{order?.shippingAddress?.fullName}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, fontWeight: 600, fontSize: '0.9rem' }}>
                           {order?.shippingAddress?.addressLine1}
                           {order?.shippingAddress?.addressLine2 && <><br />{order.shippingAddress.addressLine2}</>}
                           <br />{order?.shippingAddress?.city}, {order?.shippingAddress?.state}
-                          <br /><span style={{ fontWeight: 800 }}>{order?.shippingAddress?.pincode}</span>
+                          <br /><span style={{ fontWeight: 900, color: primarySaffron, letterSpacing: 1 }}>{order?.shippingAddress?.pincode}</span>
                         </Typography>
                       </Paper>
                     </Grid>
                     
                     <Grid item xs={12} md={6}>
-                      <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: '2rem', height: '100%', border: '1px solid', borderColor: alpha(theme.palette.divider, 0.2) }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, textTransform: 'uppercase', letterSpacing: 1.5, color: 'text.secondary', fontSize: '0.75rem' }}><CreditCard size={18} color={theme.palette.primary.main} /> Payment</Typography>
-                        <Stack spacing={2}>
+                      <Paper sx={{ p: 5, borderRadius: '3rem', height: '100%', border: '1px solid', borderColor: alpha(primarySaffron, 0.1), bgcolor: 'white' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center', gap: 2, textTransform: 'uppercase', letterSpacing: 2, color: primarySaffron, fontSize: '0.75rem' }}><CreditCard size={20} /> Integrity Ledger</Typography>
+                        <Stack spacing={3}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>Gateway</Typography>
-                            <Typography variant="body2" fontWeight={800} sx={{ textTransform: 'capitalize' }}>{order?.paymentGateway}</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1, color: 'text.secondary' }}>Gateway</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta, textTransform: 'uppercase' }}>{order?.paymentGateway}</Typography>
                           </Box>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>Status</Typography>
-                            <Chip label={(order?.paymentStatus || 'pending').toUpperCase()} size="small" color={order?.paymentStatus === 'paid' ? 'success' : 'warning'} sx={{ fontWeight: 900, fontSize: '0.55rem', height: 22 }} />
+                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1, color: 'text.secondary' }}>Protocol</Typography>
+                            <Chip label={(order?.paymentStatus || 'pending').toUpperCase()} size="small" sx={{ fontWeight: 900, fontSize: '0.6rem', height: 24, bgcolor: order?.paymentStatus === 'paid' ? '#4caf50' : '#ff9800', color: 'white' }} />
                           </Box>
                           {order?.paymentVerified && (
-                            <Box sx={{ p: 1.5, bgcolor: alpha(theme.palette.success.main, 0.08), borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                              <ShieldCheck size={16} color={theme.palette.success.main} />
-                              <Typography variant="caption" sx={{ color: theme.palette.success.main, fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>Verified</Typography>
+                            <Box sx={{ p: 2, bgcolor: alpha('#4caf50', 0.08), borderRadius: '1.5rem', display: 'flex', alignItems: 'center', gap: 2, border: '1px dashed #4caf50' }}>
+                              <ShieldCheck size={20} color="#4caf50" />
+                              <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 900, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1 }}>Verified Transaction</Typography>
                             </Box>
                           )}
                         </Stack>
@@ -317,38 +352,51 @@ export default function OrderDetailPage() {
               </Grid>
 
               <Grid item xs={12} lg={4}>
-                <Paper sx={{ p: { xs: 3, md: 6 }, borderRadius: '2.5rem', position: { lg: 'sticky' }, top: { lg: 120 }, bgcolor: 'white', boxShadow: '0 20px 60px rgba(0,0,0,0.05)' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, color: theme.palette.text.primary, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.9rem' }}>Acquisition Summary</Typography>
-                  <Stack spacing={2} sx={{ mb: 4 }}>
+                <Paper sx={{ p: 6, borderRadius: '3rem', position: { lg: 'sticky' }, top: { lg: 120 }, bgcolor: 'white', boxShadow: `0 30px 80px ${alpha(darkTerracotta, 0.08)}`, border: `1px solid ${alpha(primarySaffron, 0.1)}` }}>
+                  <Typography variant="h6" sx={{ fontWeight: 900, mb: 5, color: darkTerracotta, textTransform: 'uppercase', letterSpacing: 2, fontSize: '0.85rem', textAlign: 'center' }}>Acquisition Summary</Typography>
+                  <Stack spacing={2.5} sx={{ mb: 5 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary" fontWeight={600}>Subtotal</Typography>
-                      <Typography variant="body2" fontWeight={800}>₹{order?.subtotal?.toLocaleString()}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Subtotal</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta }}>₹{order?.subtotal?.toLocaleString()}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary" fontWeight={600}>Shipping</Typography>
-                      <Typography variant="body2" fontWeight={800}>₹{order?.charges?.shipping?.toLocaleString()}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Shipping</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta }}>₹{order?.charges?.shipping?.toLocaleString()}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary" fontWeight={600}>Handling</Typography>
-                      <Typography variant="body2" fontWeight={800}>₹{order?.charges?.handling?.toLocaleString()}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Artisan Handling</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta }}>₹{order?.charges?.handling?.toLocaleString()}</Typography>
                     </Box>
-                    <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+                    <Divider sx={{ my: 2, borderStyle: 'dashed', borderColor: alpha(primarySaffron, 0.2) }} />
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                      <Typography variant="body1" sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '0.85rem' }}>Total</Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 900, color: theme.palette.primary.main }}>₹{order?.totalAmount?.toLocaleString()}</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '0.9rem', color: primarySaffron, letterSpacing: 1 }}>Total Investment</Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 900, color: primarySaffron, lineHeight: 1 }}>₹{order?.totalAmount?.toLocaleString()}</Typography>
                     </Box>
                   </Stack>
-                  <Button 
-                    fullWidth 
-                    variant="contained" 
-                    startIcon={<MessageCircle size={20} />} 
-                    sx={{ height: 56, borderRadius: '1.25rem', fontWeight: 900, bgcolor: '#25D366', '&:hover': { bgcolor: '#128C7E' }, textTransform: 'none' }} 
-                    component={Link} 
-                    href={`https://wa.me/916387562920?text=Inquiry regarding order ${order?.orderNumber}`} 
-                    target="_blank"
-                  >
-                    Contact Support
-                  </Button>
+                  
+                  <Stack spacing={2}>
+                    <Button 
+                      fullWidth 
+                      variant="contained" 
+                      startIcon={<MessageCircle size={20} />} 
+                      sx={{ height: 64, borderRadius: '1.5rem', fontWeight: 900, bgcolor: '#25D366', '&:hover': { bgcolor: '#128C7E' }, textTransform: 'none', fontSize: '1rem', boxShadow: '0 10px 30px rgba(37, 211, 102, 0.2)' }} 
+                      component={Link} 
+                      href={`https://wa.me/916387562920?text=Inquiry regarding order ${order?.orderNumber}`} 
+                      target="_blank"
+                    >
+                      Studio WhatsApp
+                    </Button>
+                    <Button 
+                      fullWidth 
+                      variant="outlined" 
+                      startIcon={<Sparkles size={18} />} 
+                      sx={{ height: 56, borderRadius: '1.5rem', fontWeight: 900, color: primarySaffron, borderColor: primarySaffron, borderSize: 2, textTransform: 'none', '&:hover': { borderSize: 2, bgcolor: alpha(primarySaffron, 0.05) } }} 
+                      component={Link} 
+                      href="/products"
+                    >
+                      Browse More Art
+                    </Button>
+                  </Stack>
                 </Paper>
               </Grid>
             </Grid>
