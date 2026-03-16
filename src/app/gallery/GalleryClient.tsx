@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -90,10 +91,10 @@ export default function GalleryClient({ items }: { items: any[] }) {
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary/10 overflow-x-hidden">
       <Navbar />
       
-      <main className="flex-1 w-full max-w-full">
+      <main className="flex-1 w-full max-w-full pt-20 md:pt-24">
         
         {/* Section 1: Hero */}
-        <section className="relative pt-12 md:pt-20 pb-20 md:pb-32 overflow-hidden">
+        <section className="relative py-12 md:py-20 overflow-hidden">
           <div className="absolute inset-0 pattern-paisley opacity-5 pointer-events-none" />
           <div className="container mx-auto px-4 md:px-6 max-w-6xl relative z-10 text-center space-y-6 md:space-y-8">
             <motion.div 
@@ -117,13 +118,13 @@ export default function GalleryClient({ items }: { items: any[] }) {
 
               <div className="flex flex-wrap items-center justify-center gap-3 pt-4 px-4">
                 <div className="px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl bg-primary text-white flex items-center gap-2 md:gap-3 shadow-xl shadow-primary/20">
-                  <Camera className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <Camera className="h-4 w-4" />
                   <span className="text-[9px] md:text-xs font-bold uppercase tracking-widest">
                     {items.filter(i => i.mediaType === 'image').length} Artisan Pieces
                   </span>
                 </div>
                 <div className="px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl bg-accent text-foreground flex items-center gap-2 md:gap-3 shadow-xl shadow-accent/20">
-                  <Film className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <Film className="h-4 w-4" />
                   <span className="text-[9px] md:text-xs font-bold uppercase tracking-widest">
                     {items.filter(i => i.mediaType === 'video').length} Studio Reels
                   </span>
@@ -229,7 +230,7 @@ export default function GalleryClient({ items }: { items: any[] }) {
                       onClick={(e) => { e.stopPropagation(); setIsVideoMuted(!isVideoMuted); }}
                       className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center hover:bg-black/60 transition-all"
                     >
-                      {isVideoMuted ? <VolumeX className="h-3.5 w-3.5 md:h-4 md:w-4" /> : <Volume2 className="h-3.5 w-3.5 md:h-4 md:w-4" />}
+                      {isVideoMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </button>
                     <div className="px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-black/40 backdrop-blur-md flex items-center gap-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest">
                       <Film className="h-3 w-3 text-primary" /> Reel
@@ -344,7 +345,7 @@ export default function GalleryClient({ items }: { items: any[] }) {
 
                           <div className="absolute top-3 md:top-4 right-3 md:right-4">
                             <button className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Maximize2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-white" />
+                              <Maximize2 className="h-4 w-4 text-white" />
                             </button>
                           </div>
                         </div>

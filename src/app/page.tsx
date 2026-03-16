@@ -77,8 +77,8 @@ export default function Home() {
       <Navbar />
 
       <main className="flex-1">
-        {/* HERO SECTION */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-primary/[0.08] via-background to-background">
+        {/* HERO SECTION - Enhanced pt for fixed navbar */}
+        <section className="relative overflow-hidden bg-gradient-to-b from-primary/[0.08] via-background to-background pt-20 md:pt-32">
           <div className="absolute inset-0 pattern-paisley opacity-[0.03] pointer-events-none" />
 
           <div className="container mx-auto px-6 md:px-10 py-12 md:py-24 max-w-[1400px]">

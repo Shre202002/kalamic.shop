@@ -150,9 +150,21 @@ export function Navbar() {
 
                 <div className="p-8 border-t border-primary/5 space-y-4">
                   {user ? (
-                    <Button variant="ghost" onClick={handleSignOut} className="w-full h-14 rounded-2xl text-destructive font-black uppercase tracking-widest gap-3 justify-start px-6">
-                      <LogOut className="h-5 w-5" /> Sign Out
-                    </Button>
+                    <div className="space-y-2">
+                      <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button variant="ghost" className="w-full h-12 rounded-2xl font-bold justify-start px-6 gap-3">
+                          <User className="h-5 w-5" /> Profile
+                        </Button>
+                      </Link>
+                      <Link href="/orders" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button variant="ghost" className="w-full h-12 rounded-2xl font-bold justify-start px-6 gap-3">
+                          <Package className="h-5 w-5" /> Orders
+                        </Button>
+                      </Link>
+                      <Button variant="ghost" onClick={handleSignOut} className="w-full h-12 rounded-2xl text-destructive font-black uppercase tracking-widest gap-3 justify-start px-6 mt-4">
+                        <LogOut className="h-5 w-5" /> Sign Out
+                      </Button>
+                    </div>
                   ) : (
                     <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px]">Sign In to Studio</Button>
@@ -271,7 +283,7 @@ export function Navbar() {
                       <div className="h-8 w-8 rounded-xl bg-primary/5 flex items-center justify-center mr-4">
                         <User className="h-4 w-4 text-primary" />
                       </div>
-                      <span className="font-bold text-sm">Account Studio</span>
+                      <span className="font-bold text-sm">Profile</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-2xl p-4 cursor-pointer focus:bg-primary/5">
@@ -279,7 +291,7 @@ export function Navbar() {
                       <div className="h-8 w-8 rounded-xl bg-primary/5 flex items-center justify-center mr-4">
                         <Package className="h-4 w-4 text-primary" />
                       </div>
-                      <span className="font-bold text-sm">Financial Ledger</span>
+                      <span className="font-bold text-sm">Orders</span>
                     </Link>
                   </DropdownMenuItem>
                   {isAdmin && (

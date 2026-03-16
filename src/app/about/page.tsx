@@ -37,8 +37,8 @@ export default function AboutPage() {
       
       <main className="flex-1">
         
-        {/* SECTION 1 — HERO */}
-        <section className="relative min-h-[85vh] flex items-center justify-center py-20 px-6 overflow-hidden">
+        {/* SECTION 1 — HERO - Enhanced pt for fixed navbar */}
+        <section className="relative min-h-[85vh] flex items-center justify-center pt-24 md:pt-32 pb-20 px-6 overflow-hidden">
           <div className="absolute inset-0 pattern-paisley opacity-5" />
           <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent" />
           
@@ -308,7 +308,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* NEW SECTION — THE PEOPLE */}
+        {/* SECTION — THE PEOPLE */}
         <section className="py-20 md:py-32 px-6 bg-white">
           <div className="container mx-auto max-w-6xl">
             <div className="bg-primary/5 rounded-[3rem] p-10 md:p-20 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -393,37 +393,6 @@ export default function AboutPage() {
             </div>
           </motion.div>
         </section>
-
-        {/* SECTION 9 — Organization JSON-LD */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'Organization',
-              name: 'Kalamic',
-              url: 'https://kalamic.shop',
-              logo: 'https://kalamic.shop/logo.png',
-              description: 'Handcrafted ceramic art inspired by Indian heritage.',
-              foundingDate: '2019',
-              address: {
-                '@type': 'PostalAddress',
-                addressLocality: 'Lucknow',
-                addressRegion: 'Uttar Pradesh',
-                addressCountry: 'IN',
-              },
-              contactPoint: {
-                '@type': 'ContactPoint',
-                telephone: '+91-6387562920',
-                contactType: 'customer service',
-                availableLanguage: ['English', 'Hindi'],
-              },
-              sameAs: [
-                'https://www.instagram.com/kala_mic_04/'
-              ],
-            }),
-          }}
-        />
       </main>
       
       <Footer />
