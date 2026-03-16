@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useUser, useAuth } from '@/firebase';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
@@ -24,7 +24,9 @@ import {
   CheckCircle2,
   Key,
   Map as MapIcon,
-  Flag
+  Flag,
+  Search,
+  ChevronDown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getProfile, updateProfile, verifyUserEmail, getOrCreateProfile } from '@/lib/actions/user-actions';
@@ -32,6 +34,15 @@ import { sendOtp, verifyOtp } from '@/lib/actions/otp-actions';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
+import { State, City } from 'country-state-city';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   const { user, loading: isAuthLoading } = useProtectedRoute();
@@ -47,6 +58,12 @@ export default function ProfilePage() {
   const [isEmailOtpSent, setIsEmailOtpSent] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
 
+  // Address validation states
+  const [statesList] = useState(State.getStatesOfCountry('IN'));
+  const [citiesList, setCitiesList] = useState<any[]>([]);
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
+  const [pincodeError, setPincodeError] = useState('');
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -57,6 +74,11 @@ export default function ProfilePage() {
     pincode: '',
     landmark: ''
   });
+
+  // Helper to find state ISO code by name
+  const getStateCode = (stateName: string) => {
+    return statesList.find(s => s.name.toLowerCase() === stateName.toLowerCase())?.isoCode || '';
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -80,6 +102,14 @@ export default function ProfilePage() {
             pincode: profileData.pincode || '',
             landmark: profileData.landmark || ''
           });
+
+          // Pre-populate cities if state exists
+          if (profileData.state) {
+            const code = getStateCode(profileData.state);
+            if (code) {
+              setCitiesList(City.getCitiesOfState('IN', code));
+            }
+          }
         }
       } catch (error) {
         console.error("Error loading profile data:", error);
@@ -89,6 +119,60 @@ export default function ProfilePage() {
     }
     loadData();
   }, [user]);
+
+  // Handle Pincode Auto-fill
+  const handlePincodeChange = async (val: string) => {
+    const cleanVal = val.replace(/\D/g, '').slice(0, 6);
+    setFormData(prev => ({ ...prev, pincode: cleanVal }));
+    setPincodeError('');
+
+    if (cleanVal.length === 6) {
+      setIsPincodeLoading(true);
+      try {
+        const response = await fetch(`https://api.postalpincode.in/pincode/${cleanVal}`);
+        const data = await response.json();
+
+        if (data[0].Status === "Success") {
+          const postOffice = data[0].PostOffice[0];
+          const foundState = statesList.find(s => s.name.toLowerCase().includes(postOffice.State.toLowerCase()));
+          
+          if (foundState) {
+            const stateCities = City.getCitiesOfState('IN', foundState.isoCode);
+            setCitiesList(stateCities);
+            
+            // Try to find the specific city/district from pincode data
+            const matchedCity = stateCities.find(c => 
+              c.name.toLowerCase() === postOffice.District.toLowerCase() || 
+              c.name.toLowerCase() === postOffice.Block.toLowerCase() ||
+              c.name.toLowerCase() === postOffice.Name.toLowerCase()
+            );
+
+            setFormData(prev => ({
+              ...prev,
+              state: foundState.name,
+              city: matchedCity ? matchedCity.name : postOffice.District
+            }));
+            
+            toast({ title: "Location Auto-filled", description: `Detected ${postOffice.District}, ${postOffice.State}` });
+          }
+        } else {
+          setPincodeError('Invalid Pincode');
+        }
+      } catch (err) {
+        console.error("Pincode fetch failed", err);
+      } finally {
+        setIsPincodeLoading(false);
+      }
+    }
+  };
+
+  const handleStateChange = (stateName: string) => {
+    const stateObj = statesList.find(s => s.name === stateName);
+    if (stateObj) {
+      setFormData(prev => ({ ...prev, state: stateName, city: '' }));
+      setCitiesList(City.getCitiesOfState('IN', stateObj.isoCode));
+    }
+  };
 
   const handleSendEmailOtp = async () => {
     if (!user?.email) return;
@@ -302,19 +386,61 @@ export default function ProfilePage() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City *</Label>
-                          <Input required value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} placeholder="Jaipur" className="pl-6 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Pincode *</Label>
+                          <div className="relative">
+                            <Input 
+                              required 
+                              value={formData.pincode} 
+                              onChange={(e) => handlePincodeChange(e.target.value)} 
+                              placeholder="302001" 
+                              className={cn(
+                                "pl-6 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium",
+                                pincodeError && "border-destructive focus-visible:ring-destructive"
+                              )} 
+                            />
+                            {isPincodeLoading && (
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              </div>
+                            )}
+                          </div>
+                          {pincodeError && <p className="text-[10px] font-bold text-destructive ml-1">{pincodeError}</p>}
                         </div>
+
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">State *</Label>
-                          <div className="relative">
-                            <MapIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                            <Input required value={formData.state} onChange={(e) => setFormData({...formData, state: e.target.value})} placeholder="Rajasthan" className="pl-12 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
-                          </div>
+                          <Select value={formData.state} onValueChange={handleStateChange}>
+                            <SelectTrigger className="h-14 rounded-2xl border-border bg-background text-lg font-medium px-6 focus:ring-primary">
+                              <SelectValue placeholder="Select State" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl max-h-[300px]">
+                              {statesList.map((state) => (
+                                <SelectItem key={state.isoCode} value={state.name} className="rounded-xl py-3 px-4 focus:bg-primary/5">
+                                  {state.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
+
                         <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Pincode *</Label>
-                          <Input required value={formData.pincode} onChange={(e) => setFormData({...formData, pincode: e.target.value})} placeholder="302001" className="pl-6 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City *</Label>
+                          <Select 
+                            value={formData.city} 
+                            onValueChange={(val) => setFormData(prev => ({ ...prev, city: val }))}
+                            disabled={!formData.state || citiesList.length === 0}
+                          >
+                            <SelectTrigger className="h-14 rounded-2xl border-border bg-background text-lg font-medium px-6 focus:ring-primary">
+                              <SelectValue placeholder={!formData.state ? "Select State first" : "Select City"} />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl max-h-[300px]">
+                              {citiesList.map((city, idx) => (
+                                <SelectItem key={`${city.name}-${idx}`} value={city.name} className="rounded-xl py-3 px-4 focus:bg-primary/5">
+                                  {city.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     </div>
