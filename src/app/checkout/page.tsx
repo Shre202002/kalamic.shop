@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -158,7 +159,6 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length) return;
-    
     if (!formData.fullName || !formData.address || !formData.city || !formData.state || !formData.zip || !formData.phone) {
       toast({ variant: "destructive", title: "Incomplete Details", description: "All shipping details are required." });
       return;
@@ -219,8 +219,8 @@ export default function CheckoutPage() {
   return (
     <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#FAF4EB' }}>
       <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" onLoad={() => setCashfreeLoaded(true)} />
-      
-      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 4, md: 8 } }}>
+      <Navbar />
+      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 12, md: 16 } }}>
         <MuiBox sx={{ mb: 6 }}>
           <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: 2 }}>
             <MuiLink component={Link} href="/cart" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5 }}>
@@ -248,33 +248,19 @@ export default function CheckoutPage() {
                     <MapPin size={24} />
                   </Avatar>
                   <MuiBox>
-                    <Typography variant="h5" sx={{ fontWeight: 900 }}>Shipping Destination</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 900 }}>Destination</Typography>
                     <Typography variant="body2" color="text.secondary">Where should we deliver your treasures?</Typography>
                   </MuiBox>
                 </MuiBox>
 
                 <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <TextField fullWidth label="Full Name" name="fullName" value={formData.fullName} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField fullWidth label="Street Address" name="address" value={formData.address} onChange={handleInputChange} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField fullWidth label="Nearest Landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField fullWidth label="City" name="city" value={formData.city} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField fullWidth label="State" name="state" value={formData.state} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField fullWidth label="ZIP / Pincode" name="zip" value={formData.zip} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField fullWidth label="Contact Phone" name="phone" value={formData.phone} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
-                  </Grid>
+                  <Grid item xs={12}><TextField fullWidth label="Full Name" name="fullName" value={formData.fullName} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
+                  <Grid item xs={12}><TextField fullWidth label="Street Address" name="address" value={formData.address} onChange={handleInputChange} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
+                  <Grid item xs={12} sm={6}><TextField fullWidth label="Nearest Landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
+                  <Grid item xs={12} sm={6}><TextField fullWidth label="City" name="city" value={formData.city} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
+                  <Grid item xs={12} sm={6}><TextField fullWidth label="State" name="state" value={formData.state} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
+                  <Grid item xs={12} sm={6}><TextField fullWidth label="ZIP / Pincode" name="zip" value={formData.zip} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
+                  <Grid item xs={12}><TextField fullWidth label="Contact Phone" name="phone" value={formData.phone} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
                 </Grid>
               </Paper>
 
@@ -288,7 +274,6 @@ export default function CheckoutPage() {
                     <Typography variant="body2" color="text.secondary">Securely process your transaction.</Typography>
                   </MuiBox>
                 </MuiBox>
-
                 <RadioGroup defaultValue="card">
                   <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '1.25rem', borderColor: '#EA781E', bgcolor: muiAlpha('#EA781E', 0.03) }}>
                     <FormControlLabel value="card" control={<Radio sx={{ color: '#EA781E' }} />} label={
@@ -299,13 +284,6 @@ export default function CheckoutPage() {
                     } sx={{ width: '100%', m: 0 }} />
                   </Paper>
                 </RadioGroup>
-
-                <MuiBox sx={{ mt: 3, p: 3, bgcolor: '#FAF4EB', borderRadius: '1.25rem', display: 'flex', gap: 2 }}>
-                  <AlertTriangle size={20} color="#EA781E" style={{ flexShrink: 0 }} />
-                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
-                    You will be redirected to our secure payment partner to complete the transaction.
-                  </Typography>
-                </MuiBox>
               </Paper>
             </Stack>
           </Grid>
@@ -313,7 +291,6 @@ export default function CheckoutPage() {
           <Grid item xs={12} lg={5}>
             <Paper elevation={10} sx={{ borderRadius: '3rem', p: { xs: 4, md: 6 }, position: 'sticky', top: '100px', bgcolor: 'white' }}>
               <Typography variant="h4" sx={{ fontWeight: 900, mb: 4, color: '#271E1B' }}>Summary</Typography>
-              
               <Stack spacing={3} sx={{ mb: 4 }}>
                 {cartItems?.map((item) => (
                   <MuiBox key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
@@ -328,46 +305,25 @@ export default function CheckoutPage() {
                   </MuiBox>
                 ))}
               </Stack>
-
               <Divider sx={{ mb: 4, borderStyle: 'dashed' }} />
-
               <Stack spacing={2} sx={{ mb: 4 }}>
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography>
-                </MuiBox>
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Shipping</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.shipping || 150}</Typography>
-                </MuiBox>
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Handling & Protection</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{(chargesPreview?.charges.handling || 40) + (chargesPreview?.charges.premium || 20)}</Typography>
-                </MuiBox>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography><Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography></MuiBox>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Shipping</Typography><Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.shipping || 150}</Typography></MuiBox>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Handling & Protection</Typography><Typography sx={{ fontWeight: 700 }}>₹{(chargesPreview?.charges.handling || 40) + (chargesPreview?.charges.premium || 20)}</Typography></MuiBox>
               </Stack>
-
               <Divider sx={{ mb: 4 }} />
-
               <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
                 <Typography sx={{ fontWeight: 900, textTransform: 'uppercase' }}>Total</Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>
-                  ₹{chargesPreview?.total.toLocaleString() || (subtotal + 210).toLocaleString()}
-                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{chargesPreview?.total.toLocaleString() || (subtotal + 210).toLocaleString()}</Typography>
               </MuiBox>
-
-              <Button
-                fullWidth
-                variant="contained"
-                disabled={isProcessing || isCalculating}
-                onClick={handlePlaceOrder}
-                sx={{ borderRadius: '1.5rem', height: '5rem', fontSize: '1.25rem', fontWeight: 900, bgcolor: '#EA781E', '&:hover': { bgcolor: '#D66A18' }, textTransform: 'none' }}
-              >
+              <Button fullWidth variant="contained" disabled={isProcessing || isCalculating} onClick={handlePlaceOrder} sx={{ borderRadius: '1.5rem', height: '5rem', fontSize: '1.25rem', fontWeight: 900, bgcolor: '#EA781E', '&:hover': { bgcolor: '#D66A18' }, textTransform: 'none' }}>
                 {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay`}
               </Button>
             </Paper>
           </Grid>
         </Grid>
       </Container>
+      <Footer />
     </MuiBox>
   );
 }

@@ -34,7 +34,6 @@ export default function CartPage() {
 
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
-  // Fetch user profile to get the city for dynamic shipping calculation
   useEffect(() => {
     async function loadProfile() {
       if (user) {
@@ -54,7 +53,6 @@ export default function CartPage() {
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
   
-  // Calculate dynamic charges
   const userCity = userProfile?.city || '';
   const charges = calculateOrderCharges(subtotal, userCity);
   const freeDeliveryInfo = isEligibleForFreeDelivery(subtotal, userCity);
@@ -97,7 +95,7 @@ export default function CartPage() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
-        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center pt-32">
           <div className="h-16 w-16 bg-muted/20 rounded-full flex items-center justify-center mb-6">
             <ShoppingBag className="h-8 w-8 text-muted-foreground opacity-50" />
           </div>
@@ -113,7 +111,7 @@ export default function CartPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <main className="flex-1 py-8 md:py-12">
+      <main className="flex-1 pt-24 pb-8 md:pt-32 md:pb-12">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-2xl md:text-4xl font-extrabold text-foreground tracking-tight">Shopping Bag</h1>

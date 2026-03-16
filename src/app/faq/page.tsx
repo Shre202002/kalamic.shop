@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from 'react';
@@ -64,14 +65,14 @@ export default function FAQPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <main className="flex-1 py-12 md:py-24">
+      <main className="flex-1 pt-24 pb-12 md:pt-32 md:pb-24">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="text-center mb-20 space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-xs uppercase tracking-widest">
               <HelpCircle className="h-3 w-3" /> Curiosity Corner
             </div>
             <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tight">Frequently Asked</h1>
-            <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-xl mx-auto font-medium">
               Everything you need to know about our artisan processes, shipping security, and piece preservation.
             </p>
           </div>

@@ -54,7 +54,6 @@ export default function ProductDetailClient() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   
-  // Guard to prevent compilation loop during revalidation
   const hasInitialized = useRef<string | null>(null);
 
   const productId = typeof params?.id === 'string' ? params.id : '';
@@ -75,10 +74,7 @@ export default function ProductDetailClient() {
       if (data) {
         setProduct(data);
         hasInitialized.current = data._id;
-        
-        // Single-fire tracking
         incrementProductViews(data._id);
-
         const reviewData = await getProductReviews(data._id);
         setReviews(reviewData);
       }
@@ -151,8 +147,8 @@ export default function ProductDetailClient() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <main className="flex-1">
-        <div className="container mx-auto px-4 max-w-7xl pt-12">
+      <main className="flex-1 pt-24 md:pt-32">
+        <div className="container mx-auto px-4 max-w-7xl">
           <Link href="/products" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary mb-8">
             <ArrowLeft className="h-3 w-3" /> Back to Collection
           </Link>

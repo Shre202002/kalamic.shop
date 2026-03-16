@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -172,7 +173,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <main className="flex-1 py-8 md:py-16">
+      <main className="flex-1 pt-24 pb-8 md:pt-32 md:pb-16">
         <div className="container mx-auto px-4 max-w-6xl space-y-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border pb-8">
             <div className="space-y-3">

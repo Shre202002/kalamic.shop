@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -30,20 +31,10 @@ export default function WishlistPage() {
     try {
       const itemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', productId);
       await deleteDoc(itemRef);
-      
-      // Untrack Analytics
       await untrackWishlistAction(productId);
-
-      toast({
-        title: "Removed from favorites",
-        description: "Your wishlist has been updated.",
-      });
+      toast({ title: "Removed from favorites", description: "Your wishlist has been updated." });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not remove item. Please try again.",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Could not remove item. Please try again." });
     }
   };
 
@@ -63,7 +54,7 @@ export default function WishlistPage() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
-        <main className="flex-1 flex flex-col items-center justify-center p-8 space-y-6 text-center">
+        <main className="flex-1 flex flex-col items-center justify-center p-8 space-y-6 text-center pt-32">
           <div className="h-20 w-20 bg-muted/20 rounded-full flex items-center justify-center">
             <Heart className="h-10 w-10 text-muted-foreground opacity-20" />
           </div>
@@ -79,7 +70,7 @@ export default function WishlistPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <main className="flex-1 py-12 md:py-20">
+      <main className="flex-1 pt-24 pb-12 md:pt-32 md:pb-20">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex items-center justify-between mb-10">
             <h1 className="text-4xl md:text-5xl font-extrabold text-primary tracking-tight">My Favorites</h1>

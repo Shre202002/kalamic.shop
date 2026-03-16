@@ -109,7 +109,7 @@ export default function OrdersPage() {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.default }}>
         <Navbar />
-        <Container maxWidth="sm" sx={{ flex: 1, py: 12, textAlign: 'center' }}>
+        <Container maxWidth="sm" sx={{ flex: 1, py: 12, textAlign: 'center', pt: 32 }}>
           <Box sx={{ mb: 4, p: 4, bgcolor: 'white', borderRadius: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
             <ShoppingBag size={64} color={theme.palette.primary.main} style={{ opacity: 0.2, marginBottom: '1.5rem' }} />
             <Typography variant="h4" sx={{ fontWeight: 900, mb: 2 }}>Sign In Required</Typography>
@@ -128,18 +128,18 @@ export default function OrdersPage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.default }}>
       <Navbar />
       <main style={{ flex: 1 }}>
-        <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 12, md: 16 } }}>
           <Box sx={{ mb: 6 }}>
             <Breadcrumbs separator={<ChevronRight size={14} />} sx={{ mb: 2 }}>
               <MuiLink component={Link} href="/" underline="hover" sx={{ color: 'text.secondary', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5 }}>
                 Home
               </MuiLink>
               <Typography sx={{ fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5, color: theme.palette.primary.main }}>
-                Financial Ledger
+                Orders
               </Typography>
             </Breadcrumbs>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography variant="h3" sx={{ fontWeight: 900, color: theme.palette.text.primary, letterSpacing: '-0.03em' }}>Financial Ledger</Typography>
+              <Typography variant="h3" sx={{ fontWeight: 900, color: theme.palette.text.primary, letterSpacing: '-0.03em' }}>Order History</Typography>
               <Button 
                 onClick={loadData} 
                 startIcon={<RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />}
@@ -196,7 +196,6 @@ export default function OrdersPage() {
                       } 
                     }}
                   >
-                    {/* Section A: Header */}
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mb: 3 }}>
                       <Box>
                         <Typography variant="caption" sx={{ fontWeight: 900, color: theme.palette.primary.main, fontFamily: 'monospace', letterSpacing: 1, fontSize: '0.8rem' }}>
@@ -226,7 +225,6 @@ export default function OrdersPage() {
 
                     <Divider sx={{ mb: 3, borderStyle: 'dashed' }} />
 
-                    {/* Section B: Items Preview */}
                     <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} alignItems={{ md: 'center' }} sx={{ mb: 4 }}>
                       <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1 }}>
                         <AvatarGroup max={3} sx={{ '& .MuiAvatar-root': { width: 40, height: 40, fontSize: '0.75rem', fontWeight: 800, border: '2px solid white' } }}>
@@ -255,7 +253,6 @@ export default function OrdersPage() {
                       </Stack>
                     </Stack>
 
-                    {/* Section C: Financial Ledger */}
                     <Box sx={{ bgcolor: 'white', p: 3, borderRadius: '1.5rem', mb: 3, border: '1px solid', borderColor: alpha(theme.palette.divider, 0.3) }}>
                       <Grid container spacing={2}>
                         <Grid item xs={6} sm={2.4}>
@@ -281,7 +278,6 @@ export default function OrdersPage() {
                       </Grid>
                     </Box>
 
-                    {/* Section D: Footer */}
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems="center">
                       <Tooltip title="Estimated completion & delivery">
                         <Stack direction="row" spacing={1} alignItems="center">
