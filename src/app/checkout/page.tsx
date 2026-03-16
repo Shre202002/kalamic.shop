@@ -26,17 +26,21 @@ import {
   Link as MuiLink,
   Avatar,
   alpha as muiAlpha,
+  Autocomplete,
+  InputAdornment
 } from '@mui/material';
 import { 
   CreditCard, 
   ShieldCheck, 
   MapPin,
   ChevronLeft,
+  Search,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import Script from 'next/script';
 import Link from 'next/link';
+import { State, City } from 'country-state-city';
 
 declare global {
   interface Window {
@@ -69,6 +73,11 @@ export default function CheckoutPage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [chargesPreview, setChargesPreview] = useState<ChargesPreview | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Address lookup states
+  const [statesList] = useState(State.getStatesOfCountry('IN'));
+  const [citiesList, setCitiesList] = useState<any[]>([]);
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -145,13 +154,88 @@ export default function CheckoutPage() {
             zip: profile.pincode || '',
             landmark: profile.landmark || '',
           }));
+
+          // Pre-populate cities list
+          if (profile.state) {
+            const foundState = statesList.find(s => s.name === profile.state);
+            if (foundState) {
+              setCitiesList(City.getCitiesOfState('IN', foundState.isoCode));
+            }
+          }
         }
       } catch (err) {
         console.error("Error fetching auto-fill data:", err);
       }
     }
     loadUserData();
-  }, [user, mounted]);
+  }, [user, mounted, statesList]);
+
+  // Unified Pincode Auto-fill Logic
+  const handlePincodeChange = async (val: string) => {
+    const cleanVal = val.replace(/\D/g, '').slice(0, 6);
+    setFormData(prev => ({ ...prev, zip: cleanVal }));
+
+    if (cleanVal.length === 6) {
+      setIsPincodeLoading(true);
+      try {
+        const response = await fetch(`https://api.postalpincode.in/pincode/${cleanVal}`);
+        const data = await response.json();
+
+        if (data[0].Status === "Success") {
+          const postOffice = data[0].PostOffice[0];
+          const foundState = statesList.find(s => 
+            s.name.toLowerCase().includes(postOffice.State.toLowerCase()) || 
+            postOffice.State.toLowerCase().includes(s.name.toLowerCase())
+          );
+          
+          if (foundState) {
+            const stateCities = City.getCitiesOfState('IN', foundState.isoCode);
+            const apiDistrict = postOffice.District;
+            let matchedCityName = apiDistrict;
+
+            const existingCity = stateCities.find(c => 
+              c.name.toLowerCase() === apiDistrict.toLowerCase() || 
+              apiDistrict.toLowerCase().includes(c.name.toLowerCase())
+            );
+
+            if (existingCity) matchedCityName = existingCity.name;
+            setCitiesList(stateCities);
+            
+            if (!existingCity) {
+              setCitiesList(prev => [{ name: apiDistrict }, ...prev]);
+            }
+
+            setFormData(prev => ({
+              ...prev,
+              state: foundState.name,
+              city: matchedCityName
+            }));
+            
+            toast({ title: "Location Detected", description: `${matchedCityName}, ${foundState.name}` });
+          }
+        } else {
+          toast({ variant: "destructive", title: "Invalid Pincode", description: "Could not find location for this code." });
+        }
+      } catch (err) {
+        console.error("Pincode fetch failed", err);
+      } finally {
+        setIsPincodeLoading(false);
+      }
+    }
+  };
+
+  const handleStateChange = (stateName: string | null) => {
+    if (!stateName) {
+      setFormData(prev => ({ ...prev, state: '', city: '' }));
+      setCitiesList([]);
+      return;
+    }
+    const foundState = statesList.find(s => s.name === stateName);
+    if (foundState) {
+      setFormData(prev => ({ ...prev, state: stateName, city: '' }));
+      setCitiesList(City.getCitiesOfState('IN', foundState.isoCode));
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -216,7 +300,6 @@ export default function CheckoutPage() {
 
   if (!user) return null;
 
-  // Calculate safe defaults for the summary display
   const shippingDisplay = chargesPreview ? chargesPreview.charges.shipping : (subtotal >= 999 ? 0 : 150);
   const handlingDisplay = chargesPreview ? (chargesPreview.charges.handling + chargesPreview.charges.premium) : 60;
   const totalDisplay = chargesPreview ? chargesPreview.total : (subtotal + shippingDisplay + handlingDisplay);
@@ -259,13 +342,52 @@ export default function CheckoutPage() {
                 </MuiBox>
 
                 <Grid container spacing={2}>
-                  <Grid item xs={12}><TextField fullWidth label="Full Name" name="fullName" value={formData.fullName} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
-                  <Grid item xs={12}><TextField fullWidth label="Street Address" name="address" value={formData.address} onChange={handleInputChange} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
-                  <Grid item xs={12} sm={6}><TextField fullWidth label="Nearest Landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
-                  <Grid item xs={12} sm={6}><TextField fullWidth label="City" name="city" value={formData.city} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
-                  <Grid item xs={12} sm={6}><TextField fullWidth label="State" name="state" value={formData.state} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
-                  <Grid item xs={12} sm={6}><TextField fullWidth label="ZIP / Pincode" name="zip" value={formData.zip} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
-                  <Grid item xs={12}><TextField fullWidth label="Contact Phone" name="phone" value={formData.phone} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} /></Grid>
+                  <Grid item xs={12}>
+                    <TextField fullWidth label="Full Name" name="fullName" value={formData.fullName} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField fullWidth label="Street Address" name="address" value={formData.address} onChange={handleInputChange} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth label="Nearest Landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField 
+                      fullWidth 
+                      label="ZIP / Pincode" 
+                      name="zip" 
+                      value={formData.zip} 
+                      onChange={(e) => handlePincodeChange(e.target.value)} 
+                      InputProps={{
+                        endAdornment: isPincodeLoading ? <CircularProgress size={20} /> : null
+                      }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} 
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Autocomplete
+                      options={statesList.map(s => s.name)}
+                      value={formData.state}
+                      onChange={(_, val) => handleStateChange(val)}
+                      renderInput={(params) => (
+                        <TextField {...params} label="State" fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
+                      )}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Autocomplete
+                      options={citiesList.map(c => c.name)}
+                      value={formData.city}
+                      onChange={(_, val) => setFormData(p => ({ ...p, city: val || '' }))}
+                      disabled={!formData.state}
+                      renderInput={(params) => (
+                        <TextField {...params} label="City" fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
+                      )}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField fullWidth label="Contact Phone" name="phone" value={formData.phone} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
+                  </Grid>
                 </Grid>
               </Paper>
 
