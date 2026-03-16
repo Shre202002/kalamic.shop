@@ -53,3 +53,30 @@ export async function syncOrderToFirestore(order: IOrderedItem) {
     console.error(`[SYNC_ERROR] Failed to sync order ${order.orderNumber}:`, error.message);
   }
 }
+
+/**
+ * Purges purchased items from the collector's Firestore cart.
+ */
+export async function clearCartAfterOrder(userId: string, items: any[]) {
+  if (!adminDb) return;
+
+  try {
+    const batch = adminDb.batch();
+    for (const item of items) {
+      // Path: users/{userId}/cart/cart/items/{productId}
+      const cartItemRef = adminDb
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .doc('cart')
+        .collection('items')
+        .doc(item.productId);
+      
+      batch.delete(cartItemRef);
+    }
+    await batch.commit();
+    console.log(`[CART_PURGE] Success for user ${userId}`);
+  } catch (error: any) {
+    console.error(`[CART_PURGE_ERROR] Failed to clear cart:`, error.message);
+  }
+}

@@ -1,9 +1,10 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import { getCashfreeOrderStatus } from '@/lib/actions/cashfree';
-import { syncOrderToFirestore } from '@/lib/firebase-admin';
+import { syncOrderToFirestore, clearCartAfterOrder } from '@/lib/firebase-admin';
 
 /**
  * @fileOverview Ground Truth Verification API.
@@ -64,7 +65,11 @@ export async function GET(req: NextRequest) {
       );
 
       if (updatedOrder) {
+        // Sync to Firestore for real-time UI updates
         await syncOrderToFirestore(updatedOrder);
+        
+        // Remove purchased items from Firestore cart
+        await clearCartAfterOrder(updatedOrder.userId, updatedOrder.items);
         
         // Sync product sales analytics
         for (const item of updatedOrder.items) {
@@ -72,7 +77,7 @@ export async function GET(req: NextRequest) {
             $inc: { 'analytics.total_orders': item.quantity }
           });
         }
-        console.log(`[VERIFY_SUCCESS] Order ${orderId} confirmed.`);
+        console.log(`[VERIFY_SUCCESS] Order ${orderId} confirmed and cart cleared.`);
         return NextResponse.json({ success: true, status: 'Confirmed' });
       }
     }
