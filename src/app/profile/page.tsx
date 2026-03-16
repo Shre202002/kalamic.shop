@@ -134,26 +134,46 @@ export default function ProfilePage() {
 
         if (data[0].Status === "Success") {
           const postOffice = data[0].PostOffice[0];
-          const foundState = statesList.find(s => s.name.toLowerCase().includes(postOffice.State.toLowerCase()));
+          // Find matching state from our list
+          const foundState = statesList.find(s => 
+            s.name.toLowerCase().includes(postOffice.State.toLowerCase()) || 
+            postOffice.State.toLowerCase().includes(s.name.toLowerCase())
+          );
           
           if (foundState) {
             const stateCities = City.getCitiesOfState('IN', foundState.isoCode);
+            
+            // Look for a match in cities list using District or Block
+            const apiDistrict = postOffice.District;
+            let matchedCityName = apiDistrict;
+
+            const existingCity = stateCities.find(c => 
+              c.name.toLowerCase() === apiDistrict.toLowerCase() || 
+              apiDistrict.toLowerCase().includes(c.name.toLowerCase()) ||
+              c.name.toLowerCase().includes(apiDistrict.toLowerCase())
+            );
+
+            if (existingCity) {
+              matchedCityName = existingCity.name;
+            }
+
+            // Update cities list for the dropdown
             setCitiesList(stateCities);
             
-            // Try to find the specific city/district from pincode data
-            const matchedCity = stateCities.find(c => 
-              c.name.toLowerCase() === postOffice.District.toLowerCase() || 
-              c.name.toLowerCase() === postOffice.Block.toLowerCase() ||
-              c.name.toLowerCase() === postOffice.Name.toLowerCase()
-            );
+            // If the matched city isn't in our list (rare, but possible due to naming), 
+            // we should still allow it to be set and displayed.
+            // The Select component requires the value to exist in the list.
+            if (!existingCity) {
+              setCitiesList(prev => [{ name: apiDistrict }, ...prev]);
+            }
 
             setFormData(prev => ({
               ...prev,
               state: foundState.name,
-              city: matchedCity ? matchedCity.name : postOffice.District
+              city: matchedCityName
             }));
             
-            toast({ title: "Location Auto-filled", description: `Detected ${postOffice.District}, ${postOffice.State}` });
+            toast({ title: "Location Detected", description: `${matchedCityName}, ${foundState.name}` });
           }
         } else {
           setPincodeError('Invalid Pincode');
