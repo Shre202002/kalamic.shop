@@ -20,18 +20,14 @@ export interface OrderCharges {
  * Priority: 1. City list, 2. Subtotal threshold, 3. Standard charge.
  */
 export function calculateShippingCharge(subtotal: number, city: string): number {
-  const normalizedCity = city.toLowerCase().trim();
+  const normalizedCity = (city || '').toLowerCase().trim();
   
-  if (!normalizedCity) {
-    return subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : STANDARD_SHIPPING_CHARGE;
-  }
-
   // Rule 1: Local City Override
-  if (FREE_DELIVERY_CITIES.includes(normalizedCity)) {
+  if (normalizedCity && FREE_DELIVERY_CITIES.includes(normalizedCity)) {
     return 0;
   }
 
-  // Rule 2: Order Value Threshold
+  // Rule 2: Order Value Threshold (999 and above)
   if (subtotal >= FREE_DELIVERY_THRESHOLD) {
     return 0;
   }
@@ -45,8 +41,8 @@ export function calculateShippingCharge(subtotal: number, city: string): number 
  */
 export function calculateOrderCharges(subtotal: number, city: string): OrderCharges {
   const shipping = calculateShippingCharge(subtotal, city);
-  // Rule: No handling charge if subtotal is above 999
-  const handling = subtotal > 999 ? 0 : HANDLING_CHARGE;
+  // Handling and Protection charges are standard for artisanal items
+  const handling = HANDLING_CHARGE;
   const premium = PREMIUM_CHARGE;
   
   return {
@@ -61,7 +57,7 @@ export function calculateOrderCharges(subtotal: number, city: string): OrderChar
  * Determines eligibility and reason for free delivery for UI display.
  */
 export function isEligibleForFreeDelivery(subtotal: number, city: string): { isFree: boolean; reason: 'city' | 'threshold' | null } {
-  const normalizedCity = city.toLowerCase().trim();
+  const normalizedCity = (city || '').toLowerCase().trim();
   
   if (normalizedCity && FREE_DELIVERY_CITIES.includes(normalizedCity)) {
     return { isFree: true, reason: 'city' };

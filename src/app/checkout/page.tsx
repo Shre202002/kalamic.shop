@@ -31,7 +31,6 @@ import {
   CreditCard, 
   ShieldCheck, 
   MapPin,
-  AlertTriangle,
   ChevronLeft,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -217,6 +216,11 @@ export default function CheckoutPage() {
 
   if (!user) return null;
 
+  // Calculate safe defaults for the summary display
+  const shippingDisplay = chargesPreview ? chargesPreview.charges.shipping : (subtotal >= 999 ? 0 : 150);
+  const handlingDisplay = chargesPreview ? (chargesPreview.charges.handling + chargesPreview.charges.premium) : 60;
+  const totalDisplay = chargesPreview ? chargesPreview.total : (subtotal + shippingDisplay + handlingDisplay);
+
   return (
     <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#FAF4EB' }}>
       <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" onLoad={() => setCashfreeLoaded(true)} />
@@ -308,14 +312,25 @@ export default function CheckoutPage() {
               </Stack>
               <Divider sx={{ mb: 4, borderStyle: 'dashed' }} />
               <Stack spacing={2} sx={{ mb: 4 }}>
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography><Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography></MuiBox>
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Shipping</Typography><Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.shipping || 150}</Typography></MuiBox>
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Handling & Protection</Typography><Typography sx={{ fontWeight: 700 }}>₹{(chargesPreview?.charges.handling || 40) + (chargesPreview?.charges.premium || 20)}</Typography></MuiBox>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography>
+                </MuiBox>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Shipping</Typography>
+                  <Typography sx={{ fontWeight: 700, color: shippingDisplay === 0 ? 'success.main' : 'inherit' }}>
+                    {shippingDisplay === 0 ? 'FREE' : `₹${shippingDisplay}`}
+                  </Typography>
+                </MuiBox>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Handling & Protection</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>₹{handlingDisplay}</Typography>
+                </MuiBox>
               </Stack>
               <Divider sx={{ mb: 4 }} />
               <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
                 <Typography sx={{ fontWeight: 900, textTransform: 'uppercase' }}>Total</Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{chargesPreview?.total.toLocaleString() || (subtotal + 210).toLocaleString()}</Typography>
+                <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{totalDisplay.toLocaleString()}</Typography>
               </MuiBox>
               <Button fullWidth variant="contained" disabled={isProcessing || isCalculating} onClick={handlePlaceOrder} sx={{ borderRadius: '1.5rem', height: '5rem', fontSize: '1.25rem', fontWeight: 900, bgcolor: '#EA781E', '&:hover': { bgcolor: '#D66A18' }, textTransform: 'none' }}>
                 {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay`}
