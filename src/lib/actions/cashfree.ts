@@ -11,13 +11,13 @@ const BASE_URL = CASHFREE_ENV === 'production'
   : 'https://sandbox.cashfree.com/pg';
 
 /**
- * Signature verification for v2025-01-01.
+ * Signature verification for v2025-01-01 protocol.
  * signedPayload = timestamp + rawBody
  */
 export async function verifyCashfreeSignature(payload: string, signature: string, timestamp: string): Promise<boolean> {
   if (!CASHFREE_SECRET_KEY) {
-    if (CASHFREE_ENV === 'production') throw new Error('Missing production secret key');
-    return true; 
+    if (CASHFREE_ENV === 'production') throw new Error('Security keys missing in production');
+    return true; // Pass in dev mock mode
   }
   
   try {
@@ -47,6 +47,7 @@ export async function createCashfreeOrder(data: {
   returnUrl: string;
 }) {
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+    console.warn('[CASHFREE_MOCK] Missing credentials, initiating simulated session.');
     return {
       paymentSessionId: `mock_${crypto.randomBytes(8).toString('hex')}`,
       orderId: data.orderId,
@@ -95,7 +96,7 @@ export async function createCashfreeOrder(data: {
 
 export async function getCashfreeOrderStatus(orderId: string) {
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    if (CASHFREE_ENV === 'production') throw new Error('Security keys missing');
+    if (CASHFREE_ENV === 'production') throw new Error('Production security credentials missing');
     return { order_status: 'PAID', cf_order_id: 'mock_pay_' + Date.now() };
   }
 
@@ -109,8 +110,10 @@ export async function getCashfreeOrderStatus(orderId: string) {
       },
     });
 
-    if (!response.ok) throw new Error('Status fetch failed');
-    return await response.json();
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Status fetch failed');
+    
+    return result;
   } catch (error: any) {
     console.error('[CASHFREE_STATUS_ERROR]', error.message);
     throw error;

@@ -38,8 +38,7 @@ export default function SuccessPage() {
         const data = await res.json();
 
         if (data.success) {
-          // 2. Clear relevant items from Cart
-          // We fetch the order items to identify which products to remove from Firestore
+          // 2. Fetch the order details to identify specific items to remove
           const orderRes = await fetch(`/api/orders/${orderId}`);
           const orderData = await orderRes.json();
           
@@ -53,8 +52,8 @@ export default function SuccessPage() {
           toast({ title: "Acquisition Confirmed", description: "Your artisan pieces are now in production." });
           setIsVerifying(false);
         } else {
-          // If verification is still pending, we wait for the webhook
-          setError("Gateway confirmation is in transit. We'll update your dashboard shortly.");
+          // If verification is still pending, we wait for the background webhook
+          setError("Gateway confirmation is in transit. We'll update your dossier shortly.");
           setIsVerifying(false);
         }
       } catch (err) {
@@ -64,7 +63,9 @@ export default function SuccessPage() {
       }
     };
 
-    verifyAndProcess();
+    // Brief delay to allow webhook processing time
+    const timer = setTimeout(verifyAndProcess, 2000);
+    return () => clearTimeout(timer);
   }, [orderId, user, firestore, toast]);
 
   useEffect(() => {
@@ -86,7 +87,7 @@ export default function SuccessPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF4EB]">
       <Navbar />
-      <main className="flex-1 flex items-center justify-center p-6">
+      <main className="flex-1 flex items-center justify-center p-6 pt-24 md:pt-32">
         <div className="w-full max-w-2xl text-center">
           <AnimatePresence mode="wait">
             {isVerifying ? (

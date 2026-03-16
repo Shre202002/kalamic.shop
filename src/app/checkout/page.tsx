@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -7,6 +6,8 @@ import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { useNavigation } from '@/hooks/useNavigation';
 import { collection } from 'firebase/firestore';
 import { getProfile } from '@/lib/actions/user-actions';
+import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 import { 
   Container, 
   Grid, 
