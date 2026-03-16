@@ -1,10 +1,5 @@
 'use server';
 
-/**
- * @fileOverview Production-grade Cashfree Payment Gateway utilities.
- * Supports API & Webhook version 2025-01-01.
- */
-
 import crypto from 'crypto';
 
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
@@ -16,12 +11,12 @@ const BASE_URL = CASHFREE_ENV === 'production'
   : 'https://sandbox.cashfree.com/pg';
 
 /**
- * Utility to verify Cashfree Webhook Signature (v2025-01-01).
- * Requires the timestamp from 'x-webhook-timestamp' header.
+ * Signature verification for v2025-01-01.
+ * signedPayload = timestamp + rawBody
  */
 export async function verifyCashfreeSignature(payload: string, signature: string, timestamp: string): Promise<boolean> {
-  if (!CASHFREE_SECRET_KEY || !CASHFREE_APP_ID) {
-    console.warn('[CASHFREE] No keys found. Mock verification returning true.');
+  if (!CASHFREE_SECRET_KEY) {
+    if (CASHFREE_ENV === 'production') throw new Error('Missing production secret key');
     return true; 
   }
   
@@ -39,9 +34,6 @@ export async function verifyCashfreeSignature(payload: string, signature: string
   }
 }
 
-/**
- * Creates a Cashfree order.
- */
 export async function createCashfreeOrder(data: {
   orderId: string;
   orderAmount: number;
@@ -56,7 +48,7 @@ export async function createCashfreeOrder(data: {
 }) {
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
     return {
-      paymentSessionId: `mock_session_${crypto.randomBytes(8).toString('hex')}`,
+      paymentSessionId: `mock_${crypto.randomBytes(8).toString('hex')}`,
       orderId: data.orderId,
       isMock: true
     };
@@ -69,7 +61,7 @@ export async function createCashfreeOrder(data: {
         'Content-Type': 'application/json',
         'x-client-id': CASHFREE_APP_ID,
         'x-client-secret': CASHFREE_SECRET_KEY,
-        'x-api-version': '2023-08-01', // Keep 2023-08-01 for creation as it is stable
+        'x-api-version': '2023-08-01',
       },
       body: JSON.stringify({
         order_id: data.orderId,
@@ -88,7 +80,7 @@ export async function createCashfreeOrder(data: {
     });
 
     const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Failed to create Cashfree order');
+    if (!response.ok) throw new Error(result.message || 'Gateway connection failed');
 
     return {
       paymentSessionId: result.payment_session_id,
@@ -101,14 +93,10 @@ export async function createCashfreeOrder(data: {
   }
 }
 
-/**
- * Fetches order status directly from Cashfree (Server-to-Server).
- * Uses version 2023-08-01 for status fetching.
- */
 export async function getCashfreeOrderStatus(orderId: string) {
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    if (CASHFREE_ENV === 'production') throw new Error('Missing production credentials');
-    return { order_status: 'PAID', cf_order_id: 'mock_payment_id', order_id: orderId };
+    if (CASHFREE_ENV === 'production') throw new Error('Security keys missing');
+    return { order_status: 'PAID', cf_order_id: 'mock_pay_' + Date.now() };
   }
 
   try {
@@ -121,12 +109,10 @@ export async function getCashfreeOrderStatus(orderId: string) {
       },
     });
 
-    if (!response.ok) throw new Error('Failed to fetch order from Cashfree');
-    const result = await response.json();
-    console.log(`[CASHFREE_FETCH] Raw Status for ${orderId}:`, JSON.stringify(result));
-    return result;
+    if (!response.ok) throw new Error('Status fetch failed');
+    return await response.json();
   } catch (error: any) {
-    console.error('[CASHFREE_FETCH_ERROR]', error.message);
+    console.error('[CASHFREE_STATUS_ERROR]', error.message);
     throw error;
   }
 }

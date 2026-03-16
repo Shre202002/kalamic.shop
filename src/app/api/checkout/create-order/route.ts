@@ -7,11 +7,6 @@ import { syncOrderToFirestore } from '@/lib/firebase-admin';
 import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 import crypto from 'crypto';
 
-/**
- * @fileOverview Production-safe Order Creation API.
- * Sets initial state to 'Initiated' waiting for payment confirmation.
- */
-
 export async function POST(req: NextRequest) {
   await dbConnect();
 
@@ -25,7 +20,6 @@ export async function POST(req: NextRequest) {
     let subtotal = 0;
     const validatedItems = [];
 
-    // 1. Server-side Price Validation
     for (const item of items) {
       const product = await KalamicProduct.findById(item.productId);
       if (!product) throw new Error(`Product ${item.productId} no longer exists.`);
@@ -40,7 +34,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Dynamic Charge Calculation
     const calculatedCharges = calculateOrderCharges(subtotal, shippingDetails.city);
     const charges = {
       shipping: calculatedCharges.shipping,
@@ -50,7 +43,6 @@ export async function POST(req: NextRequest) {
     const totalAmount = calculatedCharges.total;
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    // 3. Create the MongoDB Record (State: Initiated)
     const newOrder = await OrderedItem.create({
       userId,
       userName: customerName,
@@ -78,13 +70,16 @@ export async function POST(req: NextRequest) {
       transactionId: null,
       paymentId: null,
       paymentTimestamp: null,
+      gatewayOrderId: orderNumber,
       expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
     });
 
-    // 4. Initial Sync to Firestore
     await syncOrderToFirestore(newOrder);
 
-    // 5. Initiate Gateway Transaction
+    // Dynamic origin for return URL
+    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
+    const returnUrl = `${origin}/checkout/success?order_id={order_id}`;
+
     const cashfreeResult = await createCashfreeOrder({
       orderId: orderNumber,
       orderAmount: totalAmount,
@@ -95,14 +90,8 @@ export async function POST(req: NextRequest) {
         customerEmail: customerEmail || 'collector@kalamic.shop',
         customerName: customerName,
       },
-      returnUrl: `${req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL}/orders/${orderNumber}`
+      returnUrl
     });
-
-    if (!cashfreeResult.isMock) {
-      await OrderedItem.findByIdAndUpdate(newOrder._id, { 
-        gatewayOrderId: cashfreeResult.orderId 
-      });
-    }
 
     return NextResponse.json({
       paymentSessionId: cashfreeResult.paymentSessionId,

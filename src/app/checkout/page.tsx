@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { useNavigation } from '@/hooks/useNavigation';
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { getProfile } from '@/lib/actions/user-actions';
 import { 
   Container, 
@@ -24,18 +24,13 @@ import {
   Link as MuiLink,
   Avatar,
   alpha as muiAlpha,
-  Skeleton,
-  Chip
 } from '@mui/material';
 import { 
   CreditCard, 
   ShieldCheck, 
   MapPin,
-  CheckCircle2,
   AlertTriangle,
   ChevronLeft,
-  Info,
-  RefreshCcw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
@@ -69,7 +64,6 @@ export default function CheckoutPage() {
 
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [chargesPreview, setChargesPreview] = useState<ChargesPreview | null>(null);
@@ -99,60 +93,6 @@ export default function CheckoutPage() {
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
-
-  // HANDLE PAYMENT RETURN
-  useEffect(() => {
-    if (!mounted || !user) return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const orderId = urlParams.get('order_id');
-
-    if (orderId) {
-      handlePaymentVerification(orderId);
-    }
-  }, [mounted, user]);
-
-  const handlePaymentVerification = async (orderId: string) => {
-    setIsVerifying(true);
-    console.log(`[CHECKOUT] Return detected for order: ${orderId}. Verifying...`);
-
-    try {
-      // Short delay to let webhook breathe
-      await new Promise(r => setTimeout(r, 2000));
-
-      const res = await fetch(`/api/cashfree/verify?orderId=${orderId}`);
-      const data = await res.json();
-
-      if (data.success) {
-        console.log('[CHECKOUT] Payment verified! Clearing cart...');
-        await clearUserCart();
-        toast({ title: "Order Confirmed", description: "Your artisanal acquisition is secured." });
-        router.push(`/orders/${orderId}`);
-      } else {
-        console.log('[CHECKOUT] Payment status pending. Redirecting to tracking.');
-        toast({ title: "Verification Pending", description: "We are confirming your payment with the gateway." });
-        router.push(`/orders/${orderId}`);
-      }
-    } catch (error) {
-      console.error('[CHECKOUT] Verification failed:', error);
-      router.push(`/orders/${orderId}`);
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const clearUserCart = async () => {
-    if (!user || !firestore) return;
-    try {
-      const cartRef = collection(firestore, 'users', user.uid, 'cart', 'cart', 'items');
-      const snapshot = await getDocs(cartRef);
-      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deletePromises);
-      console.log('[CHECKOUT] Cart cleared successfully.');
-    } catch (e) {
-      console.error('[CHECKOUT] Failed to clear cart:', e);
-    }
-  };
 
   const fetchCharges = async (city: string) => {
     if (subtotal === 0) return;
@@ -186,25 +126,6 @@ export default function CheckoutPage() {
     }, 600);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [formData.city]);
-
-  useEffect(() => {
-    async function checkVerify() {
-      if (mounted && !isAuthLoading && user) {
-        const profile = await getProfile(user.uid);
-        const isComplete = profile?.firstName && profile?.lastName && profile?.phone && profile?.address && profile?.city && profile?.state && profile?.pincode;
-        
-        if (!isComplete) {
-          toast({
-            variant: "destructive",
-            title: "Collector Profile Incomplete",
-            description: "Please complete your delivery details in your workspace first.",
-          });
-          router.push('/profile');
-        }
-      }
-    }
-    checkVerify();
-  }, [user, isAuthLoading, router, toast, mounted]);
 
   useEffect(() => {
     async function loadUserData() {
@@ -262,9 +183,8 @@ export default function CheckoutPage() {
       if (!response.ok) throw new Error(result.message);
 
       if (result.isMock) {
-        toast({ title: "Mock Mode", description: "Simulating success..." });
-        await clearUserCart();
-        setTimeout(() => router.push(`/orders/${result.orderId}`), 2000);
+        toast({ title: "Mock Payment", description: "Simulating successful transaction." });
+        router.push(`/checkout/success?order_id=${result.orderId}`);
         return;
       }
 
@@ -289,17 +209,7 @@ export default function CheckoutPage() {
     return (
       <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
         <CircularProgress sx={{ color: '#EA781E' }} />
-        <Typography sx={{ mt: 2, color: 'text.secondary', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: 2 }}>Securing your session...</Typography>
-      </MuiBox>
-    );
-  }
-
-  if (isVerifying) {
-    return (
-      <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB', textAlign: 'center', p: 4 }}>
-        <RefreshCcw size={48} color="#EA781E" className="animate-spin mb-4" />
-        <Typography variant="h4" sx={{ fontWeight: 900, mb: 2 }}>Verifying Your Acquisition</Typography>
-        <Typography color="text.secondary">We are reconciling your payment with the gateway. Please do not close this window.</Typography>
+        <Typography sx={{ mt: 2, color: 'text.secondary', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: 2 }}>Securing session...</Typography>
       </MuiBox>
     );
   }
@@ -320,11 +230,11 @@ export default function CheckoutPage() {
           <MuiBox sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 2 }}>
             <MuiBox>
               <Typography variant="h3" sx={{ fontWeight: 900, color: '#271E1B', letterSpacing: '-0.03em', mb: 1, fontSize: { xs: '2rem', md: '3rem' } }}>Checkout</Typography>
-              <Typography color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '0.875rem', md: '1rem' } }}>Confirm your artisan acquisitions.</Typography>
+              <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Confirm your artisan acquisitions.</Typography>
             </MuiBox>
             <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: 'white', px: 3, py: 1.5, borderRadius: '1rem', border: '1px solid', borderColor: muiAlpha('#EA781E', 0.1) }}>
               <ShieldCheck size={18} color="#EA781E" />
-              <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#EA781E', fontSize: '0.65rem' }}>Secure Checkout</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#EA781E', fontSize: '0.65rem' }}>Secure Transaction</Typography>
             </MuiBox>
           </MuiBox>
         </MuiBox>
@@ -351,7 +261,7 @@ export default function CheckoutPage() {
                     <TextField fullWidth label="Street Address" name="address" value={formData.address} onChange={handleInputChange} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField fullWidth label="Nearest Landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} placeholder="e.g. Near City Temple" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
+                    <TextField fullWidth label="Nearest Landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <TextField fullWidth label="City" name="city" value={formData.city} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
@@ -381,7 +291,7 @@ export default function CheckoutPage() {
 
                 <RadioGroup defaultValue="card">
                   <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '1.25rem', borderColor: '#EA781E', bgcolor: muiAlpha('#EA781E', 0.03) }}>
-                    <FormControlLabel value="card" control={<Radio sx={{ color: '#EA781E', '&.Mui-checked': { color: '#EA781E' } }} />} label={
+                    <FormControlLabel value="card" control={<Radio sx={{ color: '#EA781E' }} />} label={
                       <MuiBox sx={{ ml: 1 }}>
                         <Typography sx={{ fontWeight: 800 }}>Cashfree Secure Gateway</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>UPI, Cards, Net Banking</Typography>
@@ -402,7 +312,7 @@ export default function CheckoutPage() {
 
           <Grid item xs={12} lg={5}>
             <Paper elevation={10} sx={{ borderRadius: '3rem', p: { xs: 4, md: 6 }, position: 'sticky', top: '100px', bgcolor: 'white' }}>
-              <Typography variant="h4" sx={{ fontWeight: 900, mb: 4, color: '#271E1B' }}>Acquisition Summary</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 900, mb: 4, color: '#271E1B' }}>Summary</Typography>
               
               <Stack spacing={3} sx={{ mb: 4 }}>
                 {cartItems?.map((item) => (
@@ -426,20 +336,13 @@ export default function CheckoutPage() {
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography>
                   <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography>
                 </MuiBox>
-                
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>FragileCare™ Shipping</Typography>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Shipping</Typography>
                   <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.shipping || 150}</Typography>
                 </MuiBox>
-
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Artisan Handling</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.handling ?? 40}</Typography>
-                </MuiBox>
-
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Premium Protection</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.premium ?? 20}</Typography>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Handling & Protection</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>₹{(chargesPreview?.charges.handling || 40) + (chargesPreview?.charges.premium || 20)}</Typography>
                 </MuiBox>
               </Stack>
 
