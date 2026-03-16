@@ -7,6 +7,11 @@ import { syncOrderToFirestore } from '@/lib/firebase-admin';
 import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 import crypto from 'crypto';
 
+/**
+ * @fileOverview Secure Order Creation API.
+ * Orchestrates MongoDB record creation and Cashfree session generation.
+ */
+
 export async function POST(req: NextRequest) {
   await dbConnect();
 
@@ -20,9 +25,10 @@ export async function POST(req: NextRequest) {
     let subtotal = 0;
     const validatedItems = [];
 
+    // 1. Validate Inventory and Pricing from Source of Truth (DB)
     for (const item of items) {
       const product = await KalamicProduct.findById(item.productId);
-      if (!product) throw new Error(`Product ${item.productId} no longer exists.`);
+      if (!product) throw new Error(`Product ${item.productId} is no longer available.`);
       
       subtotal += product.price * item.quantity;
       validatedItems.push({
@@ -34,15 +40,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 2. Compute Official Charges
     const calculatedCharges = calculateOrderCharges(subtotal, shippingDetails.city);
-    const charges = {
-      shipping: calculatedCharges.shipping,
-      handling: calculatedCharges.handling,
-      premium: calculatedCharges.premium
-    };
-    const totalAmount = calculatedCharges.total;
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
+    // 3. Create MongoDB Master Record
     const newOrder = await OrderedItem.create({
       userId,
       userName: customerName,
@@ -50,8 +52,12 @@ export async function POST(req: NextRequest) {
       userEmail: customerEmail || '',
       orderNumber,
       subtotal,
-      charges,
-      totalAmount,
+      charges: {
+        shipping: calculatedCharges.shipping,
+        handling: calculatedCharges.handling,
+        premium: calculatedCharges.premium
+      },
+      totalAmount: calculatedCharges.total,
       items: validatedItems,
       shippingAddress: {
         fullName: shippingDetails.fullName,
@@ -67,22 +73,21 @@ export async function POST(req: NextRequest) {
       paymentGateway: 'cashfree',
       paymentStatus: 'pending',
       paymentVerified: false,
-      transactionId: null,
-      paymentId: null,
-      paymentTimestamp: null,
-      gatewayOrderId: orderNumber,
+      gatewayOrderId: orderNumber, // Direct mapping
       expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
     });
 
+    // 4. Initial Sync to Firestore
     await syncOrderToFirestore(newOrder);
 
-    // Dynamic origin for return URL
+    // 5. Construct Return URL pointing to dedicated Success Landing Page
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
     const returnUrl = `${origin}/checkout/success?order_id={order_id}`;
 
+    // 6. Generate Cashfree Session
     const cashfreeResult = await createCashfreeOrder({
       orderId: orderNumber,
-      orderAmount: totalAmount,
+      orderAmount: calculatedCharges.total,
       orderCurrency: 'INR',
       customerDetails: {
         customerId: userId,
@@ -100,7 +105,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('[ORDER_CREATION_ERROR]:', error.message);
+    console.error('[ORDER_CREATION_FAILURE]:', error.message);
     return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }
