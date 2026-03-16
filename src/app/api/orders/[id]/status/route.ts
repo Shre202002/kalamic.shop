@@ -8,7 +8,6 @@ import { syncOrderToFirestore } from '@/lib/firebase-admin';
 /**
  * @fileOverview Direct Status Reconciliation API.
  * Ensures local database matches payment gateway state.
- * Transitions 'Initiated' orders to 'Placed' if payment is confirmed.
  */
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -20,8 +19,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (!id) return NextResponse.json({ message: 'Missing ID' }, { status: 400 });
 
-    // Search by orderNumber or fallback to _id
-    let order = await OrderedItem.findOne({ orderNumber: id });
+    // 1. Find the order locally
+    let order = await OrderedItem.findOne({
+      $or: [{ orderNumber: id }, { gatewayOrderId: id }]
+    });
+
     if (!order && /^[0-9a-fA-F]{24}$/.test(id)) {
       order = await OrderedItem.findById(id);
     }
@@ -30,26 +32,29 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
     }
 
-    // If already verified locally, return early
-    if (order.paymentStatus === 'paid' && order.paymentVerified) {
+    // If already verified, return early
+    if (order.paymentVerified) {
       return NextResponse.json({ orderStatus: order.orderStatus, paymentStatus: 'paid', paymentVerified: true });
     }
 
-    // Proactive check with Cashfree API
+    // 2. Fetch fresh status from Cashfree
     try {
       const cfOrder = await getCashfreeOrderStatus(order.orderNumber);
 
       if (cfOrder.order_status === 'PAID') {
         const updatedOrder = await OrderedItem.findOneAndUpdate(
-          { orderNumber: order.orderNumber, paymentVerified: { $ne: true } },
+          { 
+            $or: [{ orderNumber: order.orderNumber }, { gatewayOrderId: order.orderNumber }], 
+            paymentVerified: { $ne: true } 
+          },
           { 
             $set: {
               paymentStatus: 'paid',
               paymentVerified: true,
-              paymentId: cfOrder.cf_order_id || cfOrder.order_id,
+              paymentId: cfOrder.cf_order_id,
               paymentTimestamp: new Date(),
-              transactionId: cfOrder.cf_order_id || cfOrder.order_id,
-              orderStatus: 'Placed' // 🔥 Sync status to Placed
+              transactionId: cfOrder.cf_order_id,
+              orderStatus: 'Confirmed'
             }
           },
           { new: true }
@@ -58,7 +63,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (updatedOrder) {
           await syncOrderToFirestore(updatedOrder);
           
-          // Update Product Analytics
+          // Analytics Update
           for (const item of updatedOrder.items) {
             await KalamicProduct.findByIdAndUpdate(item.productId, {
               $inc: { 'analytics.total_orders': item.quantity }
@@ -73,7 +78,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         });
       }
     } catch (cfError) {
-      console.warn(`[RECONCILE] Gateway check failed for ${order.orderNumber}:`, cfError);
+      console.warn(`[RECONCILE_STATUS] Gateway check failed for ${order.orderNumber}:`, cfError);
     }
 
     return NextResponse.json({ 

@@ -2,7 +2,7 @@
 
 /**
  * @fileOverview Production-grade Cashfree Payment Gateway utilities.
- * Handles secure order creation, server-to-gateway status checks, and signature verification.
+ * Supports API & Webhook version 2025-01-01.
  */
 
 import crypto from 'crypto';
@@ -16,22 +16,31 @@ const BASE_URL = CASHFREE_ENV === 'production'
   : 'https://sandbox.cashfree.com/pg';
 
 /**
- * Utility to verify Cashfree Webhook Signature.
+ * Utility to verify Cashfree Webhook Signature (v2025-01-01).
+ * Requires the timestamp from 'x-webhook-timestamp' header.
  */
-export async function verifyCashfreeSignature(payload: string, signature: string): Promise<boolean> {
-  if (!CASHFREE_SECRET_KEY) return true; // Safety for mock mode
+export async function verifyCashfreeSignature(payload: string, signature: string, timestamp: string): Promise<boolean> {
+  if (!CASHFREE_SECRET_KEY || !CASHFREE_APP_ID) {
+    console.warn('[CASHFREE] No keys found. Mock verification returning true.');
+    return true; 
+  }
   
-  const expectedSignature = crypto
-    .createHmac('sha256', CASHFREE_SECRET_KEY)
-    .update(payload)
-    .digest('base64');
-    
-  return expectedSignature === signature;
+  try {
+    const data = timestamp + payload;
+    const expectedSignature = crypto
+      .createHmac('sha256', CASHFREE_SECRET_KEY)
+      .update(data)
+      .digest('base64');
+      
+    return expectedSignature === signature;
+  } catch (error) {
+    console.error('[CASHFREE_SIGNATURE_ERROR]', error);
+    return false;
+  }
 }
 
 /**
  * Creates a Cashfree order.
- * returnUrl is provided by the caller (API route) to ensure environment matching.
  */
 export async function createCashfreeOrder(data: {
   orderId: string;
@@ -46,7 +55,6 @@ export async function createCashfreeOrder(data: {
   returnUrl: string;
 }) {
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    console.warn('[CASHFREE] Missing credentials. Using Mock Mode.');
     return {
       paymentSessionId: `mock_session_${crypto.randomBytes(8).toString('hex')}`,
       orderId: data.orderId,
@@ -61,7 +69,7 @@ export async function createCashfreeOrder(data: {
         'Content-Type': 'application/json',
         'x-client-id': CASHFREE_APP_ID,
         'x-client-secret': CASHFREE_SECRET_KEY,
-        'x-api-version': '2023-08-01',
+        'x-api-version': '2023-08-01', // Keep 2023-08-01 for creation as it is stable
       },
       body: JSON.stringify({
         order_id: data.orderId,
@@ -80,10 +88,7 @@ export async function createCashfreeOrder(data: {
     });
 
     const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || 'Failed to create Cashfree order');
-    }
+    if (!response.ok) throw new Error(result.message || 'Failed to create Cashfree order');
 
     return {
       paymentSessionId: result.payment_session_id,
@@ -91,18 +96,19 @@ export async function createCashfreeOrder(data: {
       isMock: false
     };
   } catch (error: any) {
-    console.error('[CASHFREE_ERROR] Order creation:', error.message);
+    console.error('[CASHFREE_CREATE_ERROR]', error.message);
     throw error;
   }
 }
 
 /**
  * Fetches order status directly from Cashfree (Server-to-Server).
- * THIS IS THE ONLY TRUSTED SOURCE FOR PAYMENT STATUS.
+ * Uses version 2023-08-01 for status fetching.
  */
 export async function getCashfreeOrderStatus(orderId: string) {
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    return { order_status: 'PAID', cf_order_id: 'mock_payment_id' };
+    if (CASHFREE_ENV === 'production') throw new Error('Missing production credentials');
+    return { order_status: 'PAID', cf_order_id: 'mock_payment_id', order_id: orderId };
   }
 
   try {
@@ -115,13 +121,12 @@ export async function getCashfreeOrderStatus(orderId: string) {
       },
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch order from Cashfree');
-    }
-
-    return await response.json();
+    if (!response.ok) throw new Error('Failed to fetch order from Cashfree');
+    const result = await response.json();
+    console.log(`[CASHFREE_FETCH] Raw Status for ${orderId}:`, JSON.stringify(result));
+    return result;
   } catch (error: any) {
-    console.error('[CASHFREE_ERROR] Order fetch:', error.message);
+    console.error('[CASHFREE_FETCH_ERROR]', error.message);
     throw error;
   }
 }

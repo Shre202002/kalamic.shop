@@ -10,101 +10,103 @@ import { syncOrderToFirestore } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 
 /**
- * @fileOverview Secure Cashfree Webhook Handler.
- * Transitions order from 'Initiated' to 'Placed' upon successful reconciliation.
+ * @fileOverview Secure Cashfree Webhook Handler (v2025-01-01 compatible).
+ * IMPORTANT: Set this URL in Cashfree Dashboard: https://kalamic.shop/api/cashfree/webhook
  */
 
 export async function POST(req: NextRequest) {
+  console.log('[WEBHOOK_RECEIVE] Incoming notification from Cashfree...');
   await dbConnect();
 
   try {
     const rawBody = await req.text();
     const signature = req.headers.get('x-webhook-signature');
+    const timestamp = req.headers.get('x-webhook-timestamp');
 
-    if (!signature) {
-      return NextResponse.json({ message: 'Missing signature' }, { status: 401 });
+    if (!signature || !timestamp) {
+      console.error('[WEBHOOK_ERROR] Missing signature or timestamp');
+      return NextResponse.json({ message: 'Missing auth headers' }, { status: 401 });
     }
 
     // 1. Signature Verification
-    const isValid = await verifyCashfreeSignature(rawBody, signature);
+    const isValid = await verifyCashfreeSignature(rawBody, signature, timestamp);
     if (!isValid) {
-      console.error('[WEBHOOK_INVALID_SIGNATURE]');
+      console.error('[WEBHOOK_ERROR] Invalid signature');
       return NextResponse.json({ message: 'Invalid signature' }, { status: 403 });
     }
 
     const payload = JSON.parse(rawBody);
-    const { order_id } = payload.data.order;
+    const order_id = payload.data?.order?.order_id || payload.order_id;
+    console.log(`[WEBHOOK_PROCESSING] Order: ${order_id}, Type: ${payload.type}`);
 
-    // 2. Server-to-Gateway Confirmation (Trusted Source)
+    // 2. Fetch Source of Truth from Cashfree API
     const cfOrder = await getCashfreeOrderStatus(order_id);
 
     if (cfOrder.order_status === 'PAID') {
-      console.log(`[PAYMENT_SUCCESS] Reconciling: ${order_id}`);
-      
-      // 3. Atomic Update in MongoDB - only update if not already verified
+      // 3. Atomic Update in MongoDB
       const updatedOrder = await OrderedItem.findOneAndUpdate(
-        { orderNumber: order_id, paymentVerified: { $ne: true } },
+        { 
+          $or: [{ orderNumber: order_id }, { gatewayOrderId: order_id }], 
+          paymentVerified: { $ne: true } 
+        },
         { 
           $set: {
             paymentStatus: 'paid',
             paymentVerified: true,
-            paymentId: cfOrder.cf_order_id || cfOrder.order_id,
+            paymentId: cfOrder.cf_order_id || 'manual_sync',
             paymentTimestamp: new Date(),
-            transactionId: cfOrder.cf_order_id || cfOrder.order_id,
-            orderStatus: 'Placed'
+            transactionId: cfOrder.cf_order_id || 'manual_sync',
+            orderStatus: 'Confirmed'
           }
         },
         { new: true }
       );
 
       if (updatedOrder) {
+        console.log(`[WEBHOOK_SUCCESS] Order ${order_id} verified and updated.`);
+        
         // 4. Create Admin Notification
         await AdminNotification.create({
           type: 'order_placed',
           title: 'Acquisition Confirmed',
-          message: `${updatedOrder.userName} finalized payment for order ${updatedOrder.orderNumber} (₹${updatedOrder.totalAmount.toLocaleString()})`,
+          message: `${updatedOrder.userName} paid ₹${updatedOrder.totalAmount.toLocaleString()} for order ${updatedOrder.orderNumber}`,
           link: `/admin/orders`
         });
 
         // 5. Sync to Firestore
         await syncOrderToFirestore(updatedOrder);
 
-        // 6. Next.js Cache Invalidation
+        // 6. Cache Invalidation
         revalidatePath(`/orders/${updatedOrder.orderNumber}`);
         revalidatePath('/orders');
 
-        // 7. Update Product Analytics (Acquisitions)
+        // 7. Update Product Analytics
         for (const item of updatedOrder.items) {
           await KalamicProduct.findByIdAndUpdate(item.productId, {
             $inc: { 'analytics.total_orders': item.quantity }
           });
         }
 
-        // 8. Notify Admins via Email
+        // 8. Admin Email
         const admins = await User.find({ role: { $in: ['super_admin', 'admin'] } });
         const adminEmails = admins.map(a => a.email).filter(Boolean) as string[];
-
         if (adminEmails.length > 0) {
           try {
             await sendEmail({
               to: adminEmails.join(','),
-              subject: `Confirmed: New Order ${updatedOrder.orderNumber} Paid`,
-              text: `Payment verified for order ${updatedOrder.orderNumber}. Collector: ${updatedOrder.userName}. Total: ₹${updatedOrder.totalAmount}.`,
-              html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;"><h2>Payment Verified</h2><p>Order <b>${updatedOrder.orderNumber}</b> has been successfully paid and moved to the workshop queue.</p></div>`
+              subject: `Confirmed: Order ${updatedOrder.orderNumber} Paid`,
+              text: `Payment verified for order ${updatedOrder.orderNumber}.`,
+              html: `<h2>Order Confirmed</h2><p>Order <b>${updatedOrder.orderNumber}</b> has been paid.</p>`
             });
-          } catch (e) {
-            console.error('[NOTIFY_ADMIN_ERROR] Email failed:', e);
-          }
+          } catch (e) { console.error('[WEBHOOK_EMAIL_ERROR]', e); }
         }
-      } else {
-        console.warn(`[WEBHOOK_WARNING] Payment received for already verified or unknown order: ${order_id}`);
       }
     }
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true }, { status: 200 });
 
   } catch (error: any) {
-    console.error('[WEBHOOK_INTERNAL_ERROR]:', error.message);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    console.error('[WEBHOOK_CRITICAL_ERROR]:', error.message);
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 200 }); // Return 200 to stop retries
   }
 }
