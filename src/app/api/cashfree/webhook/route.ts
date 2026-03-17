@@ -50,10 +50,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true }, { status: 200 });
     }
 
+    if (order.paymentVerified) {
+      console.log(`[VERIFY_SKIP] Order ${order_id} already verified.`);
+
+      // Still clear cart even if already verified
+      await clearCartAfterOrder(order.userId, order.items);
+
+      return NextResponse.json({ success: true, status: order.orderStatus });
+    }
+
     if (payment_status === 'SUCCESS' && !order.paymentVerified) {
       const updatedOrder = await OrderedItem.findOneAndUpdate(
         { _id: order._id },
-        { 
+        {
           $set: {
             paymentStatus: 'paid',
             paymentVerified: true,
@@ -70,7 +79,7 @@ export async function POST(req: NextRequest) {
       if (updatedOrder) {
         await syncOrderToFirestore(updatedOrder);
         await clearCartAfterOrder(updatedOrder.userId, updatedOrder.items);
-        
+
         await AdminNotification.create({
           type: 'order_placed',
           title: 'Payment Verified (Webhook)',

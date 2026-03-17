@@ -46,11 +46,11 @@ export async function GET(req: NextRequest) {
 
     if (cfOrder.order_status === 'PAID') {
       const updatedOrder = await OrderedItem.findOneAndUpdate(
-        { 
+        {
           _id: order._id,
           paymentVerified: { $ne: true }
         },
-        { 
+        {
           $set: {
             paymentStatus: 'paid',
             paymentVerified: true,
@@ -66,11 +66,14 @@ export async function GET(req: NextRequest) {
 
       if (updatedOrder) {
         // Sync to Firestore for real-time UI updates
+
+        // ADD THESE LOGS
+        console.log('[DEBUG_ORDER_ITEMS]', JSON.stringify(updatedOrder.items, null, 2));
         await syncOrderToFirestore(updatedOrder);
-        
+
         // Remove purchased items from Firestore cart
         await clearCartAfterOrder(updatedOrder.userId, updatedOrder.items);
-        
+
         // Sync product sales analytics
         for (const item of updatedOrder.items) {
           await KalamicProduct.findByIdAndUpdate(item.productId, {
