@@ -56,27 +56,48 @@ export async function syncOrderToFirestore(order: IOrderedItem) {
 
 /**
  * Purges purchased items from the collector's Firestore cart.
+ * Matches cart documents by productVariantId field to ensure precise deletion.
  */
 export async function clearCartAfterOrder(userId: string, items: any[]) {
   if (!adminDb) return;
 
   try {
+    const cartRef = adminDb
+      .collection('users')
+      .doc(userId)
+      .collection('cart')
+      .doc('cart')
+      .collection('items');
+
+    // 1. Fetch current cart state
+    const snapshot = await cartRef.get();
     const batch = adminDb.batch();
-    for (const item of items) {
-      // Path: users/{userId}/cart/cart/items/{productId}
-      const cartItemRef = adminDb
-        .collection('users')
-        .doc(userId)
-        .collection('cart')
-        .doc('cart')
-        .collection('items')
-        .doc(item.productId);
+    let matchCount = 0;
+
+    // 2. Iterate and match by internal product field
+    for (const cartDoc of snapshot.docs) {
+      const cartItem = cartDoc.data();
       
-      batch.delete(cartItemRef);
+      // In Firestore, we use 'productVariantId' or 'productId'
+      const firestorePid = cartItem.productVariantId || cartItem.productId;
+      
+      const isOrdered = items.some(
+        (orderedItem) => orderedItem.productId === firestorePid
+      );
+
+      if (isOrdered) {
+        batch.delete(cartDoc.ref);
+        matchCount++;
+      }
     }
-    await batch.commit();
-    console.log(`[CART_PURGE] Success for user ${userId}`);
+
+    if (matchCount > 0) {
+      await batch.commit();
+      console.log(`[CART_PURGE] Successfully removed ${matchCount} items for user ${userId}`);
+    } else {
+      console.log(`[CART_PURGE] No matching cart items found for user ${userId}`);
+    }
   } catch (error: any) {
-    console.error(`[CART_PURGE_ERROR] Failed to clear cart:`, error.message);
+    console.error(`[CART_PURGE_ERROR]:`, error.message);
   }
 }
