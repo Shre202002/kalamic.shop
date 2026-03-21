@@ -388,6 +388,75 @@ export default function ProductDetailPage() {
             </motion.div>
           </div>
 
+          {/* PIECE AT A GLANCE (NEW STAT BAR) */}
+          <section className="py-12 border-t border-primary/10">
+            <div className="mb-10">
+              <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display mb-2">Piece at a Glance</h2>
+              <p className="text-sm text-muted-foreground font-medium">Dimensions, materials & craftsmanship details</p>
+            </div>
+            
+            <div className="flex overflow-x-auto gap-4 pb-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+              {/* Weight Card */}
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Scale className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Weight</p>
+                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.weight_kg || '0'} KG</p>
+                </div>
+              </div>
+
+              {/* Dimensions Cards */}
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Box className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Length</p>
+                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.length || '0'} CM</p>
+                </div>
+              </div>
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Box className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Width</p>
+                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.width || '0'} CM</p>
+                </div>
+              </div>
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Box className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Height</p>
+                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.height || '0'} CM</p>
+                </div>
+              </div>
+
+              {/* Quantity Card */}
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Package className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Quantity</p>
+                  <p className="font-black text-sm text-primary uppercase">{product.stock || '0'} IN STOCK</p>
+                </div>
+              </div>
+
+              {/* Technique Card */}
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Hammer className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Technique</p>
+                  <p className="font-black text-sm text-primary uppercase">{getStatValue(['technique', 'method'], 'Hand Thrown')}</p>
+                </div>
+              </div>
+
+              {/* Firing Card */}
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Zap className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Firing</p>
+                  <p className="font-black text-sm text-primary uppercase">{getStatValue(['firing', 'temp'], '1200°C Kiln')}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* NARRATIVE SECTIONS */}
           
           <section className="py-20 border-t border-primary/10">
@@ -562,75 +631,6 @@ export default function ProductDetailPage() {
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
-          </section>
-
-          {/* Piece at a Glance Section */}
-          <section className="py-20 border-t border-primary/10">
-            <div className="mb-12">
-              <h2 className="text-4xl sm:text-5xl font-black text-foreground uppercase tracking-tight font-display mb-2">Piece at a Glance</h2>
-              <p className="text-base text-muted-foreground font-medium">Dimensions, materials & craftsmanship details</p>
-            </div>
-            
-            <div className="flex overflow-x-auto gap-4 pb-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-              {/* Weight Card */}
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Scale className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Weight</p>
-                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.weight_kg || '0'} KG</p>
-                </div>
-              </div>
-
-              {/* Dimensions Cards */}
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Box className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Length</p>
-                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.length || '0'} CM</p>
-                </div>
-              </div>
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Box className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Width</p>
-                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.width || '0'} CM</p>
-                </div>
-              </div>
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Box className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Height</p>
-                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.height || '0'} CM</p>
-                </div>
-              </div>
-
-              {/* Quantity Card */}
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Package className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Quantity</p>
-                  <p className="font-black text-sm text-primary uppercase">{product.stock || '0'} IN STOCK</p>
-                </div>
-              </div>
-
-              {/* Technique Card */}
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Hammer className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Technique</p>
-                  <p className="font-black text-sm text-primary uppercase">{getStatValue(['technique', 'method'], 'Hand Thrown')}</p>
-                </div>
-              </div>
-
-              {/* Firing Card */}
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Zap className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Firing</p>
-                  <p className="font-black text-sm text-primary uppercase">{getStatValue(['firing', 'temp'], '1200°C Kiln')}</p>
-                </div>
               </div>
             </div>
           </section>
