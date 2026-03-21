@@ -245,10 +245,10 @@ export default function ProductDetailPage() {
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
   
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background font-body">
       <Navbar />
       <main className="flex-1">
-        <div className="container mx-auto px-4 max-w-7xl pt-6 md:pt-12">
+        <div className="container mx-auto px-4 max-w-7xl pt-6 md:pt-12 pb-20">
           
           {/* Back Navigation */}
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
@@ -303,73 +303,67 @@ export default function ProductDetailPage() {
 
             <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="lg:col-span-5 space-y-8 sm:space-y-10">
               <div className="space-y-6">
-                <h1 className="text-3xl md:text-4xl font-display font-semibold text-foreground tracking-tight leading-[1.1]">{product.name}</h1>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-foreground tracking-tight leading-[1.1]">{product.name}</h1>
                 
-                {product.short_description && (
-                  <p className="text-muted-foreground text-sm font-medium leading-relaxed italic border-l-2 border-primary/20 pl-4">
-                    {product.short_description}
-                  </p>
-                )}
-
-                <div className="flex items-baseline gap-5 py-2">
-                  <span className="text-3xl sm:text-4xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
+                <div className="flex items-baseline gap-5 py-4">
+                  <span className="text-4xl sm:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
                   {product.compare_at_price && (
-                    <span className="text-lg text-muted-foreground line-through decoration-primary/30 opacity-40 font-semibold">₹{product.compare_at_price.toLocaleString()}</span>
+                    <span className="text-xl sm:text-2xl text-muted-foreground line-through decoration-primary/30 opacity-40 font-semibold">₹{product.compare_at_price.toLocaleString()}</span>
                   )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
-                  <Button size="lg" onClick={handleBuyNow} className="w-full h-16 md:h-20 rounded-2xl gradient-saffron text-primary-foreground font-bold text-lg px-10 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                  <Button size="lg" onClick={handleBuyNow} className="w-full h-16 md:h-20 rounded-2xl gradient-saffron text-primary-foreground font-bold text-xl px-10 shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">
                     <ShoppingCart className="mr-3 h-6 w-6" /> Buy Now
                   </Button>
                 </div>
 
-                {/* Delivery Info Strip */}
-                <div className="grid grid-cols-3 gap-px bg-border border rounded-2xl overflow-hidden shadow-sm">
-                  <div className="bg-white p-4 flex flex-col items-center text-center gap-2">
-                    <Truck className="h-4 w-4 text-primary/80" />
-                    <div>
-                      <p className="font-black text-[10px] leading-tight uppercase">5–7 Business Days</p>
-                      <p className="text-muted-foreground text-[8px] font-medium leading-tight">FragileCare™ Shipping</p>
+                {/* DELIVERY / POLICY INFO STRIP */}
+                <div className="grid grid-cols-3 gap-px bg-border border rounded-2xl overflow-hidden shadow-sm bg-white">
+                  <div className="bg-white p-4 md:p-6 flex flex-col items-center text-center gap-3">
+                    <Truck className="h-5 w-5 text-primary/80" />
+                    <div className="space-y-1">
+                      <p className="font-black text-xs md:text-sm leading-tight uppercase text-foreground">5–7 Business Days</p>
+                      <p className="text-muted-foreground text-[10px] md:text-xs font-medium leading-tight">FragileCare™ Shipping</p>
                     </div>
                   </div>
-                  <div className="bg-white p-4 flex flex-col items-center text-center gap-2">
-                    <RefreshCcw className="h-4 w-4 text-primary/80" />
-                    <div>
-                      <p className="font-black text-[10px] leading-tight uppercase">48hr Damage Claims</p>
-                      <p className="text-muted-foreground text-[8px] font-medium leading-tight">Report within 48 hours</p>
+                  <div className="bg-white p-4 md:p-6 flex flex-col items-center text-center gap-3">
+                    <RefreshCcw className="h-5 w-5 text-primary/80" />
+                    <div className="space-y-1">
+                      <p className="font-black text-xs md:text-sm leading-tight uppercase text-foreground">48hr Damage Claims</p>
+                      <p className="text-muted-foreground text-[10px] md:text-xs font-medium leading-tight">Report within 48 hours</p>
                     </div>
                   </div>
-                  <div className="bg-white p-4 flex flex-col items-center text-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-primary/80" />
-                    <div>
-                      <p className="font-black text-[10px] leading-tight uppercase">100% Handmade</p>
-                      <p className="text-muted-foreground text-[8px] font-medium leading-tight">Certified artisan craft</p>
+                  <div className="bg-white p-4 md:p-6 flex flex-col items-center text-center gap-3">
+                    <ShieldCheck className="h-5 w-5 text-primary/80" />
+                    <div className="space-y-1">
+                      <p className="font-black text-xs md:text-sm leading-tight uppercase text-foreground">100% Handmade</p>
+                      <p className="text-muted-foreground text-[10px] md:text-xs font-medium leading-tight">Artisan Certified</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button asChild variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-primary/20 text-primary font-black text-sm"><Link href={`https://wa.me/916387562920?text=Hi, I am interested in ${encodeURIComponent(product.name)}`} target="_blank">Enquire Now</Link></Button>
-                  <Button onClick={handleShare} variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-border text-muted-foreground font-black text-sm">Share Piece</Button>
+                  <Button asChild variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-primary/20 text-primary font-black text-sm hover:bg-primary/5 transition-all"><Link href={`https://wa.me/916387562920?text=Hi, I am interested in ${encodeURIComponent(product.name)}`} target="_blank">Enquire Now</Link></Button>
+                  <Button onClick={handleShare} variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-border text-muted-foreground font-black text-sm hover:bg-muted transition-all">Share Piece</Button>
                 </div>
               </div>
 
               {/* Trust Indicators Row */}
-              <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-primary/5">
                 <div className="flex flex-col items-center text-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-primary/60" />
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Secure SSL</p>
+                  <ShieldCheck className="h-6 w-6 text-primary/60" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Secure SSL</p>
                 </div>
                 <div className="flex flex-col items-center text-center gap-2">
-                  <MapPin className="h-5 w-5 text-primary/60" />
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Pan India</p>
+                  <MapPin className="h-6 w-6 text-primary/60" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pan India</p>
                 </div>
                 <button onClick={handleAddToWishlist} className="flex flex-col items-center text-center gap-2 group outline-none">
-                  <div className={cn("h-10 w-10 rounded-full transition-all flex items-center justify-center", isFavorited ? "bg-primary/10 text-primary" : "bg-muted text-primary/60 group-hover:bg-primary/5")}>
-                    <Heart className={cn("h-5 w-5", isFavorited && "fill-current")} />
+                  <div className={cn("h-12 w-12 rounded-full transition-all flex items-center justify-center", isFavorited ? "bg-primary/10 text-primary" : "bg-muted text-primary/60 group-hover:bg-primary/5")}>
+                    <Heart className={cn("h-6 w-6", isFavorited && "fill-current")} />
                   </div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">{isFavorited ? "In Wishlist" : "Wishlist"}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">{isFavorited ? "In Wishlist" : "Wishlist"}</p>
                 </button>
               </div>
             </motion.div>
@@ -380,12 +374,17 @@ export default function ProductDetailPage() {
           {/* Section 1: The Artisan's Narrative */}
           <section className="py-20 border-t border-primary/10">
             <div className="max-w-4xl">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="h-1 w-10 bg-primary rounded-full" />
-                <h2 className="text-3xl font-black text-foreground uppercase tracking-tight">The Artisan's Narrative</h2>
+              <div className="flex items-center gap-4 mb-10">
+                <div className="h-1 w-12 bg-primary rounded-full" />
+                <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">The Artisan's Narrative</h2>
               </div>
-              <div className="prose prose-stone max-w-none">
-                <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap font-medium">
+              <div className="space-y-8">
+                {product.short_description && (
+                  <p className="text-xl md:text-2xl text-primary font-semibold font-display italic leading-snug">
+                    "{product.short_description}"
+                  </p>
+                )}
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed whitespace-pre-wrap font-medium">
                   {product.description}
                 </p>
               </div>
@@ -395,17 +394,17 @@ export default function ProductDetailPage() {
           {/* Section 2: Technical Precision */}
           <section className="py-20 border-t border-primary/10">
             <div className="max-w-4xl">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="h-1 w-10 bg-primary rounded-full" />
-                <h2 className="text-3xl font-black text-foreground uppercase tracking-tight">Technical Precision</h2>
+              <div className="flex items-center gap-4 mb-10">
+                <div className="h-1 w-12 bg-primary rounded-full" />
+                <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">Technical Precision</h2>
               </div>
-              <TableContainer component={Paper} elevation={0} className="rounded-[2.5rem] border border-primary/10 overflow-hidden bg-white/50 backdrop-blur-sm">
+              <TableContainer component={Paper} elevation={0} className="rounded-[2.5rem] border border-primary/10 overflow-hidden bg-white/50 backdrop-blur-sm shadow-xl">
                 <Table>
                   <TableBody>
                     {(product.specifications || []).map((spec: any, i: number) => (
                       <TableRow key={i} className="hover:bg-primary/[0.02] transition-colors" sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:nth-of-type(odd)': { bgcolor: muiAlpha('#C97A40', 0.01) } }}>
-                        <TableCell className="border-primary/5 py-5 sm:py-6"><span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-70">{spec.key}</span></TableCell>
-                        <TableCell align="right" className="border-primary/5 py-5 sm:py-6"><span className="text-xs sm:text-sm font-bold text-primary">{spec.value}</span></TableCell>
+                        <TableCell className="border-primary/5 py-6 sm:py-8 pl-8 md:pl-12"><span className="text-xs font-black uppercase tracking-[0.25em] text-muted-foreground opacity-80">{spec.key}</span></TableCell>
+                        <TableCell align="right" className="border-primary/5 py-6 sm:py-8 pr-8 md:pr-12"><span className="text-base sm:text-lg font-bold text-primary">{spec.value}</span></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -416,16 +415,16 @@ export default function ProductDetailPage() {
 
           {/* Section 3: Gallery of Details */}
           <section className="py-20 border-t border-primary/10">
-            <div className="flex items-center gap-3 mb-10">
-              <div className="h-1 w-10 bg-primary rounded-full" />
-              <h2 className="text-3xl font-black text-foreground uppercase tracking-tight">Gallery of Details</h2>
+            <div className="flex items-center gap-4 mb-12">
+              <div className="h-1 w-12 bg-primary rounded-full" />
+              <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">Gallery of Details</h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-10">
               {galleryImages.map((img, idx) => (
                 <motion.div 
                   key={idx}
-                  whileHover={{ scale: 1.02 }}
-                  className="relative aspect-square rounded-[2rem] overflow-hidden bg-white shadow-lg cursor-zoom-in"
+                  whileHover={{ scale: 1.03 }}
+                  className="relative aspect-square rounded-[2.5rem] overflow-hidden bg-white shadow-2xl cursor-zoom-in border-4 border-white"
                   onClick={() => { setLightboxImage(img.url); setIsLightboxOpen(true); }}
                 >
                   <Image src={img.url} alt={img.alt || `View ${idx + 1}`} fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
@@ -436,17 +435,17 @@ export default function ProductDetailPage() {
 
           {/* Section 4: You May Also Cherish (Related Products) */}
           {relatedProducts.length > 0 && (
-            <section className="py-20 border-t border-primary/10">
-              <div className="flex items-center justify-between mb-10">
-                <div className="flex items-center gap-3">
-                  <div className="h-1 w-10 bg-primary rounded-full" />
-                  <h2 className="text-3xl font-black text-foreground uppercase tracking-tight">You May Also Cherish</h2>
+            <section className="py-24 border-t border-primary/10">
+              <div className="flex items-center justify-between mb-12">
+                <div className="flex items-center gap-4">
+                  <div className="h-1 w-12 bg-primary rounded-full" />
+                  <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">You May Also Cherish</h2>
                 </div>
-                <Button asChild variant="ghost" className="text-primary font-black uppercase tracking-widest text-[10px]">
-                  <Link href="/products" className="flex items-center gap-2">View All <ChevronRight size={14} /></Link>
+                <Button asChild variant="ghost" className="text-primary font-black uppercase tracking-widest text-xs hover:bg-primary/5 px-6 rounded-full border border-primary/10">
+                  <Link href="/products" className="flex items-center gap-2">View All <ChevronRight size={16} /></Link>
                 </Button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-12">
                 {relatedProducts.map((p) => (
                   <ProductCard 
                     key={p._id}
@@ -464,21 +463,21 @@ export default function ProductDetailPage() {
           )}
 
           {/* Section 5: Collector's Testimonials (Reviews) */}
-          <section className="py-20 border-t border-primary/10">
-            <div className="flex items-center gap-3 mb-12">
-              <div className="h-1 w-10 bg-primary rounded-full" />
-              <h2 className="text-3xl font-black text-foreground uppercase tracking-tight">Collector's Testimonials</h2>
+          <section className="py-24 border-t border-primary/10">
+            <div className="flex items-center gap-4 mb-16">
+              <div className="h-1 w-12 bg-primary rounded-full" />
+              <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">Collector's Testimonials</h2>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-              <div className="lg:col-span-4 space-y-8">
-                <Paper sx={{ p: 4, borderRadius: '2.5rem', bgcolor: alpha(primarySaffron, 0.03), border: 'none' }}>
-                  <h3 className="text-xl font-black text-primary tracking-tight mb-6">Aggregate Rating</h3>
-                  <div className="flex items-center gap-4">
-                    <div className="text-5xl font-black text-primary">{product.analytics?.average_rating?.toFixed(1) || '5.0'}</div>
-                    <div className="space-y-1">
-                      <div className="flex text-accent">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 md:gap-20">
+              <div className="lg:col-span-4 space-y-10">
+                <Paper sx={{ p: 6, borderRadius: '3rem', bgcolor: alpha(primarySaffron, 0.03), border: 'none', shadow: 'none' }}>
+                  <h3 className="text-2xl font-black text-primary tracking-tight mb-8 font-display">Aggregate Rating</h3>
+                  <div className="flex items-center gap-6">
+                    <div className="text-6xl font-black text-primary tracking-tighter">{product.analytics?.average_rating?.toFixed(1) || '5.0'}</div>
+                    <div className="space-y-2">
+                      <div className="flex text-accent gap-1">
                         {[1,2,3,4,5].map(i => (
-                          <Star key={i} className={cn("h-4 w-4", i <= Math.round(product.analytics?.average_rating || 5) ? "fill-current" : "opacity-20")} />
+                          <Star key={i} className={cn("h-5 w-5", i <= Math.round(product.analytics?.average_rating || 5) ? "fill-current" : "opacity-20")} />
                         ))}
                       </div>
                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Based on {reviews.length} reviews</p>
@@ -487,65 +486,65 @@ export default function ProductDetailPage() {
                 </Paper>
 
                 {user ? (
-                  <Paper sx={{ p: 4, borderRadius: '2.5rem', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', bgcolor: 'white' }}>
-                    <div className="space-y-2 mb-6">
-                      <h4 className="text-lg font-black text-primary uppercase tracking-tight">Share Your Experience</h4>
-                      <p className="text-xs text-muted-foreground font-medium">How would you describe this handcrafted piece?</p>
+                  <Paper elevation={10} sx={{ p: 6, borderRadius: '3rem', bgcolor: 'white', border: '1px solid', borderColor: alpha(primarySaffron, 0.05) }}>
+                    <div className="space-y-3 mb-8">
+                      <h4 className="text-xl font-black text-primary uppercase tracking-tight font-display">Share Your Experience</h4>
+                      <p className="text-sm text-muted-foreground font-medium">How would you describe this handcrafted piece?</p>
                     </div>
-                    <form onSubmit={handleSubmitReview} className="space-y-6">
-                      <div className="space-y-3">
+                    <form onSubmit={handleSubmitReview} className="space-y-8">
+                      <div className="space-y-4">
                         <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Your Rating</Label>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                           {[1,2,3,4,5].map((star) => (
                             <button key={star} type="button" onClick={() => setReviewRating(star)} className="group focus:outline-none">
-                              <Star className={cn("h-8 w-8 transition-all duration-300", star <= reviewRating ? "text-accent fill-current scale-110" : "text-muted-foreground opacity-30 hover:scale-105")} />
+                              <Star className={cn("h-10 w-10 transition-all duration-300", star <= reviewRating ? "text-accent fill-current scale-110" : "text-muted-foreground opacity-30 hover:scale-105")} />
                             </button>
                           ))}
                         </div>
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Testimonial</Label>
-                        <textarea required value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder="Describe the texture, the intricate patterns..." className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none shadow-inner" />
+                        <textarea required value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder="Describe the texture, the intricate patterns..." className="w-full h-40 p-6 rounded-[2rem] bg-muted border-none focus:ring-2 focus:ring-primary text-base font-medium resize-none shadow-inner" />
                       </div>
-                      <Button type="submit" disabled={isSubmittingReview} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/10">
-                        {isSubmittingReview ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post Testimonial"}
+                      <Button type="submit" disabled={isSubmittingReview} className="w-full h-16 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all">
+                        {isSubmittingReview ? <Loader2 className="h-5 w-5 animate-spin" /> : "Post Testimonial"}
                       </Button>
                     </form>
                   </Paper>
                 ) : (
-                  <Paper sx={{ p: 5, borderRadius: '2.5rem', bgcolor: alpha('#000', 0.02), border: '1px dashed', borderColor: 'divider', textAlign: 'center' }}>
-                    <Lock className="mx-auto h-8 w-8 text-primary opacity-20 mb-4" />
-                    <p className="text-[10px] font-black text-muted-foreground uppercase leading-relaxed tracking-widest mb-6">Sign in to share your experience.</p>
-                    <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-12 hover:bg-primary hover:text-white transition-all"><Link href="/auth/login">Join the Community</Link></Button>
+                  <Paper sx={{ p: 8, borderRadius: '3rem', bgcolor: alpha('#000', 0.02), border: '2px dashed', borderColor: alpha(primarySaffron, 0.1), textAlign: 'center' }}>
+                    <Lock className="mx-auto h-10 w-10 text-primary opacity-20 mb-6" />
+                    <p className="text-xs font-black text-muted-foreground uppercase leading-relaxed tracking-[0.2em] mb-8">Sign in to share your experience with the community.</p>
+                    <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-14 hover:bg-primary hover:text-white transition-all"><Link href="/auth/login">Join the Community</Link></Button>
                   </Paper>
                 )}
               </div>
 
-              <div className="lg:col-span-8 space-y-6">
+              <div className="lg:col-span-8 space-y-8">
                 {reviews.length === 0 ? (
-                  <div className="py-20 text-center bg-muted/20 rounded-[3rem] border border-dashed border-primary/10 px-8">
-                    <MessageSquare className="mx-auto h-16 w-16 text-primary opacity-10 mb-6" />
-                    <p className="text-muted-foreground font-medium italic">"Every masterpiece awaits its first collector's voice."</p>
+                  <div className="py-32 text-center bg-muted/20 rounded-[4rem] border-2 border-dashed border-primary/10 px-10">
+                    <MessageSquare className="mx-auto h-20 w-20 text-primary opacity-10 mb-8" />
+                    <p className="text-xl text-muted-foreground font-medium italic font-display">"Every masterpiece awaits its first collector's voice."</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                     {reviews.map((review, idx) => (
-                      <Paper key={idx} sx={{ p: 4, borderRadius: '2.5rem', bgcolor: 'white', border: '1px solid', borderColor: 'divider', transition: 'all 0.3s', '&:hover': { boxShadow: '0 20px 40px rgba(0,0,0,0.05)' } }}>
-                        <div className="flex justify-between items-start mb-6">
-                          <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black overflow-hidden shadow-inner text-sm uppercase">
+                      <Paper key={idx} elevation={0} sx={{ p: 5, borderRadius: '2.5rem', bgcolor: 'white', border: '1px solid', borderColor: alpha(darkTerracotta, 0.05), transition: 'all 0.4s', '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 30px 60px rgba(0,0,0,0.05)' } }}>
+                        <div className="flex justify-between items-start mb-8">
+                          <div className="flex items-center gap-5">
+                            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black overflow-hidden shadow-inner text-lg uppercase font-display">
                               {review.user_avatar ? <img src={review.user_avatar} className="h-full w-full object-cover" /> : review.user_name?.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <p className="text-sm font-black text-foreground flex items-center gap-2">{review.user_name || 'Collector'} {review.is_verified_purchase && <CheckCircle2 className="h-3 w-3 text-green-500" />}</p>
-                              <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{dayjs(review.createdAt).format('DD MMM YYYY')}</p>
+                              <p className="text-base font-black text-foreground flex items-center gap-2 font-display">{review.user_name || 'Collector'} {review.is_verified_purchase && <CheckCircle2 className="h-4 w-4 text-green-500" />}</p>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">{dayjs(review.createdAt).format('DD MMM YYYY')}</p>
                             </div>
                           </div>
                           <div className="flex gap-0.5 text-primary">
-                            {[...Array(5)].map((_, i) => <Star key={i} className={cn("h-3.5 w-3.5", i < review.rating ? "fill-current" : "opacity-20")} />)}
+                            {[...Array(5)].map((_, i) => <Star key={i} className={cn("h-4 w-4", i < review.rating ? "fill-current" : "opacity-20")} />)}
                           </div>
                         </div>
-                        <p className="text-sm font-medium text-muted-foreground leading-relaxed italic">"{review.comment || review.review_text}"</p>
+                        <p className="text-base font-medium text-muted-foreground leading-relaxed italic border-l-2 border-primary/10 pl-6">"{review.comment || review.review_text}"</p>
                       </Paper>
                     ))}
                   </div>
@@ -555,42 +554,43 @@ export default function ProductDetailPage() {
           </section>
 
           {/* Section 6: Shipping & FAQs (Rest Page Content) */}
-          <section className="py-20 border-t border-primary/10">
-            <div className="text-center space-y-4 mb-16 px-4">
-              <h2 className="text-3xl sm:text-4xl font-display font-semibold text-foreground tracking-tight">FragileCare™ Shipping</h2>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] max-w-md mx-auto leading-relaxed">Expert Logistics for Handcrafted Masterpieces</p>
+          <section className="py-24 border-t border-primary/10">
+            <div className="text-center space-y-4 mb-20 px-4">
+              <h2 className="text-4xl sm:text-5xl font-display font-semibold text-foreground tracking-tight">FragileCare™ Shipping</h2>
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.3em] max-w-md mx-auto leading-relaxed">Expert Logistics for Handcrafted Masterpieces</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-20">
-              <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:border-primary/20">
-                <Scale className="h-6 w-6 text-primary" />
-                <h4 className="text-xs font-bold text-primary uppercase tracking-widest">Weight Metrics</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed font-medium">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12 mb-24">
+              <div className="p-10 md:p-14 rounded-[3rem] bg-white shadow-2xl border border-border space-y-6 transition-all hover:border-primary/30 group">
+                <Scale className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
+                <h4 className="text-sm font-black text-primary uppercase tracking-widest">Weight Metrics</h4>
+                <p className="text-base text-muted-foreground leading-relaxed font-medium">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG for standard handling.</p>
               </div>
-              <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-white shadow-xl border border-border space-y-4 transition-all hover:border-primary/20">
-                <Box className="h-6 w-6 text-primary" />
-                <h4 className="text-xs font-bold text-primary uppercase tracking-widest">Package Profile</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed font-medium">Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'}x{product.shipping?.package_dimensions_cm?.width || '30'}x{product.shipping?.package_dimensions_cm?.height || '15'} CM.</p>
+              <div className="p-10 md:p-14 rounded-[3rem] bg-white shadow-2xl border border-border space-y-6 transition-all hover:border-primary/30 group">
+                <Box className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
+                <h4 className="text-sm font-black text-primary uppercase tracking-widest">Package Profile</h4>
+                <p className="text-base text-muted-foreground leading-relaxed font-medium">Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'}x{product.shipping?.package_dimensions_cm?.width || '30'}x{product.shipping?.package_dimensions_cm?.height || '15'} CM.</p>
               </div>
-              <div className="p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] bg-primary text-white shadow-xl space-y-4 md:col-span-2 lg:col-span-1">
-                <Truck className="h-6 w-6" />
-                <h4 className="text-xs font-bold uppercase tracking-widest text-white">FragileCare™ Priority</h4>
-                <p className="text-sm opacity-80 leading-relaxed text-white font-medium">Every ceramic treasure is encased in reinforced honeycomb padding and insured transit.</p>
+              <div className="p-10 md:p-14 rounded-[3rem] bg-primary text-white shadow-2xl space-y-6 md:col-span-2 lg:col-span-1 group relative overflow-hidden">
+                <Truck className="h-8 w-8 text-white relative z-10 group-hover:translate-x-2 transition-transform" />
+                <h4 className="text-sm font-black uppercase tracking-widest text-white relative z-10">FragileCare™ Priority</h4>
+                <p className="text-base opacity-90 leading-relaxed text-white font-medium relative z-10">Every ceramic treasure is encased in reinforced honeycomb padding and insured during transit.</p>
+                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
 
             {product.faqs?.length > 0 && (
               <div className="max-w-4xl mx-auto px-4">
                 <div className="text-center space-y-4 mb-16">
-                  <h2 className="text-3xl sm:text-4xl font-display font-semibold text-foreground">Curiosity Corner</h2>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Artisanal FAQ & Preservation</p>
+                  <h2 className="text-4xl sm:text-5xl font-display font-semibold text-foreground tracking-tight">Curiosity Corner</h2>
+                  <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.3em]">Artisanal FAQ & Preservation</p>
                 </div>
-                <Accordion type="single" collapsible className="space-y-4">
+                <Accordion type="single" collapsible className="space-y-6">
                   {product.faqs.map((faq: any, i: number) => (
-                    <AccordionItem key={i} value={`item-${i}`} className="border rounded-2xl px-6 bg-white overflow-hidden data-[state=open]:border-primary/30 transition-all shadow-sm">
-                      <AccordionTrigger className="hover:no-underline py-6">
-                        <span className="text-left font-black text-foreground text-sm sm:text-base">{faq.question}</span>
+                    <AccordionItem key={i} value={`item-${i}`} className="border-2 rounded-[2rem] px-8 bg-white overflow-hidden data-[state=open]:border-primary/30 transition-all shadow-lg hover:shadow-xl">
+                      <AccordionTrigger className="hover:no-underline py-8">
+                        <span className="text-left font-black text-foreground text-lg sm:text-xl font-display">{faq.question}</span>
                       </AccordionTrigger>
-                      <AccordionContent className="pb-6 text-muted-foreground leading-relaxed text-sm font-medium">
+                      <AccordionContent className="pb-8 text-muted-foreground leading-relaxed text-base sm:text-lg font-medium border-t pt-6">
                         {faq.answer}
                       </AccordionContent>
                     </AccordionItem>
@@ -607,12 +607,12 @@ export default function ProductDetailPage() {
       {/* Fullscreen Lightbox */}
       <AnimatePresence>
         {isLightboxOpen && lightboxImage && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4" onClick={() => setIsLightboxOpen(false)}>
-            <button className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors">
-              <X className="h-10 w-10" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4" onClick={() => setIsLightboxOpen(false)}>
+            <button className="absolute top-10 right-10 text-white/50 hover:text-white transition-colors">
+              <X className="h-12 w-12" />
             </button>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-5xl aspect-square" onClick={e => e.stopPropagation()}>
-              <Image src={lightboxImage} alt="Fullscreen" fill className="object-contain" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-6xl aspect-square" onClick={e => e.stopPropagation()}>
+              <Image src={lightboxImage} alt="Fullscreen" fill className="object-contain" priority />
             </motion.div>
           </motion.div>
         )}
