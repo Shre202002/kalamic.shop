@@ -10,10 +10,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Playfair Display"', '"Noto Serif Devanagari"', 'serif'],
-        body: ['Poppins', '"Noto Sans Devanagari"', 'sans-serif'],
-        sans: ['Poppins', '"Noto Sans Devanagari"', 'sans-serif'],
-        serif: ['"Playfair Display"', '"Noto Serif Devanagari"', 'serif'],
+        display: ['var(--font-display)', 'serif'],
+        body: ['var(--font-body)', 'sans-serif'],
+        sans: ['var(--font-body)', 'sans-serif'],
+        serif: ['var(--font-display)', 'serif'],
         code: ['monospace'],
       },
       colors: {

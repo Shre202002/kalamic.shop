@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -45,15 +44,16 @@ const adminTheme = createTheme({
     background: { default: '#F6F1E9' } // Soft Cream
   },
   typography: {
-    fontFamily: '"Inter", sans-serif',
+    fontFamily: '"Poppins", "Inter", sans-serif',
     fontSize: 13,
     h4: { fontWeight: 700, fontSize: '1.5rem', fontFamily: '"Playfair Display", serif' },
-    h6: { fontWeight: 600, fontSize: '0.9rem', fontFamily: '"Playfair Display", serif' }
+    h6: { fontWeight: 600, fontSize: '0.9rem', fontFamily: '"Playfair Display", serif' },
+    overline: { fontWeight: 800, letterSpacing: '0.1em' }
   },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: { borderRadius: 8, textTransform: 'none', fontWeight: 600, fontFamily: '"Inter", sans-serif' }
+        root: { borderRadius: 8, textTransform: 'none', fontWeight: 600, fontFamily: '"Poppins", sans-serif' }
       }
     },
     MuiPaper: {
