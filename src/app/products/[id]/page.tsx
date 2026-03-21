@@ -42,7 +42,9 @@ import {
   RefreshCcw,
   ChevronRight,
   ChevronLeft,
-  User as UserIcon
+  User as UserIcon,
+  Hammer,
+  Zap
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -204,7 +206,7 @@ export default function ProductDetailPage() {
       }
     } else {
       navigator.clipboard.writeText(window.location.href);
-      toast({ title: "Link Copied", description: "You can now paste it anywhere." });
+      toast({ title: "Link Copied", description: "Share this masterpiece with others." });
     }
   };
 
@@ -242,6 +244,13 @@ export default function ProductDetailPage() {
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
   
+  const getStatValue = (keywords: string[], fallback: string) => {
+    const spec = product.specifications?.find((s: any) => 
+      keywords.some(k => s.key.toLowerCase().includes(k))
+    );
+    return spec ? spec.value : fallback;
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background font-body">
       <Navbar />
@@ -262,18 +271,16 @@ export default function ProductDetailPage() {
                 onMouseEnter={() => setIsSliderPaused(true)}
                 onMouseLeave={() => setIsSliderPaused(false)}
               >
-                {/* Image Navigation Arrows */}
+                {/* Arrow Controls */}
                 <button 
                   onClick={(e) => { e.stopPropagation(); setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 rounded-full bg-black/30 backdrop-blur-sm text-white items-center justify-center hidden sm:flex hover:bg-black/50 transition-all"
-                  aria-label="Previous image"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); setActiveImageIndex((prev) => (prev + 1) % galleryImages.length); }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 rounded-full bg-black/30 backdrop-blur-sm text-white items-center justify-center hidden sm:flex hover:bg-black/50 transition-all"
-                  aria-label="Next image"
                 >
                   <ChevronRight className="h-6 w-6" />
                 </button>
@@ -387,15 +394,13 @@ export default function ProductDetailPage() {
             <div className="max-w-4xl">
               <div className="flex items-center gap-4 mb-10">
                 <div className="h-1 w-12 bg-primary rounded-full" />
-                <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">The Artisan's Narrative</h2>
+                <h2 className="text-3xl sm:text-5xl font-black text-foreground uppercase tracking-tight font-display">Behind the Craft</h2>
               </div>
               <div className="space-y-8">
-                {product.short_description && (
-                  <p className="text-xl md:text-2xl text-primary font-semibold font-display italic leading-snug">
-                    "{product.short_description}"
-                  </p>
-                )}
-                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed whitespace-pre-wrap font-medium">
+                <p className="text-xl md:text-2xl text-foreground/60 font-semibold font-display italic leading-snug">
+                  "Each piece carries the imprint of the artisan's hands — shaped, fired, and finished with generations of ceramic knowledge."
+                </p>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap font-medium">
                   {product.description}
                 </p>
               </div>
@@ -408,18 +413,19 @@ export default function ProductDetailPage() {
                 <div className="h-1 w-12 bg-primary rounded-full" />
                 <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">Technical Precision</h2>
               </div>
-              <TableContainer component={Paper} elevation={0} className="rounded-[2.5rem] border border-primary/10 overflow-hidden bg-white/50 backdrop-blur-sm shadow-xl">
-                <Table>
-                  <TableBody>
-                    {(product.specifications || []).map((spec: any, i: number) => (
-                      <TableRow key={i} className="hover:bg-primary/[0.02] transition-colors" sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:nth-of-type(odd)': { bgcolor: muiAlpha('#C97A40', 0.01) } }}>
-                        <TableCell className="border-primary/5 py-6 sm:py-8 pl-8 md:pl-12"><span className="text-xs font-black uppercase tracking-[0.25em] text-muted-foreground opacity-80">{spec.key}</span></TableCell>
-                        <TableCell align="right" className="border-primary/5 py-6 sm:py-8 pr-8 md:pr-12"><span className="text-base sm:text-lg font-bold text-primary">{spec.value}</span></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              
+              <Accordion type="single" collapsible className="w-full space-y-3">
+                {(product.specifications || []).map((spec: any, i: number) => (
+                  <AccordionItem key={i} value={`spec-${i}`} className="border rounded-2xl bg-white px-6 overflow-hidden data-[state=open]:border-primary/30 transition-all shadow-sm">
+                    <AccordionTrigger className="hover:no-underline py-5">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-foreground">{spec.key}</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-5 text-[10px] font-normal text-muted-foreground border-t pt-4">
+                      {spec.value}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             </div>
           </section>
 
@@ -556,6 +562,75 @@ export default function ProductDetailPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          </section>
+
+          {/* Piece at a Glance Section */}
+          <section className="py-20 border-t border-primary/10">
+            <div className="mb-12">
+              <h2 className="text-4xl sm:text-5xl font-black text-foreground uppercase tracking-tight font-display mb-2">Piece at a Glance</h2>
+              <p className="text-base text-muted-foreground font-medium">Dimensions, materials & craftsmanship details</p>
+            </div>
+            
+            <div className="flex overflow-x-auto gap-4 pb-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+              {/* Weight Card */}
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Scale className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Weight</p>
+                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.weight_kg || '0'} KG</p>
+                </div>
+              </div>
+
+              {/* Dimensions Cards */}
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Box className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Length</p>
+                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.length || '0'} CM</p>
+                </div>
+              </div>
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Box className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Width</p>
+                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.width || '0'} CM</p>
+                </div>
+              </div>
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Box className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Height</p>
+                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.height || '0'} CM</p>
+                </div>
+              </div>
+
+              {/* Quantity Card */}
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Package className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Quantity</p>
+                  <p className="font-black text-sm text-primary uppercase">{product.stock || '0'} IN STOCK</p>
+                </div>
+              </div>
+
+              {/* Technique Card */}
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Hammer className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Technique</p>
+                  <p className="font-black text-sm text-primary uppercase">{getStatValue(['technique', 'method'], 'Hand Thrown')}</p>
+                </div>
+              </div>
+
+              {/* Firing Card */}
+              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                <Zap className="h-6 w-6 text-primary/60" />
+                <div className="space-y-1">
+                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Firing</p>
+                  <p className="font-black text-sm text-primary uppercase">{getStatValue(['firing', 'temp'], '1200°C Kiln')}</p>
+                </div>
               </div>
             </div>
           </section>
