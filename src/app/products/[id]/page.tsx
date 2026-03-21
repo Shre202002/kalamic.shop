@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { 
   Table, 
@@ -57,6 +57,10 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import dayjs from 'dayjs';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const primarySaffron = '#EA781E';
+const warmCream = '#FAF4EB';
+const darkTerracotta = '#271E1B';
 
 export default function ProductDetailClient() {
   const params = useParams();
