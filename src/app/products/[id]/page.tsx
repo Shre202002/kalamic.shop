@@ -41,6 +41,7 @@ import {
   X,
   RefreshCcw,
   ChevronRight,
+  ChevronLeft,
   User as UserIcon
 } from 'lucide-react';
 import Image from 'next/image';
@@ -53,7 +54,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import dayjs from 'dayjs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { ProductCard } from '@/components/product/ProductCard';
 
 const primarySaffron = '#EA781E';
@@ -98,7 +99,7 @@ export default function ProductDetailPage() {
     if (!product?.images?.length || isSliderPaused) return;
     const interval = setInterval(() => {
       setActiveImageIndex((prev) => (prev + 1) % product.images.length);
-    }, 4000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [product, isSliderPaused]);
 
@@ -110,15 +111,12 @@ export default function ProductDetailPage() {
         setProduct(data);
         incrementProductViews(data._id);
         
-        // Fetch Parallel Data
         const [reviewData, allProducts] = await Promise.all([
           getProductReviews(data._id),
           getProducts()
         ]);
         
         setReviews(reviewData);
-        
-        // Filter Related Products (same category, excluding current)
         const related = allProducts
           .filter((p: any) => p.category_id === data.category_id && p._id !== data._id)
           .slice(0, 4);
@@ -250,14 +248,13 @@ export default function ProductDetailPage() {
       <main className="flex-1">
         <div className="container mx-auto px-4 max-w-7xl pt-6 md:pt-12 pb-20">
           
-          {/* Back Navigation */}
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
             <Link href="/products" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
               <ArrowLeft className="h-3 w-3" /> Back to Collection
             </Link>
           </motion.div>
 
-          {/* Top Header Area */}
+          {/* PRODUCT HEADER AREA */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 mb-20 items-start">
             <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }} className="lg:col-span-7 space-y-6 lg:sticky lg:top-28 self-start">
               <div 
@@ -265,6 +262,22 @@ export default function ProductDetailPage() {
                 onMouseEnter={() => setIsSliderPaused(true)}
                 onMouseLeave={() => setIsSliderPaused(false)}
               >
+                {/* Image Navigation Arrows */}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 rounded-full bg-black/30 backdrop-blur-sm text-white items-center justify-center hidden sm:flex hover:bg-black/50 transition-all"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveImageIndex((prev) => (prev + 1) % galleryImages.length); }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 rounded-full bg-black/30 backdrop-blur-sm text-white items-center justify-center hidden sm:flex hover:bg-black/50 transition-all"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+
                 {galleryImages.map((img, idx) => (
                   <div 
                     key={idx}
@@ -303,7 +316,7 @@ export default function ProductDetailPage() {
 
             <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="lg:col-span-5 space-y-8 sm:space-y-10">
               <div className="space-y-6">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-foreground tracking-tight leading-[1.1]">{product.name}</h1>
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-semibold text-foreground tracking-tight leading-[1.1]">{product.name}</h1>
                 
                 <div className="flex items-baseline gap-5 py-4">
                   <span className="text-4xl sm:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
@@ -320,36 +333,35 @@ export default function ProductDetailPage() {
 
                 {/* DELIVERY / POLICY INFO STRIP */}
                 <div className="grid grid-cols-3 gap-px bg-border border rounded-2xl overflow-hidden shadow-sm bg-white">
-                  <div className="bg-white p-4 md:p-6 flex flex-col items-center text-center gap-3">
+                  <div className="bg-white p-4 flex flex-col items-center text-center gap-2">
                     <Truck className="h-5 w-5 text-primary/80" />
-                    <div className="space-y-1">
-                      <p className="font-black text-xs md:text-sm leading-tight uppercase text-foreground">5–7 Business Days</p>
-                      <p className="text-muted-foreground text-[10px] md:text-xs font-medium leading-tight">FragileCare™ Shipping</p>
+                    <div className="space-y-0.5">
+                      <p className="font-black text-[10px] md:text-xs leading-tight uppercase text-foreground">5–7 Business Days</p>
+                      <p className="text-muted-foreground text-[8px] md:text-[9px] font-bold leading-tight">FragileCare™ Shipping</p>
                     </div>
                   </div>
-                  <div className="bg-white p-4 md:p-6 flex flex-col items-center text-center gap-3">
+                  <div className="bg-white p-4 flex flex-col items-center text-center gap-2">
                     <RefreshCcw className="h-5 w-5 text-primary/80" />
-                    <div className="space-y-1">
-                      <p className="font-black text-xs md:text-sm leading-tight uppercase text-foreground">48hr Damage Claims</p>
-                      <p className="text-muted-foreground text-[10px] md:text-xs font-medium leading-tight">Report within 48 hours</p>
+                    <div className="space-y-0.5">
+                      <p className="font-black text-[10px] md:text-xs leading-tight uppercase text-foreground">48hr Damage Claims</p>
+                      <p className="text-muted-foreground text-[8px] md:text-[9px] font-bold leading-tight">Report within 48 hours</p>
                     </div>
                   </div>
-                  <div className="bg-white p-4 md:p-6 flex flex-col items-center text-center gap-3">
+                  <div className="bg-white p-4 flex flex-col items-center text-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-primary/80" />
-                    <div className="space-y-1">
-                      <p className="font-black text-xs md:text-sm leading-tight uppercase text-foreground">100% Handmade</p>
-                      <p className="text-muted-foreground text-[10px] md:text-xs font-medium leading-tight">Artisan Certified</p>
+                    <div className="space-y-0.5">
+                      <p className="font-black text-[10px] md:text-xs leading-tight uppercase text-foreground">100% Handmade</p>
+                      <p className="text-muted-foreground text-[8px] md:text-[9px] font-bold leading-tight">Artisan Certified</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button asChild variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-primary/20 text-primary font-black text-sm hover:bg-primary/5 transition-all"><Link href={`https://wa.me/916387562920?text=Hi, I am interested in ${encodeURIComponent(product.name)}`} target="_blank">Enquire Now</Link></Button>
-                  <Button onClick={handleShare} variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-border text-muted-foreground font-black text-sm hover:bg-muted transition-all">Share Piece</Button>
+                  <Button asChild variant="outline" className="h-14 md:h-16 rounded-[1.25rem] border-2 border-primary/20 text-primary font-black text-sm hover:bg-primary/5 transition-all"><Link href={`https://wa.me/916387562920?text=Hi, I am interested in ${encodeURIComponent(product.name)}`} target="_blank">Enquire Now</Link></Button>
+                  <Button onClick={handleShare} variant="outline" className="h-14 md:h-16 rounded-[1.25rem] border-2 border-border text-muted-foreground font-black text-sm hover:bg-muted transition-all">Share Piece</Button>
                 </div>
               </div>
 
-              {/* Trust Indicators Row */}
               <div className="grid grid-cols-3 gap-4 pt-4 border-t border-primary/5">
                 <div className="flex flex-col items-center text-center gap-2">
                   <ShieldCheck className="h-6 w-6 text-primary/60" />
@@ -369,9 +381,8 @@ export default function ProductDetailPage() {
             </motion.div>
           </div>
 
-          {/* BODY CONTENT - LINEAR SECTIONS */}
+          {/* NARRATIVE SECTIONS */}
           
-          {/* Section 1: The Artisan's Narrative */}
           <section className="py-20 border-t border-primary/10">
             <div className="max-w-4xl">
               <div className="flex items-center gap-4 mb-10">
@@ -391,7 +402,6 @@ export default function ProductDetailPage() {
             </div>
           </section>
 
-          {/* Section 2: Technical Precision */}
           <section className="py-20 border-t border-primary/10">
             <div className="max-w-4xl">
               <div className="flex items-center gap-4 mb-10">
@@ -413,7 +423,6 @@ export default function ProductDetailPage() {
             </div>
           </section>
 
-          {/* Section 3: Gallery of Details */}
           <section className="py-20 border-t border-primary/10">
             <div className="flex items-center gap-4 mb-12">
               <div className="h-1 w-12 bg-primary rounded-full" />
@@ -433,7 +442,6 @@ export default function ProductDetailPage() {
             </div>
           </section>
 
-          {/* Section 4: You May Also Cherish (Related Products) */}
           {relatedProducts.length > 0 && (
             <section className="py-24 border-t border-primary/10">
               <div className="flex items-center justify-between mb-12">
@@ -462,7 +470,6 @@ export default function ProductDetailPage() {
             </section>
           )}
 
-          {/* Section 5: Collector's Testimonials (Reviews) */}
           <section className="py-24 border-t border-primary/10">
             <div className="flex items-center gap-4 mb-16">
               <div className="h-1 w-12 bg-primary rounded-full" />
@@ -470,7 +477,7 @@ export default function ProductDetailPage() {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 md:gap-20">
               <div className="lg:col-span-4 space-y-10">
-                <Paper sx={{ p: 6, borderRadius: '3rem', bgcolor: alpha(primarySaffron, 0.03), border: 'none', shadow: 'none' }}>
+                <Paper sx={{ p: 6, borderRadius: '3rem', bgcolor: alpha(primarySaffron, 0.03), border: 'none', boxShadow: 'none' }}>
                   <h3 className="text-2xl font-black text-primary tracking-tight mb-8 font-display">Aggregate Rating</h3>
                   <div className="flex items-center gap-6">
                     <div className="text-6xl font-black text-primary tracking-tighter">{product.analytics?.average_rating?.toFixed(1) || '5.0'}</div>
@@ -553,7 +560,6 @@ export default function ProductDetailPage() {
             </div>
           </section>
 
-          {/* Section 6: Shipping & FAQs (Rest Page Content) */}
           <section className="py-24 border-t border-primary/10">
             <div className="text-center space-y-4 mb-20 px-4">
               <h2 className="text-4xl sm:text-5xl font-display font-semibold text-foreground tracking-tight">FragileCare™ Shipping</h2>
@@ -604,7 +610,6 @@ export default function ProductDetailPage() {
 
       <Footer />
 
-      {/* Fullscreen Lightbox */}
       <AnimatePresence>
         {isLightboxOpen && lightboxImage && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4" onClick={() => setIsLightboxOpen(false)}>
