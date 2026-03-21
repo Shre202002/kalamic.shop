@@ -44,7 +44,9 @@ import {
   ChevronLeft,
   User as UserIcon,
   Hammer,
-  Zap
+  Zap,
+  HelpCircle,
+  AlertTriangle
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -388,7 +390,7 @@ export default function ProductDetailPage() {
             </motion.div>
           </div>
 
-          {/* PIECE AT A GLANCE (NEW STAT BAR) */}
+          {/* PIECE AT A GLANCE */}
           <section className="py-12 border-t border-primary/10">
             <div className="mb-10">
               <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display mb-2">Piece at a Glance</h2>
@@ -544,6 +546,82 @@ export default function ProductDetailPage() {
               </div>
             </section>
           )}
+
+          {/* CUSTOMISATION SECTION */}
+          <section className="py-24 border-t border-primary/10">
+            <div className="flex items-center gap-4 mb-12">
+              <div className="h-1 w-12 bg-primary rounded-full" />
+              <div>
+                <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">Make It Yours</h2>
+                <p className="text-sm text-muted-foreground font-medium">Personalise your ceramic piece</p>
+              </div>
+            </div>
+
+            <div className="bg-primary/5 border border-primary/20 rounded-[2.5rem] p-8 md:p-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Card 1 */}
+                <div className="bg-white rounded-2xl p-6 border border-border space-y-4 flex flex-col">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Maximize2 className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    <h3 className="font-black text-sm uppercase tracking-widest text-foreground">Custom Size</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Need a different dimension? We can craft this piece in your preferred size.
+                    </p>
+                  </div>
+                  <Button asChild variant="outline" className="w-full rounded-2xl text-[10px] font-black uppercase border-primary/20 text-primary hover:bg-primary/5 h-10">
+                    <Link href={`https://wa.me/916387562920?text=Hi, I want a custom size for: ${encodeURIComponent(product.name)}`} target="_blank">
+                      Request Size
+                    </Link>
+                  </Button>
+                </div>
+
+                {/* Card 2 */}
+                <div className="bg-white rounded-2xl p-6 border border-border space-y-4 flex flex-col">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <HelpCircle className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    <h3 className="font-black text-sm uppercase tracking-widest text-foreground">Glaze & Finish</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Choose from our palette of earthy glazes, matte finishes, or raw unglazed textures.
+                    </p>
+                  </div>
+                  <Button asChild variant="outline" className="w-full rounded-2xl text-[10px] font-black uppercase border-primary/20 text-primary hover:bg-primary/5 h-10">
+                    <Link href={`https://wa.me/916387562920?text=Hi, I want to choose a glaze for: ${encodeURIComponent(product.name)}`} target="_blank">
+                      Choose Glaze
+                    </Link>
+                  </Button>
+                </div>
+
+                {/* Card 3 */}
+                <div className="bg-white rounded-2xl p-6 border border-border space-y-4 flex flex-col">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <MessageSquare className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    <h3 className="font-black text-sm uppercase tracking-widest text-foreground">Personal Engraving</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Add a name, date, or short message to make this piece a forever gift.
+                    </p>
+                  </div>
+                  <Button asChild variant="outline" className="w-full rounded-2xl text-[10px] font-black uppercase border-primary/20 text-primary hover:bg-primary/5 h-10">
+                    <Link href={`https://wa.me/916387562920?text=Hi, I want to add an engraving for: ${encodeURIComponent(product.name)}`} target="_blank">
+                      Add Engraving
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 items-start mt-8 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                <AlertTriangle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
+                  All customisations are handcrafted and may take 7–14 additional business days. Prices vary based on complexity. Contact us on WhatsApp to confirm availability and pricing before ordering.
+                </p>
+              </div>
+            </div>
+          </section>
 
           <section className="py-24 border-t border-primary/10">
             <div className="flex items-center gap-4 mb-16">
