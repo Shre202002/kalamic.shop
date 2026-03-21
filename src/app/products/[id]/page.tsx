@@ -10,9 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/ui/dialog";
-import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
-import { 
+import {
   Table, 
   TableBody, 
   TableCell, 
@@ -30,21 +28,18 @@ import {
   Truck, 
   ShieldCheck, 
   Loader2, 
-  ChevronRight,
-  Zap,
-  Package,
-  MessageSquare,
-  Lock,
-  CheckCircle2,
-  Box,
-  Scale,
-  MapPin,
-  Maximize2,
-  HelpCircle,
-  Hammer,
-  Camera,
+  Package, 
+  MessageSquare, 
+  Lock, 
+  CheckCircle2, 
+  Box, 
+  Scale, 
+  MapPin, 
+  Maximize2, 
+  ArrowLeft,
   X,
-  ArrowLeft
+  RefreshCcw,
+  ChevronRight
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -57,12 +52,17 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import dayjs from 'dayjs';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 
 const primarySaffron = '#EA781E';
 const warmCream = '#FAF4EB';
 const darkTerracotta = '#271E1B';
 
-export default function ProductDetailClient() {
+const alpha = (color: string, opacity: number) => {
+  return muiAlpha(color, opacity);
+};
+
+export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -85,9 +85,7 @@ export default function ProductDetailClient() {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewFiles, setReviewFiles] = useState<File[]>([]);
   const [reviewPreviews, setReviewPreviews] = useState<string[]>([]);
-  const [isScrolled, setIsScrolled] = useState(false);
 
-  // Use the canonical ID for Firestore references
   const productId = typeof params?.id === 'string' ? params.id : '';
 
   const wishlistDocRef = useMemoFirebase(() => {
@@ -97,14 +95,6 @@ export default function ProductDetailClient() {
 
   const { data: wishlistDoc } = useDoc(wishlistDocRef);
   const isFavorited = !!wishlistDoc;
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 600);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     if (!product?.images?.length || isSliderPaused) return;
@@ -210,27 +200,6 @@ export default function ProductDetailClient() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length + reviewFiles.length > 3) {
-      toast({ variant: "destructive", title: "Limit Exceeded", description: "You can upload a maximum of 3 photos." });
-      return;
-    }
-    const newFiles = [...reviewFiles, ...files];
-    setReviewFiles(newFiles);
-    const newPreviews = files.map(file => URL.createObjectURL(file));
-    setReviewPreviews([...reviewPreviews, ...newPreviews]);
-  };
-
-  const removeFile = (index: number) => {
-    const newFiles = [...reviewFiles];
-    newFiles.splice(index, 1);
-    setReviewFiles(newFiles);
-    const newPreviews = [...reviewPreviews];
-    newPreviews.splice(index, 1);
-    setReviewPreviews(newPreviews);
-  };
-
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !product) return;
@@ -238,15 +207,6 @@ export default function ProductDetailClient() {
 
     setIsSubmittingReview(true);
     try {
-      const uploadedImages = [];
-      for (const file of reviewFiles) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('folder', '/kalamic/reviews');
-        const result = await uploadToImageKit(formData);
-        uploadedImages.push({ url: result.url, alt: `Collector photo of ${product.name}` });
-      }
-
       const response = await submitReview({
         productId: product._id,
         userId: user.uid,
@@ -254,17 +214,13 @@ export default function ProductDetailClient() {
         userAvatar: user.photoURL || undefined,
         rating: reviewRating,
         reviewText: reviewComment,
-        images: uploadedImages
       });
       
       if (response.success) {
         setReviewComment('');
-        setReviewFiles([]);
-        setReviewPreviews([]);
         setReviewRating(5);
         await loadData();
-        router.refresh();
-        toast({ title: "Feedback Saved", description: "Your experience has been immortalized in our archive." });
+        toast({ title: "Feedback Saved", description: "Your experience has been shared." });
       }
     } catch (error: any) {
       toast({ variant: "destructive", title: "Submission Failed", description: error.message });
@@ -273,8 +229,8 @@ export default function ProductDetailClient() {
     }
   };
 
-  if (isLoading) return <div className="min-h-screen flex flex-col items-center justify-center bg-background"><Loader2 className="animate-spin text-primary h-10 w-10" /><p className="mt-4 text-primary font-bold uppercase tracking-widest text-[10px]">Curation in Progress...</p></div>;
-  if (!product) return <div className="p-20 text-center bg-background min-h-screen flex flex-col items-center justify-center"><h1 className="text-3xl font-display font-semibold text-foreground mb-6">Piece Not Found</h1><Button asChild className="rounded-2xl h-12 px-8 font-body"><Link href="/products">Return to Shop</Link></Button></div>;
+  if (isLoading) return <div className="min-h-screen flex flex-col items-center justify-center bg-background"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
+  if (!product) return <div className="p-20 text-center"><h1 className="text-3xl font-display font-semibold mb-6">Piece Not Found</h1><Button asChild><Link href="/products">Return to Shop</Link></Button></div>;
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
   
@@ -283,27 +239,14 @@ export default function ProductDetailClient() {
       <Navbar />
       <main className="flex-1">
         <div className="container mx-auto px-4 max-w-7xl pt-6 md:pt-12">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8"
-          >
-            <Link 
-              href="/products" 
-              className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
-            >
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
+            <Link href="/products" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
               <ArrowLeft className="h-3 w-3" /> Back to Collection
             </Link>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 mb-20 items-start">
-            <motion.div 
-              initial={{ opacity: 0, x: -40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7 }}
-              className="lg:col-span-7 space-y-6 lg:sticky lg:top-28 self-start"
-            >
+            <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }} className="lg:col-span-7 space-y-6 lg:sticky lg:top-28 self-start">
               <div 
                 className="relative aspect-square rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl bg-white border-2 sm:border-4 border-white group"
                 onMouseEnter={() => setIsSliderPaused(true)}
@@ -312,20 +255,10 @@ export default function ProductDetailClient() {
                 {galleryImages.map((img, idx) => (
                   <div 
                     key={idx}
-                    className={cn(
-                      "absolute inset-0 transition-opacity duration-1000 ease-in-out cursor-zoom-in",
-                      activeImageIndex === idx ? "opacity-100 z-10" : "opacity-0 z-0"
-                    )}
+                    className={cn("absolute inset-0 transition-opacity duration-1000 ease-in-out cursor-zoom-in", activeImageIndex === idx ? "opacity-100 z-10" : "opacity-0 z-0")}
                     onClick={() => { setLightboxImage(img.url); setIsLightboxOpen(true); }}
                   >
-                    <Image 
-                      src={img.url} 
-                      alt={img.alt || product.name} 
-                      fill 
-                      className="object-cover transition-transform duration-700 group-hover:scale-105" 
-                      priority={idx === 0}
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                    />
+                    <Image src={img.url} alt={img.alt || product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" priority={idx === 0} sizes="(max-width: 768px) 100vw, 50vw" />
                   </div>
                 ))}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none z-20 flex items-center justify-center">
@@ -345,13 +278,7 @@ export default function ProductDetailClient() {
                       {galleryImages.map((img, idx) => (
                         <CarouselItem key={idx} className="pl-4 basis-1/4 sm:basis-1/5 md:basis-1/6">
                           <div className={cn("relative aspect-square rounded-2xl overflow-hidden border-2 shadow-md cursor-pointer transition-all", activeImageIndex === idx ? "border-primary scale-90 ring-4 ring-primary/10" : "border-white hover:border-primary/30")} onClick={() => setActiveImageIndex(idx)}>
-                            <Image 
-                              src={img.url} 
-                              alt={img.alt || `Angle ${idx + 1}`} 
-                              fill 
-                              className="object-cover" 
-                              sizes="(max-width: 768px) 25vw, 15vw"
-                            />
+                            <Image src={img.url} alt={img.alt || `Angle ${idx + 1}`} fill className="object-cover" sizes="(max-width: 768px) 25vw, 15vw" />
                           </div>
                         </CarouselItem>
                       ))}
@@ -361,45 +288,53 @@ export default function ProductDetailClient() {
               )}
             </motion.div>
 
-            <motion.div 
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="lg:col-span-5 space-y-8 sm:space-y-10"
-            >
+            <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="lg:col-span-5 space-y-8 sm:space-y-10">
               <div className="space-y-6">
                 <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-semibold text-foreground tracking-tight leading-[1.05]">{product.name}</h1>
-                <div className="flex items-baseline gap-5 py-4">
+                <div className="flex items-baseline gap-5 py-2">
                   <span className="text-3xl sm:text-4xl md:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
                   {product.compare_at_price && (
-                    <div className="flex flex-col">
-                      <span className="text-sm sm:text-lg text-muted-foreground line-through decoration-primary/30 opacity-40">₹{product.compare_at_price.toLocaleString()}</span>
-                      <span className="text-[10px] font-black text-primary uppercase tracking-widest">Heritage Pricing</span>
-                    </div>
+                    <span className="text-sm sm:text-lg text-muted-foreground line-through decoration-primary/30 opacity-40 font-semibold">₹{product.compare_at_price.toLocaleString()}</span>
                   )}
                 </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="grid grid-cols-1 gap-4"
-                >
-                  <Button 
-                    size="lg"
-                    onClick={handleBuyNow} 
-                    className="w-full h-16 md:h-20 rounded-2xl gradient-saffron text-primary-foreground font-bold text-lg px-10 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all"
-                  >
-                    <ShoppingCart className="mr-3 h-6 w-6" />
-                    Buy Now
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="grid grid-cols-1 gap-4">
+                  <Button size="lg" onClick={handleBuyNow} className="w-full h-16 md:h-20 rounded-2xl gradient-saffron text-primary-foreground font-bold text-lg px-10 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                    <ShoppingCart className="mr-3 h-6 w-6" /> Buy Now
                   </Button>
                 </motion.div>
+
+                {/* DELIVERY / POLICY INFO STRIP */}
+                <div className="grid grid-cols-3 gap-px bg-border border rounded-2xl overflow-hidden shadow-sm">
+                  <div className="bg-white p-4 flex flex-col items-center text-center gap-2">
+                    <Truck className="h-4 w-4 text-primary/80" />
+                    <div>
+                      <p className="font-black text-xs leading-tight uppercase">5–7 Business Days</p>
+                      <p className="text-muted-foreground text-[9px] font-medium leading-tight">FragileCare™ Shipping</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 flex flex-col items-center text-center gap-2">
+                    <RefreshCcw className="h-4 w-4 text-primary/80" />
+                    <div>
+                      <p className="font-black text-xs leading-tight uppercase">48hr Damage Claims</p>
+                      <p className="text-muted-foreground text-[9px] font-medium leading-tight">Report within 48 hours of delivery</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 flex flex-col items-center text-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary/80" />
+                    <div>
+                      <p className="font-black text-xs leading-tight uppercase">100% Handmade</p>
+                      <p className="text-muted-foreground text-[9px] font-medium leading-tight">Certified artisan craft</p>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Button asChild variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-primary/20 text-primary font-black text-sm"><Link href={`https://wa.me/916387562920?text=Hi, I am interested in ${encodeURIComponent(product.name)}`} target="_blank">Enquire Now</Link></Button>
                   <Button onClick={handleShare} variant="outline" className="h-14 md:h-16 rounded-[1.25rem] sm:rounded-[1.5rem] border-2 border-border text-muted-foreground font-black text-sm">Share Piece</Button>
                 </div>
               </div>
+
               <div className="grid grid-cols-3 gap-4 pt-2 border-t">
                 <div className="flex flex-col items-center text-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-primary/60" />
@@ -419,7 +354,6 @@ export default function ProductDetailClient() {
             </motion.div>
           </div>
 
-          {/* Details Section */}
           <section className="mb-32">
             <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
               <div className="w-full lg:w-1/3 space-y-4">
@@ -428,7 +362,7 @@ export default function ProductDetailClient() {
               </div>
               <div className="flex-1">
                 <Tabs defaultValue="description" className="w-full">
-                  <TabsList className="w-full justify-start bg-transparent border-b rounded-none h-auto p-0 mb-8 overflow-x-auto overflow-y-hidden scrollbar-none whitespace-nowrap flex-nowrap">
+                  <TabsList className="w-full justify-start bg-transparent border-b rounded-none h-auto p-0 mb-8 overflow-x-auto whitespace-nowrap flex-nowrap no-scrollbar">
                     <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 sm:px-10 py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs">Description</TabsTrigger>
                     <TabsTrigger value="specs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 sm:px-10 py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs">Specifications</TabsTrigger>
                     <TabsTrigger value="reviews" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 sm:px-10 py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs">Reviews ({reviews.length})</TabsTrigger>
@@ -443,24 +377,9 @@ export default function ProductDetailClient() {
                       <Table>
                         <TableBody>
                           {(product.specifications || []).map((spec: any, i: number) => (
-                            <TableRow 
-                              key={i} 
-                              className="hover:bg-primary/[0.02] transition-colors"
-                              sx={{ 
-                                '&:last-child td, &:last-child th': { border: 0 },
-                                '&:nth-of-type(odd)': { bgcolor: muiAlpha('#C97A40', 0.01) }
-                              }}
-                            >
-                              <TableCell className="border-primary/5 py-5 sm:py-6">
-                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-70">
-                                  {spec.key}
-                                </span>
-                              </TableCell>
-                              <TableCell align="right" className="border-primary/5 py-5 sm:py-6">
-                                <span className="text-xs sm:text-sm font-bold text-primary">
-                                  {spec.value}
-                                </span>
-                              </TableCell>
+                            <TableRow key={i} className="hover:bg-primary/[0.02] transition-colors" sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:nth-of-type(odd)': { bgcolor: muiAlpha('#C97A40', 0.01) } }}>
+                              <TableCell className="border-primary/5 py-5 sm:py-6"><span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-70">{spec.key}</span></TableCell>
+                              <TableCell align="right" className="border-primary/5 py-5 sm:py-6"><span className="text-xs sm:text-sm font-bold text-primary">{spec.value}</span></TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -491,49 +410,28 @@ export default function ProductDetailClient() {
                               <h4 className="text-lg font-black text-primary uppercase tracking-tight">Share Your Experience</h4>
                               <p className="text-xs text-muted-foreground font-medium">How would you describe this handcrafted piece?</p>
                             </div>
-                            
                             <form onSubmit={handleSubmitReview} className="space-y-6">
                               <div className="space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Your Rating</Label>
                                 <div className="flex gap-2">
                                   {[1,2,3,4,5].map((star) => (
-                                    <button
-                                      key={star}
-                                      type="button"
-                                      onClick={() => setReviewRating(star)}
-                                      className="group focus:outline-none"
-                                    >
-                                      <Star className={cn(
-                                        "h-8 w-8 transition-all duration-300",
-                                        star <= reviewRating ? "text-accent fill-current scale-110" : "text-muted-foreground opacity-30 hover:scale-105"
-                                      )} />
+                                    <button key={star} type="button" onClick={() => setReviewRating(star)} className="group focus:outline-none">
+                                      <Star className={cn("h-8 w-8 transition-all duration-300", star <= reviewRating ? "text-accent fill-current scale-110" : "text-muted-foreground opacity-30 hover:scale-105")} />
                                     </button>
                                   ))}
                                 </div>
                               </div>
-
                               <div className="space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Collector Feedback</Label>
-                                <textarea 
-                                  required 
-                                  value={reviewComment} 
-                                  onChange={(e) => setReviewComment(e.target.value)} 
-                                  placeholder="Describe the texture, the intricate patterns..." 
-                                  className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none shadow-inner" 
-                                />
+                                <textarea required value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder="Describe the texture, the intricate patterns..." className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm font-medium resize-none shadow-inner" />
                               </div>
-
-                              <Button 
-                                type="submit" 
-                                disabled={isSubmittingReview}
-                                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/10"
-                              >
+                              <Button type="submit" disabled={isSubmittingReview} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/10">
                                 {isSubmittingReview ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post Testimonial"}
                               </Button>
                             </form>
                           </Paper>
                         ) : (
-                          <Paper sx={{ p: 5, borderRadius: '2.5rem', bgcolor: muiAlpha('#000', 0.02), border: '1px dashed', borderColor: 'divider', textAlign: 'center' }}>
+                          <Paper sx={{ p: 5, borderRadius: '2.5rem', bgcolor: alpha('#000', 0.02), border: '1px dashed', borderColor: 'divider', textAlign: 'center' }}>
                             <Lock className="mx-auto h-8 w-8 text-primary opacity-20 mb-4" />
                             <p className="text-[10px] font-black text-muted-foreground uppercase leading-relaxed tracking-widest mb-6">Sign in to share your experience.</p>
                             <Button asChild variant="outline" className="w-full rounded-2xl border-primary text-primary font-black text-xs h-12 hover:bg-primary hover:text-white transition-all"><Link href="/auth/login">Join the Community</Link></Button>
@@ -557,10 +455,7 @@ export default function ProductDetailClient() {
                                       {review.user_avatar ? <img src={review.user_avatar} className="h-full w-full object-cover" /> : review.user_name?.charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                      <p className="text-sm font-black text-foreground flex items-center gap-2">
-                                        {review.user_name || 'Collector'}
-                                        {review.is_verified_purchase && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-                                      </p>
+                                      <p className="text-sm font-black text-foreground flex items-center gap-2">{review.user_name || 'Collector'} {review.is_verified_purchase && <CheckCircle2 className="h-3 w-3 text-green-500" />}</p>
                                       <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{dayjs(review.createdAt).format('DD MMM YYYY')}</p>
                                     </div>
                                   </div>
@@ -581,7 +476,6 @@ export default function ProductDetailClient() {
             </div>
           </section>
 
-          {/* Shipping */}
           <section className="mb-32">
             <div className="text-center space-y-4 mb-16 px-4">
               <h2 className="text-2xl sm:text-4xl md:text-5xl font-display font-semibold text-foreground tracking-tight">FragileCare™ Shipping</h2>
@@ -606,7 +500,6 @@ export default function ProductDetailClient() {
             </div>
           </section>
 
-          {/* FAQ */}
           {product.faqs?.length > 0 && (
             <section className="mb-32">
               <div className="max-w-4xl mx-auto px-4">
@@ -636,23 +529,11 @@ export default function ProductDetailClient() {
 
       <AnimatePresence>
         {isLightboxOpen && lightboxImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
-            onClick={() => setIsLightboxOpen(false)}
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4" onClick={() => setIsLightboxOpen(false)}>
             <button className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors">
               <X className="h-10 w-10" />
             </button>
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-5xl aspect-square"
-              onClick={e => e.stopPropagation()}
-            >
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-5xl aspect-square" onClick={e => e.stopPropagation()}>
               <Image src={lightboxImage} alt="Fullscreen" fill className="object-contain" />
             </motion.div>
           </motion.div>
@@ -661,7 +542,3 @@ export default function ProductDetailClient() {
     </div>
   );
 }
-
-const alpha = (color: string, opacity: number) => {
-  return muiAlpha(color, opacity);
-};
