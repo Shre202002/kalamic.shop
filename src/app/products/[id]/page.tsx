@@ -547,20 +547,63 @@ export default function ProductDetailPage() {
             </section>
           )}
 
+          <section className="py-24 border-t border-primary/10">
+            <div className="text-center space-y-4 mb-20 px-4">
+              <h2 className="text-4xl sm:text-5xl font-display font-semibold text-foreground tracking-tight">FragileCare™ Shipping</h2>
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.3em] max-w-md mx-auto leading-relaxed">Expert Logistics for Handcrafted Masterpieces</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12 mb-24">
+              <div className="p-10 md:p-14 rounded-[3rem] bg-white shadow-2xl border border-border space-y-6 transition-all hover:border-primary/30 group">
+                <Scale className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
+                <h4 className="text-sm font-black text-primary uppercase tracking-widest">Weight Metrics</h4>
+                <p className="text-base text-muted-foreground leading-relaxed font-medium">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG for standard handling.</p>
+              </div>
+              <div className="p-10 md:p-14 rounded-[3rem] bg-white shadow-2xl border border-border space-y-6 transition-all hover:border-primary/30 group">
+                <Box className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
+                <h4 className="text-sm font-black text-primary uppercase tracking-widest">Package Profile</h4>
+                <p className="text-base text-muted-foreground leading-relaxed font-medium">Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'}x{product.shipping?.package_dimensions_cm?.width || '30'}x{product.shipping?.package_dimensions_cm?.height || '15'} CM.</p>
+              </div>
+              <div className="p-10 md:p-14 rounded-[3rem] bg-primary text-white shadow-2xl space-y-6 md:col-span-2 lg:col-span-1 group relative overflow-hidden">
+                <Truck className="h-8 w-8 text-white relative z-10 group-hover:translate-x-2 transition-transform" />
+                <h4 className="text-sm font-black uppercase tracking-widest text-white relative z-10">FragileCare™ Priority</h4>
+                <p className="text-base opacity-90 leading-relaxed text-white font-medium relative z-10">Every ceramic treasure is encased in reinforced honeycomb padding and insured during transit.</p>
+                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </div>
+
+            {product.faqs?.length > 0 && (
+              <div className="max-w-4xl mx-auto px-4">
+                <div className="text-center space-y-4 mb-16">
+                  <h2 className="text-4xl sm:text-5xl font-display font-semibold text-foreground tracking-tight">Curiosity Corner</h2>
+                  <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.3em]">Artisanal FAQ & Preservation</p>
+                </div>
+                <Accordion type="single" collapsible className="space-y-6">
+                  {product.faqs.map((faq: any, i: number) => (
+                    <AccordionItem key={i} value={`item-${i}`} className="border-2 rounded-[2rem] px-8 bg-white overflow-hidden data-[state=open]:border-primary/30 transition-all shadow-lg hover:shadow-xl">
+                      <AccordionTrigger className="hover:no-underline py-8">
+                        <span className="text-left font-black text-foreground text-lg sm:text-xl font-display">{faq.question}</span>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-8 text-muted-foreground leading-relaxed text-base sm:text-lg font-medium border-t pt-6">
+                        {faq.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+            )}
+          </section>
+
           {/* CUSTOMISATION SECTION */}
           <section className="py-24 border-t border-primary/10">
-            <div className="flex items-center gap-4 mb-12">
-              <div className="h-1 w-12 bg-primary rounded-full" />
-              <div>
-                <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">Make It Yours</h2>
-                <p className="text-sm text-muted-foreground font-medium">Personalise your ceramic piece</p>
-              </div>
+            <div className="mb-12">
+              <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display mb-2">Make It Yours</h2>
+              <p className="text-sm text-muted-foreground font-medium">Personalise your ceramic piece</p>
             </div>
 
             <div className="bg-primary/5 border border-primary/20 rounded-[2.5rem] p-8 md:p-12">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Card 1 */}
-                <div className="bg-white rounded-2xl p-6 border border-border space-y-4 flex flex-col">
+                <div className="bg-white rounded-2xl p-6 border border-border space-y-3 flex flex-col">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                     <Maximize2 className="h-5 w-5" />
                   </div>
@@ -578,7 +621,7 @@ export default function ProductDetailPage() {
                 </div>
 
                 {/* Card 2 */}
-                <div className="bg-white rounded-2xl p-6 border border-border space-y-4 flex flex-col">
+                <div className="bg-white rounded-2xl p-6 border border-border space-y-3 flex flex-col">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                     <HelpCircle className="h-5 w-5" />
                   </div>
@@ -596,7 +639,7 @@ export default function ProductDetailPage() {
                 </div>
 
                 {/* Card 3 */}
-                <div className="bg-white rounded-2xl p-6 border border-border space-y-4 flex flex-col">
+                <div className="bg-white rounded-2xl p-6 border border-border space-y-3 flex flex-col">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                     <MessageSquare className="h-5 w-5" />
                   </div>
@@ -614,7 +657,7 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 items-start mt-8 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+              <div className="flex gap-2 items-start mt-6 p-4 bg-primary/5 rounded-2xl border border-primary/10">
                 <AlertTriangle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
                   All customisations are handcrafted and may take 7–14 additional business days. Prices vary based on complexity. Contact us on WhatsApp to confirm availability and pricing before ordering.
@@ -711,52 +754,6 @@ export default function ProductDetailPage() {
                 )}
               </div>
             </div>
-          </section>
-
-          <section className="py-24 border-t border-primary/10">
-            <div className="text-center space-y-4 mb-20 px-4">
-              <h2 className="text-4xl sm:text-5xl font-display font-semibold text-foreground tracking-tight">FragileCare™ Shipping</h2>
-              <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.3em] max-w-md mx-auto leading-relaxed">Expert Logistics for Handcrafted Masterpieces</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12 mb-24">
-              <div className="p-10 md:p-14 rounded-[3rem] bg-white shadow-2xl border border-border space-y-6 transition-all hover:border-primary/30 group">
-                <Scale className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
-                <h4 className="text-sm font-black text-primary uppercase tracking-widest">Weight Metrics</h4>
-                <p className="text-base text-muted-foreground leading-relaxed font-medium">Artisan weight verified at {product.shipping?.weight_kg || '1.2'} KG for standard handling.</p>
-              </div>
-              <div className="p-10 md:p-14 rounded-[3rem] bg-white shadow-2xl border border-border space-y-6 transition-all hover:border-primary/30 group">
-                <Box className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
-                <h4 className="text-sm font-black text-primary uppercase tracking-widest">Package Profile</h4>
-                <p className="text-base text-muted-foreground leading-relaxed font-medium">Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'}x{product.shipping?.package_dimensions_cm?.width || '30'}x{product.shipping?.package_dimensions_cm?.height || '15'} CM.</p>
-              </div>
-              <div className="p-10 md:p-14 rounded-[3rem] bg-primary text-white shadow-2xl space-y-6 md:col-span-2 lg:col-span-1 group relative overflow-hidden">
-                <Truck className="h-8 w-8 text-white relative z-10 group-hover:translate-x-2 transition-transform" />
-                <h4 className="text-sm font-black uppercase tracking-widest text-white relative z-10">FragileCare™ Priority</h4>
-                <p className="text-base opacity-90 leading-relaxed text-white font-medium relative z-10">Every ceramic treasure is encased in reinforced honeycomb padding and insured during transit.</p>
-                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </div>
-
-            {product.faqs?.length > 0 && (
-              <div className="max-w-4xl mx-auto px-4">
-                <div className="text-center space-y-4 mb-16">
-                  <h2 className="text-4xl sm:text-5xl font-display font-semibold text-foreground tracking-tight">Curiosity Corner</h2>
-                  <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.3em]">Artisanal FAQ & Preservation</p>
-                </div>
-                <Accordion type="single" collapsible className="space-y-6">
-                  {product.faqs.map((faq: any, i: number) => (
-                    <AccordionItem key={i} value={`item-${i}`} className="border-2 rounded-[2rem] px-8 bg-white overflow-hidden data-[state=open]:border-primary/30 transition-all shadow-lg hover:shadow-xl">
-                      <AccordionTrigger className="hover:no-underline py-8">
-                        <span className="text-left font-black text-foreground text-lg sm:text-xl font-display">{faq.question}</span>
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-8 text-muted-foreground leading-relaxed text-base sm:text-lg font-medium border-t pt-6">
-                        {faq.answer}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </div>
-            )}
           </section>
         </div>
       </main>
