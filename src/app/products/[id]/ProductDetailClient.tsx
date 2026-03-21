@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { 
   Table, 
   TableBody, 
@@ -333,7 +334,7 @@ export default function ProductDetailClient() {
                       
                       <form onSubmit={handleReviewSubmit} className="space-y-6">
                         <div className="space-y-3">
-                          <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">Your Rating</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Your Rating</Label>
                           <div className="flex gap-2">
                             {[1,2,3,4,5].map((star) => (
                               <button
