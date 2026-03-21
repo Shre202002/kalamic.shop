@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -32,7 +31,8 @@ import {
   Home as HomeIcon,
   Storefront as StoreIcon,
   AutoAwesome as AboutIcon,
-  PhotoLibrary as PhotoLibraryIcon
+  PhotoLibrary as PhotoLibraryIcon,
+  ConfirmationNumber as PromoIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -82,6 +82,7 @@ const DesktopDrawer = styled(Drawer, { shouldForwardProp: (prop) => prop !== 'op
 const MENU_ITEMS = [
   { text: 'Dashboard', icon: <DashboardIcon />, href: '/admin/dashboard', roles: ['super_admin', 'admin', 'support'] },
   { text: 'Orders', icon: <OrdersIcon />, href: '/admin/orders', roles: ['super_admin', 'admin', 'support'] },
+  { text: 'Promo Codes', icon: <PromoIcon />, href: '/admin/promo', roles: ['super_admin', 'admin'] },
   { text: 'Gallery Studio', icon: <PhotoLibraryIcon />, href: '/admin/gallery', roles: ['super_admin', 'admin'] },
   { text: 'Users', icon: <UsersIcon />, href: '/admin/users', roles: ['super_admin', 'admin'] },
   { text: 'Products', icon: <ProductsIcon />, href: '/admin/products', roles: ['super_admin', 'admin'] },

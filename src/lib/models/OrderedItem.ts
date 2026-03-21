@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * @fileOverview Official Schema for finalized acquisitions in the Kalamic ecosystem.
- * Standardized to camelCase. "Initiated" is the entry state before payment verification.
+ * Standardized to camelCase. Includes promo code tracking for financial reconciliation.
  */
 
 export type OrderStatus = 
@@ -31,6 +31,12 @@ export interface IOrderedItem extends Document {
     premium: number;
   };
   totalAmount: number;
+  
+  // Promo tracking
+  promoCode: string | null;
+  promoDiscount: number;
+  promoDiscountType: string | null;
+
   items: Array<{
     productId: string;
     name: string;
@@ -68,7 +74,6 @@ const OrderedItemSchema: Schema = new Schema({
   userPhone: { type: String, required: true },
   userEmail: { type: String },
   
-  // Primary unique field
   orderNumber: { type: String, required: true, unique: true, index: true },
   
   subtotal: { type: Number, required: true },
@@ -78,6 +83,11 @@ const OrderedItemSchema: Schema = new Schema({
     premium: { type: Number, default: 20 }
   },
   totalAmount: { type: Number, required: true },
+
+  // Promo Fields
+  promoCode: { type: String, default: null },
+  promoDiscount: { type: Number, default: 0 },
+  promoDiscountType: { type: String, default: null },
 
   items: {
     type: [{

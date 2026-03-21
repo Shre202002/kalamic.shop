@@ -27,7 +27,8 @@ import {
   Avatar,
   alpha as muiAlpha,
   Autocomplete,
-  InputAdornment
+  InputAdornment,
+  Chip
 } from '@mui/material';
 import { 
   CreditCard, 
@@ -35,6 +36,7 @@ import {
   MapPin,
   ChevronLeft,
   Search,
+  X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
@@ -73,6 +75,13 @@ export default function CheckoutPage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [chargesPreview, setChargesPreview] = useState<ChargesPreview | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Promo Code States
+  const [promoCode, setPromoCode] = useState('');
+  const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoDiscountType, setPromoDiscountType] = useState<string | null>(null);
+  const [promoMessage, setPromoMessage] = useState('');
 
   // Address lookup states
   const [statesList] = useState(State.getStatesOfCountry('IN'));
@@ -155,7 +164,6 @@ export default function CheckoutPage() {
             landmark: profile.landmark || '',
           }));
 
-          // Pre-populate cities list
           if (profile.state) {
             const foundState = statesList.find(s => s.name === profile.state);
             if (foundState) {
@@ -170,7 +178,41 @@ export default function CheckoutPage() {
     loadUserData();
   }, [user, mounted, statesList]);
 
-  // Unified Pincode Auto-fill Logic
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoStatus('loading');
+    try {
+      const res = await fetch('/api/promo/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode.trim().toUpperCase(), subtotal })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPromoDiscount(data.discountAmount);
+        setPromoDiscountType(data.discountType);
+        setPromoMessage(data.message);
+        setPromoStatus('success');
+        toast({ title: "Promo Applied", description: data.message });
+      } else {
+        setPromoDiscount(0);
+        setPromoMessage(data.message || 'Validation failed');
+        setPromoStatus('error');
+      }
+    } catch (e) {
+      setPromoStatus('error');
+      setPromoMessage('Network error. Try again.');
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setPromoCode('');
+    setPromoDiscount(0);
+    setPromoDiscountType(null);
+    setPromoMessage('');
+    setPromoStatus('idle');
+  };
+
   const handlePincodeChange = async (val: string) => {
     const cleanVal = val.replace(/\D/g, '').slice(0, 6);
     setFormData(prev => ({ ...prev, zip: cleanVal }));
@@ -241,6 +283,9 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Final Total Logic
+  const finalTotal = (chargesPreview ? chargesPreview.total : (subtotal + (subtotal >= 999 ? 0 : 150) + 60)) - promoDiscount;
+
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length) return;
     if (!formData.fullName || !formData.address || !formData.city || !formData.state || !formData.zip || !formData.phone) {
@@ -260,6 +305,11 @@ export default function CheckoutPage() {
           customerEmail: formData.email,
           items: cartItems.map(i => ({ productId: i.productVariantId, quantity: i.quantity })),
           shippingDetails: formData,
+          // Promo Data
+          promoCode: promoStatus === 'success' ? promoCode.toUpperCase() : null,
+          promoDiscount: promoDiscount,
+          promoDiscountType: promoDiscountType,
+          totalAmount: finalTotal
         })
       });
 
@@ -299,10 +349,6 @@ export default function CheckoutPage() {
   }
 
   if (!user) return null;
-
-  const shippingDisplay = chargesPreview ? chargesPreview.charges.shipping : (subtotal >= 999 ? 0 : 150);
-  const handlingDisplay = chargesPreview ? (chargesPreview.charges.handling + chargesPreview.charges.premium) : 60;
-  const totalDisplay = chargesPreview ? chargesPreview.total : (subtotal + shippingDisplay + handlingDisplay);
 
   return (
     <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#FAF4EB' }}>
@@ -432,30 +478,90 @@ export default function CheckoutPage() {
                   </MuiBox>
                 ))}
               </Stack>
+              
               <Divider sx={{ mb: 4, borderStyle: 'dashed' }} />
+
+              {/* Promo Code UI */}
+              <MuiBox sx={{ mb: 4 }}>
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.disabled', fontSize: '0.6rem', display: 'block', mb: 1.5 }}>
+                  Promo Code
+                </Typography>
+                
+                {promoStatus === 'success' ? (
+                  <Chip 
+                    label={promoCode.toUpperCase()} 
+                    onDelete={handleRemovePromo}
+                    deleteIcon={<X size={14} />}
+                    sx={{ 
+                      bgcolor: muiAlpha('#4caf50', 0.1), 
+                      color: '#2e7d32', 
+                      fontWeight: 900, 
+                      borderRadius: 2,
+                      px: 1,
+                      '& .MuiChip-deleteIcon': { color: '#2e7d32', '&:hover': { color: '#1b5e20' } }
+                    }}
+                  />
+                ) : (
+                  <Stack direction="row" spacing={1}>
+                    <TextField 
+                      fullWidth 
+                      size="small" 
+                      placeholder="Enter code" 
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      disabled={promoStatus === 'loading'}
+                      error={promoStatus === 'error'}
+                      helperText={promoStatus === 'error' ? promoMessage : ''}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                    <Button 
+                      variant="outlined" 
+                      onClick={handleApplyPromo}
+                      disabled={!promoCode.trim() || promoStatus === 'loading'}
+                      sx={{ borderRadius: 2, fontWeight: 800, px: 3 }}
+                    >
+                      {promoStatus === 'loading' ? <CircularProgress size={16} /> : 'Apply'}
+                    </Button>
+                  </Stack>
+                )}
+              </MuiBox>
+
               <Stack spacing={2} sx={{ mb: 4 }}>
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography>
                   <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography>
                 </MuiBox>
+                
+                {promoDiscount > 0 && (
+                  <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography color="success.main" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                      Promo Discount ({promoCode.toUpperCase()})
+                    </Typography>
+                    <Typography sx={{ fontWeight: 700, color: 'success.main' }}>- ₹{promoDiscount.toLocaleString()}</Typography>
+                  </MuiBox>
+                )}
+
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Shipping</Typography>
-                  <Typography sx={{ fontWeight: 700, color: shippingDisplay === 0 ? 'success.main' : 'inherit' }}>
-                    {shippingDisplay === 0 ? 'FREE' : `₹${shippingDisplay}`}
+                  <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.shipping || (subtotal >= 999 ? 0 : 150)) === 0 ? 'success.main' : 'inherit' }}>
+                    {(chargesPreview?.charges.shipping || (subtotal >= 999 ? 0 : 150)) === 0 ? 'FREE' : `₹${chargesPreview?.charges.shipping || 150}`}
                   </Typography>
                 </MuiBox>
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Handling & Protection</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{handlingDisplay}</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview ? (chargesPreview.charges.handling + chargesPreview.charges.premium) : 60}</Typography>
                 </MuiBox>
               </Stack>
+              
               <Divider sx={{ mb: 4 }} />
+              
               <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
                 <Typography sx={{ fontWeight: 900, textTransform: 'uppercase' }}>Total</Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{totalDisplay.toLocaleString()}</Typography>
+                <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{finalTotal.toLocaleString()}</Typography>
               </MuiBox>
+              
               <Button fullWidth variant="contained" disabled={isProcessing || isCalculating} onClick={handlePlaceOrder} sx={{ borderRadius: '1.5rem', height: '5rem', fontSize: '1.25rem', fontWeight: 900, bgcolor: '#EA781E', '&:hover': { bgcolor: '#D66A18' }, textTransform: 'none' }}>
-                {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay`}
+                {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay ₹${finalTotal.toLocaleString()}`}
               </Button>
             </Paper>
           </Grid>

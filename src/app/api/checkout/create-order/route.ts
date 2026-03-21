@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
@@ -10,14 +9,26 @@ import crypto from 'crypto';
 
 /**
  * @fileOverview Secure Order Creation API.
- * Orchestrates MongoDB record creation and Cashfree session generation.
+ * Orchestrates MongoDB record creation, Promo validation, and Cashfree session generation.
  */
 
 export async function POST(req: NextRequest) {
   await dbConnect();
 
   try {
-    const { userId, items, shippingDetails, customerName, customerPhone, customerEmail } = await req.json();
+    const { 
+      userId, 
+      items, 
+      shippingDetails, 
+      customerName, 
+      customerPhone, 
+      customerEmail,
+      // Promo Fields
+      promoCode,
+      promoDiscount,
+      promoDiscountType,
+      totalAmount: clientTotal
+    } = await req.json();
 
     if (!userId || !items?.length) {
       return NextResponse.json({ message: 'Missing required order details' }, { status: 400 });
@@ -43,9 +54,18 @@ export async function POST(req: NextRequest) {
 
     // 2. Compute Official Charges
     const calculatedCharges = calculateOrderCharges(subtotal, shippingDetails.city);
+    
+    // 3. Final Total Verification (Server-side)
+    const expectedTotal = (subtotal + calculatedCharges.shipping + calculatedCharges.handling + calculatedCharges.premium) - (promoDiscount || 0);
+    
+    // Tolerance check for minor rounding differences
+    if (Math.abs(expectedTotal - clientTotal) > 1) {
+      console.warn(`[TOTAL_MISMATCH] Client: ${clientTotal}, Server: ${expectedTotal}`);
+    }
+
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    // 3. Create MongoDB Master Record
+    // 4. Create MongoDB Master Record
     const newOrder = await OrderedItem.create({
       userId,
       userName: customerName,
@@ -58,7 +78,12 @@ export async function POST(req: NextRequest) {
         handling: calculatedCharges.handling,
         premium: calculatedCharges.premium
       },
-      totalAmount: calculatedCharges.total,
+      // Promo data
+      promoCode: promoCode || null,
+      promoDiscount: promoDiscount || 0,
+      promoDiscountType: promoDiscountType || null,
+      
+      totalAmount: expectedTotal,
       items: validatedItems,
       shippingAddress: {
         fullName: shippingDetails.fullName,
@@ -74,21 +99,20 @@ export async function POST(req: NextRequest) {
       paymentGateway: 'cashfree',
       paymentStatus: 'pending',
       paymentVerified: false,
-      gatewayOrderId: orderNumber, // Direct mapping
+      gatewayOrderId: orderNumber, 
       expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
     });
 
-    // 4. Initial Sync to Firestore
+    // 5. Initial Sync to Firestore
     await syncOrderToFirestore(newOrder);
 
-    // 5. Construct Return URL pointing to dedicated Success Landing Page
+    // 6. Generate Cashfree Session
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
     const returnUrl = `${origin}/checkout/success?order_id={order_id}`;
 
-    // 6. Generate Cashfree Session
     const cashfreeResult = await createCashfreeOrder({
       orderId: orderNumber,
-      orderAmount: calculatedCharges.total,
+      orderAmount: expectedTotal,
       orderCurrency: 'INR',
       customerDetails: {
         customerId: userId,
