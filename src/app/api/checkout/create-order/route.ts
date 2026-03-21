@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import OrderedItem from '@/lib/models/OrderedItem';
+import PromoCode from '@/lib/models/PromoCode';
 import { createCashfreeOrder } from '@/lib/actions/cashfree';
 import { syncOrderToFirestore } from '@/lib/firebase-admin';
 import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
@@ -103,10 +104,18 @@ export async function POST(req: NextRequest) {
       expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
     });
 
-    // 5. Initial Sync to Firestore
+    // 5. Update Promo Usage if applicable
+    if (promoCode) {
+      await PromoCode.findOneAndUpdate(
+        { code: promoCode.toUpperCase() },
+        { $inc: { usedCount: 1 } }
+      );
+    }
+
+    // 6. Initial Sync to Firestore
     await syncOrderToFirestore(newOrder);
 
-    // 6. Generate Cashfree Session
+    // 7. Generate Cashfree Session
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
     const returnUrl = `${origin}/checkout/success?order_id={order_id}`;
 

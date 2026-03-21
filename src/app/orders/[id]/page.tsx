@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -359,6 +358,12 @@ export default function OrderDetailPage() {
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Subtotal</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta }}>₹{order?.subtotal?.toLocaleString()}</Typography>
                     </Box>
+                    {order?.promoCode && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography color="success.main" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Promo ({order.promoCode})</Typography>
+                        <Typography sx={{ fontWeight: 800, color: 'success.main', fontSize: '0.875rem' }}>- ₹{order.promoDiscount.toLocaleString()}</Typography>
+                      </Box>
+                    )}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Shipping</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta }}>₹{order?.charges?.shipping?.toLocaleString()}</Typography>

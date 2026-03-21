@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -288,23 +287,26 @@ export default function OrdersPage() {
 
                     <Box sx={{ bgcolor: alpha(primarySaffron, 0.02), p: 4, borderRadius: '2rem', mb: 4, border: '1px solid', borderColor: alpha(primarySaffron, 0.05) }}>
                       <Grid container spacing={3}>
-                        <Grid item xs={6} sm={2.4}>
+                        <Grid item xs={6} sm={2}>
                           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, display: 'block', mb: 0.5, fontSize: '0.65rem' }}>Subtotal</Typography>
                           <Typography variant="body1" sx={{ fontWeight: 800, color: darkTerracotta }}>₹{order.subtotal?.toLocaleString()}</Typography>
                         </Grid>
-                        <Grid item xs={6} sm={2.4}>
+                        {order.promoCode && (
+                          <Grid item xs={6} sm={2}>
+                            <Typography variant="caption" color="success.main" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, display: 'block', mb: 0.5, fontSize: '0.65rem' }}>Promo</Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 800, color: 'success.main' }}>- ₹{order.promoDiscount.toLocaleString()}</Typography>
+                            <Chip label={order.promoCode} size="small" variant="outlined" color="success" sx={{ height: 16, fontSize: '0.55rem', fontWeight: 900, mt: 0.5 }} />
+                          </Grid>
+                        )}
+                        <Grid item xs={6} sm={2}>
                           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, display: 'block', mb: 0.5, fontSize: '0.65rem' }}>Shipping</Typography>
                           <Typography variant="body1" sx={{ fontWeight: 800, color: darkTerracotta }}>₹{order.charges?.shipping?.toLocaleString()}</Typography>
                         </Grid>
-                        <Grid item xs={6} sm={2.4}>
+                        <Grid item xs={6} sm={2}>
                           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, display: 'block', mb: 0.5, fontSize: '0.65rem' }}>Handling</Typography>
                           <Typography variant="body1" sx={{ fontWeight: 800, color: darkTerracotta }}>₹{order.charges?.handling?.toLocaleString()}</Typography>
                         </Grid>
-                        <Grid item xs={6} sm={2.4}>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, display: 'block', mb: 0.5, fontSize: '0.65rem' }}>Protection</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 800, color: darkTerracotta }}>₹{order.charges?.premium?.toLocaleString()}</Typography>
-                        </Grid>
-                        <Grid item xs={12} sm={2.4} sx={{ textAlign: { sm: 'right' } }}>
+                        <Grid item xs={12} sm={order.promoCode ? 4 : 6} sx={{ textAlign: { sm: 'right' } }}>
                           <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5, display: 'block', mb: 0.5, fontSize: '0.65rem', color: primarySaffron }}>Total Acquisition</Typography>
                           <Typography variant="h5" sx={{ fontWeight: 900, color: primarySaffron }}>₹{order.totalAmount?.toLocaleString()}</Typography>
                         </Grid>
