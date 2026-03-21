@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -46,7 +47,9 @@ import {
   Hammer,
   Zap,
   HelpCircle,
-  AlertTriangle
+  AlertTriangle,
+  Sparkles,
+  Timer
 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -69,6 +72,17 @@ const alpha = (color: string, opacity: number) => {
   return muiAlpha(color, opacity);
 };
 
+const PROMO_CODES: Record<string, { 
+  discount: number, 
+  type: 'flat' | 'percent', 
+  label: string 
+}> = {
+  'KALAMIC10': { discount: 10, type: 'percent', label: '10% off applied!' },
+  'FIRST100':  { discount: 100, type: 'flat', label: '₹100 off applied!' },
+  'CERAMIC50': { discount: 50, type: 'flat', label: '₹50 off applied!' },
+  'WELCOME15': { discount: 15, type: 'percent', label: '15% off applied!' },
+};
+
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -89,6 +103,16 @@ export default function ProductDetailPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
+  // Promo Code State
+  const [promoCode, setPromoCode] = useState('');
+  const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoMessage, setPromoMessage] = useState('');
+
+  // Offer Countdown State
+  const endTimeRef = useRef<number>(Date.now() + 48 * 60 * 60 * 1000);
+  const [timeLeft, setTimeLeft] = useState('');
+
   const productId = typeof params?.id === 'string' ? params.id : '';
 
   const wishlistDocRef = useMemoFirebase(() => {
@@ -106,6 +130,26 @@ export default function ProductDetailPage() {
     }, 5000);
     return () => clearInterval(interval);
   }, [product, isSliderPaused]);
+
+  // Countdown Timer Effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const diff = endTimeRef.current - now;
+      if (diff <= 0) {
+        setTimeLeft('00:00:00');
+        clearInterval(timer);
+      } else {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft(
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   async function loadData() {
     if (!productId) return;
@@ -137,6 +181,34 @@ export default function ProductDetailPage() {
     loadData();
   }, [productId]);
 
+  const handleApplyPromo = () => {
+    if (!promoCode.trim()) return;
+    setPromoStatus('loading');
+    setTimeout(() => {
+      const code = PROMO_CODES[promoCode.trim().toUpperCase()];
+      if (code) {
+        const discountAmount = code.type === 'percent'
+          ? Math.floor((product.price * code.discount) / 100)
+          : code.discount;
+        setPromoDiscount(discountAmount);
+        setPromoMessage(code.label);
+        setPromoStatus('success');
+        toast({ title: "Promo Applied", description: code.label });
+      } else {
+        setPromoDiscount(0);
+        setPromoMessage('Invalid promo code. Try again.');
+        setPromoStatus('error');
+      }
+    }, 800);
+  };
+
+  const handleRemovePromo = () => {
+    setPromoCode('');
+    setPromoDiscount(0);
+    setPromoMessage('');
+    setPromoStatus('idle');
+  };
+
   const handleAddToCart = async () => {
     if (!user || !firestore || !product) {
       toast({ title: "Please sign in", description: "You need an account to add items to your cart." });
@@ -145,12 +217,16 @@ export default function ProductDetailPage() {
     }
     const id = product._id;
     const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
+    
+    // Account for applied promo discount
+    const finalPrice = product.price - promoDiscount;
+
     await setDoc(cartItemRef, {
       id,
       productVariantId: id,
       cartId: user.uid,
       name: product.name,
-      priceAtAddToCart: product.price ?? 0,
+      priceAtAddToCart: finalPrice ?? 0,
       imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url,
       quantity: 1,
       updatedAt: serverTimestamp(),
@@ -173,12 +249,10 @@ export default function ProductDetailPage() {
     const wishlistItemRef = doc(firestore, 'users', user.uid, 'wishlist', 'wishlist', 'items', id);
     try {
       if (isFavorited) {
-        setIsFavorited(false);
         await deleteDoc(wishlistItemRef);
         await untrackWishlistAction(id);
         toast({ title: "Removed from favorites" });
       } else {
-        setIsFavorited(true);
         await setDoc(wishlistItemRef, {
           id,
           productId: id,
@@ -187,7 +261,7 @@ export default function ProductDetailPage() {
           price: product.price ?? 0,
           imageUrl: product.images?.[0]?.url,
           addedAt: new Date().toISOString()
-        });
+        }, { merge: true });
         await trackProductAction(id, 'wishlist_count');
         toast({ title: "Saved to wishlist" });
       }
@@ -331,9 +405,72 @@ export default function ProductDetailPage() {
                 <h1 className="text-3xl md:text-4xl font-display font-semibold text-foreground tracking-tight leading-[1.1]">{product.name}</h1>
                 
                 <div className="flex items-baseline gap-5 py-4">
-                  <span className="text-4xl sm:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
-                  {product.compare_at_price && (
-                    <span className="text-xl sm:text-2xl text-muted-foreground line-through decoration-primary/30 opacity-40 font-semibold">₹{product.compare_at_price.toLocaleString()}</span>
+                  {promoDiscount > 0 ? (
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-4xl sm:text-5xl font-black text-primary tracking-tighter">₹{(product.price - promoDiscount).toLocaleString()}</span>
+                        <span className="text-lg sm:text-xl text-muted-foreground line-through decoration-primary/30 opacity-40 font-semibold">₹{product.price.toLocaleString()}</span>
+                      </div>
+                      <div className="text-[10px] font-black text-green-600 uppercase tracking-widest flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" /> You Save ₹{promoDiscount.toLocaleString()}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="text-4xl sm:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
+                      {product.compare_at_price && (
+                        <span className="text-xl sm:text-2xl text-muted-foreground line-through decoration-primary/30 opacity-40 font-semibold">₹{product.compare_at_price.toLocaleString()}</span>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* PROMO CODE SECTION */}
+                <div className="space-y-4 py-6 border-y border-primary/5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Have a promo code?</label>
+                    {timeLeft && (
+                      <div className="flex items-center gap-1.5 text-[9px] font-black text-primary uppercase tracking-widest monospace">
+                        Offer ends in: <span className="bg-primary/10 px-2 py-0.5 rounded text-primary">{timeLeft}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Input 
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      placeholder="Enter code e.g. KALAMIC10"
+                      disabled={promoStatus === 'success'}
+                      className="rounded-2xl border-primary/20 text-sm font-bold uppercase h-12 bg-white"
+                    />
+                    <Button 
+                      onClick={handleApplyPromo}
+                      disabled={promoStatus === 'loading' || promoStatus === 'success' || !promoCode}
+                      className="h-12 px-6 rounded-2xl font-black text-xs uppercase bg-primary text-white shadow-lg shadow-primary/20"
+                    >
+                      {promoStatus === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : promoStatus === 'success' ? 'Applied' : 'Apply'}
+                    </Button>
+                  </div>
+
+                  {promoStatus === 'success' && (
+                    <div className="flex flex-col gap-2">
+                      <div className="text-[10px] font-bold text-green-600 flex items-center gap-1 mt-1">
+                        <CheckCircle2 className="h-3 w-3" /> {promoMessage} You save ₹{promoDiscount}!
+                      </div>
+                      <div className="inline-flex self-start items-center gap-2 bg-primary/10 text-primary rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest border border-primary/10">
+                        {promoCode.toUpperCase()}
+                        <button onClick={handleRemovePromo} className="hover:text-primary/70 transition-colors">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {promoStatus === 'error' && (
+                    <div className="text-[10px] font-bold text-destructive flex items-center gap-1 mt-1">
+                      <X className="h-3 w-3" /> {promoMessage}
+                    </div>
                   )}
                 </div>
 
