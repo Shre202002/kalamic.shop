@@ -20,6 +20,11 @@ export function middleware(request: NextRequest) {
     '/admin'
   ];
 
+  // Specific exclusion for success page to allow auth to initialize on the client
+  if (pathname.startsWith('/checkout/success')) {
+    return NextResponse.next();
+  }
+
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
   // If trying to access a protected route without a session, redirect to home
