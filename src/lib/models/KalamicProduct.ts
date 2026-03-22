@@ -31,6 +31,7 @@ export interface IKalamicProduct extends Document {
   specifications: Array<{
     key: string;
     value: string;
+    commonValue?: string;
   }>;
   faqs: Array<{
     question: string;
@@ -96,7 +97,8 @@ const KalamicProductSchema: Schema = new Schema({
   specifications: {
     type: [{
       key: { type: String, required: true },
-      value: { type: String, default: '' }
+      value: { type: String, required: true },
+      commonValue: { type: String, default: '' }
     }],
     _id: false
   },

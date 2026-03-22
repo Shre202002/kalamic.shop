@@ -122,7 +122,6 @@ export async function toggleUserStatus(adminId: string, targetUserId: string, ne
 export async function getDashboardChartData() {
   await dbConnect();
   
-  // 1. Sales Trend (Last 7 Days)
   const last7Days = [];
   for (let i = 6; i >= 0; i--) {
     const d = dayjs().subtract(i, 'day').startOf('day');
@@ -141,7 +140,6 @@ export async function getDashboardChartData() {
     return { day: slot.label, value: result[0]?.total || 0 };
   }));
 
-  // 2. User Growth (Last 6 Months)
   const userGrowth = [];
   for (let i = 5; i >= 0; i--) {
     const d = dayjs().subtract(i, 'month').startOf('month');
@@ -150,7 +148,6 @@ export async function getDashboardChartData() {
     userGrowth.push({ month: d.format('MMM'), count });
   }
 
-  // 3. Product Popularity Mix (based on order items)
   const productMix = await OrderedItem.aggregate([
     { $match: { paymentStatus: 'paid', paymentVerified: true } },
     { $unwind: '$items' },
@@ -193,6 +190,15 @@ export async function saveProduct(adminId: string, product: any) {
   const id = product._id;
   const data = { ...product, updated_by_admin: actor.firebaseId };
   delete data._id;
+
+  // Clean specifications - ensure required fields are strings
+  if (data.specifications) {
+    data.specifications = data.specifications.map((s: any) => ({
+      key: s.key || 'Spec',
+      value: s.value || 'Standard',
+      commonValue: s.commonValue || ''
+    }));
+  }
 
   let result;
   if (id) {

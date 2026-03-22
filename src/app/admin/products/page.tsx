@@ -28,7 +28,12 @@ import {
   CircularProgress,
   Stack,
   Divider,
-  FormHelperText
+  FormHelperText,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import {
@@ -75,7 +80,7 @@ const INITIAL_PRODUCT = {
   is_featured: false,
   visibility_priority: 0,
   images: [{ url: '', alt: '', is_primary: true }],
-  specifications: [{ key: "Material", value: "" }, { key: "Finish", value: "" }],
+  specifications: [{ key: "Material", value: "Handcrafted Ceramic", commonValue: "Mass produced plastic/resin" }],
   faqs: [{ question: "", answer: "" }],
   shipping: {
     weight_kg: 0,
@@ -135,7 +140,7 @@ export default function ProductsManagement() {
         ...product,
         analytics: { ...INITIAL_PRODUCT.analytics, ...product.analytics },
         images: Array.isArray(product.images) && product.images.length ? product.images.map((i: any) => ({ ...i })) : INITIAL_PRODUCT.images,
-        specifications: Array.isArray(product.specifications) && product.specifications.length ? product.specifications.map((s: any) => ({ ...s })) : INITIAL_PRODUCT.specifications,
+        specifications: Array.isArray(product.specifications) && product.specifications.length ? product.specifications.map((s: any) => ({ ...s, commonValue: s.commonValue || '' })) : INITIAL_PRODUCT.specifications,
         faqs: Array.isArray(product.faqs) && product.faqs.length ? product.faqs.map((f: any) => ({ ...f })) : INITIAL_PRODUCT.faqs,
         shipping: {
           ...INITIAL_PRODUCT.shipping,
@@ -169,12 +174,6 @@ export default function ProductsManagement() {
       const seoName = `${productName} img ${idx + 1} handcrafted ceramic Kanpur`;
       formData.append('seoName', seoName);
 
-      const baseName = editingProduct.name
-        ? `${editingProduct.name} handcrafted ceramic`
-        : 'kalamic handcrafted ceramic decor lucknow';
-      formData.append('seoName', baseName);
-
-
       const result = await uploadToImageKit(formData);
 
       const next = [...editingProduct.images];
@@ -191,7 +190,6 @@ export default function ProductsManagement() {
   const handleSaveProduct = async () => {
     if (!user) return;
 
-    // Validation
     if (!editingProduct.name || !editingProduct.slug || !editingProduct.description || !editingProduct.category_id) {
       toast({ variant: "destructive", title: "Validation Error", description: "Name, Slug, Description, and Category are required." });
       return;
@@ -293,6 +291,12 @@ export default function ProductsManagement() {
     return baseCols;
   }, [user, isMobile, isTablet]);
 
+  const updateSpec = (idx: number, field: string, val: string) => {
+    const next = [...editingProduct.specifications];
+    next[idx][field] = val;
+    setEditingProduct({ ...editingProduct, specifications: next });
+  };
+
   if (!mounted) return null;
 
   return (
@@ -307,7 +311,7 @@ export default function ProductsManagement() {
       }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 900 }}>Artisan Catalog</Typography>
-          <Typography variant="body2" color="text.secondary">Managing the primary Kalamic_Products collection with ImageKit storage.</Typography>
+          <Typography variant="body2" color="text.secondary">Managing the primary Kalamic_Products collection with comparison data.</Typography>
         </Box>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: { xs: '100%', md: 'auto' } }}>
           <Paper sx={{
@@ -529,19 +533,87 @@ export default function ProductsManagement() {
 
               {activeTab === 2 && (
                 <Box>
-                  <Typography variant="caption" sx={{ display: 'block', mb: 2, color: 'text.secondary', fontWeight: 700 }}>TECHNICAL STACK</Typography>
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                      TECHNICAL PRECISION — COMPARISON
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.disabled', fontSize: '0.75rem' }}>
+                      Add Kalamic value and common market comparison for each specification row.
+                    </Typography>
+                  </Box>
+
                   {(editingProduct.specifications || []).map((spec: any, idx: number) => (
-                    <Box key={idx} sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-                      <TextField label="Key" fullWidth={isMobile} value={spec.key} onChange={(e) => {
-                        const next = [...editingProduct.specifications]; next[idx].key = e.target.value; setEditingProduct({ ...editingProduct, specifications: next });
-                      }} />
-                      <TextField label="Value" fullWidth value={spec.value} onChange={(e) => {
-                        const next = [...editingProduct.specifications]; next[idx].value = e.target.value; setEditingProduct({ ...editingProduct, specifications: next });
-                      }} />
-                      <IconButton color="error" onClick={() => setEditingProduct({ ...editingProduct, specifications: editingProduct.specifications.filter((_: any, ii: number) => ii !== idx) })} sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}><Delete /></IconButton>
+                    <Box key={idx} sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'flex-start' }}>
+                      <Box sx={{ width: '25%' }}>
+                        <TextField 
+                          fullWidth size="small" label="Feature Key" 
+                          placeholder="e.g. Material"
+                          value={spec.key} 
+                          onChange={(e) => updateSpec(idx, 'key', e.target.value)} 
+                        />
+                      </Box>
+                      <Box sx={{ width: '35%' }}>
+                        <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 800, mb: 0.5, display: 'block', fontSize: '0.6rem' }}>
+                          🏺 KALAMIC VALUE
+                        </Typography>
+                        <TextField 
+                          fullWidth size="small" 
+                          placeholder="e.g. Handcrafted Ceramic"
+                          value={spec.value} 
+                          onChange={(e) => updateSpec(idx, 'value', e.target.value)} 
+                        />
+                      </Box>
+                      <Box sx={{ width: '35%' }}>
+                        <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 800, mb: 0.5, display: 'block', fontSize: '0.6rem' }}>
+                          🏭 COMMON VALUE
+                        </Typography>
+                        <TextField 
+                          fullWidth size="small" 
+                          placeholder="e.g. Mass produced resin"
+                          value={spec.commonValue} 
+                          onChange={(e) => updateSpec(idx, 'commonValue', e.target.value)} 
+                        />
+                      </Box>
+                      <Box sx={{ pt: 3 }}>
+                        <IconButton color="error" size="small" onClick={() => setEditingProduct({ ...editingProduct, specifications: editingProduct.specifications.filter((_: any, ii: number) => ii !== idx) })}>
+                          <Delete />
+                        </IconButton>
+                      </Box>
                     </Box>
                   ))}
-                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({ ...editingProduct, specifications: [...editingProduct.specifications, { key: '', value: '' }] })}>Add Spec</Button>
+                  
+                  <Button variant="outlined" startIcon={<Add />} onClick={() => setEditingProduct({ ...editingProduct, specifications: [...editingProduct.specifications, { key: '', value: '', commonValue: '' }] })}>
+                    Add Comparison Row
+                  </Button>
+
+                  {/* PREVIEW TABLE */}
+                  {editingProduct.specifications?.length > 0 && (
+                    <Box sx={{ mt: 6 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 900, color: 'primary.main', mb: 2, display: 'block' }}>
+                        STUDIO PREVIEW
+                      </Typography>
+                      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3, bgcolor: alpha(theme.palette.background.default, 0.3) }}>
+                        <Table size="small">
+                          <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>Feature</TableCell>
+                              <TableCell sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase', color: 'primary.main' }}>🏺 Kalamic</TableCell>
+                              <TableCell sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase', color: 'text.disabled' }}>🏭 Common</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {editingProduct.specifications.filter((s: any) => s.key).map((spec: any, i: number) => (
+                              <TableRow key={i} sx={{ '&:nth-of-type(even)': { bgcolor: alpha('#000', 0.01) } }}>
+                                <TableCell sx={{ fontWeight: 800, fontSize: '0.7rem' }}>{spec.key}</TableCell>
+                                <TableCell sx={{ fontWeight: 700, color: 'primary.main', fontSize: '0.7rem' }}>{spec.value}</TableCell>
+                                <TableCell sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>{spec.commonValue || '—'}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                  )}
                 </Box>
               )}
 
