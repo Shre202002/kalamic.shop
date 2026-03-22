@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -296,10 +297,33 @@ export default function OrdersManagement() {
                       <Grid item xs={8}><Typography variant="caption">Premium Protection</Typography></Grid>
                       <Grid item xs={4} sx={{ textAlign: 'right' }}><Typography variant="caption" fontWeight={700}>₹{selectedOrder.charges?.premium?.toLocaleString()}</Typography></Grid>
                       
+                      {selectedOrder.promoCode && (
+                        <>
+                          <Grid item xs={8}>
+                            <Typography variant="caption" fontWeight={600} color="text.secondary">
+                              Promo Discount
+                            </Typography>
+                            <Typography variant="caption" sx={{ display: 'block', fontFamily: 'monospace', fontWeight: 800, color: 'success.main', fontSize: '0.6rem' }}>
+                              {selectedOrder.promoCode}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={4} sx={{ textAlign: 'right' }}>
+                            <Typography variant="caption" fontWeight={800} color="success.main">
+                              - ₹{selectedOrder.promoDiscount?.toLocaleString()}
+                            </Typography>
+                          </Grid>
+                        </>
+                      )}
+
                       <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
                       
                       <Grid item xs={8}><Typography variant="subtitle1" fontWeight={900}>TOTAL AMOUNT</Typography></Grid>
                       <Grid item xs={4} sx={{ textAlign: 'right' }}>
+                        {selectedOrder.promoDiscount > 0 && (
+                          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textDecoration: 'line-through', fontSize: '0.7rem' }}>
+                            ₹{(selectedOrder.subtotal + selectedOrder.charges.shipping + selectedOrder.charges.handling + selectedOrder.charges.premium).toLocaleString()}
+                          </Typography>
+                        )}
                         <Typography variant="subtitle1" fontWeight={900} color="primary.main">
                           ₹{selectedOrder.totalAmount?.toLocaleString()}
                         </Typography>

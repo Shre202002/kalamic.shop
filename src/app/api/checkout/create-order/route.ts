@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
@@ -57,7 +58,8 @@ export async function POST(req: NextRequest) {
     const calculatedCharges = calculateOrderCharges(subtotal, shippingDetails.city);
     
     // 3. Final Total Verification (Server-side)
-    const expectedTotal = (subtotal + calculatedCharges.shipping + calculatedCharges.handling + calculatedCharges.premium) - (promoDiscount || 0);
+    const promoDiscountAmount = promoDiscount || 0;
+    const expectedTotal = (subtotal + calculatedCharges.shipping + calculatedCharges.handling + calculatedCharges.premium) - promoDiscountAmount;
     
     // Tolerance check for minor rounding differences
     if (Math.abs(expectedTotal - clientTotal) > 1) {
@@ -81,7 +83,7 @@ export async function POST(req: NextRequest) {
       },
       // Promo data
       promoCode: promoCode || null,
-      promoDiscount: promoDiscount || 0,
+      promoDiscount: promoDiscountAmount,
       promoDiscountType: promoDiscountType || null,
       
       totalAmount: expectedTotal,

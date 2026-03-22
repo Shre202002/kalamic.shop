@@ -72,17 +72,6 @@ const alpha = (color: string, opacity: number) => {
   return muiAlpha(color, opacity);
 };
 
-const PROMO_CODES: Record<string, { 
-  discount: number, 
-  type: 'flat' | 'percent', 
-  label: string 
-}> = {
-  'KALAMIC10': { discount: 10, type: 'percent', label: '10% off applied!' },
-  'FIRST100':  { discount: 100, type: 'flat', label: '₹100 off applied!' },
-  'CERAMIC50': { discount: 50, type: 'flat', label: '₹50 off applied!' },
-  'WELCOME15': { discount: 15, type: 'percent', label: '15% off applied!' },
-};
-
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -107,6 +96,7 @@ export default function ProductDetailPage() {
   const [promoCode, setPromoCode] = useState('');
   const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoDiscountType, setPromoDiscountType] = useState<string | null>(null);
   const [promoMessage, setPromoMessage] = useState('');
 
   // Offer Countdown State
@@ -181,30 +171,40 @@ export default function ProductDetailPage() {
     loadData();
   }, [productId]);
 
-  const handleApplyPromo = () => {
-    if (!promoCode.trim()) return;
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim() || !product) return;
     setPromoStatus('loading');
-    setTimeout(() => {
-      const code = PROMO_CODES[promoCode.trim().toUpperCase()];
-      if (code) {
-        const discountAmount = code.type === 'percent'
-          ? Math.floor((product.price * code.discount) / 100)
-          : code.discount;
-        setPromoDiscount(discountAmount);
-        setPromoMessage(code.label);
+    try {
+      const res = await fetch('/api/promo/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: promoCode.trim().toUpperCase(),
+          subtotal: product.price
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPromoDiscount(data.discountAmount);
+        setPromoDiscountType(data.discountType);
+        setPromoMessage(data.message);
         setPromoStatus('success');
-        toast({ title: "Promo Applied", description: code.label });
+        toast({ title: "Promo Applied", description: data.message });
       } else {
         setPromoDiscount(0);
-        setPromoMessage('Invalid promo code. Try again.');
+        setPromoMessage(data.message || 'Invalid promo code');
         setPromoStatus('error');
       }
-    }, 800);
+    } catch {
+      setPromoStatus('error');
+      setPromoMessage('Something went wrong. Try again.');
+    }
   };
 
   const handleRemovePromo = () => {
     setPromoCode('');
     setPromoDiscount(0);
+    setPromoDiscountType(null);
     setPromoMessage('');
     setPromoStatus('idle');
   };
@@ -218,7 +218,8 @@ export default function ProductDetailPage() {
     const id = product._id;
     const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
     
-    // Account for applied promo discount
+    // The cart logic in Firestore typically stores priceAtAddToCart
+    // We send the discounted price if applied
     const finalPrice = product.price - promoDiscount;
 
     await setDoc(cartItemRef, {
@@ -257,6 +258,7 @@ export default function ProductDetailPage() {
           id,
           productId: id,
           wishlistId: user.uid,
+          slug: product.slug,
           name: product.name,
           price: product.price ?? 0,
           imageUrl: product.images?.[0]?.url,
@@ -406,13 +408,17 @@ export default function ProductDetailPage() {
                 
                 <div className="flex items-baseline gap-5 py-4">
                   {promoDiscount > 0 ? (
-                    <div className="space-y-1">
+                    <div className="flex flex-col gap-1">
                       <div className="flex items-baseline gap-3">
-                        <span className="text-4xl sm:text-5xl font-black text-primary tracking-tighter">₹{(product.price - promoDiscount).toLocaleString()}</span>
-                        <span className="text-lg sm:text-xl text-muted-foreground line-through decoration-primary/30 opacity-40 font-semibold">₹{product.price.toLocaleString()}</span>
+                        <span className="line-through opacity-40 text-lg text-muted-foreground">
+                          ₹{product.price.toLocaleString()}
+                        </span>
+                        <span className="text-4xl font-black text-primary ml-3">
+                          ₹{(product.price - promoDiscount).toLocaleString()}
+                        </span>
                       </div>
-                      <div className="text-[10px] font-black text-green-600 uppercase tracking-widest flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" /> You Save ₹{promoDiscount.toLocaleString()}
+                      <div className="text-[9px] font-black uppercase text-green-600 bg-green-50 px-2 py-1 rounded-full inline-block self-start">
+                        YOU SAVE ₹{promoDiscount.toLocaleString()}
                       </div>
                     </div>
                   ) : (

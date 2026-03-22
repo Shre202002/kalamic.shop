@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -337,6 +338,18 @@ export default function OrderDetailPage() {
                             <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1, color: 'text.secondary' }}>Protocol</Typography>
                             <Chip label={(order?.paymentStatus || 'pending').toUpperCase()} size="small" sx={{ fontWeight: 900, fontSize: '0.6rem', height: 24, bgcolor: order?.paymentStatus === 'paid' ? '#4caf50' : '#ff9800', color: 'white' }} />
                           </Box>
+                          {order?.promoCode && (
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1, color: 'text.secondary' }}>Promo Applied</Typography>
+                              <Chip 
+                                label={order.promoCode} 
+                                variant="outlined" 
+                                color="success" 
+                                size="small" 
+                                sx={{ fontWeight: 900, fontFamily: 'monospace', fontSize: '0.65rem' }} 
+                              />
+                            </Box>
+                          )}
                           {order?.paymentVerified && (
                             <Box sx={{ p: 2, bgcolor: alpha('#4caf50', 0.08), borderRadius: '1.5rem', display: 'flex', alignItems: 'center', gap: 2, border: '1px dashed #4caf50' }}>
                               <ShieldCheck size={20} color="#4caf50" />
@@ -358,12 +371,6 @@ export default function OrderDetailPage() {
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Subtotal</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta }}>₹{order?.subtotal?.toLocaleString()}</Typography>
                     </Box>
-                    {order?.promoCode && (
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography color="success.main" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Promo ({order.promoCode})</Typography>
-                        <Typography sx={{ fontWeight: 800, color: 'success.main', fontSize: '0.875rem' }}>- ₹{order.promoDiscount.toLocaleString()}</Typography>
-                      </Box>
-                    )}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Shipping</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta }}>₹{order?.charges?.shipping?.toLocaleString()}</Typography>
@@ -372,6 +379,23 @@ export default function OrderDetailPage() {
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Artisan Handling</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta }}>₹{order?.charges?.handling?.toLocaleString()}</Typography>
                     </Box>
+
+                    {order?.promoCode && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box>
+                          <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                            Promo Discount
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'success.main', fontWeight: 800 }}>
+                            {order.promoCode}
+                          </Typography>
+                        </Box>
+                        <Typography variant="body2" fontWeight={800} sx={{ color: 'success.main' }}>
+                          - ₹{order.promoDiscount?.toLocaleString()}
+                        </Typography>
+                      </Box>
+                    )}
+
                     <Divider sx={{ my: 2, borderStyle: 'dashed', borderColor: alpha(primarySaffron, 0.2) }} />
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                       <Typography variant="body1" sx={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '0.9rem', color: primarySaffron, letterSpacing: 1 }}>Total Investment</Typography>
