@@ -59,9 +59,7 @@ import {
 import {
   getAdminProducts,
   toggleProductVisibility,
-  toggleProductFeatured,
-  deleteProduct,
-  saveProduct
+  deleteProduct
 } from '@/lib/actions/admin-actions';
 import { uploadToImageKit } from '@/lib/actions/upload-actions';
 import { useToast } from '@/hooks/use-toast';
@@ -141,7 +139,11 @@ export default function ProductsManagement() {
         ...product,
         analytics: { ...INITIAL_PRODUCT.analytics, ...product.analytics },
         images: Array.isArray(product.images) && product.images.length ? product.images.map((i: any) => ({ ...i })) : INITIAL_PRODUCT.images,
-        specifications: Array.isArray(product.specifications) && product.specifications.length ? product.specifications.map((s: any) => ({ ...s, commonValue: s.commonValue || '' })) : INITIAL_PRODUCT.specifications,
+        specifications: Array.isArray(product.specifications) && product.specifications.length ? product.specifications.map((s: any) => ({ 
+          key: s.key || '', 
+          value: s.value || '', 
+          commonValue: s.commonValue || '' 
+        })) : INITIAL_PRODUCT.specifications,
         faqs: Array.isArray(product.faqs) && product.faqs.length ? product.faqs.map((f: any) => ({ ...f })) : INITIAL_PRODUCT.faqs,
         shipping: {
           ...INITIAL_PRODUCT.shipping,
@@ -216,7 +218,29 @@ export default function ProductsManagement() {
 
     setIsSaving(true);
     try {
-      await saveProduct(user.uid, editingProduct);
+      // Transitioned to API Route for better tracing
+      const method = editingProduct._id ? 'PATCH' : 'POST';
+      const url = editingProduct._id ? `/api/admin/products/${editingProduct._id}` : '/api/admin/products';
+      
+      const payload = {
+        ...editingProduct,
+        adminId: user.uid,
+        specifications: editingProduct.specifications.map((s: any) => ({
+          key: s.key?.trim() || '',
+          value: s.value?.trim() || '',
+          commonValue: s.commonValue?.trim() || ''
+        }))
+      };
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Save operation failed');
+
       toast({ title: "Product Saved", description: "Artisan piece updated in catalog." });
       setDialogOpen(false);
       load();

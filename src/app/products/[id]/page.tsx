@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -356,7 +355,6 @@ export default function ProductDetailPage() {
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
 
-  // Build the cards array for the Piece at a Glance section
   const glanceCards = [
     { icon: Scale, label: 'Weight', value: `${product.shipping?.weight_kg || '0'} KG` },
     { icon: Box, label: 'Length', value: `${product.shipping?.package_dimensions_cm?.length || '0'} CM` },
@@ -373,8 +371,8 @@ export default function ProductDetailPage() {
     }))
   ];
 
-  // Triple the array for seamless infinite loop
   const infiniteCards = [...glanceCards, ...glanceCards, ...glanceCards];
+  const hasComparison = product.specifications?.some((s: any) => s.commonValue?.trim());
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-body">
@@ -563,7 +561,6 @@ export default function ProductDetailPage() {
             </motion.div>
           </div>
 
-          {/* PIECE AT A GLANCE — INFINITE AUTO SCROLL */}
           <section className="py-12 border-t border-primary/10">
             <div className="mb-6">
               <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display mb-2">Piece at a Glance</h2>
@@ -632,7 +629,6 @@ export default function ProductDetailPage() {
             </div>
           </section>
 
-          {/* CUSTOMISATION SECTION */}
           <section className="py-20 border-t border-primary/10">
             <div className="mb-12">
               <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display mb-2">Make It Yours</h2>
@@ -702,7 +698,6 @@ export default function ProductDetailPage() {
             </div>
           </section>
 
-          {/* NARRATIVE SECTION */}
           <section className="py-20 border-t border-primary/10">
             <div className="max-w-4xl">
               <div className="flex items-center gap-4 mb-10">
@@ -718,6 +713,54 @@ export default function ProductDetailPage() {
                 </p>
               </div>
             </div>
+          </section>
+
+          {/* TECHNICAL PRECISION SECTION */}
+          <section className="py-20 border-t border-primary/10">
+            <div className="flex items-center gap-4 mb-12">
+              <div className="h-1 w-12 bg-primary rounded-full" />
+              <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">Technical Precision</h2>
+            </div>
+            
+            {hasComparison ? (
+              <div className="overflow-hidden rounded-[2rem] border border-primary/10 bg-white shadow-sm">
+                <div className="grid grid-cols-3 bg-primary/5 px-4 sm:px-6 py-4 border-b border-primary/10">
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground">Feature</span>
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1">🏺 Kalamic</span>
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">🏭 Common</span>
+                </div>
+                {(product.specifications || []).map((spec: any, i: number) => (
+                  <div key={i} className={cn("grid grid-cols-3 px-4 sm:px-6 py-4 border-b border-primary/5 last:border-0 items-start transition-colors hover:bg-primary/[0.02]", i % 2 === 0 ? "bg-white" : "bg-primary/[0.01]")}>
+                    <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-foreground pr-2">{spec.key}</span>
+                    <div className="flex items-start gap-1.5 pr-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                      <span className="text-[10px] sm:text-xs font-bold text-primary leading-snug">{spec.value}</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30 flex-shrink-0 mt-1.5" />
+                      <span className="text-[10px] sm:text-xs font-normal text-muted-foreground leading-snug">{spec.commonValue?.trim() ? spec.commonValue : '—'}</span>
+                    </div>
+                  </div>
+                ))}
+                <div className="px-4 sm:px-6 py-4 bg-primary/5 flex items-center gap-2 border-t border-primary/10">
+                  <ShieldCheck className="h-4 w-4 text-primary opacity-60 flex-shrink-0" />
+                  <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-muted-foreground">All Kalamic pieces are handcrafted by certified artisans in Kanpur, India</span>
+                </div>
+              </div>
+            ) : (
+              <Accordion type="single" collapsible className="w-full space-y-3">
+                {(product.specifications || []).map((spec: any, i: number) => (
+                  <AccordionItem key={i} value={`spec-${i}`} className="border rounded-2xl bg-white px-6 overflow-hidden data-[state=open]:border-primary/30 transition-all shadow-sm">
+                    <AccordionTrigger className="hover:no-underline py-5">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-foreground">{spec.key}</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-5 text-[10px] font-normal text-muted-foreground border-t pt-4">
+                      {spec.value}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
           </section>
 
           <section className="py-20 border-t border-primary/10">
