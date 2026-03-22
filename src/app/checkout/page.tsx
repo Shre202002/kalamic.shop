@@ -295,23 +295,33 @@ export default function CheckoutPage() {
     }
 
     setIsProcessing(true);
+
+    const payload = {
+      userId: user.uid,
+      customerName: formData.fullName,
+      customerPhone: formData.phone,
+      customerEmail: formData.email,
+      items: cartItems.map(i => ({ productId: i.productVariantId, quantity: i.quantity })),
+      shippingDetails: formData,
+      // Promo Data
+      promoCode: promoStatus === 'success' ? promoCode.trim().toUpperCase() : null,
+      promoDiscount: promoStatus === 'success' ? promoDiscount : 0,
+      promoDiscountType: promoStatus === 'success' ? promoDiscountType : null,
+      totalAmount: finalTotal
+    };
+
+    console.log('[CHECKOUT] Sending promo:', {
+      promoCode: payload.promoCode,
+      promoDiscount: payload.promoDiscount,
+      promoDiscountType: payload.promoDiscountType,
+      promoStatus
+    });
+
     try {
       const response = await fetch('/api/checkout/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.uid,
-          customerName: formData.fullName,
-          customerPhone: formData.phone,
-          customerEmail: formData.email,
-          items: cartItems.map(i => ({ productId: i.productVariantId, quantity: i.quantity })),
-          shippingDetails: formData,
-          // Promo Data
-          promoCode: promoStatus === 'success' ? promoCode.toUpperCase() : null,
-          promoDiscount: promoDiscount,
-          promoDiscountType: promoDiscountType,
-          totalAmount: finalTotal
-        })
+        body: JSON.stringify(payload)
       });
 
       const result = await response.json();

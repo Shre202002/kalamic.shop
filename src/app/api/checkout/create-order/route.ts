@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
@@ -56,14 +55,16 @@ export async function POST(req: NextRequest) {
 
     // 2. Compute Official Charges
     const calculatedCharges = calculateOrderCharges(subtotal, shippingDetails.city);
+    const totalCharges = calculatedCharges.shipping + calculatedCharges.handling + calculatedCharges.premium;
     
     // 3. Final Total Verification (Server-side)
-    const promoDiscountAmount = promoDiscount || 0;
-    const expectedTotal = (subtotal + calculatedCharges.shipping + calculatedCharges.handling + calculatedCharges.premium) - promoDiscountAmount;
+    const promoDiscountAmount = Number(promoDiscount) || 0;
+    const baseTotal = subtotal + totalCharges;
+    const finalTotal = Math.max(0, baseTotal - promoDiscountAmount);
     
     // Tolerance check for minor rounding differences
-    if (Math.abs(expectedTotal - clientTotal) > 1) {
-      console.warn(`[TOTAL_MISMATCH] Client: ${clientTotal}, Server: ${expectedTotal}`);
+    if (Math.abs(finalTotal - clientTotal) > 1) {
+      console.warn(`[TOTAL_MISMATCH] Client: ${clientTotal}, Server: ${finalTotal}`);
     }
 
     const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
       promoDiscount: promoDiscountAmount,
       promoDiscountType: promoDiscountType || null,
       
-      totalAmount: expectedTotal,
+      totalAmount: finalTotal,
       items: validatedItems,
       shippingAddress: {
         fullName: shippingDetails.fullName,
@@ -108,10 +109,14 @@ export async function POST(req: NextRequest) {
 
     // 5. Update Promo Usage if applicable
     if (promoCode) {
-      await PromoCode.findOneAndUpdate(
-        { code: promoCode.toUpperCase() },
-        { $inc: { usedCount: 1 } }
-      );
+      try {
+        await PromoCode.findOneAndUpdate(
+          { code: promoCode.toString().toUpperCase() },
+          { $inc: { usedCount: 1 } }
+        );
+      } catch (e) {
+        console.error('[PROMO_UPDATE_ERROR] Failed to increment usedCount:', e);
+      }
     }
 
     // 6. Initial Sync to Firestore
@@ -123,7 +128,7 @@ export async function POST(req: NextRequest) {
 
     const cashfreeResult = await createCashfreeOrder({
       orderId: orderNumber,
-      orderAmount: expectedTotal,
+      orderAmount: finalTotal,
       orderCurrency: 'INR',
       customerDetails: {
         customerId: userId,

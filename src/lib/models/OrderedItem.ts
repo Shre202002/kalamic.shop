@@ -1,4 +1,3 @@
-
 import mongoose, { Schema, Document } from 'mongoose';
 
 /**
@@ -86,9 +85,22 @@ const OrderedItemSchema: Schema = new Schema({
   totalAmount: { type: Number, required: true },
 
   // Promo Fields
-  promoCode: { type: String, default: null },
-  promoDiscount: { type: Number, default: 0 },
-  promoDiscountType: { type: String, default: null },
+  promoCode: { 
+    type: String, 
+    default: null,
+    trim: true,
+    uppercase: true
+  },
+  promoDiscount: { 
+    type: Number, 
+    default: 0,
+    min: 0
+  },
+  promoDiscountType: { 
+    type: String, 
+    enum: ['flat', 'percent', null],
+    default: null 
+  },
 
   items: {
     type: [{
