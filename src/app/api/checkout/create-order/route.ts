@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';

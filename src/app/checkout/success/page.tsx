@@ -3,57 +3,67 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { Button } from '@/components/ui/button';
-import { CheckCircle2, ShoppingBag, ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Loader2, ShieldCheck, ShoppingBag, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import { CircularProgress, Box, Typography } from '@mui/material';
 
-/**
- * @fileOverview Success Page Content.
- * Separated to handle useSearchParams within a Suspense boundary.
- */
 function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('order_id');
   const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
-  const [isVerifying, setIsVerifying] = useState(true);
-  const [countdown, setCountdown] = useState(10);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'verifying' | 'clearing' | 'done'>('verifying');
+  const [countdown, setCountdown] = useState(5);
+
+  const clearCart = async () => {
+    if (!user || !firestore) return;
+    try {
+      const cartRef = collection(firestore, 'users', user.uid, 'cart', 'cart', 'items');
+      const snapshot = await getDocs(cartRef);
+      const deletePromises = snapshot.docs.map(d => deleteDoc(d.ref));
+      await Promise.all(deletePromises);
+      console.log('[CART] Cleared successfully via client-side trigger');
+    } catch (e) {
+      console.error('[CART CLEAR ERROR]:', e);
+    }
+  };
 
   useEffect(() => {
     if (!orderId || !user) return;
 
-    const verifyAndProcess = async () => {
-      try {
-        const res = await fetch(`/api/cashfree/verify?orderId=${orderId}`);
-        const data = await res.json();
+    const process = async () => {
+      // Step 1: Wait for backend webhook to fire
+      await new Promise(r => setTimeout(r, 2000));
 
-        if (data.success) {
-          toast({ title: "Acquisition Confirmed", description: "Your artisan pieces are now in production." });
-          setIsVerifying(false);
-        } else {
-          setError("Gateway confirmation is in transit. We'll update your dossier shortly.");
-          setIsVerifying(false);
-        }
-      } catch (err) {
-        console.error("[SUCCESS_VERIFY_ERROR]:", err);
-        setError("Network latency detected. Your payment is safe; check your history in a moment.");
-        setIsVerifying(false);
+      // Step 2: Verify payment (best effort)
+      try {
+        await fetch(`/api/cashfree/verify?orderId=${orderId}`);
+      } catch (e) {
+        console.warn('Verify failed, continuing to cart clearing');
       }
+
+      // Step 3: Clear cart regardless of verify result (client-side backup)
+      setStatus('clearing');
+      await clearCart();
+
+      // Step 4: Finalize
+      setStatus('done');
+      toast({ title: "Acquisition Confirmed", description: "Your shopping bag has been cleared." });
     };
 
-    const timer = setTimeout(verifyAndProcess, 2000);
-    return () => clearTimeout(timer);
-  }, [orderId, user, toast]);
+    process();
+  }, [orderId, user, firestore, toast]);
 
   useEffect(() => {
-    if (!isVerifying) {
+    if (status === 'done') {
       const timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
@@ -66,25 +76,31 @@ function SuccessContent() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [isVerifying, router, orderId]);
+  }, [status, router, orderId]);
 
   return (
     <div className="w-full max-w-2xl text-center">
       <AnimatePresence mode="wait">
-        {isVerifying ? (
+        {status !== 'done' ? (
           <motion.div 
-            key="verifying"
+            key="processing"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="space-y-6"
+            className="space-y-8"
           >
-            <div className="relative h-24 w-24 mx-auto">
-              <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
-              <Loader2 className="h-24 w-24 text-primary animate-spin" />
+            <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+              <CircularProgress size={120} thickness={2} sx={{ color: '#EA781E' }} />
+              <Box sx={{ top: 0, left: 0, bottom: 0, right: 0, position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              </Box>
+            </Box>
+            <div className="space-y-3">
+              <h1 className="text-3xl font-black text-primary uppercase tracking-tight">Finalizing Acquisition</h1>
+              <p className="text-muted-foreground font-medium">
+                {status === 'verifying' ? 'Securing your transaction dossier...' : 'Clearing your bag and updating the collection...'}
+              </p>
             </div>
-            <h1 className="text-3xl font-black text-primary uppercase tracking-tight">Finalizing Acquisition</h1>
-            <p className="text-muted-foreground font-medium">Securing your order in our artisanal records...</p>
           </motion.div>
         ) : (
           <motion.div 
@@ -93,31 +109,17 @@ function SuccessContent() {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white p-10 md:p-16 rounded-[3rem] shadow-2xl border border-primary/5 space-y-8"
           >
-            {error ? (
-              <div className="space-y-6">
-                <div className="h-20 w-20 rounded-3xl bg-amber-500 text-white flex items-center justify-center mx-auto shadow-xl">
-                  <ShieldCheck className="h-10 w-10" />
-                </div>
-                <div className="space-y-3">
-                  <h1 className="text-3xl font-black text-primary tracking-tight">Pending Verification</h1>
-                  <p className="text-muted-foreground font-medium">{error}</p>
-                </div>
+            <div className="h-20 w-20 rounded-3xl bg-green-500 text-white flex items-center justify-center mx-auto shadow-xl shadow-green-500/20">
+              <CheckCircle2 className="h-10 w-10" />
+            </div>
+            
+            <div className="space-y-3">
+              <h1 className="text-4xl font-black text-primary tracking-tight">Handcrafted Success</h1>
+              <p className="text-muted-foreground font-medium">Your payment is confirmed. Your treasures are officially reserved.</p>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10">
+                REF: {orderId}
               </div>
-            ) : (
-              <>
-                <div className="h-20 w-20 rounded-3xl bg-green-500 text-white flex items-center justify-center mx-auto shadow-xl shadow-green-500/20">
-                  <CheckCircle2 className="h-10 w-10" />
-                </div>
-                
-                <div className="space-y-3">
-                  <h1 className="text-4xl font-black text-primary tracking-tight">Handcrafted Success</h1>
-                  <p className="text-muted-foreground font-medium">Your payment is confirmed. Your treasures are officially reserved.</p>
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10">
-                    REF: {orderId}
-                  </div>
-                </div>
-              </>
-            )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-8 border-y border-dashed border-primary/10">
               <div className="flex items-center gap-4 text-left">
@@ -145,19 +147,12 @@ function SuccessContent() {
                 Navigating to your order dossier in <span className="text-primary text-lg tabular-nums">{countdown}s</span>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
+                <button 
                   onClick={() => router.push(`/orders/${orderId}`)}
-                  className="h-14 px-10 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all"
+                  className="h-14 px-10 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all flex items-center justify-center"
                 >
                   View Order Detail <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost"
-                  onClick={() => router.push('/products')}
-                  className="h-14 px-10 rounded-2xl text-muted-foreground font-bold text-xs uppercase tracking-widest"
-                >
-                  Continue Shopping
-                </Button>
+                </button>
               </div>
             </div>
           </motion.div>

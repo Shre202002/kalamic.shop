@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { useNavigation } from '@/hooks/useNavigation';
-import { collection } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { getProfile } from '@/lib/actions/user-actions';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -43,6 +43,7 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import Script from 'next/script';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { State, City } from 'country-state-city';
 
 declare global {
@@ -64,11 +65,12 @@ interface ChargesPreview {
   };
 }
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const { user, loading: isAuthLoading } = useProtectedRoute();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useNavigation();
+  const searchParams = useSearchParams();
 
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -113,6 +115,22 @@ export default function CheckoutPage() {
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
+
+  // Backup cart clearing if returning with order_id
+  useEffect(() => {
+    const orderIdFromUrl = searchParams?.get('order_id');
+    if (orderIdFromUrl && user && firestore) {
+      const clearCartBackup = async () => {
+        try {
+          const cartRef = collection(firestore, 'users', user.uid, 'cart', 'cart', 'items');
+          const snapshot = await getDocs(cartRef);
+          await Promise.all(snapshot.docs.map(d => deleteDoc(d.ref)));
+          console.log('[BACKUP] Cart cleared via checkout safety effect');
+        } catch (e) {}
+      };
+      clearCartBackup();
+    }
+  }, [searchParams, user, firestore]);
 
   const fetchCharges = async (city: string) => {
     if (subtotal === 0) return;
@@ -284,7 +302,6 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Final Total Logic: Deduct promo from total (which includes charges)
   const finalTotal = (chargesPreview ? chargesPreview.total : (subtotal + (subtotal >= 999 ? 0 : 150) + 60)) - promoDiscount;
 
   const handlePlaceOrder = async () => {
@@ -303,19 +320,11 @@ export default function CheckoutPage() {
       customerEmail: formData.email,
       items: cartItems.map(i => ({ productId: i.productVariantId, quantity: i.quantity })),
       shippingDetails: formData,
-      // Promo Data
       promoCode: promoStatus === 'success' ? promoCode.trim().toUpperCase() : null,
       promoDiscount: promoStatus === 'success' ? promoDiscount : 0,
       promoDiscountType: promoStatus === 'success' ? promoDiscountType : null,
       totalAmount: finalTotal
     };
-
-    console.log('[CHECKOUT] Sending promo:', {
-      promoCode: payload.promoCode,
-      promoDiscount: payload.promoDiscount,
-      promoDiscountType: payload.promoDiscountType,
-      promoStatus
-    });
 
     try {
       const response = await fetch('/api/checkout/create-order', {
@@ -362,9 +371,8 @@ export default function CheckoutPage() {
   if (!user) return null;
 
   return (
-    <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#FAF4EB' }}>
+    <>
       <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" onLoad={() => setCashfreeLoaded(true)} />
-      <Navbar />
       <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 12, md: 16 } }}>
         <MuiBox sx={{ mb: 6 }}>
           <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: 2 }}>
@@ -584,6 +592,23 @@ export default function CheckoutPage() {
           </Grid>
         </Grid>
       </Container>
+    </>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#FAF4EB' }}>
+      <Navbar />
+      <main className="flex-1">
+        <Suspense fallback={
+          <MuiBox sx={{ height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CircularProgress sx={{ color: '#EA781E' }} />
+          </MuiBox>
+        }>
+          <CheckoutContent />
+        </Suspense>
+      </main>
       <Footer />
     </MuiBox>
   );

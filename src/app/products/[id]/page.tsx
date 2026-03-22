@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -378,7 +379,7 @@ export default function ProductDetailPage() {
     <div className="min-h-screen flex flex-col bg-background font-body">
       <Navbar />
       <main className="flex-1">
-        <div className="container mx-auto px-4 max-w-7xl pt-6 md:pt-12 pb-20">
+        <div className="container mx-auto px-4 max-w-7xl pt-24 md:pt-28 pb-20">
           
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
             <Link href="/products" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
@@ -682,7 +683,7 @@ export default function ProductDetailPage() {
                     </p>
                   </div>
                   <Button asChild variant="outline" className="w-full rounded-2xl text-[10px] font-black uppercase border-primary/20 text-primary hover:bg-primary/5 h-10">
-                    <Link href={`https://wa.me/916387562920?text=Hi, I want to add an engraving for: ${encodeURIComponent(product.name)}`} target="_blank">
+                    <Link href={`https://wa.me/916387562920?text=Hi, I want a add an engraving for: ${encodeURIComponent(product.name)}`} target="_blank">
                       Add Engraving
                     </Link>
                   </Button>
