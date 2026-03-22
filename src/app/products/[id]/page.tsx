@@ -92,7 +92,7 @@ export default function ProductDetailPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
-  // Promo Code State
+  // Promo Code State (Preview Only)
   const [promoCode, setPromoCode] = useState('');
   const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [promoDiscount, setPromoDiscount] = useState(0);
@@ -189,7 +189,6 @@ export default function ProductDetailPage() {
         setPromoDiscountType(data.discountType);
         setPromoMessage(data.message);
         setPromoStatus('success');
-        toast({ title: "Promo Applied", description: data.message });
       } else {
         setPromoDiscount(0);
         setPromoMessage(data.message || 'Invalid promo code');
@@ -218,9 +217,9 @@ export default function ProductDetailPage() {
     const id = product._id;
     const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
     
-    // The cart logic in Firestore typically stores priceAtAddToCart
-    // We send the discounted price if applied
-    const finalPrice = product.price - promoDiscount;
+    // THE APPROACH: Always use the original product price. 
+    // Discounts are applied only at the Checkout page.
+    const finalPrice = product.price;
 
     await setDoc(cartItemRef, {
       id,
@@ -407,34 +406,16 @@ export default function ProductDetailPage() {
                 <h1 className="text-3xl md:text-4xl font-display font-semibold text-foreground tracking-tight leading-[1.1]">{product.name}</h1>
                 
                 <div className="flex items-baseline gap-5 py-4">
-                  {promoDiscount > 0 ? (
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-baseline gap-3">
-                        <span className="line-through opacity-40 text-lg text-muted-foreground">
-                          ₹{product.price.toLocaleString()}
-                        </span>
-                        <span className="text-4xl font-black text-primary ml-3">
-                          ₹{(product.price - promoDiscount).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="text-[9px] font-black uppercase text-green-600 bg-green-50 px-2 py-1 rounded-full inline-block self-start">
-                        YOU SAVE ₹{promoDiscount.toLocaleString()}
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <span className="text-4xl sm:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
-                      {product.compare_at_price && (
-                        <span className="text-xl sm:text-2xl text-muted-foreground line-through decoration-primary/30 opacity-40 font-semibold">₹{product.compare_at_price.toLocaleString()}</span>
-                      )}
-                    </>
+                  <span className="text-4xl sm:text-5xl font-black text-primary tracking-tighter">₹{product.price.toLocaleString()}</span>
+                  {product.compare_at_price && (
+                    <span className="text-xl sm:text-2xl text-muted-foreground line-through decoration-primary/30 opacity-40 font-semibold">₹{product.compare_at_price.toLocaleString()}</span>
                   )}
                 </div>
 
-                {/* PROMO CODE SECTION */}
+                {/* PROMO PREVIEW SECTION */}
                 <div className="space-y-4 py-6 border-y border-primary/5">
                   <div className="flex items-center justify-between">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Have a promo code?</label>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Check your savings</label>
                     {timeLeft && (
                       <div className="flex items-center gap-1.5 text-[9px] font-black text-primary uppercase tracking-widest monospace">
                         Offer ends in: <span className="bg-primary/10 px-2 py-0.5 rounded text-primary">{timeLeft}</span>
@@ -455,14 +436,18 @@ export default function ProductDetailPage() {
                       disabled={promoStatus === 'loading' || promoStatus === 'success' || !promoCode}
                       className="h-12 px-6 rounded-2xl font-black text-xs uppercase bg-primary text-white shadow-lg shadow-primary/20"
                     >
-                      {promoStatus === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : promoStatus === 'success' ? 'Applied' : 'Apply'}
+                      {promoStatus === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : promoStatus === 'success' ? 'Tested' : 'Check'}
                     </Button>
                   </div>
 
                   {promoStatus === 'success' && (
-                    <div className="flex flex-col gap-2">
-                      <div className="text-[10px] font-bold text-green-600 flex items-center gap-1 mt-1">
-                        <CheckCircle2 className="h-3 w-3" /> {promoMessage} You save ₹{promoDiscount}!
+                    <div className="space-y-3">
+                      <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-sm space-y-1">
+                        <div className="flex items-center gap-2 text-green-700 font-bold">
+                          <CheckCircle2 className="h-4 w-4" /> {promoCode.toUpperCase()} valid for this piece
+                        </div>
+                        <p className="text-green-600 font-medium">You will save ₹{promoDiscount} on this order</p>
+                        <p className="text-[10px] text-green-500 font-bold uppercase tracking-wider">Add to bag and apply at checkout</p>
                       </div>
                       <div className="inline-flex self-start items-center gap-2 bg-primary/10 text-primary rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest border border-primary/10">
                         {promoCode.toUpperCase()}
@@ -478,6 +463,7 @@ export default function ProductDetailPage() {
                       <X className="h-3 w-3" /> {promoMessage}
                     </div>
                   )}
+                  <p className="text-[9px] text-muted-foreground italic mt-1">Promo codes are applied at checkout</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">

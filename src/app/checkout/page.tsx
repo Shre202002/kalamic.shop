@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -283,7 +284,7 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Final Total Logic
+  // Final Total Logic: Deduct promo from total (which includes charges)
   const finalTotal = (chargesPreview ? chargesPreview.total : (subtotal + (subtotal >= 999 ? 0 : 150) + 60)) - promoDiscount;
 
   const handlePlaceOrder = async () => {
@@ -531,16 +532,6 @@ export default function CheckoutPage() {
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography>
                   <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography>
                 </MuiBox>
-                
-                {promoDiscount > 0 && (
-                  <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography color="success.main" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>
-                      Promo Discount ({promoCode.toUpperCase()})
-                    </Typography>
-                    <Typography sx={{ fontWeight: 700, color: 'success.main' }}>- ₹{promoDiscount.toLocaleString()}</Typography>
-                  </MuiBox>
-                )}
-
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Shipping</Typography>
                   <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.shipping || (subtotal >= 999 ? 0 : 150)) === 0 ? 'success.main' : 'inherit' }}>
@@ -551,6 +542,22 @@ export default function CheckoutPage() {
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Handling & Protection</Typography>
                   <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview ? (chargesPreview.charges.handling + chargesPreview.charges.premium) : 60}</Typography>
                 </MuiBox>
+
+                {promoDiscount > 0 && (
+                  <>
+                    <Divider sx={{ my: 1, borderStyle: 'solid', opacity: 0.1 }} />
+                    <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Before Discount</Typography>
+                      <Typography sx={{ fontWeight: 700 }}>₹{(chargesPreview?.total || (subtotal + 60)).toLocaleString()}</Typography>
+                    </MuiBox>
+                    <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography color="success.main" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                        Promo ({promoCode.toUpperCase()})
+                      </Typography>
+                      <Typography sx={{ fontWeight: 700, color: 'success.main' }}>- ₹{promoDiscount.toLocaleString()}</Typography>
+                    </MuiBox>
+                  </>
+                )}
               </Stack>
               
               <Divider sx={{ mb: 4 }} />
