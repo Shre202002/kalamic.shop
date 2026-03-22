@@ -92,11 +92,12 @@ export default function ProductDetailPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
-  // Piece at a Glance scroll refs
-  const glanceScrollRef = useRef<HTMLDivElement>(null);
-  const [isGlancePaused, setIsGlancePaused] = useState(false);
+  // Piece at a Glance Infinite Scroll Refs
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollInterval = useRef<NodeJS.Timeout>();
+  const isPausedRef = useRef(false);
 
-  // Promo Code State (Preview Only)
+  // Promo Code State
   const [promoCode, setPromoCode] = useState('');
   const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [promoDiscount, setPromoDiscount] = useState(0);
@@ -117,6 +118,30 @@ export default function ProductDetailPage() {
   const { data: wishlistDoc } = useDoc(wishlistDocRef);
   const isFavorited = !!wishlistDoc;
 
+  // Auto-scroll logic for Piece at a Glance
+  const startScroll = () => {
+    if (scrollInterval.current) clearInterval(scrollInterval.current);
+    scrollInterval.current = setInterval(() => {
+      if (isPausedRef.current) return;
+      const el = scrollRef.current;
+      if (!el) return;
+      el.scrollLeft += 1;
+      // Reset when first set is fully scrolled (total scrollWidth / 3)
+      if (el.scrollLeft >= el.scrollWidth / 3) {
+        el.scrollLeft = 0;
+      }
+    }, 20);
+  };
+
+  useEffect(() => {
+    if (product) {
+      startScroll();
+    }
+    return () => {
+      if (scrollInterval.current) clearInterval(scrollInterval.current);
+    };
+  }, [product]);
+
   useEffect(() => {
     if (!product?.images?.length || isSliderPaused) return;
     const interval = setInterval(() => {
@@ -124,36 +149,6 @@ export default function ProductDetailPage() {
     }, 5000);
     return () => clearInterval(interval);
   }, [product, isSliderPaused]);
-
-  // Piece at a Glance Auto-Scroll Logic
-  useEffect(() => {
-    if (!glanceScrollRef.current || isGlancePaused) return;
-
-    const interval = setInterval(() => {
-      if (glanceScrollRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = glanceScrollRef.current;
-        const maxScroll = scrollWidth - clientWidth;
-        
-        if (scrollLeft >= maxScroll - 5) {
-          glanceScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          glanceScrollRef.current.scrollBy({ left: 200, behavior: 'smooth' });
-        }
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [isGlancePaused]);
-
-  const scrollGlance = (direction: 'left' | 'right') => {
-    if (glanceScrollRef.current) {
-      const scrollAmount = 300;
-      glanceScrollRef.current.scrollBy({ 
-        left: direction === 'left' ? -scrollAmount : scrollAmount, 
-        behavior: 'smooth' 
-      });
-    }
-  };
 
   // Countdown Timer Effect
   useEffect(() => {
@@ -205,6 +200,13 @@ export default function ProductDetailPage() {
     loadData();
   }, [productId]);
 
+  const getStatValue = (keywords: string[], fallback: string) => {
+    const spec = product.specifications?.find((s: any) => 
+      keywords.some(k => s.key.toLowerCase().includes(k))
+    );
+    return spec ? spec.value : fallback;
+  };
+
   const handleApplyPromo = async () => {
     if (!promoCode.trim() || !product) return;
     setPromoStatus('loading');
@@ -251,14 +253,12 @@ export default function ProductDetailPage() {
     const id = product._id;
     const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
     
-    const finalPrice = product.price;
-
     await setDoc(cartItemRef, {
       id,
       productVariantId: id,
       cartId: user.uid,
       name: product.name,
-      priceAtAddToCart: finalPrice ?? 0,
+      priceAtAddToCart: product.price ?? 0,
       imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url,
       quantity: 1,
       updatedAt: serverTimestamp(),
@@ -355,13 +355,26 @@ export default function ProductDetailPage() {
   if (!product) return <div className="p-20 text-center"><h1 className="text-3xl font-display font-semibold mb-6">Piece Not Found</h1><Button asChild><Link href="/products">Return to Shop</Link></Button></div>;
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
-  
-  const getStatValue = (keywords: string[], fallback: string) => {
-    const spec = product.specifications?.find((s: any) => 
-      keywords.some(k => s.key.toLowerCase().includes(k))
-    );
-    return spec ? spec.value : fallback;
-  };
+
+  // Build the cards array for the Piece at a Glance section
+  const glanceCards = [
+    { icon: Scale, label: 'Weight', value: `${product.shipping?.weight_kg || '0'} KG` },
+    { icon: Box, label: 'Length', value: `${product.shipping?.package_dimensions_cm?.length || '0'} CM` },
+    { icon: Box, label: 'Width', value: `${product.shipping?.package_dimensions_cm?.width || '0'} CM` },
+    { icon: Box, label: 'Height', value: `${product.shipping?.package_dimensions_cm?.height || '0'} CM` },
+    { icon: Package, label: 'Quantity', value: `${product.stock || '0'} IN STOCK` },
+    { icon: Hammer, label: 'Technique', value: getStatValue(['technique', 'method'], 'Hand Thrown') },
+    { icon: Zap, label: 'Firing', value: getStatValue(['firing', 'temp'], '1200°C Kiln') },
+    ...(product.specifications || []).map((spec: any) => ({
+      icon: Sparkles,
+      label: spec.key,
+      value: spec.value,
+      subValue: spec.commonValue ? `vs ${spec.commonValue}` : null
+    }))
+  ];
+
+  // Triple the array for seamless infinite loop
+  const infiniteCards = [...glanceCards, ...glanceCards, ...glanceCards];
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-body">
@@ -550,114 +563,72 @@ export default function ProductDetailPage() {
             </motion.div>
           </div>
 
-          {/* PIECE AT A GLANCE */}
-          <section 
-            className="py-12 border-t border-primary/10"
-            onMouseEnter={() => setIsGlancePaused(true)}
-            onMouseLeave={() => setIsGlancePaused(false)}
-          >
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
-              <div>
-                <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display mb-2">Piece at a Glance</h2>
-                <p className="text-sm text-muted-foreground font-medium">Dimensions, materials & craftsmanship — scroll to explore</p>
-              </div>
-              <div className="flex gap-2 hidden md:flex">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={() => scrollGlance('left')}
-                  className="rounded-full border-primary/20 text-primary hover:bg-primary/5"
+          {/* PIECE AT A GLANCE — INFINITE AUTO SCROLL */}
+          <section className="py-12 border-t border-primary/10">
+            <div className="mb-6">
+              <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display mb-2">Piece at a Glance</h2>
+            </div>
+
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-sm text-muted-foreground font-medium">
+                Dimensions, materials & craftsmanship — scroll to explore
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    isPausedRef.current = true;
+                    scrollRef.current?.scrollBy({ left: -320, behavior: 'smooth' });
+                    setTimeout(() => { isPausedRef.current = false; }, 1000);
+                  }}
+                  className="h-10 w-10 rounded-full bg-white border border-border shadow-sm flex items-center justify-center hover:bg-primary/5 hover:border-primary/30 transition-all group"
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={() => scrollGlance('right')}
-                  className="rounded-full border-primary/20 text-primary hover:bg-primary/5"
+                  <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
+                <button
+                  onClick={() => {
+                    isPausedRef.current = true;
+                    scrollRef.current?.scrollBy({ left: 320, behavior: 'smooth' });
+                    setTimeout(() => { isPausedRef.current = false; }, 1000);
+                  }}
+                  className="h-10 w-10 rounded-full bg-white border border-border shadow-sm flex items-center justify-center hover:bg-primary/5 hover:border-primary/30 transition-all group"
                 >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
               </div>
             </div>
             
-            <div className="relative group/scroll">
-              <div 
-                ref={glanceScrollRef}
-                className="flex overflow-x-auto gap-4 pb-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0"
-              >
-                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                  <Scale className="h-6 w-6 text-primary/60" />
-                  <div className="space-y-1">
-                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Weight</p>
-                    <p className="font-black text-sm text-primary uppercase">{product.shipping?.weight_kg || '0'} KG</p>
-                  </div>
-                </div>
-                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                  <Box className="h-6 w-6 text-primary/60" />
-                  <div className="space-y-1">
-                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Length</p>
-                    <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.length || '0'} CM</p>
-                  </div>
-                </div>
-                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                  <Box className="h-6 w-6 text-primary/60" />
-                  <div className="space-y-1">
-                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Width</p>
-                    <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.width || '0'} CM</p>
-                  </div>
-                </div>
-                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                  <Box className="h-6 w-6 text-primary/60" />
-                  <div className="space-y-1">
-                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Height</p>
-                    <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.height || '0'} CM</p>
-                  </div>
-                </div>
-                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                  <Package className="h-6 w-6 text-primary/60" />
-                  <div className="space-y-1">
-                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Quantity</p>
-                    <p className="font-black text-sm text-primary uppercase">{product.stock || '0'} IN STOCK</p>
-                  </div>
-                </div>
-                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                  <Hammer className="h-6 w-6 text-primary/60" />
-                  <div className="space-y-1">
-                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Technique</p>
-                    <p className="font-black text-sm text-primary uppercase">{getStatValue(['technique', 'method'], 'Hand Thrown')}</p>
-                  </div>
-                </div>
-                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                  <Zap className="h-6 w-6 text-primary/60" />
-                  <div className="space-y-1">
-                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Firing</p>
-                    <p className="font-black text-sm text-primary uppercase">{getStatValue(['firing', 'temp'], '1200°C Kiln')}</p>
-                  </div>
-                </div>
-
-                {(product.specifications || []).map((spec: any, i: number) => (
+            <div
+              ref={scrollRef}
+              onMouseEnter={() => { isPausedRef.current = true; }}
+              onMouseLeave={() => { isPausedRef.current = false; }}
+              onTouchStart={() => { isPausedRef.current = true; }}
+              onTouchEnd={() => { isPausedRef.current = false; }}
+              className="flex overflow-x-auto gap-3 sm:gap-4 pb-2 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 select-none"
+            >
+              {infiniteCards.map((card, i) => {
+                const Icon = card.icon;
+                return (
                   <div 
-                    key={`spec-${i}`} 
-                    className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4"
+                    key={i} 
+                    className="min-w-[140px] sm:min-w-[160px] p-4 sm:p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-3 sm:space-y-4 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer"
                   >
-                    <Sparkles className="h-6 w-6 text-primary/60" />
+                    <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary/60" />
                     <div className="space-y-1">
-                      <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">
-                        {spec.key}
+                      <p className="text-[8px] sm:text-[9px] uppercase font-black text-muted-foreground tracking-widest">
+                        {card.label}
                       </p>
-                      <p className="font-black text-sm text-primary uppercase leading-tight">
-                        {spec.value}
+                      <p className="font-black text-xs sm:text-sm text-primary uppercase leading-tight">
+                        {card.value}
                       </p>
-                      {spec.commonValue && (
-                        <p className="text-[8px] text-muted-foreground font-medium normal-case mt-1 leading-tight">
-                          vs {spec.commonValue}
+                      {card.subValue && (
+                        <p className="text-[7px] sm:text-[8px] text-muted-foreground font-medium normal-case mt-1 leading-tight">
+                          {card.subValue}
                         </p>
                       )}
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </section>
 
