@@ -92,6 +92,10 @@ export default function ProductDetailPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
+  // Piece at a Glance scroll refs
+  const glanceScrollRef = useRef<HTMLDivElement>(null);
+  const [isGlancePaused, setIsGlancePaused] = useState(false);
+
   // Promo Code State (Preview Only)
   const [promoCode, setPromoCode] = useState('');
   const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -120,6 +124,36 @@ export default function ProductDetailPage() {
     }, 5000);
     return () => clearInterval(interval);
   }, [product, isSliderPaused]);
+
+  // Piece at a Glance Auto-Scroll Logic
+  useEffect(() => {
+    if (!glanceScrollRef.current || isGlancePaused) return;
+
+    const interval = setInterval(() => {
+      if (glanceScrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = glanceScrollRef.current;
+        const maxScroll = scrollWidth - clientWidth;
+        
+        if (scrollLeft >= maxScroll - 5) {
+          glanceScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          glanceScrollRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isGlancePaused]);
+
+  const scrollGlance = (direction: 'left' | 'right') => {
+    if (glanceScrollRef.current) {
+      const scrollAmount = 300;
+      glanceScrollRef.current.scrollBy({ 
+        left: direction === 'left' ? -scrollAmount : scrollAmount, 
+        behavior: 'smooth' 
+      });
+    }
+  };
 
   // Countdown Timer Effect
   useEffect(() => {
@@ -517,85 +551,113 @@ export default function ProductDetailPage() {
           </div>
 
           {/* PIECE AT A GLANCE */}
-          <section className="py-12 border-t border-primary/10">
-            <div className="mb-10">
-              <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display mb-2">Piece at a Glance</h2>
-              <p className="text-sm text-muted-foreground font-medium">Dimensions, materials & craftsmanship — scroll to explore</p>
+          <section 
+            className="py-12 border-t border-primary/10"
+            onMouseEnter={() => setIsGlancePaused(true)}
+            onMouseLeave={() => setIsGlancePaused(false)}
+          >
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+              <div>
+                <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display mb-2">Piece at a Glance</h2>
+                <p className="text-sm text-muted-foreground font-medium">Dimensions, materials & craftsmanship — scroll to explore</p>
+              </div>
+              <div className="flex gap-2 hidden md:flex">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => scrollGlance('left')}
+                  className="rounded-full border-primary/20 text-primary hover:bg-primary/5"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => scrollGlance('right')}
+                  className="rounded-full border-primary/20 text-primary hover:bg-primary/5"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             
-            <div className="flex overflow-x-auto gap-4 pb-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Scale className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Weight</p>
-                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.weight_kg || '0'} KG</p>
-                </div>
-              </div>
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Box className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Length</p>
-                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.length || '0'} CM</p>
-                </div>
-              </div>
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Box className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Width</p>
-                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.width || '0'} CM</p>
-                </div>
-              </div>
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Box className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Height</p>
-                  <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.height || '0'} CM</p>
-                </div>
-              </div>
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Package className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Quantity</p>
-                  <p className="font-black text-sm text-primary uppercase">{product.stock || '0'} IN STOCK</p>
-                </div>
-              </div>
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Hammer className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Technique</p>
-                  <p className="font-black text-sm text-primary uppercase">{getStatValue(['technique', 'method'], 'Hand Thrown')}</p>
-                </div>
-              </div>
-              <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
-                <Zap className="h-6 w-6 text-primary/60" />
-                <div className="space-y-1">
-                  <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Firing</p>
-                  <p className="font-black text-sm text-primary uppercase">{getStatValue(['firing', 'temp'], '1200°C Kiln')}</p>
-                </div>
-              </div>
-
-              {/* DYNAMIC SPEC CARDS */}
-              {(product.specifications || []).map((spec: any, i: number) => (
-                <div 
-                  key={`spec-${i}`} 
-                  className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4"
-                >
-                  <Sparkles className="h-6 w-6 text-primary/60" />
+            <div className="relative group/scroll">
+              <div 
+                ref={glanceScrollRef}
+                className="flex overflow-x-auto gap-4 pb-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0"
+              >
+                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                  <Scale className="h-6 w-6 text-primary/60" />
                   <div className="space-y-1">
-                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">
-                      {spec.key}
-                    </p>
-                    <p className="font-black text-sm text-primary uppercase leading-tight">
-                      {spec.value}
-                    </p>
-                    {spec.commonValue && (
-                      <p className="text-[8px] text-muted-foreground font-medium normal-case mt-1 leading-tight">
-                        vs {spec.commonValue}
-                      </p>
-                    )}
+                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Weight</p>
+                    <p className="font-black text-sm text-primary uppercase">{product.shipping?.weight_kg || '0'} KG</p>
                   </div>
                 </div>
-              ))}
+                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                  <Box className="h-6 w-6 text-primary/60" />
+                  <div className="space-y-1">
+                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Length</p>
+                    <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.length || '0'} CM</p>
+                  </div>
+                </div>
+                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                  <Box className="h-6 w-6 text-primary/60" />
+                  <div className="space-y-1">
+                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Width</p>
+                    <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.width || '0'} CM</p>
+                  </div>
+                </div>
+                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                  <Box className="h-6 w-6 text-primary/60" />
+                  <div className="space-y-1">
+                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Height</p>
+                    <p className="font-black text-sm text-primary uppercase">{product.shipping?.package_dimensions_cm?.height || '0'} CM</p>
+                  </div>
+                </div>
+                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                  <Package className="h-6 w-6 text-primary/60" />
+                  <div className="space-y-1">
+                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Quantity</p>
+                    <p className="font-black text-sm text-primary uppercase">{product.stock || '0'} IN STOCK</p>
+                  </div>
+                </div>
+                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                  <Hammer className="h-6 w-6 text-primary/60" />
+                  <div className="space-y-1">
+                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Technique</p>
+                    <p className="font-black text-sm text-primary uppercase">{getStatValue(['technique', 'method'], 'Hand Thrown')}</p>
+                  </div>
+                </div>
+                <div className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4">
+                  <Zap className="h-6 w-6 text-primary/60" />
+                  <div className="space-y-1">
+                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Firing</p>
+                    <p className="font-black text-sm text-primary uppercase">{getStatValue(['firing', 'temp'], '1200°C Kiln')}</p>
+                  </div>
+                </div>
+
+                {(product.specifications || []).map((spec: any, i: number) => (
+                  <div 
+                    key={`spec-${i}`} 
+                    className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4"
+                  >
+                    <Sparkles className="h-6 w-6 text-primary/60" />
+                    <div className="space-y-1">
+                      <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">
+                        {spec.key}
+                      </p>
+                      <p className="font-black text-sm text-primary uppercase leading-tight">
+                        {spec.value}
+                      </p>
+                      {spec.commonValue && (
+                        <p className="text-[8px] text-muted-foreground font-medium normal-case mt-1 leading-tight">
+                          vs {spec.commonValue}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
