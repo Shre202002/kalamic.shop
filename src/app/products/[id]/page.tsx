@@ -217,8 +217,6 @@ export default function ProductDetailPage() {
     const id = product._id;
     const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', id);
     
-    // THE APPROACH: Always use the original product price. 
-    // Discounts are applied only at the Checkout page.
     const finalPrice = product.price;
 
     await setDoc(cartItemRef, {
@@ -343,7 +341,6 @@ export default function ProductDetailPage() {
             </Link>
           </motion.div>
 
-          {/* PRODUCT HEADER AREA */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 mb-20 items-start">
             <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }} className="lg:col-span-7 space-y-6 lg:sticky lg:top-28 self-start">
               <div 
@@ -351,7 +348,6 @@ export default function ProductDetailPage() {
                 onMouseEnter={() => setIsSliderPaused(true)}
                 onMouseLeave={() => setIsSliderPaused(false)}
               >
-                {/* Arrow Controls */}
                 <button 
                   onClick={(e) => { e.stopPropagation(); setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 rounded-full bg-black/30 backdrop-blur-sm text-white items-center justify-center hidden sm:flex hover:bg-black/50 transition-all"
@@ -412,7 +408,6 @@ export default function ProductDetailPage() {
                   )}
                 </div>
 
-                {/* PROMO PREVIEW SECTION */}
                 <div className="space-y-4 py-6 border-y border-primary/5">
                   <div className="flex items-center justify-between">
                     <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Check your savings</label>
@@ -472,7 +467,6 @@ export default function ProductDetailPage() {
                   </Button>
                 </div>
 
-                {/* DELIVERY / POLICY INFO STRIP */}
                 <div className="grid grid-cols-3 gap-px bg-border border rounded-2xl overflow-hidden shadow-sm bg-white">
                   <div className="bg-white p-4 flex flex-col items-center text-center gap-2">
                     <Truck className="h-5 w-5 text-primary/80" />
@@ -526,7 +520,7 @@ export default function ProductDetailPage() {
           <section className="py-12 border-t border-primary/10">
             <div className="mb-10">
               <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display mb-2">Piece at a Glance</h2>
-              <p className="text-sm text-muted-foreground font-medium">Dimensions, materials & craftsmanship details</p>
+              <p className="text-sm text-muted-foreground font-medium">Dimensions, materials & craftsmanship — scroll to explore</p>
             </div>
             
             <div className="flex overflow-x-auto gap-4 pb-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -579,6 +573,29 @@ export default function ProductDetailPage() {
                   <p className="font-black text-sm text-primary uppercase">{getStatValue(['firing', 'temp'], '1200°C Kiln')}</p>
                 </div>
               </div>
+
+              {/* DYNAMIC SPEC CARDS */}
+              {(product.specifications || []).map((spec: any, i: number) => (
+                <div 
+                  key={`spec-${i}`} 
+                  className="min-w-[160px] p-6 rounded-2xl bg-white border border-border shadow-sm flex-shrink-0 space-y-4"
+                >
+                  <Sparkles className="h-6 w-6 text-primary/60" />
+                  <div className="space-y-1">
+                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">
+                      {spec.key}
+                    </p>
+                    <p className="font-black text-sm text-primary uppercase leading-tight">
+                      {spec.value}
+                    </p>
+                    {spec.commonValue && (
+                      <p className="text-[8px] text-muted-foreground font-medium normal-case mt-1 leading-tight">
+                        vs {spec.commonValue}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
 
@@ -667,28 +684,6 @@ export default function ProductDetailPage() {
                   {product.description}
                 </p>
               </div>
-            </div>
-          </section>
-
-          <section className="py-20 border-t border-primary/10">
-            <div className="max-w-4xl">
-              <div className="flex items-center gap-4 mb-10">
-                <div className="h-1 w-12 bg-primary rounded-full" />
-                <h2 className="text-3xl sm:text-4xl font-black text-foreground uppercase tracking-tight font-display">Technical Precision</h2>
-              </div>
-              
-              <Accordion type="single" collapsible className="w-full space-y-3">
-                {(product.specifications || []).map((spec: any, i: number) => (
-                  <AccordionItem key={i} value={`spec-${i}`} className="border rounded-2xl bg-white px-6 overflow-hidden data-[state=open]:border-primary/30 transition-all shadow-sm">
-                    <AccordionTrigger className="hover:no-underline py-5">
-                      <span className="text-[11px] font-black uppercase tracking-widest text-foreground">{spec.key}</span>
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-5 text-[10px] font-normal text-muted-foreground border-t pt-4">
-                      {spec.value}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
             </div>
           </section>
 
