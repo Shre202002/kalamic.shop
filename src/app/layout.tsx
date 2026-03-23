@@ -49,7 +49,7 @@ export default function RootLayout({
           {children}
           <SurveyPopup />
           <Toaster />
-          <SpeedInsights />
+          <SpeedInsights/>
         </FirebaseClientProvider>
       </body>
     </html>
