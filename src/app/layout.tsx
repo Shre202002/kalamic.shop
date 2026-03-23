@@ -1,9 +1,11 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { TopLoader } from '@/components/layout/TopLoader';
 import { SurveyPopup } from '@/components/survey/SurveyPopup';
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -47,6 +49,7 @@ export default function RootLayout({
           {children}
           <SurveyPopup />
           <Toaster />
+          <SpeedInsights />
         </FirebaseClientProvider>
       </body>
     </html>
