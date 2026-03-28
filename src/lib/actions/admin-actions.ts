@@ -1,4 +1,3 @@
-
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -149,7 +148,7 @@ export async function getAdminLogs() {
 export async function getAdminNotifications() {
   await dbConnect();
   const notifications = await AdminNotification.find({}).sort({ createdAt: -1 }).limit(20).lean();
-  return JSON.stringify(notifications);
+  return JSON.parse(JSON.stringify(notifications));
 }
 
 export async function markNotificationsAsRead() {
@@ -258,7 +257,7 @@ export async function updateAdminRole(actorId: string, targetId: string, role: s
 }
 
 export async function removeAdminAccess(actorId: string, targetId: string) {
-  const actor = await validateRole(actorId, ['super_admin']);
+  const actor = await validateRole(adminId, ['super_admin']);
   await dbConnect();
   await User.findByIdAndUpdate(targetId, { role: 'buyer' });
   await logAction(actor, 'REVOKE_ADMIN_ACCESS', 'User', targetId, `Revoked administrative clearance`);

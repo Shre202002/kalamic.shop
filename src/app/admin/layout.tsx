@@ -75,9 +75,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const loadNotifications = async () => {
     try {
       const data = await getAdminNotifications();
-      setNotifications(data);
+      // Ensure we set an array even if the action fails or returns something unexpected
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Failed to load notifications:", e);
+      setNotifications([]);
     }
   };
 
@@ -101,12 +103,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleCloseNotifications = () => {
     setAnchorEl(null);
-    if (notifications.some(n => !n.isRead)) {
+    if (Array.isArray(notifications) && notifications.some(n => !n.isRead)) {
       markNotificationsAsRead().then(loadNotifications);
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = Array.isArray(notifications) ? notifications.filter(n => !n.isRead).length : 0;
 
   return (
     <ThemeProvider theme={adminTheme}>
@@ -183,7 +185,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </Box>
                 <Divider />
                 <List sx={{ p: 0 }}>
-                  {notifications.length === 0 ? (
+                  {!Array.isArray(notifications) || notifications.length === 0 ? (
                     <Box sx={{ p: 4, textAlign: 'center' }}>
                       <Typography variant="caption" color="text.secondary">No recent events recorded.</Typography>
                     </Box>
