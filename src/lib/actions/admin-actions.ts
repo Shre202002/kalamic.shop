@@ -1,8 +1,10 @@
+
 'use server';
 
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
 import KalamicProduct from '@/lib/models/KalamicProduct';
+import Category from '@/lib/models/Category';
 import AdminLog from '@/lib/models/AdminLog';
 import OrderedItem from '@/lib/models/OrderedItem';
 import WishlistItem from '@/lib/models/WishlistItem';
@@ -34,6 +36,55 @@ async function logAction(admin: any, action: string, type: string, entityId: str
     details
   });
 }
+
+// --- CATEGORY ACTIONS ---
+
+export async function getCategories() {
+  await dbConnect();
+  try {
+    const categories = await Category.find({}).sort({ name: 1 }).lean();
+    return JSON.parse(JSON.stringify(categories));
+  } catch (error) { return []; }
+}
+
+export async function saveCategory(adminId: string, category: any) {
+  const actor = await validateRole(adminId, ['super_admin', 'admin']);
+  await dbConnect();
+  
+  const id = category._id;
+  const data = { ...category };
+  delete data._id;
+
+  let result;
+  if (id) {
+    result = await Category.findByIdAndUpdate(id, { $set: data }, { new: true });
+    await logAction(actor, 'UPDATE_CATEGORY', 'Category', id, `Updated category: ${category.name}`);
+  } else {
+    result = await Category.create(data);
+    await logAction(actor, 'CREATE_CATEGORY', 'Category', result._id, `Created new category: ${category.name}`);
+  }
+  
+  revalidatePath('/admin/categories');
+  revalidatePath('/admin/products');
+  return JSON.parse(JSON.stringify(result));
+}
+
+export async function deleteCategory(adminId: string, categoryId: string) {
+  const actor = await validateRole(adminId, ['super_admin']);
+  await dbConnect();
+  
+  // Check if any products use this category
+  const productsCount = await KalamicProduct.countDocuments({ category_id: categoryId, is_deleted: { $ne: true } });
+  if (productsCount > 0) {
+    throw new Error(`Cannot delete category: ${productsCount} products are still linked to it.`);
+  }
+
+  await Category.findByIdAndDelete(categoryId);
+  await logAction(actor, 'DELETE_CATEGORY', 'Category', categoryId, `Deleted category`);
+  revalidatePath('/admin/categories');
+}
+
+// --- PRODUCT ACTIONS ---
 
 export async function getAdminProducts() {
   await dbConnect();
@@ -98,7 +149,7 @@ export async function getAdminLogs() {
 export async function getAdminNotifications() {
   await dbConnect();
   const notifications = await AdminNotification.find({}).sort({ createdAt: -1 }).limit(20).lean();
-  return JSON.parse(JSON.stringify(notifications));
+  return JSON.stringify(notifications);
 }
 
 export async function markNotificationsAsRead() {
@@ -181,38 +232,6 @@ export async function getProductPerformanceData() {
   } catch (error) {
     return [];
   }
-}
-
-export async function saveProduct(adminId: string, product: any) {
-  const actor = await validateRole(adminId, ['super_admin', 'admin']);
-  await dbConnect();
-  
-  const id = product._id;
-  const data = { ...product, updated_by_admin: actor.firebaseId };
-  delete data._id;
-
-  // Clean specifications - ensure required fields are strings
-  if (data.specifications) {
-    data.specifications = data.specifications.map((s: any) => ({
-      key: s.key || 'Spec',
-      value: s.value || 'Standard',
-      commonValue: s.commonValue || ''
-    }));
-  }
-
-  let result;
-  if (id) {
-    result = await KalamicProduct.findByIdAndUpdate(id, { $set: data }, { new: true });
-    await logAction(actor, 'UPDATE_PRODUCT', 'Product', id, `Updated piece: ${product.name}`);
-  } else {
-    data.created_by_admin = actor.firebaseId;
-    result = await KalamicProduct.create(data);
-    await logAction(actor, 'CREATE_PRODUCT', 'Product', result._id, `Created new piece: ${product.name}`);
-  }
-  
-  revalidatePath('/admin/products');
-  revalidatePath('/products');
-  return JSON.parse(JSON.stringify(result));
 }
 
 export async function deleteProduct(adminId: string, productId: string) {

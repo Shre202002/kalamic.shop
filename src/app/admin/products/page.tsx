@@ -64,7 +64,8 @@ import {
 import {
   getAdminProducts,
   toggleProductVisibility,
-  deleteProduct
+  deleteProduct,
+  getCategories
 } from '@/lib/actions/admin-actions';
 import { uploadToImageKit } from '@/lib/actions/upload-actions';
 import { useToast } from '@/hooks/use-toast';
@@ -108,6 +109,7 @@ const INITIAL_PRODUCT = {
 export default function ProductsManagement() {
   const { user } = useUser();
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
@@ -127,8 +129,9 @@ export default function ProductsManagement() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await getAdminProducts();
-      setProducts(data);
+      const [pData, cData] = await Promise.all([getAdminProducts(), getCategories()]);
+      setProducts(pData);
+      setCategories(cData);
     } finally {
       setLoading(false);
     }
@@ -144,7 +147,6 @@ export default function ProductsManagement() {
       const dims = product.shipping?.package_dimensions_cm || {};
       let detectedShape = product.shipping?.shape || 'rectangular';
       
-      // Legacy data detection
       if (!product.shipping?.shape) {
         if (dims.diameter) detectedShape = 'circular';
         else if (dims.length === dims.width && dims.length > 0) detectedShape = 'square';
@@ -154,6 +156,7 @@ export default function ProductsManagement() {
       setEditingProduct({
         ...INITIAL_PRODUCT,
         ...product,
+        category_id: product.category_id?.toString() || '',
         analytics: { ...INITIAL_PRODUCT.analytics, ...product.analytics },
         images: Array.isArray(product.images) && product.images.length ? product.images.map((i: any) => ({ ...i })) : INITIAL_PRODUCT.images,
         specifications: Array.isArray(product.specifications) && product.specifications.length ? product.specifications.map((s: any) => ({ 
@@ -222,10 +225,7 @@ export default function ProductsManagement() {
       return;
     }
 
-    // Final clean structure for dimensions based on shape
     let finalDims = { ...editingProduct.shipping.package_dimensions_cm };
-    
-    // Convert any missing/NaN values to null for Mongoose compatibility
     const cleanNum = (val: any) => (isNaN(val) || val === '' || val === undefined) ? null : Number(val);
 
     if (shippingShape === 'circular' || shippingShape === 'cylinder') {
@@ -467,7 +467,20 @@ export default function ProductsManagement() {
                   <Grid item xs={12} md={8}>
                     <TextField fullWidth label="Name *" value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} sx={{ mb: 3 }} />
                     <TextField fullWidth label="Slug *" value={editingProduct.slug} onChange={(e) => setEditingProduct({ ...editingProduct, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} sx={{ mb: 3 }} />
-                    <TextField fullWidth label="Category ID *" value={editingProduct.category_id} onChange={(e) => setEditingProduct({ ...editingProduct, category_id: e.target.value })} sx={{ mb: 3 }} />
+                    
+                    <FormControl fullWidth sx={{ mb: 3 }}>
+                      <InputLabel>Artisan Classification (Category) *</InputLabel>
+                      <Select
+                        value={editingProduct.category_id}
+                        label="Artisan Classification (Category) *"
+                        onChange={(e) => setEditingProduct({ ...editingProduct, category_id: e.target.value })}
+                      >
+                        {categories.map((cat: any) => (
+                          <MenuItem key={cat._id} value={cat._id}>{cat.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
                     <TextField fullWidth multiline rows={4} label="Full Description *" value={editingProduct.description} onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })} sx={{ mb: 3 }} />
                     <TextField fullWidth label="Short Description" value={editingProduct.short_description} onChange={(e) => setEditingProduct({ ...editingProduct, short_description: e.target.value })} />
                   </Grid>
@@ -642,7 +655,6 @@ export default function ProductsManagement() {
                     Add Comparison Row
                   </Button>
 
-                  {/* PREVIEW TABLE */}
                   {editingProduct.specifications?.length > 0 && (
                     <Box sx={{ mt: 6 }}>
                       <Typography variant="caption" sx={{ fontWeight: 900, color: 'primary.main', mb: 2, display: 'block' }}>
