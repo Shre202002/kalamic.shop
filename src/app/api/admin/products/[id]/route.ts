@@ -44,7 +44,7 @@ export async function PATCH(
       updated_by_admin: adminId 
     };
 
-    // 3. Ensure nested shipping fields are explicitly included
+    // 3. Ensure nested shipping fields are explicitly included, including cylinder support
     if (updateData.shipping) {
       finalUpdate.shipping = {
         weight_kg: updateData.shipping.weight_kg,

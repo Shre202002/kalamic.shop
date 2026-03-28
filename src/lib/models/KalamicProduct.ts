@@ -39,7 +39,7 @@ export interface IKalamicProduct extends Document {
   }>;
   shipping: {
     weight_kg: number;
-    shape: 'rectangular' | 'circular' | 'square';
+    shape: 'rectangular' | 'circular' | 'square' | 'cylinder';
     package_dimensions_cm: {
       length: number | null;
       width: number | null;
@@ -116,7 +116,7 @@ const KalamicProductSchema: Schema = new Schema({
     weight_kg: { type: Number, default: 0 },
     shape: { 
       type: String, 
-      enum: ['rectangular', 'circular', 'square'],
+      enum: ['rectangular', 'circular', 'square', 'cylinder'],
       default: 'rectangular'
     },
     package_dimensions_cm: {

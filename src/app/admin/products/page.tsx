@@ -228,7 +228,7 @@ export default function ProductsManagement() {
     // Convert any missing/NaN values to null for Mongoose compatibility
     const cleanNum = (val: any) => (isNaN(val) || val === '' || val === undefined) ? null : Number(val);
 
-    if (shippingShape === 'circular') {
+    if (shippingShape === 'circular' || shippingShape === 'cylinder') {
       finalDims.length = null;
       finalDims.width = null;
       finalDims.diameter = cleanNum(finalDims.diameter);
@@ -730,6 +730,7 @@ export default function ProductsManagement() {
                           <MenuItem value="rectangular">Rectangular / Square Box</MenuItem>
                           <MenuItem value="circular">Circular / Round</MenuItem>
                           <MenuItem value="square">Square</MenuItem>
+                          <MenuItem value="cylinder">Cylindrical / Pillar</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
@@ -753,7 +754,7 @@ export default function ProductsManagement() {
                         </>
                       )}
                       
-                      {shippingShape === 'circular' && (
+                      {(shippingShape === 'circular' || shippingShape === 'cylinder') && (
                         <Grid item xs={8}><TextField fullWidth label="Diameter (cm)" value={editingProduct.shipping?.package_dimensions_cm?.diameter || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, diameter: e.target.value === '' ? null : parseFloat(e.target.value) } } })} /></Grid>
                       )}
 

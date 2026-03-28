@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { adminId, ...productData } = body;
 
-    // 1. Verify Admin (uses dbConnect from line 12)
+    // 1. Verify Admin
     const user = await User.findOne({ firebaseId: adminId });
     if (!user || !['super_admin', 'admin'].includes(user.role)) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
@@ -34,11 +34,10 @@ export async function POST(req: NextRequest) {
       }));
     }
 
-    // 3. Construct clean product object
+    // 3. Construct clean product object with explicit shape handling
     const product = await KalamicProduct.create({
       ...productData,
       created_by_admin: adminId,
-      // Ensure shipping object is explicitly structured
       shipping: {
         weight_kg: productData.shipping?.weight_kg || 0,
         shape: productData.shipping?.shape || 'rectangular',
