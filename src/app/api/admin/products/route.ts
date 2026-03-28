@@ -1,16 +1,13 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import User from '@/lib/models/User';
 import AdminLog from '@/lib/models/AdminLog';
 
-async function validateAdmin(userId: string) {
-  await dbConnect();
-  const user = await User.findOne({ firebaseId: userId });
-  return user && ['super_admin', 'admin'].includes(user.role);
-}
-
 export async function POST(req: NextRequest) {
+  await dbConnect();
+  
   try {
     const body = await req.json();
     const { adminId, ...productData } = body;
@@ -31,7 +28,6 @@ export async function POST(req: NextRequest) {
 
     console.log('[SPECS RECEIVED]:', JSON.stringify(productData.specifications?.slice(0, 2)));
 
-    await dbConnect();
     const product = await KalamicProduct.create({
       ...productData,
       created_by_admin: adminId

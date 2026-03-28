@@ -1,19 +1,16 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import User from '@/lib/models/User';
 import AdminLog from '@/lib/models/AdminLog';
 
-async function validateAdmin(userId: string) {
-  await dbConnect();
-  const user = await User.findOne({ firebaseId: userId });
-  return user && ['super_admin', 'admin'].includes(user.role);
-}
-
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  await dbConnect();
+  
   try {
     const { id } = await params;
     const body = await req.json();
@@ -35,7 +32,6 @@ export async function PATCH(
 
     console.log('[SPECS RECEIVED]:', JSON.stringify(updateData.specifications?.slice(0, 2)));
 
-    await dbConnect();
     const updated = await KalamicProduct.findByIdAndUpdate(
       id,
       { $set: { ...updateData, updated_by_admin: adminId } },

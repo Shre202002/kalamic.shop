@@ -118,7 +118,6 @@ export default function ProductDetailPage() {
   const { data: wishlistDoc } = useDoc(wishlistDocRef);
   const isFavorited = !!wishlistDoc;
 
-  // Auto-scroll logic for Piece at a Glance
   const startScroll = () => {
     if (scrollInterval.current) clearInterval(scrollInterval.current);
     scrollInterval.current = setInterval(() => {
@@ -126,7 +125,6 @@ export default function ProductDetailPage() {
       const el = scrollRef.current;
       if (!el) return;
       el.scrollLeft += 1;
-      // Reset when first set is fully scrolled (total scrollWidth / 3)
       if (el.scrollLeft >= el.scrollWidth / 3) {
         el.scrollLeft = 0;
       }
@@ -150,7 +148,6 @@ export default function ProductDetailPage() {
     return () => clearInterval(interval);
   }, [product, isSliderPaused]);
 
-  // Countdown Timer Effect
   useEffect(() => {
     const timer = setInterval(() => {
       const now = Date.now();
@@ -356,11 +353,29 @@ export default function ProductDetailPage() {
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
 
+  // Build dimension cards dynamically based on shape
+  const shape = product.shipping?.shape || (product.shipping?.package_dimensions_cm?.diameter ? 'circular' : 'rectangular');
+  const dims = product.shipping?.package_dimensions_cm;
+
+  const dimensionCards = shape === 'circular' 
+    ? [
+        { icon: Box, label: 'Diameter', value: `${dims?.diameter || '0'} CM` },
+        { icon: Box, label: 'Height', value: `${dims?.height || '0'} CM` },
+      ]
+    : shape === 'square'
+    ? [
+        { icon: Box, label: 'Side', value: `${dims?.length || '0'} CM` },
+        { icon: Box, label: 'Height', value: `${dims?.height || '0'} CM` },
+      ]
+    : [  // rectangular (default)
+        { icon: Box, label: 'Length', value: `${dims?.length || '0'} CM` },
+        { icon: Box, label: 'Width', value: `${dims?.width || '0'} CM` },
+        { icon: Box, label: 'Height', value: `${dims?.height || '0'} CM` },
+      ];
+
   const glanceCards = [
     { icon: Scale, label: 'Weight', value: `${product.shipping?.weight_kg || '0'} KG` },
-    { icon: Box, label: 'Length', value: `${product.shipping?.package_dimensions_cm?.length || '0'} CM` },
-    { icon: Box, label: 'Width', value: `${product.shipping?.package_dimensions_cm?.width || '0'} CM` },
-    { icon: Box, label: 'Height', value: `${product.shipping?.package_dimensions_cm?.height || '0'} CM` },
+    ...dimensionCards,
     { icon: Package, label: 'Quantity', value: `${product.stock || '0'} IN STOCK` },
     { icon: Hammer, label: 'Technique', value: getStatValue(['technique', 'method'], 'Hand Thrown') },
     { icon: Zap, label: 'Firing', value: getStatValue(['firing', 'temp'], '1200°C Kiln') },
@@ -825,7 +840,9 @@ export default function ProductDetailPage() {
               <div className="p-10 md:p-14 rounded-[3rem] bg-white shadow-2xl border border-border space-y-6 transition-all hover:border-primary/30 group">
                 <Box className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
                 <h4 className="text-sm font-black text-primary uppercase tracking-widest">Package Profile</h4>
-                <p className="text-base text-muted-foreground leading-relaxed font-medium">Dimensions: {product.shipping?.package_dimensions_cm?.length || '30'}x{product.shipping?.package_dimensions_cm?.width || '30'}x{product.shipping?.package_dimensions_cm?.height || '15'} CM.</p>
+                <p className="text-base text-muted-foreground leading-relaxed font-medium">
+                  {shape === 'circular' ? `Diameter: ${dims?.diameter || '30'} CM, Height: ${dims?.height || '15'} CM.` : `Dimensions: ${dims?.length || '30'}x${dims?.width || '30'}x${dims?.height || '15'} CM.`}
+                </p>
               </div>
               <div className="p-10 md:p-14 rounded-[3rem] bg-primary text-white shadow-2xl space-y-6 md:col-span-2 lg:col-span-1 group relative overflow-hidden">
                 <Truck className="h-8 w-8 text-white relative z-10 group-hover:translate-x-2 transition-transform" />

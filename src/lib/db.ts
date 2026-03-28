@@ -6,6 +6,12 @@ import mongoose from 'mongoose';
  * in development. This prevents connections growing exponentially
  * during API Route usage.
  */
+const MONGODB_URI = process.env.MONGODB_URI!;
+
+if (!MONGODB_URI) {
+  console.warn('[DB] MONGODB_URI is not defined. Database operations will be disabled.');
+}
+
 let cached = (global as any).mongoose;
 
 if (!cached) {
@@ -13,13 +19,7 @@ if (!cached) {
 }
 
 async function dbConnect() {
-  const MONGODB_URI = process.env.MONGODB_URI;
-
-  // Moved check inside function to prevent top-level crash during compilation
-  if (!MONGODB_URI) {
-    console.warn('[DB] MONGODB_URI is not defined. Database operations will be disabled.');
-    return null;
-  }
+  if (!MONGODB_URI) return null;
 
   if (cached.conn) {
     return cached.conn;
@@ -29,9 +29,11 @@ async function dbConnect() {
     const opts = {
       bufferCommands: false,
       dbName: process.env.DB_NAME || 'kalamic',
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then(async (m) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then(async (m) => {
       /**
        * SELF-HEALING: Cleanup legacy snake_case unique index if it exists.
        */

@@ -1,3 +1,4 @@
+
 import mongoose, { Schema, Document } from 'mongoose';
 
 /**
@@ -39,10 +40,12 @@ export interface IKalamicProduct extends Document {
   }>;
   shipping: {
     weight_kg: number;
+    shape: 'rectangular' | 'circular' | 'square';
     package_dimensions_cm: {
-      length: number;
-      width: number;
-      height: number;
+      length: number | null;
+      width: number | null;
+      height: number | null;
+      diameter: number | null;
     };
   };
   analytics: {
@@ -73,7 +76,6 @@ const KalamicProductSchema: Schema = new Schema({
   category_id: { type: Schema.Types.ObjectId, required: true, index: true },
   tags: [{ type: String, trim: true }],
   
-  // Nested arrays with _id: false to prevent "Immutable Field" errors during array replacement
   images: {
     type: [{
       url: { type: String, required: true },
@@ -113,10 +115,16 @@ const KalamicProductSchema: Schema = new Schema({
   
   shipping: {
     weight_kg: { type: Number, default: 0 },
+    shape: { 
+      type: String, 
+      enum: ['rectangular', 'circular', 'square'],
+      default: 'rectangular'
+    },
     package_dimensions_cm: {
-      length: { type: Number, default: 0 },
-      width: { type: Number, default: 0 },
-      height: { type: Number, default: 0 }
+      length: { type: Number, default: null },
+      width: { type: Number, default: null },
+      height: { type: Number, default: null },
+      diameter: { type: Number, default: null }
     }
   },
   analytics: {
@@ -138,7 +146,7 @@ const KalamicProductSchema: Schema = new Schema({
 }, { 
   timestamps: true,
   collection: 'Kalamic_Products',
-  strict: true // Enforce schema-only fields
+  strict: true 
 });
 
 export default mongoose.models.KalamicProduct || mongoose.model<IKalamicProduct>('KalamicProduct', KalamicProductSchema);
