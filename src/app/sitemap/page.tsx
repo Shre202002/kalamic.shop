@@ -1,7 +1,7 @@
 
 "use client"
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -19,18 +19,20 @@ import {
   Truck, 
   MessageSquare,
   Sparkles,
-  Search
+  Search,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getProducts } from '@/lib/actions/products';
 
-const SITEMAP_DATA = [
+const STATIC_SITEMAP = [
   {
     title: "Curated Experience",
     icon: Sparkles,
     links: [
       { name: "Artisan Gallery", href: "/products", icon: Package },
+      { name: "Visual Archive", href: "/gallery", icon: Sparkles },
       { name: "Our Studio Story", href: "/about", icon: Home },
-      { name: "Search Collection", href: "/products", icon: Search },
       { name: "Home Dashboard", href: "/", icon: Home }
     ]
   },
@@ -57,6 +59,23 @@ const SITEMAP_DATA = [
 ];
 
 export default function SitemapPage() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        const data = await getProducts();
+        setProducts(data);
+      } catch (e) {
+        console.error("Failed to load products for sitemap", e);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadProducts();
+  }, []);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -80,8 +99,8 @@ export default function SitemapPage() {
             <p className="text-sm md:text-lg text-muted-foreground max-w-xl mx-auto font-medium">A comprehensive directory of our artisan studio's digital footprint.</p>
           </div>
 
-          <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12" variants={containerVariants} initial="hidden" animate="visible">
-            {SITEMAP_DATA.map((section, idx) => (
+          <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12" variants={containerVariants} initial="hidden" animate="visible">
+            {STATIC_SITEMAP.map((section, idx) => (
               <motion.div key={idx} variants={itemVariants} className="space-y-8">
                 <div className="flex items-center gap-4 pb-4 border-b border-primary/10">
                   <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shadow-inner"><section.icon className="h-6 w-6" /></div>
@@ -99,6 +118,38 @@ export default function SitemapPage() {
                 </ul>
               </motion.div>
             ))}
+
+            {/* Dynamic Pieces Section */}
+            <motion.div variants={itemVariants} className="space-y-8 lg:col-span-full mt-12">
+              <div className="flex items-center gap-4 pb-4 border-b border-primary/10">
+                <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shadow-inner"><Package className="h-6 w-6" /></div>
+                <h2 className="text-xs font-black text-primary uppercase tracking-[0.25em]">Artisan Masterpieces</h2>
+              </div>
+              
+              {isLoading ? (
+                <div className="flex items-center gap-3 p-8 text-muted-foreground font-bold text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Retrieving collections...
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {products.map((p) => (
+                    <Link 
+                      key={p._id} 
+                      href={`/products/${p.slug || p._id}`} 
+                      className="group p-4 rounded-2xl border border-primary/5 bg-white hover:border-primary/20 hover:shadow-lg transition-all duration-300"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <p className="text-foreground font-bold text-sm line-clamp-1">{p.name}</p>
+                          <p className="text-[10px] font-black uppercase text-accent tracking-widest">₹{p.price.toLocaleString()}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-all" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           </motion.div>
         </div>
       </main>
