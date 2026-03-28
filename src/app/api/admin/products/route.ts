@@ -5,6 +5,11 @@ import KalamicProduct from '@/lib/models/KalamicProduct';
 import User from '@/lib/models/User';
 import AdminLog from '@/lib/models/AdminLog';
 
+/**
+ * @fileOverview Secure creation of new artisan pieces.
+ * Ensures database connection is ready before any model operation to avoid timeouts.
+ */
+
 export async function POST(req: NextRequest) {
   await dbConnect();
   
@@ -12,12 +17,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { adminId, ...productData } = body;
 
+    // 1. Verify Admin (uses dbConnect from line 12)
     const user = await User.findOne({ firebaseId: adminId });
     if (!user || !['super_admin', 'admin'].includes(user.role)) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
     }
 
-    // Process specifications to ensure commonValue is explicitly included
+    console.log('[API_SAVE_DEBUG] Incoming shipping data:', JSON.stringify(productData.shipping));
+
+    // 2. Clean specifications
     if (productData.specifications) {
       productData.specifications = productData.specifications.map((s: any) => ({
         key: s.key?.trim() || 'Feature',
@@ -26,11 +34,21 @@ export async function POST(req: NextRequest) {
       }));
     }
 
-    console.log('[SPECS RECEIVED]:', JSON.stringify(productData.specifications?.slice(0, 2)));
-
+    // 3. Construct clean product object
     const product = await KalamicProduct.create({
       ...productData,
-      created_by_admin: adminId
+      created_by_admin: adminId,
+      // Ensure shipping object is explicitly structured
+      shipping: {
+        weight_kg: productData.shipping?.weight_kg || 0,
+        shape: productData.shipping?.shape || 'rectangular',
+        package_dimensions_cm: {
+          length: productData.shipping?.package_dimensions_cm?.length ?? null,
+          width: productData.shipping?.package_dimensions_cm?.width ?? null,
+          height: productData.shipping?.package_dimensions_cm?.height ?? null,
+          diameter: productData.shipping?.package_dimensions_cm?.diameter ?? null,
+        }
+      }
     });
 
     await AdminLog.create({

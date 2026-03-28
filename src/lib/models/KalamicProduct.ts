@@ -3,8 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * @fileOverview Official Schema for the Kalamic_Products collection.
- * Treating nested arrays as data-only structures (no internal _ids) 
- * to ensure reliable replacement during updates.
+ * Includes flexible shipping dimensions for various artisanal shapes.
  */
 
 export interface IKalamicProduct extends Document {
@@ -149,4 +148,9 @@ const KalamicProductSchema: Schema = new Schema({
   strict: true 
 });
 
-export default mongoose.models.KalamicProduct || mongoose.model<IKalamicProduct>('KalamicProduct', KalamicProductSchema);
+// Avoid OverwriteModelError in Next.js while ensuring the latest schema is used
+if (mongoose.models.KalamicProduct) {
+  delete (mongoose.models as any).KalamicProduct;
+}
+
+export default mongoose.model<IKalamicProduct>('KalamicProduct', KalamicProductSchema);

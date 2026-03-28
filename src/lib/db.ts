@@ -2,16 +2,17 @@
 import mongoose from 'mongoose';
 
 /**
- * Global is used here to maintain a cached connection across hot reloads
- * in development. This prevents connections growing exponentially
- * during API Route usage.
+ * @fileOverview Database connection utility with robust caching and timeout prevention.
+ * Ensures Mongoose does not buffer commands while waiting for a connection.
  */
+
 const MONGODB_URI = process.env.MONGODB_URI!;
 
 if (!MONGODB_URI) {
-  console.warn('[DB] MONGODB_URI is not defined. Database operations will be disabled.');
+  console.warn('[DB_WARNING] MONGODB_URI is not defined in environment variables.');
 }
 
+// Global caching to prevent connection leaks during Next.js Hot Module Replacement (HMR)
 let cached = (global as any).mongoose;
 
 if (!cached) {
@@ -26,27 +27,18 @@ async function dbConnect() {
   }
 
   if (!cached.promise) {
+    // Globally disable buffering to avoid the 10s timeout "buffering timed out" errors
+    mongoose.set('bufferCommands', false);
+
     const opts = {
       bufferCommands: false,
       dbName: process.env.DB_NAME || 'kalamic',
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000, // Fail fast if connection cannot be established
       socketTimeoutMS: 45000,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then(async (m) => {
-      /**
-       * SELF-HEALING: Cleanup legacy snake_case unique index if it exists.
-       */
-      try {
-        const collection = m.connection.db?.collection('Ordered_Items');
-        if (collection) {
-          await collection.dropIndex('order_number_1');
-          console.log('[DB] Successfully purged legacy index: order_number_1');
-        }
-      } catch (e) {
-        // Index likely doesn't exist; ignore safely.
-      }
-      
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((m) => {
+      console.log('[DB_SUCCESS] Established fresh MongoDB connection');
       return m;
     });
   }
@@ -54,7 +46,8 @@ async function dbConnect() {
   try {
     cached.conn = await cached.promise;
   } catch (e) {
-    cached.promise = null;
+    cached.promise = null; // Clear promise on failure to allow retry
+    console.error('[DB_ERROR] Connection failed:', e);
     throw e;
   }
 

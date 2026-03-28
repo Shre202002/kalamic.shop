@@ -222,17 +222,26 @@ export default function ProductsManagement() {
       return;
     }
 
-    // Structure dimensions based on shape
+    // Final clean structure for dimensions based on shape
     let finalDims = { ...editingProduct.shipping.package_dimensions_cm };
+    
+    // Convert any missing/NaN values to null for Mongoose compatibility
+    const cleanNum = (val: any) => (isNaN(val) || val === '' || val === undefined) ? null : Number(val);
+
     if (shippingShape === 'circular') {
       finalDims.length = null;
       finalDims.width = null;
+      finalDims.diameter = cleanNum(finalDims.diameter);
     } else if (shippingShape === 'square') {
-      finalDims.width = finalDims.length;
+      finalDims.width = cleanNum(finalDims.length);
+      finalDims.length = cleanNum(finalDims.length);
       finalDims.diameter = null;
     } else {
+      finalDims.length = cleanNum(finalDims.length);
+      finalDims.width = cleanNum(finalDims.width);
       finalDims.diameter = null;
     }
+    finalDims.height = cleanNum(finalDims.height);
 
     const payload = {
       ...editingProduct,
@@ -727,32 +736,32 @@ export default function ProductsManagement() {
                     <Grid item xs={12} md={6}>
                       <TextField 
                         fullWidth type="number" label="Weight (kg)" 
-                        value={editingProduct.shipping?.weight_kg || 0} 
-                        onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, weight_kg: parseFloat(e.target.value) } })} 
+                        value={editingProduct.shipping?.weight_kg || ''} 
+                        onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, weight_kg: e.target.value === '' ? null : parseFloat(e.target.value) } })} 
                       />
                     </Grid>
                   </Grid>
 
                   <Box sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
-                    <Typography variant="overline" sx={{ fontWeight: 800, mb: 2, display: 'block', color: 'primary.main' }}>Package Dimensions (CM)</Typography>
+                    <Typography variant="overline" sx={{ fontWeight: 800, mb: 2, display: 'block', color: 'primary.main' }}>PACKAGE DIMENSIONS (CM)</Typography>
                     
                     <Grid container spacing={3}>
                       {shippingShape === 'rectangular' && (
                         <>
-                          <Grid item xs={4}><TextField fullWidth label="L (cm)" value={editingProduct.shipping?.package_dimensions_cm?.length || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, length: parseFloat(e.target.value) } } })} /></Grid>
-                          <Grid item xs={4}><TextField fullWidth label="W (cm)" value={editingProduct.shipping?.package_dimensions_cm?.width || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, width: parseFloat(e.target.value) } } })} /></Grid>
+                          <Grid item xs={4}><TextField fullWidth label="L (cm)" value={editingProduct.shipping?.package_dimensions_cm?.length || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, length: e.target.value === '' ? null : parseFloat(e.target.value) } } })} /></Grid>
+                          <Grid item xs={4}><TextField fullWidth label="W (cm)" value={editingProduct.shipping?.package_dimensions_cm?.width || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, width: e.target.value === '' ? null : parseFloat(e.target.value) } } })} /></Grid>
                         </>
                       )}
                       
                       {shippingShape === 'circular' && (
-                        <Grid item xs={8}><TextField fullWidth label="Diameter (cm)" value={editingProduct.shipping?.package_dimensions_cm?.diameter || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, diameter: parseFloat(e.target.value) } } })} /></Grid>
+                        <Grid item xs={8}><TextField fullWidth label="Diameter (cm)" value={editingProduct.shipping?.package_dimensions_cm?.diameter || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, diameter: e.target.value === '' ? null : parseFloat(e.target.value) } } })} /></Grid>
                       )}
 
                       {shippingShape === 'square' && (
-                        <Grid item xs={8}><TextField fullWidth label="Side (cm)" value={editingProduct.shipping?.package_dimensions_cm?.length || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, length: parseFloat(e.target.value), width: parseFloat(e.target.value) } } })} /></Grid>
+                        <Grid item xs={8}><TextField fullWidth label="Side (cm)" value={editingProduct.shipping?.package_dimensions_cm?.length || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, length: e.target.value === '' ? null : parseFloat(e.target.value), width: e.target.value === '' ? null : parseFloat(e.target.value) } } })} /></Grid>
                       )}
 
-                      <Grid item xs={4}><TextField fullWidth label="H (cm)" value={editingProduct.shipping?.package_dimensions_cm?.height || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, height: parseFloat(e.target.value) } } })} /></Grid>
+                      <Grid item xs={4}><TextField fullWidth label="H (cm)" value={editingProduct.shipping?.package_dimensions_cm?.height || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, height: e.target.value === '' ? null : parseFloat(e.target.value) } } })} /></Grid>
                     </Grid>
                   </Box>
                 </Box>
@@ -774,7 +783,7 @@ export default function ProductsManagement() {
                     value={Array.isArray(editingProduct.seo?.meta_keywords) ? editingProduct.seo.meta_keywords.join(', ') : (editingProduct.seo?.meta_keywords || '')}
                     onChange={(e) => setEditingProduct({
                       ...editingProduct,
-                      seo: { ...editingProduct.seo, meta_keywords: e.target.value }
+                      seo: { ...editingProduct.seo, meta_keywords: e.target.value.split(',').map((k: string) => k.trim()) }
                     })}
                   />
                   <TextField

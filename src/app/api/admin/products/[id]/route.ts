@@ -5,6 +5,11 @@ import KalamicProduct from '@/lib/models/KalamicProduct';
 import User from '@/lib/models/User';
 import AdminLog from '@/lib/models/AdminLog';
 
+/**
+ * @fileOverview Secure update of existing artisan pieces.
+ * Explicitly rebuilds nested objects to ensure partial updates don't strip schema fields.
+ */
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -21,7 +26,10 @@ export async function PATCH(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
     }
 
-    // Process specifications to ensure commonValue is explicitly included
+    console.log('[API_SAVE_DEBUG] Updating piece:', id);
+    console.log('[API_SAVE_DEBUG] Received shipping:', JSON.stringify(updateData.shipping));
+
+    // 1. Process specifications
     if (updateData.specifications) {
       updateData.specifications = updateData.specifications.map((s: any) => ({
         key: s.key?.trim() || 'Feature',
@@ -30,12 +38,30 @@ export async function PATCH(
       }));
     }
 
-    console.log('[SPECS RECEIVED]:', JSON.stringify(updateData.specifications?.slice(0, 2)));
+    // 2. Prepare atomic update object
+    const finalUpdate: any = { 
+      ...updateData, 
+      updated_by_admin: adminId 
+    };
+
+    // 3. Ensure nested shipping fields are explicitly included
+    if (updateData.shipping) {
+      finalUpdate.shipping = {
+        weight_kg: updateData.shipping.weight_kg,
+        shape: updateData.shipping.shape,
+        package_dimensions_cm: {
+          length: updateData.shipping.package_dimensions_cm?.length ?? null,
+          width: updateData.shipping.package_dimensions_cm?.width ?? null,
+          height: updateData.shipping.package_dimensions_cm?.height ?? null,
+          diameter: updateData.shipping.package_dimensions_cm?.diameter ?? null,
+        }
+      };
+    }
 
     const updated = await KalamicProduct.findByIdAndUpdate(
       id,
-      { $set: { ...updateData, updated_by_admin: adminId } },
-      { new: true }
+      { $set: finalUpdate },
+      { new: true, runValidators: true }
     );
 
     if (!updated) {
