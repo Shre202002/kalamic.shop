@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -353,7 +352,7 @@ export default function ProductDetailPage() {
 
   const galleryImages = [...(product.images || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
 
-  // Build dimension cards dynamically based on shape, now including Cylinder for Mor Stambh
+  // Build dimension cards dynamically based on shape
   const shape = product.shipping?.shape || (product.shipping?.package_dimensions_cm?.diameter ? 'circular' : 'rectangular');
   const dims = product.shipping?.package_dimensions_cm;
 
