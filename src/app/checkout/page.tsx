@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
@@ -120,6 +121,10 @@ function CheckoutContent() {
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
 
+  // Determination of strict handling/premium flags based on bag content
+  const requiresHandling = cartItems?.some(item => item.requiresHandling !== false) ?? true;
+  const requiresPremiumProtection = cartItems?.some(item => item.requiresPremiumProtection !== false) ?? true;
+
   // Backup cart clearing if returning with order_id
   useEffect(() => {
     const orderIdFromUrl = searchParams?.get('order_id');
@@ -143,7 +148,12 @@ function CheckoutContent() {
       const res = await fetch('/api/calculate-charges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subtotal, city })
+        body: JSON.stringify({ 
+          subtotal, 
+          city,
+          requiresHandling,
+          requiresPremiumProtection
+        })
       });
       const data = await res.json();
       if (res.ok) setChargesPreview(data);
@@ -158,7 +168,7 @@ function CheckoutContent() {
     if (mounted && subtotal > 0) {
       fetchCharges(formData.city);
     }
-  }, [mounted, subtotal]);
+  }, [mounted, subtotal, requiresHandling, requiresPremiumProtection]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -306,7 +316,7 @@ function CheckoutContent() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const finalTotal = (chargesPreview ? chargesPreview.total : (subtotal + (subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 50) + 60)) - promoDiscount;
+  const finalTotal = (chargesPreview ? chargesPreview.total : (subtotal + (subtotal >= FREE_DELIVERY_THRESHOLD || formData.city.toLowerCase() === 'kanpur' ? 0 : 50) + 60)) - promoDiscount;
 
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length) return;
@@ -566,19 +576,33 @@ function CheckoutContent() {
                 
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>FragileCare™ Shipping</Typography>
-                  <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.shipping ?? (formData.city.toLowerCase() === 'kanpur' || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 50)) === 0 ? 'success.main' : 'inherit' }}>
-                    {(chargesPreview?.charges.shipping ?? (formData.city.toLowerCase() === 'kanpur' || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 50)) === 0 ? 'FREE' : `₹${chargesPreview?.charges.shipping ?? 50}`}
+                  <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.shipping ?? 0) === 0 ? 'success.main' : 'inherit' }}>
+                    {(chargesPreview?.charges.shipping ?? 0) === 0 ? 'FREE' : `₹${chargesPreview?.charges.shipping}`}
                   </Typography>
                 </MuiBox>
 
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Artisan Handling</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.handling ?? 40}</Typography>
+                  <MuiBox sx={{ textAlign: 'right' }}>
+                    <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.handling ?? 40) === 0 ? 'success.main' : 'inherit' }}>
+                      {(chargesPreview?.charges.handling ?? 40) === 0 ? 'FREE' : `₹${chargesPreview?.charges.handling}`}
+                    </Typography>
+                    {(chargesPreview?.charges.handling ?? 40) === 0 && (
+                      <Typography variant="caption" sx={{ color: 'success.main', display: 'block', fontSize: '0.55rem', fontWeight: 800 }}>Not applicable</Typography>
+                    )}
+                  </MuiBox>
                 </MuiBox>
 
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Premium Protection</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.premium ?? 20}</Typography>
+                  <MuiBox sx={{ textAlign: 'right' }}>
+                    <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.premium ?? 20) === 0 ? 'success.main' : 'inherit' }}>
+                      {(chargesPreview?.charges.premium ?? 20) === 0 ? 'FREE' : `₹${chargesPreview?.charges.premium}`}
+                    </Typography>
+                    {(chargesPreview?.charges.premium ?? 20) === 0 && (
+                      <Typography variant="caption" sx={{ color: 'success.main', display: 'block', fontSize: '0.55rem', fontWeight: 800 }}>Not applicable</Typography>
+                    )}
+                  </MuiBox>
                 </MuiBox>
 
                 {chargesPreview?.freeDelivery.isFree && !isCalculating && (

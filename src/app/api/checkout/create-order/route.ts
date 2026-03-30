@@ -37,13 +37,20 @@ export async function POST(req: NextRequest) {
 
     let subtotal = 0;
     const validatedItems = [];
+    let requiresHandling = false;
+    let requiresPremiumProtection = false;
 
-    // 1. Validate Inventory and Pricing from Source of Truth (DB)
+    // 1. Validate Inventory, Pricing and Logistics Flags from Source of Truth (DB)
     for (const item of items) {
       const product = await KalamicProduct.findById(item.productId);
       if (!product) throw new Error(`Product ${item.productId} is no longer available.`);
       
       subtotal += product.price * item.quantity;
+      
+      // Strict rule: If ANY product requires the charge, apply it to order
+      if (product.requiresHandling !== false) requiresHandling = true;
+      if (product.requiresPremiumProtection !== false) requiresPremiumProtection = true;
+
       validatedItems.push({
         productId: product._id.toString(),
         name: product.name,
@@ -53,8 +60,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Compute Official Charges
-    const calculatedCharges = calculateOrderCharges(subtotal, shippingDetails.city);
+    // 2. Compute Official Charges with Product Flags
+    const calculatedCharges = calculateOrderCharges(subtotal, shippingDetails.city, {
+      requiresHandling,
+      requiresPremiumProtection
+    });
     const totalCharges = calculatedCharges.shipping + calculatedCharges.handling + calculatedCharges.premium;
     
     // 3. Final Total Verification (Server-side)

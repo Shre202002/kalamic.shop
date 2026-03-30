@@ -7,13 +7,21 @@ import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 
 export async function POST(req: NextRequest) {
   try {
-    const { subtotal, city } = await req.json();
+    const { 
+      subtotal, 
+      city,
+      requiresHandling,
+      requiresPremiumProtection
+    } = await req.json();
 
     if (typeof subtotal !== 'number' || subtotal < 0) {
       return NextResponse.json({ message: "Invalid subtotal" }, { status: 400 });
     }
 
-    const result = calculateOrderCharges(subtotal, city || "");
+    const result = calculateOrderCharges(subtotal, city || "", {
+      requiresHandling,
+      requiresPremiumProtection
+    });
 
     return NextResponse.json({
       charges: {

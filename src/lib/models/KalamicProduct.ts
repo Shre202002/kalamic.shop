@@ -1,9 +1,9 @@
-
 import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * @fileOverview Official Schema for the Kalamic_Products collection.
  * Includes flexible shipping dimensions for various artisanal shapes.
+ * Now includes configurable logistics charges.
  */
 
 export interface IKalamicProduct extends Document {
@@ -47,6 +47,8 @@ export interface IKalamicProduct extends Document {
       diameter: number | null;
     };
   };
+  requiresHandling: boolean;
+  requiresPremiumProtection: boolean;
   analytics: {
     total_views: number;
     total_orders: number;
@@ -125,6 +127,14 @@ const KalamicProductSchema: Schema = new Schema({
       height: { type: Number, default: null },
       diameter: { type: Number, default: null }
     }
+  },
+  requiresHandling: { 
+    type: Boolean, 
+    default: true 
+  },
+  requiresPremiumProtection: { 
+    type: Boolean, 
+    default: true 
   },
   analytics: {
     total_views: { type: Number, default: 0 },

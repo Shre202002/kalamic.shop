@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -257,6 +258,8 @@ export default function ProductDetailPage() {
       priceAtAddToCart: product.price ?? 0,
       imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url,
       quantity: 1,
+      requiresHandling: product.requiresHandling ?? true,
+      requiresPremiumProtection: product.requiresPremiumProtection ?? true,
       updatedAt: serverTimestamp(),
     }, { merge: true });
     trackProductAction(id, 'cart_add_count');

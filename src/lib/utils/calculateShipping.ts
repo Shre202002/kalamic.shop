@@ -4,8 +4,8 @@
 
 export const FREE_DELIVERY_CITIES = ['kanpur'];
 export const FREE_DELIVERY_THRESHOLD = 499;
-export const HANDLING_CHARGE = 40;
-export const PREMIUM_CHARGE = 20;
+export const HANDLING_CHARGE_DEFAULT = 40;
+export const PREMIUM_CHARGE_DEFAULT = 20;
 
 export interface OrderCharges {
   shipping: number;
@@ -19,12 +19,21 @@ export interface OrderCharges {
 }
 
 /**
- * Calculates the shipping fee and breakdown based on city and subtotal.
+ * Calculates the shipping fee and breakdown based on city, subtotal and product requirements.
  * RULES:
  * 1. Kanpur: Always FREE (₹0)
  * 2. Outside Kanpur: FREE if subtotal >= 499, else ₹50
+ * 3. Handling: ₹40 only if required by any product in order
+ * 4. Premium Protection: ₹20 only if required by any product in order
  */
-export function calculateOrderCharges(subtotal: number, city: string): OrderCharges {
+export function calculateOrderCharges(
+  subtotal: number, 
+  city: string,
+  options?: {
+    requiresHandling?: boolean;
+    requiresPremiumProtection?: boolean;
+  }
+): OrderCharges {
   const normalizedCity = (city || '').trim().toLowerCase();
   const isKanpur = normalizedCity === 'kanpur';
   
@@ -35,11 +44,17 @@ export function calculateOrderCharges(subtotal: number, city: string): OrderChar
     shipping = subtotal < FREE_DELIVERY_THRESHOLD ? 50 : 0;
   }
 
+  // Handling — only if product requires it
+  const handling = (options?.requiresHandling ?? true) ? HANDLING_CHARGE_DEFAULT : 0;
+
+  // Premium Protection — only if product requires it
+  const premium = (options?.requiresPremiumProtection ?? true) ? PREMIUM_CHARGE_DEFAULT : 0;
+
   return {
     shipping,
-    handling: HANDLING_CHARGE,
-    premium: PREMIUM_CHARGE,
-    total: subtotal + shipping + HANDLING_CHARGE + PREMIUM_CHARGE,
+    handling,
+    premium,
+    total: subtotal + shipping + handling + premium,
     freeDelivery: {
       isFree: shipping === 0,
       reason: isKanpur 

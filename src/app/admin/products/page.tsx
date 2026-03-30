@@ -92,6 +92,8 @@ const INITIAL_PRODUCT = {
     shape: 'rectangular',
     package_dimensions_cm: { length: 0, width: 0, height: 0, diameter: 0 }
   },
+  requiresHandling: true,
+  requiresPremiumProtection: true,
   seo: {
     meta_title: '',
     meta_description: '',
@@ -176,6 +178,8 @@ export default function ProductsManagement() {
             diameter: dims.diameter || 0
           }
         },
+        requiresHandling: product.requiresHandling ?? true,
+        requiresPremiumProtection: product.requiresPremiumProtection ?? true,
         seo: {
           ...INITIAL_PRODUCT.seo,
           ...product.seo,
@@ -776,6 +780,77 @@ export default function ProductsManagement() {
 
                       <Grid item xs={4}><TextField fullWidth label="H (cm)" value={editingProduct.shipping?.package_dimensions_cm?.height || ''} onChange={(e) => setEditingProduct({ ...editingProduct, shipping: { ...editingProduct.shipping, package_dimensions_cm: { ...editingProduct.shipping.package_dimensions_cm, height: e.target.value === '' ? null : parseFloat(e.target.value) } } })} /></Grid>
                     </Grid>
+                  </Box>
+
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ 
+                      fontWeight: 900, 
+                      mb: 3,
+                      textTransform: 'uppercase',
+                      letterSpacing: 1,
+                      fontSize: '0.75rem'
+                    }}>
+                      Logistics Charges
+                    </Typography>
+
+                    {/* Handling Toggle */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      p: 2.5,
+                      borderRadius: '1rem',
+                      border: '1px solid',
+                      borderColor: editingProduct.requiresHandling ? theme.palette.primary.main : 'divider',
+                      bgcolor: editingProduct.requiresHandling ? alpha(theme.palette.primary.main, 0.03) : 'transparent',
+                      mb: 2,
+                      transition: 'all 0.2s'
+                    }}>
+                      <Box>
+                        <Typography fontWeight={800} fontSize="0.85rem">
+                          Artisan Handling — ₹40
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {editingProduct.requiresHandling ? 'Charged to customer' : 'FREE for this product'}
+                        </Typography>
+                      </Box>
+                      <Switch
+                        checked={editingProduct.requiresHandling}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, requiresHandling: e.target.checked })}
+                        color="primary"
+                      />
+                    </Box>
+
+                    {/* Premium Protection Toggle */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      p: 2.5,
+                      borderRadius: '1rem',
+                      border: '1px solid',
+                      borderColor: editingProduct.requiresPremiumProtection ? theme.palette.primary.main : 'divider',
+                      bgcolor: editingProduct.requiresPremiumProtection ? alpha(theme.palette.primary.main, 0.03) : 'transparent',
+                      transition: 'all 0.2s'
+                    }}>
+                      <Box>
+                        <Typography fontWeight={800} fontSize="0.85rem">
+                          Premium Protection — ₹20
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {editingProduct.requiresPremiumProtection ? 'Charged to customer' : 'FREE for this product'}
+                        </Typography>
+                      </Box>
+                      <Switch
+                        checked={editingProduct.requiresPremiumProtection}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, requiresPremiumProtection: e.target.checked })}
+                        color="primary"
+                      />
+                    </Box>
+
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, fontStyle: 'italic', fontSize: '0.65rem' }}>
+                      💡 Disable handling for small/light products (fridge magnets, photo frames). Disable premium protection for non-fragile items.
+                    </Typography>
                   </Box>
                 </Box>
               )}
