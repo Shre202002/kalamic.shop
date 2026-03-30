@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
@@ -87,6 +86,9 @@ function CheckoutContent() {
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoDiscountType, setPromoDiscountType] = useState<string | null>(null);
   const [promoMessage, setPromoMessage] = useState('');
+
+  // Policy Acceptance State
+  const [policyAccepted, setPolicyAccepted] = useState(false);
 
   // Address lookup states
   const [statesList] = useState(State.getStatesOfCountry('IN'));
@@ -304,12 +306,21 @@ function CheckoutContent() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const finalTotal = (chargesPreview ? chargesPreview.total : (subtotal + (subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 150) + 60)) - promoDiscount;
+  const finalTotal = (chargesPreview ? chargesPreview.total : (subtotal + (subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 50) + 60)) - promoDiscount;
 
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length) return;
     if (!formData.fullName || !formData.address || !formData.city || !formData.state || !formData.zip || !formData.phone) {
       toast({ variant: "destructive", title: "Incomplete Details", description: "All shipping details are required." });
+      return;
+    }
+
+    if (!policyAccepted) {
+      toast({
+        variant: "destructive",
+        title: "Policy Agreement Required",
+        description: "You must agree to our Privacy Policy and Refund & Return Policy to proceed."
+      });
       return;
     }
 
@@ -555,8 +566,8 @@ function CheckoutContent() {
                 
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>FragileCare™ Shipping</Typography>
-                  <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.shipping ?? (subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 150)) === 0 ? 'success.main' : 'inherit' }}>
-                    {(chargesPreview?.charges.shipping ?? (subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 150)) === 0 ? 'FREE' : `₹${chargesPreview?.charges.shipping ?? 150}`}
+                  <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.shipping ?? (formData.city.toLowerCase() === 'kanpur' || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 50)) === 0 ? 'success.main' : 'inherit' }}>
+                    {(chargesPreview?.charges.shipping ?? (formData.city.toLowerCase() === 'kanpur' || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 50)) === 0 ? 'FREE' : `₹${chargesPreview?.charges.shipping ?? 50}`}
                   </Typography>
                 </MuiBox>
 
@@ -570,12 +581,28 @@ function CheckoutContent() {
                   <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.premium ?? 20}</Typography>
                 </MuiBox>
 
-                {chargesPreview?.freeDelivery.isFree && (
-                  <MuiBox sx={{ mt: 1, px: 2, py: 1, bgcolor: muiAlpha('#4caf50', 0.05), border: '1px dashed', borderColor: muiAlpha('#4caf50', 0.2), borderRadius: 2 }}>
-                    <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.6rem', display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <CheckCircle2 size={12} /> {chargesPreview.freeDelivery.reason === 'city' ? `Local delivery to ${formData.city}` : `Order above ₹${FREE_DELIVERY_THRESHOLD}`} applied!
-                    </Typography>
-                  </MuiBox>
+                {chargesPreview?.freeDelivery.isFree && !isCalculating && (
+                  <Chip
+                    icon={<CheckCircle2 size={12} />}
+                    label={
+                      chargesPreview.freeDelivery.reason === 'city'
+                        ? `Free delivery to Kanpur`
+                        : chargesPreview.freeDelivery.reason === 'threshold'
+                        ? `Free delivery on orders above ₹499`
+                        : `Free delivery`
+                    }
+                    size="small"
+                    sx={{ 
+                      bgcolor: muiAlpha('#6F8A7A', 0.1), 
+                      color: '#6F8A7A', 
+                      fontWeight: 800, 
+                      fontSize: '0.6rem', 
+                      border: 'none', 
+                      height: 24,
+                      mt: 1,
+                      alignSelf: 'flex-start'
+                    }}
+                  />
                 )}
 
                 {promoDiscount > 0 && (
@@ -597,14 +624,115 @@ function CheckoutContent() {
               
               <Divider sx={{ mb: 4 }} />
               
-              <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
+              <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 4 }}>
                 <Typography sx={{ fontWeight: 900, textTransform: 'uppercase' }}>Total</Typography>
                 <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{finalTotal.toLocaleString()}</Typography>
               </MuiBox>
+
+              {/* Policy Checkbox Block */}
+              <MuiBox sx={{ 
+                display: 'flex', 
+                alignItems: 'flex-start', 
+                gap: 1.5,
+                p: 2,
+                borderRadius: '1rem',
+                bgcolor: policyAccepted 
+                  ? muiAlpha('#6F8A7A', 0.05)
+                  : muiAlpha('#EA781E', 0.03),
+                border: '1px solid',
+                borderColor: policyAccepted
+                  ? muiAlpha('#6F8A7A', 0.2)
+                  : muiAlpha('#EA781E', 0.1),
+                transition: 'all 0.2s',
+                mb: 2
+              }}>
+                <input
+                  type="checkbox"
+                  id="policy-checkbox"
+                  checked={policyAccepted}
+                  onChange={(e) => setPolicyAccepted(e.target.checked)}
+                  style={{ 
+                    marginTop: '3px',
+                    accentColor: '#EA781E',
+                    width: '16px',
+                    height: '16px',
+                    flexShrink: 0,
+                    cursor: 'pointer'
+                  }}
+                />
+                <label 
+                  htmlFor="policy-checkbox"
+                  style={{ cursor: 'pointer' }}
+                >
+                  <Typography variant="caption" sx={{ 
+                    fontSize: '0.65rem', 
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    lineHeight: 1.5
+                  }}>
+                    I have read and agree to the{' '}
+                    <Link 
+                      href="/privacy" 
+                      target="_blank"
+                      style={{ 
+                        color: '#EA781E', 
+                        fontWeight: 800,
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Privacy Policy
+                    </Link>
+                    {' '}and{' '}
+                    <Link 
+                      href="/returns" 
+                      target="_blank"
+                      style={{ 
+                        color: '#EA781E', 
+                        fontWeight: 800,
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Refund & Return Policy
+                    </Link>
+                  </Typography>
+                </label>
+              </MuiBox>
               
-              <Button fullWidth variant="contained" disabled={isProcessing || isCalculating} onClick={handlePlaceOrder} sx={{ borderRadius: '1.5rem', height: '5rem', fontSize: '1.25rem', fontWeight: 900, bgcolor: '#EA781E', '&:hover': { bgcolor: '#D66A18' }, textTransform: 'none' }}>
+              <Button 
+                fullWidth 
+                variant="contained" 
+                disabled={isProcessing || isCalculating || !policyAccepted} 
+                onClick={handlePlaceOrder} 
+                sx={{ 
+                  borderRadius: '1.5rem', 
+                  height: '5rem', 
+                  fontSize: '1.25rem', 
+                  fontWeight: 900, 
+                  bgcolor: '#EA781E', 
+                  '&:hover': { bgcolor: '#D66A18' }, 
+                  textTransform: 'none',
+                  opacity: policyAccepted ? 1 : 0.5,
+                  cursor: policyAccepted ? 'pointer' : 'not-allowed'
+                }}
+              >
                 {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay ₹${finalTotal.toLocaleString()}`}
               </Button>
+
+              {!policyAccepted && (
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    display: 'block',
+                    textAlign: 'center',
+                    color: 'text.secondary',
+                    fontSize: '0.6rem',
+                    mt: 1,
+                    fontStyle: 'italic'
+                  }}
+                >
+                  Please accept the policies above to proceed
+                </Typography>
+              )}
             </Paper>
           </Grid>
         </Grid>

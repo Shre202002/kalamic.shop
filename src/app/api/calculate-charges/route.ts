@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { calculateOrderCharges, isEligibleForFreeDelivery } from '@/lib/utils/calculateShipping';
+import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 
 /**
  * @fileOverview Pure API for real-time charge calculation on the checkout page.
@@ -13,20 +13,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Invalid subtotal" }, { status: 400 });
     }
 
-    const charges = calculateOrderCharges(subtotal, city || "");
-    const freeDelivery = isEligibleForFreeDelivery(subtotal, city || "");
+    const result = calculateOrderCharges(subtotal, city || "");
 
     return NextResponse.json({
       charges: {
-        shipping: charges.shipping,
-        handling: charges.handling,
-        premium: charges.premium
+        shipping: result.shipping,
+        handling: result.handling,
+        premium: result.premium
       },
-      total: charges.total,
-      freeDelivery
+      total: result.total,
+      freeDelivery: result.freeDelivery
     });
 
   } catch (error: any) {
+    console.error('[CALCULATE_CHARGES_ERROR]', error);
     return NextResponse.json({ message: "Calculation failed" }, { status: 500 });
   }
 }

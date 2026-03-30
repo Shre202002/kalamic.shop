@@ -4,7 +4,6 @@
 
 export const FREE_DELIVERY_CITIES = ['kanpur'];
 export const FREE_DELIVERY_THRESHOLD = 499;
-export const STANDARD_SHIPPING_CHARGE = 150;
 export const HANDLING_CHARGE = 40;
 export const PREMIUM_CHARGE = 20;
 
@@ -13,59 +12,49 @@ export interface OrderCharges {
   handling: number;
   premium: number;
   total: number;
+  freeDelivery: {
+    isFree: boolean;
+    reason: 'city' | 'threshold' | null;
+  };
 }
 
 /**
- * Calculates the shipping fee based on city and subtotal.
- * Priority: 1. City list (Kanpur is always free), 2. Subtotal threshold (499+ is free), 3. Standard charge.
- */
-export function calculateShippingCharge(subtotal: number, city: string): number {
-  const normalizedCity = (city || '').toLowerCase().trim();
-  
-  // Rule 1: Local City Override (Kanpur is always free)
-  if (normalizedCity && FREE_DELIVERY_CITIES.includes(normalizedCity)) {
-    return 0;
-  }
-
-  // Rule 2: Order Value Threshold (499 and above)
-  if (subtotal >= FREE_DELIVERY_THRESHOLD) {
-    return 0;
-  }
-
-  // Rule 3: Standard Charge
-  return STANDARD_SHIPPING_CHARGE;
-}
-
-/**
- * Returns a detailed breakdown of all order-level charges.
+ * Calculates the shipping fee and breakdown based on city and subtotal.
+ * RULES:
+ * 1. Kanpur: Always FREE (₹0)
+ * 2. Outside Kanpur: FREE if subtotal >= 499, else ₹50
  */
 export function calculateOrderCharges(subtotal: number, city: string): OrderCharges {
-  const shipping = calculateShippingCharge(subtotal, city);
-  // Handling and Protection charges are standard for artisanal items
-  const handling = HANDLING_CHARGE;
-  const premium = PREMIUM_CHARGE;
+  const normalizedCity = (city || '').trim().toLowerCase();
+  const isKanpur = normalizedCity === 'kanpur';
   
+  let shipping = 0;
+  if (isKanpur) {
+    shipping = 0;
+  } else {
+    shipping = subtotal < FREE_DELIVERY_THRESHOLD ? 50 : 0;
+  }
+
   return {
     shipping,
-    handling,
-    premium,
-    total: subtotal + shipping + handling + premium
+    handling: HANDLING_CHARGE,
+    premium: PREMIUM_CHARGE,
+    total: subtotal + shipping + HANDLING_CHARGE + PREMIUM_CHARGE,
+    freeDelivery: {
+      isFree: shipping === 0,
+      reason: isKanpur 
+        ? 'city' 
+        : subtotal >= FREE_DELIVERY_THRESHOLD 
+          ? 'threshold' 
+          : null
+    }
   };
 }
 
 /**
  * Determines eligibility and reason for free delivery for UI display.
  */
-export function isEligibleForFreeDelivery(subtotal: number, city: string): { isFree: boolean; reason: 'city' | 'threshold' | null } {
-  const normalizedCity = (city || '').toLowerCase().trim();
-  
-  if (normalizedCity && FREE_DELIVERY_CITIES.includes(normalizedCity)) {
-    return { isFree: true, reason: 'city' };
-  }
-  
-  if (subtotal >= FREE_DELIVERY_THRESHOLD) {
-    return { isFree: true, reason: 'threshold' };
-  }
-  
-  return { isFree: false, reason: null };
+export function isEligibleForFreeDelivery(subtotal: number, city: string) {
+  const charges = calculateOrderCharges(subtotal, city);
+  return charges.freeDelivery;
 }
