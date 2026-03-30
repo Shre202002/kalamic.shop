@@ -3,7 +3,7 @@
  */
 
 export const FREE_DELIVERY_CITIES = ['kanpur'];
-export const FREE_DELIVERY_THRESHOLD = 999;
+export const FREE_DELIVERY_THRESHOLD = 499;
 export const STANDARD_SHIPPING_CHARGE = 150;
 export const HANDLING_CHARGE = 40;
 export const PREMIUM_CHARGE = 20;
@@ -17,17 +17,17 @@ export interface OrderCharges {
 
 /**
  * Calculates the shipping fee based on city and subtotal.
- * Priority: 1. City list, 2. Subtotal threshold, 3. Standard charge.
+ * Priority: 1. City list (Kanpur is always free), 2. Subtotal threshold (499+ is free), 3. Standard charge.
  */
 export function calculateShippingCharge(subtotal: number, city: string): number {
   const normalizedCity = (city || '').toLowerCase().trim();
   
-  // Rule 1: Local City Override
+  // Rule 1: Local City Override (Kanpur is always free)
   if (normalizedCity && FREE_DELIVERY_CITIES.includes(normalizedCity)) {
     return 0;
   }
 
-  // Rule 2: Order Value Threshold (999 and above)
+  // Rule 2: Order Value Threshold (499 and above)
   if (subtotal >= FREE_DELIVERY_THRESHOLD) {
     return 0;
   }

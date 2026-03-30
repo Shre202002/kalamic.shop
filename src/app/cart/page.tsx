@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -7,7 +6,7 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getProfile } from '@/lib/actions/user-actions';
-import { calculateOrderCharges, isEligibleForFreeDelivery } from '@/lib/utils/calculateShipping';
+import { calculateOrderCharges, isEligibleForFreeDelivery, FREE_DELIVERY_THRESHOLD } from '@/lib/utils/calculateShipping';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -197,7 +196,7 @@ export default function CartPage() {
                       {freeDeliveryInfo.isFree && (
                         <div className="flex items-center gap-1.5 py-1 text-[10px] text-green-600 font-bold bg-green-50 px-3 rounded-lg border border-green-100">
                           <CheckCircle2 className="h-3 w-3" />
-                          {freeDeliveryInfo.reason === 'city' ? `Local delivery to ${userCity}` : "Order value exceeds ₹999"}
+                          {freeDeliveryInfo.reason === 'city' ? `Local delivery to ${userCity}` : `Order value exceeds ₹${FREE_DELIVERY_THRESHOLD}`}
                         </div>
                       )}
 

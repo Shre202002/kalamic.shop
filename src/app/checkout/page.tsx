@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
@@ -45,6 +44,7 @@ import Script from 'next/script';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { State, City } from 'country-state-city';
+import { FREE_DELIVERY_THRESHOLD } from '@/lib/utils/calculateShipping';
 
 declare global {
   interface Window {
@@ -302,7 +302,7 @@ function CheckoutContent() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const finalTotal = (chargesPreview ? chargesPreview.total : (subtotal + (subtotal >= 999 ? 0 : 150) + 60)) - promoDiscount;
+  const finalTotal = (chargesPreview ? chargesPreview.total : (subtotal + (subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 150) + 60)) - promoDiscount;
 
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length) return;
@@ -550,16 +550,31 @@ function CheckoutContent() {
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography>
                   <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography>
                 </MuiBox>
+                
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Shipping</Typography>
-                  <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.shipping || (subtotal >= 999 ? 0 : 150)) === 0 ? 'success.main' : 'inherit' }}>
-                    {(chargesPreview?.charges.shipping || (subtotal >= 999 ? 0 : 150)) === 0 ? 'FREE' : `₹${chargesPreview?.charges.shipping || 150}`}
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>FragileCare™ Shipping</Typography>
+                  <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.shipping ?? (subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 150)) === 0 ? 'success.main' : 'inherit' }}>
+                    {(chargesPreview?.charges.shipping ?? (subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 150)) === 0 ? 'FREE' : `₹${chargesPreview?.charges.shipping ?? 150}`}
                   </Typography>
                 </MuiBox>
+
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Handling & Protection</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview ? (chargesPreview.charges.handling + chargesPreview.charges.premium) : 60}</Typography>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Artisan Handling</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.handling ?? 40}</Typography>
                 </MuiBox>
+
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Premium Protection</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.premium ?? 20}</Typography>
+                </MuiBox>
+
+                {chargesPreview?.freeDelivery.isFree && (
+                  <MuiBox sx={{ mt: 1, px: 2, py: 1, bgcolor: muiAlpha('#4caf50', 0.05), border: '1px dashed', borderColor: muiAlpha('#4caf50', 0.2), borderRadius: 2 }}>
+                    <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.6rem', display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CheckCircle2 size={12} /> {chargesPreview.freeDelivery.reason === 'city' ? `Local delivery to ${formData.city}` : `Order above ₹${FREE_DELIVERY_THRESHOLD}`} applied!
+                    </Typography>
+                  </MuiBox>
+                )}
 
                 {promoDiscount > 0 && (
                   <>
