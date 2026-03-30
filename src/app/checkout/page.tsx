@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
@@ -36,7 +37,8 @@ import {
   MapPin,
   ChevronLeft,
   Search,
-  X
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
