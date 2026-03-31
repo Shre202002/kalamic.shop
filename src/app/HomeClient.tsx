@@ -27,6 +27,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 // --- ANIMATION VARIANTS ---
 const fadeUp = {
