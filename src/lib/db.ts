@@ -1,9 +1,8 @@
-
 import mongoose from 'mongoose';
 
 /**
- * @fileOverview Database connection utility with robust caching and timeout prevention.
- * Ensures Mongoose does not buffer commands while waiting for a connection.
+ * @fileOverview Database connection utility with robust caching and connection pooling.
+ * Optimized for Next.js Server Components and high-concurrency environments.
  */
 
 const MONGODB_URI = process.env.MONGODB_URI!;
@@ -33,12 +32,14 @@ async function dbConnect() {
     const opts = {
       bufferCommands: false,
       dbName: process.env.DB_NAME || 'kalamic',
-      serverSelectionTimeoutMS: 5000, // Fail fast if connection cannot be established
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      heartbeatFrequencyMS: 10000,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((m) => {
-      console.log('[DB_SUCCESS] Established fresh MongoDB connection');
+      console.log('[DB_SUCCESS] Established fresh MongoDB connection with pooling');
       return m;
     });
   }

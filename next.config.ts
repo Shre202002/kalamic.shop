@@ -1,8 +1,6 @@
-
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -10,13 +8,19 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    // Relocating serverActions to experimental block to resolve unrecognized key warnings in some environments
     serverActions: {
       bodySizeLimit: '6mb',
     },
+    optimizePackageImports: [
+      '@mui/material',
+      '@mui/icons-material',
+      'lucide-react',
+      'framer-motion'
+    ],
   },
   images: {
-    qualities: [75, 85],
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 86400,
     remotePatterns: [
       {
         protocol: 'https',
@@ -50,6 +54,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  compress: true,
+  poweredByHeader: false,
+  swcMinify: true,
 };
 
 export default nextConfig;

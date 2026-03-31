@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState } from 'react';
@@ -90,7 +89,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-1">Email Us</h3>
-                    <p className="text-xl font-bold text-primary">contact@kalamic.shop</p>
+                    <a href="mailto:kalamicshop@gmail.com" className="text-xl font-bold text-primary hover:underline transition-all">kalamicshop@gmail.com</a>
                   </div>
                 </div>
                 <div className="flex items-start gap-6 group">
@@ -99,7 +98,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-1">Call Our Artisans</h3>
-                    <p className="text-xl font-bold text-primary">+91 63875 62920</p>
+                    <a href="tel:+916387562920" className="text-xl font-bold text-primary hover:underline transition-all">+91 63875 62920</a>
                   </div>
                 </div>
                 <div className="flex items-start gap-6 group">
@@ -124,55 +123,22 @@ export default function ContactPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="firstName" className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">First Name</Label>
-                      <Input 
-                        id="firstName" 
-                        value={formData.firstName}
-                        onChange={handleChange}
-                        placeholder="Aarav" 
-                        className="h-12 rounded-xl border-border bg-background px-4" 
-                        required 
-                      />
+                      <Input id="firstName" value={formData.firstName} onChange={handleChange} placeholder="Aarav" className="h-12 rounded-xl border-border bg-background px-4" required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName" className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Last Name</Label>
-                      <Input 
-                        id="lastName" 
-                        value={formData.lastName}
-                        onChange={handleChange}
-                        placeholder="Sharma" 
-                        className="h-12 rounded-xl border-border bg-background px-4" 
-                        required 
-                      />
+                      <Input id="lastName" value={formData.lastName} onChange={handleChange} placeholder="Sharma" className="h-12 rounded-xl border-border bg-background px-4" required />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Email Address</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="aarav@example.com" 
-                      className="h-12 rounded-xl border-border bg-background px-4" 
-                      required 
-                    />
+                    <Input id="email" type="email" value={formData.email} onChange={handleChange} placeholder="aarav@example.com" className="h-12 rounded-xl border-border bg-background px-4" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="message" className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">How can we help?</Label>
-                    <Textarea 
-                      id="message" 
-                      value={formData.message}
-                      onChange={handleChange}
-                      placeholder="Tell us about your requirement..." 
-                      className="min-h-[150px] rounded-xl border-border bg-background p-4 resize-none" 
-                      required 
-                    />
+                    <Textarea id="message" value={formData.message} onChange={handleChange} placeholder="Tell us about your requirement..." className="min-h-[150px] rounded-xl border-border bg-background p-4 resize-none" required />
                   </div>
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                    className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95"
-                  >
+                  <Button type="submit" disabled={isSubmitting} className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95">
                     {isSubmitting ? (
                       <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Sending...</>
                     ) : (
