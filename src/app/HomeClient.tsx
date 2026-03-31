@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -21,13 +22,16 @@ import {
   Flame,
   Image as ImageIcon,
   Gift,
-  Home as HomeIcon
+  Home as HomeIcon,
+  Clock,
+  BookOpen
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import dayjs from 'dayjs';
 
 // --- ANIMATION VARIANTS ---
 const fadeUp = {
@@ -89,22 +93,21 @@ const categories = [
   { key: 'home-decor', label: 'Home Decor', icon: HomeIcon, href: '/products?category=home-decor', desc: 'For Every Space' },
 ];
 
-const whyItems = [
-  { icon: <Hammer className="h-6 w-6" />, title: '100% Handcrafted', desc: 'Every piece shaped by skilled artisan hands in Kanpur' },
-  { icon: <Truck className="h-6 w-6" />, title: 'FragileCare™ Shipping', desc: 'Honeycomb-padded, insured delivery across India' },
-  { icon: <ShieldCheck className="h-6 w-6" />, title: '7-Day Returns', desc: 'Damage claims within 48 hours, hassle-free' },
-  { icon: <Heart className="h-6 w-6" />, title: 'Support Heritage', desc: 'Every purchase sustains generational craft' },
-  { icon: <Sparkles className="h-6 w-6" />, title: 'Customisable', desc: 'Size, glaze, and engraving on request' },
-  { icon: <Package className="h-6 w-6" />, title: 'Gift Ready', desc: 'Premium packaging for every occasion' },
-];
-
 const testimonials = [
   { name: "Priya Sharma", location: "Delhi", rating: 5, text: "The mandala wall art is absolutely stunning. The craftsmanship is unlike anything I've seen online. Arrived perfectly packaged.", product: "Ganesha Mandala Wall Art" },
   { name: "Rahul Verma", location: "Mumbai", rating: 5, text: "Bought as a Diwali gift. My mother loved it. The ceramic quality and the packaging both exceeded expectations.", product: "Peacock Mor Stambh" },
   { name: "Anita Joshi", location: "Bangalore", rating: 5, text: "Ordered a custom size and the team was incredibly helpful. The piece arrived exactly as described. Will buy again!", product: "Custom Photo Frame" }
 ];
 
-export default function HomeClient({ initialProducts, categoryCounts }: { initialProducts: any[], categoryCounts: Record<string, number> }) {
+export default function HomeClient({ 
+  initialProducts, 
+  categoryCounts,
+  featuredBlogs = []
+}: { 
+  initialProducts: any[], 
+  categoryCounts: Record<string, number>,
+  featuredBlogs?: any[]
+}) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [email, setEmail] = useState('');
   const [subStatus, setSubStatus] = useState<'idle' | 'loading' | 'done'>('idle');
@@ -209,6 +212,7 @@ export default function HomeClient({ initialProducts, categoryCounts }: { initia
         </motion.div>
 
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 md:px-10">
+          {/* FEATURED PRODUCTS */}
           <section className="py-24">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={slideLeft} className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
               <div className="space-y-3">
@@ -226,6 +230,7 @@ export default function HomeClient({ initialProducts, categoryCounts }: { initia
             </motion.div>
           </section>
 
+          {/* BROWSE CATEGORIES */}
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="py-24 border-t border-primary/5">
             <motion.div variants={fadeUp} className="mb-12"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Browse by Style</span><h2 className="font-display font-black text-4xl sm:text-5xl tracking-tight text-foreground mt-2">Find Your Perfect Piece</h2></motion.div>
             <div className="flex gap-6 overflow-x-auto pb-8 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -249,13 +254,14 @@ export default function HomeClient({ initialProducts, categoryCounts }: { initia
             </div>
           </motion.section>
 
+          {/* STUDIO STORY */}
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="py-24 bg-white rounded-[4rem] px-10 md:px-20 my-12 shadow-2xl shadow-primary/5 border border-primary/5 overflow-hidden relative">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center relative z-10">
               <motion.div variants={slideLeft} className="space-y-8">
                 <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Our Studio Story</span>
                 <h2 className="font-display font-black text-4xl sm:text-6xl tracking-tight text-foreground leading-tight">Handcrafted with Heart in Kanpur</h2>
-                <p className="text-base sm:text-lg text-muted-foreground font-medium leading-relaxed max-w-lg">Every Kalamic piece carries the soul of Indian heritage. We work with local master-craftsmen to bring authentic, hand-molded ceramic treasures into modern homes.</p>
+                <p className="text-base sm:text-lg text-muted-foreground font-medium leading-relaxed max-lg">Every Kalamic piece carries the soul of Indian heritage. We work with local master-craftsmen to bring authentic, hand-molded ceramic treasures into modern homes.</p>
                 <div className="flex flex-wrap gap-4 pt-6"><Link href="/about"><button className="h-14 px-10 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all">Our Studio Story</button></Link><Link href="/gallery"><button className="h-14 px-10 rounded-2xl border-2 border-primary/20 text-primary font-black text-xs uppercase tracking-widest hover:bg-primary/5 transition-all">View Gallery</button></Link></div>
               </motion.div>
               <motion.div variants={slideRight} className="grid grid-cols-2 gap-6">
@@ -266,6 +272,42 @@ export default function HomeClient({ initialProducts, categoryCounts }: { initia
             </div>
           </motion.section>
 
+          {/* BLOG SECTION */}
+          {featuredBlogs.length > 0 && (
+            <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="py-24">
+              <motion.div variants={slideLeft} className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4"><div className="h-1 w-16 bg-primary rounded-full" /><span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">From the Journal</span></div>
+                  <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tight text-foreground">Ceramic Stories & Guides</h2>
+                </div>
+                <Link href="/blog"><Button variant="ghost" className="text-primary font-black uppercase tracking-widest text-[10px] h-12 px-8 rounded-full border border-primary/10 hover:bg-primary/5">Read All Articles <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+              </motion.div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                {featuredBlogs.map((post, idx) => (
+                  <motion.article key={post._id} variants={fadeUp} className="group">
+                    <Link href={`/blog/${post.slug}`} className="block space-y-6">
+                      <div className="relative aspect-video rounded-3xl overflow-hidden shadow-lg border border-primary/5">
+                        <Image src={post.coverImage.url} alt={post.coverImage.alt} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                        <div className="absolute top-4 left-4">
+                          <Badge className="bg-white/90 backdrop-blur-md text-primary text-[8px] font-black uppercase tracking-widest border-none px-3 py-1 shadow-sm">{post.category}</Badge>
+                        </div>
+                      </div>
+                      <div className="space-y-3 px-2">
+                        <h3 className="text-2xl font-display font-bold text-foreground group-hover:text-primary transition-colors leading-tight line-clamp-2">{post.title}</h3>
+                        <p className="text-muted-foreground text-sm font-medium line-clamp-2 leading-relaxed">{post.excerpt}</p>
+                        <div className="flex items-center justify-between pt-4 border-t border-primary/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          <span className="flex items-center gap-2"><Clock className="h-3 w-3" /> {post.readTime} MIN READ</span>
+                          <span>{dayjs(post.publishedAt).format('MMM D, YYYY')}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.article>
+                ))}
+              </div>
+            </motion.section>
+          )}
+
+          {/* NEWSLETTER */}
           <section className="py-24"><div className="bg-primary rounded-[4rem] p-12 md:p-24 text-center relative overflow-hidden shadow-2xl shadow-primary/20">
             <div className="absolute top-0 left-0 h-96 w-96 rounded-full bg-white/10 blur-[100px] -translate-x-1/2 -translate-y-1/2" /><div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-white/10 blur-[100px] translate-x-1/2 translate-y-1/2" />
             <div className="relative z-10 max-w-3xl mx-auto space-y-10">
@@ -282,6 +324,7 @@ export default function HomeClient({ initialProducts, categoryCounts }: { initia
             </div>
           </div></section>
 
+          {/* TESTIMONIALS */}
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="py-24">
             <motion.div variants={fadeUp} className="mb-16"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Collector Stories</span><h2 className="font-display font-black text-4xl sm:text-5xl tracking-tight text-foreground mt-2">Loved by the Community</h2></motion.div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">

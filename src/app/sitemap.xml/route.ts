@@ -1,27 +1,35 @@
 
 import { getProducts } from '@/lib/actions/products';
+import { getAllBlogSlugs } from '@/lib/actions/blog-actions';
 
 /**
  * @fileOverview Generates a dynamic XML sitemap for search engines.
  * Optimized for strict XML compliance with zero leading whitespace.
- * Includes all active artisan pieces with high priority.
+ * Includes all active artisan pieces and journal stories.
  */
 
 export async function GET() {
   const baseUrl = 'https://kalamic.shop';
   
   let products = [];
+  let blogs = [];
+  
   try {
-    // Fetch active products to ensure only valid pages are indexed
-    products = await getProducts();
+    const [pData, bData] = await Promise.all([
+      getProducts(),
+      getAllBlogSlugs()
+    ]);
+    products = pData;
+    blogs = bData;
   } catch (error) {
-    console.error('[SITEMAP_ERROR] Failed to fetch products:', error);
+    console.error('[SITEMAP_ERROR] Failed to fetch dynamic data:', error);
   }
 
   const staticPages = [
     '',
     '/products',
     '/gallery',
+    '/blog',
     '/about',
     '/contact',
     '/faq',
@@ -32,7 +40,7 @@ export async function GET() {
 
   const now = new Date().toISOString();
 
-  // Map static pages to XML tags
+  // Map static pages
   const staticXml = staticPages
     .map((url) => `
   <url>
@@ -43,7 +51,7 @@ export async function GET() {
   </url>`)
     .join('');
 
-  // Map products to XML tags with high priority
+  // Map products
   const productXml = products
     .map((p: any) => `
   <url>
@@ -54,11 +62,23 @@ export async function GET() {
   </url>`)
     .join('');
 
-  // Construct final XML string
+  // Map blogs
+  const blogXml = blogs
+    .map((b: any) => `
+  <url>
+    <loc>${baseUrl}/blog/${b.slug}</loc>
+    <lastmod>${new Date(b.updatedAt || now).toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`)
+    .join('');
+
+  // Construct final XML
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   ${staticXml}
   ${productXml}
+  ${blogXml}
 </urlset>`;
 
   return new Response(sitemap.trim(), {

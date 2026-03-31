@@ -34,7 +34,8 @@ import {
   AutoAwesome as AboutIcon,
   PhotoLibrary as PhotoLibraryIcon,
   ConfirmationNumber as PromoIcon,
-  Category as CategoryIcon
+  Category as CategoryIcon,
+  Book as BlogIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -85,6 +86,7 @@ const MENU_ITEMS = [
   { text: 'Dashboard', icon: <DashboardIcon />, href: '/admin/dashboard', roles: ['super_admin', 'admin', 'support'] },
   { text: 'Orders', icon: <OrdersIcon />, href: '/admin/orders', roles: ['super_admin', 'admin', 'support'] },
   { text: 'Promo Codes', icon: <PromoIcon />, href: '/admin/promo', roles: ['super_admin', 'admin'] },
+  { text: 'Blog Studio', icon: <BlogIcon />, href: '/admin/blogs', roles: ['super_admin', 'admin'] },
   { text: 'Categories', icon: <CategoryIcon />, href: '/admin/categories', roles: ['super_admin', 'admin'] },
   { text: 'Gallery Studio', icon: <PhotoLibraryIcon />, href: '/admin/gallery', roles: ['super_admin', 'admin'] },
   { text: 'Users', icon: <UsersIcon />, href: '/admin/users', roles: ['super_admin', 'admin'] },
@@ -95,6 +97,7 @@ const MENU_ITEMS = [
 const WEBSITE_LINKS = [
   { text: 'Home', icon: <HomeIcon />, href: '/' },
   { text: 'Products', icon: <StoreIcon />, href: '/products' },
+  { text: 'Blog', icon: <BlogIcon />, href: '/blog' },
   { text: 'About', icon: <AboutIcon />, href: '/about' },
 ];
 
