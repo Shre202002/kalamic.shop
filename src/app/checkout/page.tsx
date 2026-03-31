@@ -432,8 +432,16 @@ function CheckoutContent() {
 
       if (!cashfreeLoaded) throw new Error("Payment SDK failed to load.");
 
+      /**
+       * Standardized environment detection for browser SDK.
+       */
+      const cfEnv = 
+        process.env.NEXT_PUBLIC_CASHFREE_ENV ||
+        process.env.CASHFREE_ENV ||
+        'sandbox';
+
       const cashfree = new window.Cashfree({
-        mode: process.env.NEXT_PUBLIC_CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
+        mode: cfEnv === 'production' ? 'production' : 'sandbox'
       });
 
       cashfree.checkout({

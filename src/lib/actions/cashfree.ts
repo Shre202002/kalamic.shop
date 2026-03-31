@@ -4,11 +4,27 @@ import crypto from 'crypto';
 
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
-const CASHFREE_ENV = process.env.CASHFREE_ENV || 'sandbox';
 
-const BASE_URL = CASHFREE_ENV === 'production' 
-  ? 'https://api.cashfree.com/pg' 
+/**
+ * Standardized environment detection.
+ * Checks both NEXT_PUBLIC and standard variants to handle Vercel deployment quirks.
+ */
+const cashfreeEnv = 
+  process.env.NEXT_PUBLIC_CASHFREE_ENV ||
+  process.env.CASHFREE_ENV ||
+  'sandbox';
+
+const isProduction = cashfreeEnv === 'production';
+
+/**
+ * Base URL detection.
+ * Standardizes endpoints for both environments.
+ */
+const BASE_URL = isProduction
+  ? 'https://api.cashfree.com/pg'
   : 'https://sandbox.cashfree.com/pg';
+
+const API_VERSION = '2023-08-01';
 
 /**
  * Signature verification for v2025-01-01 protocol.
@@ -16,7 +32,7 @@ const BASE_URL = CASHFREE_ENV === 'production'
  */
 export async function verifyCashfreeSignature(payload: string, signature: string, timestamp: string): Promise<boolean> {
   if (!CASHFREE_SECRET_KEY) {
-    if (CASHFREE_ENV === 'production') throw new Error('Security keys missing in production');
+    if (isProduction) throw new Error('Security keys missing in production');
     return true; // Pass in dev mock mode
   }
   
@@ -46,6 +62,14 @@ export async function createCashfreeOrder(data: {
   };
   returnUrl: string;
 }) {
+  console.log('[CASHFREE CONFIG]', {
+    env: cashfreeEnv,
+    isProduction,
+    baseUrl: BASE_URL,
+    appIdExists: !!process.env.CASHFREE_APP_ID,
+    secretExists: !!process.env.CASHFREE_SECRET_KEY
+  });
+
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
     console.warn('[CASHFREE_MOCK] Missing credentials, initiating simulated session.');
     return {
@@ -62,7 +86,7 @@ export async function createCashfreeOrder(data: {
         'Content-Type': 'application/json',
         'x-client-id': CASHFREE_APP_ID,
         'x-client-secret': CASHFREE_SECRET_KEY,
-        'x-api-version': '2023-08-01',
+        'x-api-version': API_VERSION,
       },
       body: JSON.stringify({
         order_id: data.orderId,
@@ -96,7 +120,7 @@ export async function createCashfreeOrder(data: {
 
 export async function getCashfreeOrderStatus(orderId: string) {
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    if (CASHFREE_ENV === 'production') throw new Error('Production security credentials missing');
+    if (isProduction) throw new Error('Production security credentials missing');
     return { order_status: 'PAID', cf_order_id: 'mock_pay_' + Date.now() };
   }
 
@@ -106,7 +130,7 @@ export async function getCashfreeOrderStatus(orderId: string) {
       headers: {
         'x-client-id': CASHFREE_APP_ID,
         'x-client-secret': CASHFREE_SECRET_KEY,
-        'x-api-version': '2023-08-01',
+        'x-api-version': API_VERSION,
       },
     });
 
