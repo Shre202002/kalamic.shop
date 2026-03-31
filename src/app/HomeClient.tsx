@@ -76,17 +76,17 @@ const heroSlides = [
     subtitle: 'Exquisite Mandala wheels designed to bring spiritual harmony and aesthetic balance to your sacred spaces.',
     image: 'https://ik.imagekit.io/ari07rsa2/kalamic/products/Untitled%20design%20(4).png',
     cta: 'Shop Mandalas',
-    link: '/products?category=mandala',
+    link: '/products?category=wall-art',
     badge: 'Limited Edition'
   },
 ];
 
 const categories = [
-  { label: 'Wall Art', icon: Palette, href: '/products?category=wall-art', desc: 'Mandalas & Mirrors' },
-  { label: 'Spiritual Decor', icon: Flame, href: '/products?category=temple', desc: 'Pooja & Mandirs' },
-  { label: 'Photo Frames', icon: ImageIcon, href: '/products?category=frames', desc: 'Ceramic Keepsakes' },
-  { label: 'Gifting', icon: Gift, href: '/products?category=gifting', desc: 'Curated Sets' },
-  { label: 'Home Decor', icon: HomeIcon, href: '/products', desc: 'For Every Space' },
+  { key: 'wall-art', label: 'Wall Art', icon: Palette, href: '/products?category=wall-art', desc: 'Mandalas & Mirrors' },
+  { key: 'spiritual', label: 'Spiritual Decor', icon: Flame, href: '/products?category=spiritual', desc: 'Pooja & Mandirs' },
+  { key: 'photo-frames', label: 'Photo Frames', icon: ImageIcon, href: '/products?category=photo-frames', desc: 'Ceramic Keepsakes' },
+  { key: 'gifting', label: 'Gifting', icon: Gift, href: '/products?category=gifting', desc: 'Curated Sets' },
+  { key: 'home-decor', label: 'Home Decor', icon: HomeIcon, href: '/products?category=home-decor', desc: 'For Every Space' },
 ];
 
 const whyItems = [
@@ -104,7 +104,7 @@ const testimonials = [
   { name: "Anita Joshi", location: "Bangalore", rating: 5, text: "Ordered a custom size and the team was incredibly helpful. The piece arrived exactly as described. Will buy again!", product: "Custom Photo Frame" }
 ];
 
-export default function HomeClient({ initialProducts }: { initialProducts: any[] }) {
+export default function HomeClient({ initialProducts, categoryCounts }: { initialProducts: any[], categoryCounts: Record<string, number> }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [email, setEmail] = useState('');
   const [subStatus, setSubStatus] = useState<'idle' | 'loading' | 'done'>('idle');
@@ -232,10 +232,17 @@ export default function HomeClient({ initialProducts }: { initialProducts: any[]
               {categories.map((cat, i) => {
                 const Icon = cat.icon;
                 return (
-                  <motion.a key={i} href={cat.href} variants={fadeUp} whileHover={{ y: -8, scale: 1.02 }} className="min-w-[220px] p-8 rounded-[2.5rem] bg-white border border-border shadow-sm flex-shrink-0 flex flex-col gap-4 hover:border-primary/30 hover:shadow-xl transition-all cursor-pointer group">
-                    <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shadow-inner group-hover:bg-primary group-hover:text-white transition-colors duration-500"><Icon className="h-7 w-7" /></div>
-                    <div><p className="font-black text-sm uppercase tracking-wider text-foreground group-hover:text-primary transition-colors">{cat.label}</p><p className="text-[10px] text-muted-foreground font-semibold mt-1 opacity-70">{cat.desc}</p></div>
-                    <div className="mt-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-[9px] font-black uppercase">Explore <ChevronRight className="h-3 w-3" /></div>
+                  <motion.a key={i} href={cat.href} variants={fadeUp} whileHover={{ y: -8, scale: 1.02 }} whileTap={{ scale: 0.97 }} className="min-w-[220px] p-8 rounded-[2.5rem] bg-white border border-border shadow-sm flex-shrink-0 flex flex-col gap-4 hover:border-primary/30 hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden">
+                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-[2.5rem]" />
+                    <div className="relative z-10 h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shadow-inner group-hover:bg-primary group-hover:text-white transition-colors duration-500"><Icon className="h-7 w-7" /></div>
+                    <div className="relative z-10">
+                      <p className="font-black text-sm uppercase tracking-wider text-foreground group-hover:text-primary transition-colors">{cat.label}</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold mt-1 opacity-70">{cat.desc}</p>
+                      {categoryCounts && (
+                        <p className="text-[9px] font-black text-primary/50 mt-3 uppercase tracking-widest">{categoryCounts[cat.key] || 0} pieces</p>
+                      )}
+                    </div>
+                    <div className="relative z-10 mt-2 text-primary opacity-0 group-hover:opacity-100 transition-all flex items-center gap-2 text-[9px] font-black uppercase translate-x-2 group-hover:translate-x-0">Explore <ChevronRight className="h-3 w-3" /></div>
                   </motion.a>
                 );
               })}

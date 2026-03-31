@@ -9,72 +9,86 @@ import { unstable_cache } from 'next/cache';
  * Leverages Next.js unstable_cache for high-performance data retrieval.
  */
 
+const categoryMap: Record<string, string[]> = {
+  'wall-art': ['Wall Art', 'wall art', 'Wall Decor', 'Mandala', 'Mirror'],
+  'spiritual': ['Spiritual', 'spiritual', 'Temple', 'Pooja', 'Religious', 'Ganesha'],
+  'photo-frames': ['Photo Frame', 'photo frame', 'Frame', 'Picture Frame'],
+  'gifting': ['Gift', 'Gifting', 'gift set', 'Gift Set', 'Festival'],
+  'home-decor': ['Home Decor', 'home decor', 'Decorative', 'Pillar', 'Stambh'],
+};
+
 /**
- * Fetches all non-deleted, active Kalamic products.
- * Cached for 60 seconds.
+ * Fetches all non-deleted, active Kalamic products with optional filtering.
  */
-export async function getProducts() {
+export async function getProducts(options?: {
+  limit?: number;
+  featured?: boolean;
+  category?: string | null;
+}) {
   return unstable_cache(
     async () => {
       await dbConnect();
       try {
-        const products = await KalamicProduct.find({ 
+        const query: any = { 
           is_active: true, 
           is_deleted: { $ne: true } 
-        }).sort({ visibility_priority: -1, createdAt: -1 }).lean();
+        };
+        
+        if (options?.featured) {
+          query.is_featured = true;
+        }
+
+        if (options?.category && categoryMap[options.category]) {
+          const keywords = categoryMap[options.category];
+          query.$or = [
+            { tags: { $in: keywords } },
+            { name: { $regex: keywords.join('|'), $options: 'i' } },
+            { 'specifications.value': { $regex: keywords.join('|'), $options: 'i' } }
+          ];
+        }
+
+        const products = await KalamicProduct.find(query)
+          .sort({ visibility_priority: -1, createdAt: -1 })
+          .limit(options?.limit || 100)
+          .lean();
+          
         return JSON.parse(JSON.stringify(products));
       } catch (error) {
-        console.error("Error fetching all products:", error);
+        console.error("Error fetching products:", error);
         return [];
       }
     },
-    ['products-list-all'],
+    ['products-list', JSON.stringify(options)],
     { revalidate: 60, tags: ['products'] }
   )();
 }
 
 /**
- * Fetches featured Kalamic products for the storefront.
+ * Fetches product counts for the homepage category cards.
  */
-export async function getFeaturedProducts() {
+export async function getCategoryCounts() {
   return unstable_cache(
     async () => {
       await dbConnect();
-      try {
-        const products = await KalamicProduct.find({ 
-          is_active: true, 
-          is_featured: true,
-          is_deleted: { $ne: true } 
-        }).sort({ visibility_priority: -1 }).limit(8).lean();
-        return JSON.parse(JSON.stringify(products));
-      } catch (error) {
-        console.error("Error fetching featured products:", error);
-        return [];
+      const counts: Record<string, number> = {};
+      
+      for (const [slug, keywords] of Object.entries(categoryMap)) {
+        const count = await KalamicProduct.countDocuments({
+          is_active: true,
+          is_deleted: { $ne: true },
+          $or: [
+            { tags: { $in: keywords } },
+            { name: { $regex: keywords.join('|'), $options: 'i' } }
+          ]
+        });
+        counts[slug] = count;
       }
+      
+      return counts;
     },
-    ['products-list-featured'],
+    ['category-counts'],
     { revalidate: 300, tags: ['products'] }
   )();
-}
-
-/**
- * Fetches trending products based on orders and wishlist counts.
- */
-export async function getTrendingProducts() {
-  await dbConnect();
-  try {
-    const products = await KalamicProduct.find({
-      is_active: true,
-      is_deleted: { $ne: true }
-    }).sort({ 
-      'analytics.total_orders': -1, 
-      'analytics.wishlist_count': -1 
-    }).limit(4).lean();
-    return JSON.parse(JSON.stringify(products));
-  } catch (error) {
-    console.error("Error fetching trending products:", error);
-    return [];
-  }
 }
 
 /**
