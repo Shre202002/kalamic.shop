@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -16,7 +17,12 @@ import {
   CheckCircle2,
   ArrowRight,
   ChevronRight,
-  RotateCcw
+  RotateCcw,
+  Palette,
+  Flame,
+  Image as ImageIcon,
+  Gift,
+  Home as HomeIcon
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -88,11 +94,11 @@ const heroSlides = [
 ];
 
 const categories = [
-  { label: 'Wall Art', icon: '🎨', href: '/products?category=wall-art', desc: 'Mandalas & Mirrors' },
-  { label: 'Spiritual Decor', icon: '🪔', href: '/products?category=temple', desc: 'Pooja & Mandirs' },
-  { label: 'Photo Frames', icon: '🖼', href: '/products?category=frames', desc: 'Ceramic Keepsakes' },
-  { label: 'Gifting', icon: '🎁', href: '/products?category=gifting', desc: 'Curated Sets' },
-  { label: 'Home Decor', icon: '🏺', href: '/products', desc: 'For Every Space' },
+  { label: 'Wall Art', icon: Palette, href: '/products?category=wall-art', desc: 'Mandalas & Mirrors' },
+  { label: 'Spiritual Decor', icon: Flame, href: '/products?category=temple', desc: 'Pooja & Mandirs' },
+  { label: 'Photo Frames', icon: ImageIcon, href: '/products?category=frames', desc: 'Ceramic Keepsakes' },
+  { label: 'Gifting', icon: Gift, href: '/products?category=gifting', desc: 'Curated Sets' },
+  { label: 'Home Decor', icon: HomeIcon, href: '/products', desc: 'For Every Space' },
 ];
 
 const whyItems = [
@@ -209,7 +215,7 @@ export default function Home() {
                     
                     <motion.h1 
                       variants={fadeUp}
-                      className="font-display font-black text-5xl sm:text-6xl md:text-8xl tracking-tight text-foreground leading-[1.05]"
+                      className="font-display font-black text-5xl sm:text-6xl lg:text-7xl tracking-tight text-foreground leading-[1.05]"
                     >
                       {slide.title} <br />
                       <span className="italic text-primary font-normal">{slide.highlight}</span>
@@ -372,28 +378,33 @@ export default function Home() {
             </motion.div>
 
             <div className="flex gap-6 overflow-x-auto pb-8 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-              {categories.map((cat, i) => (
-                <motion.a
-                  key={i}
-                  href={cat.href}
-                  variants={fadeUp}
-                  whileHover={{ y: -8, scale: 1.02 }}
-                  className="min-w-[220px] p-8 rounded-[2.5rem] bg-white border border-border shadow-sm flex-shrink-0 flex flex-col gap-4 hover:border-primary/30 hover:shadow-xl transition-all cursor-pointer group"
-                >
-                  <span className="text-4xl filter drop-shadow-md">{cat.icon}</span>
-                  <div>
-                    <p className="font-black text-sm uppercase tracking-wider text-foreground group-hover:text-primary transition-colors">
-                      {cat.label}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-semibold mt-1 opacity-70">
-                      {cat.desc}
-                    </p>
-                  </div>
-                  <div className="mt-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-[9px] font-black uppercase">
-                    Explore <ChevronRight className="h-3 w-3" />
-                  </div>
-                </motion.a>
-              ))}
+              {categories.map((cat, i) => {
+                const Icon = cat.icon;
+                return (
+                  <motion.a
+                    key={i}
+                    href={cat.href}
+                    variants={fadeUp}
+                    whileHover={{ y: -8, scale: 1.02 }}
+                    className="min-w-[220px] p-8 rounded-[2.5rem] bg-white border border-border shadow-sm flex-shrink-0 flex flex-col gap-4 hover:border-primary/30 hover:shadow-xl transition-all cursor-pointer group"
+                  >
+                    <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shadow-inner group-hover:bg-primary group-hover:text-white transition-colors duration-500">
+                      <Icon className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <p className="font-black text-sm uppercase tracking-wider text-foreground group-hover:text-primary transition-colors">
+                        {cat.label}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground font-semibold mt-1 opacity-70">
+                        {cat.desc}
+                      </p>
+                    </div>
+                    <div className="mt-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-[9px] font-black uppercase">
+                      Explore <ChevronRight className="h-3 w-3" />
+                    </div>
+                  </motion.a>
+                );
+              })}
             </div>
           </motion.section>
 
@@ -512,8 +523,8 @@ export default function Home() {
                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">
                     Stay in the Studio Loop
                   </span>
-                  <h2 className="font-display font-black text-4xl sm:text-6xl text-white tracking-tight leading-tight">
-                    Be First to See New <br /> Kiln Masterpieces
+                  <h2 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-white tracking-tight leading-tight">
+                    Be First to See New <br /> Kalamic Masterpieces
                   </h2>
                   <p className="text-white/70 font-medium text-lg max-w-xl mx-auto leading-relaxed">
                     Get notified about limited edition launches, exclusive collector offers, and studio updates before anyone else.
@@ -533,7 +544,7 @@ export default function Home() {
                       onChange={(e) => setEmail(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSubscribe()}
                       placeholder="Enter your email"
-                      className="flex-1 h-16 px-8 rounded-2xl bg-white/15 border border-white/30 text-white placeholder-white/50 font-bold text-base focus:outline-none focus:bg-white/20 focus:border-white/60 transition-all backdrop-blur-xl shadow-inner"
+                      className="flex-1 h-16 px-8 rounded-2xl bg-white/20 border border-white/30 text-white placeholder-white/60 font-bold text-base focus:outline-none focus:bg-white/30 focus:border-white/60 transition-all backdrop-blur-xl shadow-inner"
                     />
                     <button
                       onClick={handleSubscribe}
@@ -611,7 +622,7 @@ export default function Home() {
               <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.3em]">
                 <Package className="h-4 w-4" /> Start Your Collection Today
               </div>
-              <h2 className="font-display font-black text-5xl sm:text-7xl md:text-8xl tracking-tighter text-foreground leading-[1] text-balance">
+              <h2 className="font-display font-black text-5xl sm:text-6xl lg:text-7xl tracking-tighter text-foreground leading-[1] text-balance">
                 Own a Piece <br /> of Indian Heritage
               </h2>
               <p className="text-lg md:text-2xl text-muted-foreground font-medium leading-relaxed max-w-2xl mx-auto text-balance">
