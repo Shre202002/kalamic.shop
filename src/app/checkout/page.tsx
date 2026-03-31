@@ -126,87 +126,41 @@ function CheckoutContent() {
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
 
-  // Fallback Effect: Fetch flags from DB if cart items are old (missing requiresHandling/requiresPremiumProtection)
-  useEffect(() => {
-    const fetchProductFlags = async () => {
-      if (!cartItems?.length) {
-        setFlagsLoaded(true);
-        return;
-      }
-      
-      const needsFetch = cartItems.some(
-        item => item.requiresHandling === undefined ||
-                item.requiresPremiumProtection === undefined
-      );
-      
-      if (!needsFetch) {
-        setFlagsLoaded(true);
-        return;
-      }
-      
-      try {
-        const productIds = cartItems.map(
-          item => item.productVariantId || item.id
-        ).filter(Boolean);
-        
-        let handlingNeeded = false;
-        let premiumNeeded = false;
-        
-        for (const productId of productIds) {
-          const res = await fetch(`/api/products/${productId}/flags`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.requiresHandling !== false) handlingNeeded = true;
-            if (data.requiresPremiumProtection !== false) premiumNeeded = true;
-          } else {
-            // Fallback: if API fails, assume true for safety
-            handlingNeeded = true;
-            premiumNeeded = true;
-          }
-        }
-        
-        setDbRequiresHandling(handlingNeeded);
-        setDbRequiresPremium(premiumNeeded);
-      } catch (e) {
-        console.error('[FLAGS FETCH]:', e);
-        setDbRequiresHandling(true);
-        setDbRequiresPremium(true);
-      } finally {
-        setFlagsLoaded(true);
-      }
-    };
-    
-    fetchProductFlags();
-  }, [cartItems]);
+  // DERIVED READINESS
+  const chargesReady = chargesPreview !== null && flagsLoaded && !isCalculating;
 
-  // Derive final logistics requirements using the strictest rule
-  const requiresHandling = cartItems?.every(item => item.requiresHandling !== undefined)
-    ? (cartItems?.some(item => item.requiresHandling !== false) ?? true)
-    : dbRequiresHandling;
-
-  const requiresPremiumProtection = cartItems?.every(item => item.requiresPremiumProtection !== undefined)
-    ? (cartItems?.some(item => item.requiresPremiumProtection !== false) ?? true)
-    : dbRequiresPremium;
-
-  // Backup cart clearing if returning with order_id
-  useEffect(() => {
-    const orderIdFromUrl = searchParams?.get('order_id');
-    if (orderIdFromUrl && user && firestore) {
-      const clearCartBackup = async () => {
+  const fetchProductFlags = async (items: any[]) => {
+    const results = await Promise.all(
+      items.map(async (item) => {
+        const productId = item.productVariantId || item.id;
         try {
-          const cartRef = collection(firestore, 'users', user.uid, 'cart', 'cart', 'items');
-          const snapshot = await getDocs(cartRef);
-          await Promise.all(snapshot.docs.map(d => deleteDoc(d.ref)));
-          console.log('[BACKUP] Cart cleared via checkout safety effect');
-        } catch (e) {}
-      };
-      clearCartBackup();
-    }
-  }, [searchParams, user, firestore]);
+          const res = await fetch(`/api/products/${productId}/flags`);
+          return res.ok ? await res.json() : { requiresHandling: true, requiresPremiumProtection: true };
+        } catch {
+          return { requiresHandling: true, requiresPremiumProtection: true };
+        }
+      })
+    );
+    
+    return {
+      requiresHandling: results.some(r => r.requiresHandling !== false),
+      requiresPremiumProtection: results.some(r => r.requiresPremiumProtection !== false)
+    };
+  };
 
-  const fetchCharges = async (city: string) => {
+  const fetchCharges = async (city: string, handlingFlag?: boolean, premiumFlag?: boolean) => {
     if (subtotal === 0) return;
     setIsCalculating(true);
+    
+    // Use passed flags if available, otherwise fallback to derived state
+    const useHandling = handlingFlag ?? (cartItems?.every(i => i.requiresHandling !== undefined) 
+      ? cartItems.some(i => i.requiresHandling !== false) 
+      : dbRequiresHandling);
+      
+    const usePremium = premiumFlag ?? (cartItems?.every(i => i.requiresPremiumProtection !== undefined)
+      ? cartItems.some(i => i.requiresPremiumProtection !== false)
+      : dbRequiresPremium);
+
     try {
       const res = await fetch('/api/calculate-charges', {
         method: 'POST',
@@ -214,8 +168,8 @@ function CheckoutContent() {
         body: JSON.stringify({ 
           subtotal, 
           city,
-          requiresHandling,
-          requiresPremiumProtection
+          requiresHandling: useHandling,
+          requiresPremiumProtection: usePremium
         })
       });
       const data = await res.json();
@@ -227,12 +181,38 @@ function CheckoutContent() {
     }
   };
 
+  // PARALLEL INITIALIZATION
   useEffect(() => {
-    if (mounted && subtotal > 0 && flagsLoaded) {
-      fetchCharges(formData.city);
-    }
-  }, [mounted, subtotal, requiresHandling, requiresPremiumProtection, flagsLoaded]);
+    if (!mounted || !cartItems?.length || subtotal === 0) return;
+    
+    const initialize = async () => {
+      // Check if flags already in Firestore items
+      const hasFlags = cartItems.every(
+        item => item.requiresHandling !== undefined && item.requiresPremiumProtection !== undefined
+      );
+      
+      let finalFlags;
+      if (hasFlags) {
+        finalFlags = {
+          requiresHandling: cartItems.some(item => item.requiresHandling !== false),
+          requiresPremiumProtection: cartItems.some(item => item.requiresPremiumProtection !== false)
+        };
+      } else {
+        finalFlags = await fetchProductFlags(cartItems);
+      }
 
+      setDbRequiresHandling(finalFlags.requiresHandling);
+      setDbRequiresPremium(finalFlags.requiresPremiumProtection);
+      setFlagsLoaded(true);
+
+      // Fetch charges immediately with the known flags
+      await fetchCharges(formData.city, finalFlags.requiresHandling, finalFlags.requiresPremiumProtection);
+    };
+    
+    initialize();
+  }, [mounted, cartItems, subtotal]);
+
+  // DEBOUNCED CITY CHANGE
   useEffect(() => {
     if (!mounted || !flagsLoaded) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -241,6 +221,15 @@ function CheckoutContent() {
     }, 600);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [formData.city]);
+
+  // Derived flags for creation/creation
+  const requiresHandling = cartItems?.every(item => item.requiresHandling !== undefined)
+    ? (cartItems?.some(item => item.requiresHandling !== false) ?? true)
+    : dbRequiresHandling;
+
+  const requiresPremiumProtection = cartItems?.every(item => item.requiresPremiumProtection !== undefined)
+    ? (cartItems?.some(item => item.requiresPremiumProtection !== false) ?? true)
+    : dbRequiresPremium;
 
   useEffect(() => {
     async function loadUserData() {
@@ -379,7 +368,7 @@ function CheckoutContent() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const finalTotal = (chargesPreview ? chargesPreview.total : (subtotal + (subtotal >= FREE_DELIVERY_THRESHOLD || formData.city.toLowerCase() === 'kanpur' ? 0 : 50) + 60)) - promoDiscount;
+  const finalTotal = (chargesPreview ? chargesPreview.total : 0) - promoDiscount;
 
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length) return;
@@ -432,9 +421,6 @@ function CheckoutContent() {
 
       if (!cashfreeLoaded) throw new Error("Payment SDK failed to load.");
 
-      /**
-       * Standardized environment detection for browser SDK.
-       */
       const cfEnv = 
         process.env.NEXT_PUBLIC_CASHFREE_ENV ||
         process.env.CASHFREE_ENV ||
@@ -455,7 +441,7 @@ function CheckoutContent() {
     }
   };
 
-  if (!mounted || isAuthLoading || isCartLoading || !flagsLoaded) {
+  if (!mounted || isAuthLoading || isCartLoading) {
     return (
       <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
         <CircularProgress sx={{ color: '#EA781E' }} />
@@ -641,94 +627,99 @@ function CheckoutContent() {
                 )}
               </MuiBox>
 
+              {/* Charges Section */}
               <Stack spacing={2} sx={{ mb: 4 }}>
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography>
                   <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toLocaleString()}</Typography>
                 </MuiBox>
-                
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>FragileCare™ Shipping</Typography>
-                  <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.shipping ?? 0) === 0 ? 'success.main' : 'inherit' }}>
-                    {(chargesPreview?.charges.shipping ?? 0) === 0 ? 'FREE' : `₹${chargesPreview?.charges.shipping}`}
-                  </Typography>
-                </MuiBox>
 
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Artisan Handling</Typography>
-                  {isCalculating ? (
-                    <Skeleton width={40} height={20} />
-                  ) : chargesPreview?.charges.handling === 0 && !requiresHandling ? (
-                    <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography sx={{ fontWeight: 700, fontSize: '0.65rem', color: 'text.disabled', textDecoration: 'line-through' }}>₹40</Typography>
-                      <Typography sx={{ fontWeight: 800, fontSize: '0.65rem', color: 'success.main' }}>FREE</Typography>
-                    </MuiBox>
-                  ) : (
-                    <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.handling ?? 40}</Typography>
-                  )}
-                </MuiBox>
-
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Premium Protection</Typography>
-                  {isCalculating ? (
-                    <Skeleton width={40} height={20} />
-                  ) : chargesPreview?.charges.premium === 0 && !requiresPremiumProtection ? (
-                    <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography sx={{ fontWeight: 700, fontSize: '0.65rem', color: 'text.disabled', textDecoration: 'line-through' }}>₹20</Typography>
-                      <Typography sx={{ fontWeight: 800, fontSize: '0.65rem', color: 'success.main' }}>FREE</Typography>
-                    </MuiBox>
-                  ) : (
-                    <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.premium ?? 20}</Typography>
-                  )}
-                </MuiBox>
-
-                {chargesPreview?.freeDelivery.isFree && !isCalculating && (
-                  <Chip
-                    icon={<CheckCircle2 size={12} />}
-                    label={
-                      chargesPreview.freeDelivery.reason === 'city'
-                        ? `Free delivery to Kanpur`
-                        : chargesPreview.freeDelivery.reason === 'threshold'
-                        ? `Free delivery on orders above ₹499`
-                        : `Free delivery`
-                    }
-                    size="small"
-                    sx={{ 
-                      bgcolor: muiAlpha('#6F8A7A', 0.1), 
-                      color: '#6F8A7A', 
-                      fontWeight: 800, 
-                      fontSize: '0.6rem', 
-                      border: 'none', 
-                      height: 24,
-                      mt: 1,
-                      alignSelf: 'flex-start'
-                    }}
-                  />
-                )}
-
-                {promoDiscount > 0 && (
+                {!chargesReady ? (
                   <>
-                    <Divider sx={{ my: 1, borderStyle: 'solid', opacity: 0.1 }} />
-                    <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Before Discount</Typography>
-                      <Typography sx={{ fontWeight: 700 }}>₹{(chargesPreview?.total || (subtotal + 60)).toLocaleString()}</Typography>
+                    {[
+                      'FragileCare™ Shipping',
+                      'Artisan Handling', 
+                      'Premium Protection'
+                    ].map((label) => (
+                      <MuiBox key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>{label}</Typography>
+                        <Skeleton variant="text" width={50} height={24} sx={{ borderRadius: 1 }} />
+                      </MuiBox>
+                    ))}
+                    <Divider sx={{ my: 1 }} />
+                    <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography sx={{ fontWeight: 900, textTransform: 'uppercase' }}>Total</Typography>
+                      <Skeleton variant="text" width={100} height={48} sx={{ borderRadius: 1 }} />
                     </MuiBox>
+                  </>
+                ) : (
+                  <>
                     <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography color="success.main" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>
-                        Promo ({promoCode.toUpperCase()})
+                      <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>FragileCare™ Shipping</Typography>
+                      <Typography sx={{ fontWeight: 700, color: chargesPreview.charges.shipping === 0 ? 'success.main' : 'inherit' }}>
+                        {chargesPreview.charges.shipping === 0 ? 'FREE' : `₹${chargesPreview.charges.shipping}`}
                       </Typography>
-                      <Typography sx={{ fontWeight: 700, color: 'success.main' }}>- ₹{promoDiscount.toLocaleString()}</Typography>
+                    </MuiBox>
+
+                    <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Artisan Handling</Typography>
+                      {chargesPreview.charges.handling === 0 && !requiresHandling ? (
+                        <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.65rem', color: 'text.disabled', textDecoration: 'line-through' }}>₹40</Typography>
+                          <Typography sx={{ fontWeight: 800, fontSize: '0.65rem', color: 'success.main' }}>FREE</Typography>
+                        </MuiBox>
+                      ) : (
+                        <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview.charges.handling}</Typography>
+                      )}
+                    </MuiBox>
+
+                    <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Premium Protection</Typography>
+                      {chargesPreview.charges.premium === 0 && !requiresPremiumProtection ? (
+                        <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.65rem', color: 'text.disabled', textDecoration: 'line-through' }}>₹20</Typography>
+                          <Typography sx={{ fontWeight: 800, fontSize: '0.65rem', color: 'success.main' }}>FREE</Typography>
+                        </MuiBox>
+                      ) : (
+                        <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview.charges.premium}</Typography>
+                      )}
+                    </MuiBox>
+
+                    {chargesPreview.freeDelivery.isFree && (
+                      <Chip
+                        icon={<CheckCircle2 size={12} />}
+                        label={
+                          chargesPreview.freeDelivery.reason === 'city'
+                            ? 'Free delivery to Kanpur'
+                            : 'Free delivery on orders above ₹499'
+                        }
+                        size="small"
+                        sx={{ bgcolor: muiAlpha('#6F8A7A', 0.1), color: '#6F8A7A', fontWeight: 800, fontSize: '0.6rem', border: 'none', height: 24, alignSelf: 'flex-start' }}
+                      />
+                    )}
+
+                    {promoDiscount > 0 && (
+                      <>
+                        <Divider sx={{ my: 1, borderStyle: 'solid', opacity: 0.1 }} />
+                        <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Before Discount</Typography>
+                          <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview.total.toLocaleString()}</Typography>
+                        </MuiBox>
+                        <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography color="success.main" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Promo ({promoCode.toUpperCase()})</Typography>
+                          <Typography sx={{ fontWeight: 700, color: 'success.main' }}>- ₹{promoDiscount.toLocaleString()}</Typography>
+                        </MuiBox>
+                      </>
+                    )}
+
+                    <Divider sx={{ mb: 2 }} />
+                    <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                      <Typography sx={{ fontWeight: 900, textTransform: 'uppercase' }}>Total</Typography>
+                      <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{finalTotal.toLocaleString()}</Typography>
                     </MuiBox>
                   </>
                 )}
               </Stack>
-              
-              <Divider sx={{ mb: 4 }} />
-              
-              <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 4 }}>
-                <Typography sx={{ fontWeight: 900, textTransform: 'uppercase' }}>Total</Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: '#EA781E', lineHeight: 1 }}>₹{finalTotal.toLocaleString()}</Typography>
-              </MuiBox>
 
               {/* Policy Checkbox Block */}
               <MuiBox sx={{ 
@@ -737,13 +728,9 @@ function CheckoutContent() {
                 gap: 1.5,
                 p: 2,
                 borderRadius: '1rem',
-                bgcolor: policyAccepted 
-                  ? muiAlpha('#6F8A7A', 0.05)
-                  : muiAlpha('#EA781E', 0.03),
+                bgcolor: policyAccepted ? muiAlpha('#6F8A7A', 0.05) : muiAlpha('#EA781E', 0.03),
                 border: '1px solid',
-                borderColor: policyAccepted
-                  ? muiAlpha('#6F8A7A', 0.2)
-                  : muiAlpha('#EA781E', 0.1),
+                borderColor: policyAccepted ? muiAlpha('#6F8A7A', 0.2) : muiAlpha('#EA781E', 0.1),
                 transition: 'all 0.2s',
                 mb: 2
               }}>
@@ -752,49 +739,14 @@ function CheckoutContent() {
                   id="policy-checkbox"
                   checked={policyAccepted}
                   onChange={(e) => setPolicyAccepted(e.target.checked)}
-                  style={{ 
-                    marginTop: '3px',
-                    accentColor: '#EA781E',
-                    width: '16px',
-                    height: '16px',
-                    flexShrink: 0,
-                    cursor: 'pointer'
-                  }}
+                  style={{ marginTop: '3px', accentColor: '#EA781E', width: '16px', height: '16px', flexShrink: 0, cursor: 'pointer' }}
                 />
-                <label 
-                  htmlFor="policy-checkbox"
-                  style={{ cursor: 'pointer' }}
-                >
-                  <Typography variant="caption" sx={{ 
-                    fontSize: '0.65rem', 
-                    fontWeight: 600,
-                    color: 'text.secondary',
-                    lineHeight: 1.5
-                  }}>
+                <label htmlFor="policy-checkbox" style={{ cursor: 'pointer' }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'text.secondary', lineHeight: 1.5 }}>
                     I have read and agree to the{' '}
-                    <Link 
-                      href="/privacy" 
-                      target="_blank"
-                      style={{ 
-                        color: '#EA781E', 
-                        fontWeight: 800,
-                        textDecoration: 'underline'
-                      }}
-                    >
-                      Privacy Policy
-                    </Link>
+                    <Link href="/privacy" target="_blank" style={{ color: '#EA781E', fontWeight: 800, textDecoration: 'underline' }}>Privacy Policy</Link>
                     {' '}and{' '}
-                    <Link 
-                      href="/returns" 
-                      target="_blank"
-                      style={{ 
-                        color: '#EA781E', 
-                        fontWeight: 800,
-                        textDecoration: 'underline'
-                      }}
-                    >
-                      Refund & Return Policy
-                    </Link>
+                    <Link href="/returns" target="_blank" style={{ color: '#EA781E', fontWeight: 800, textDecoration: 'underline' }}>Refund & Return Policy</Link>
                   </Typography>
                 </label>
               </MuiBox>
@@ -802,7 +754,7 @@ function CheckoutContent() {
               <Button 
                 fullWidth 
                 variant="contained" 
-                disabled={isProcessing || isCalculating || !policyAccepted} 
+                disabled={isProcessing || !chargesReady || !policyAccepted} 
                 onClick={handlePlaceOrder} 
                 sx={{ 
                   borderRadius: '1.5rem', 
@@ -812,25 +764,21 @@ function CheckoutContent() {
                   bgcolor: '#EA781E', 
                   '&:hover': { bgcolor: '#D66A18' }, 
                   textTransform: 'none',
-                  opacity: policyAccepted ? 1 : 0.5,
-                  cursor: policyAccepted ? 'pointer' : 'not-allowed'
+                  opacity: (chargesReady && policyAccepted) ? 1 : 0.5,
+                  cursor: (chargesReady && policyAccepted) ? 'pointer' : 'not-allowed'
                 }}
               >
-                {isProcessing ? <CircularProgress size={24} color="inherit" /> : `Confirm & Pay ₹${finalTotal.toLocaleString()}`}
+                {isProcessing ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : !chargesReady ? (
+                  'Calculating...'
+                ) : (
+                  `Confirm & Pay ₹${finalTotal.toLocaleString()}`
+                )}
               </Button>
 
               {!policyAccepted && (
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    display: 'block',
-                    textAlign: 'center',
-                    color: 'text.secondary',
-                    fontSize: '0.6rem',
-                    mt: 1,
-                    fontStyle: 'italic'
-                  }}
-                >
+                <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: 'text.secondary', fontSize: '0.6rem', mt: 1, fontStyle: 'italic' }}>
                   Please accept the policies above to proceed
                 </Typography>
               )}
