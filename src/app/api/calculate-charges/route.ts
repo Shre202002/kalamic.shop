@@ -3,6 +3,7 @@ import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 
 /**
  * @fileOverview Pure API for real-time charge calculation on the checkout page.
+ * Accepts product-level flags to toggle handling and premium protection fees.
  */
 
 export async function POST(req: NextRequest) {
@@ -10,8 +11,8 @@ export async function POST(req: NextRequest) {
     const { 
       subtotal, 
       city,
-      requiresHandling,
-      requiresPremiumProtection
+      requiresHandling = true,
+      requiresPremiumProtection = true
     } = await req.json();
 
     if (typeof subtotal !== 'number' || subtotal < 0) {

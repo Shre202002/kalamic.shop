@@ -752,11 +752,11 @@ export default function ProductDetailPage() {
                     <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-foreground pr-2">{spec.key}</span>
                     <div className="flex items-start gap-1.5 pr-2">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0 mt-1.5" />
-                      <span className="text-[10px] sm:text-xs font-bold text-primary leading-snug">{spec.value}</span>
+                      <span className="text-[10px] sm:xs font-bold text-primary leading-snug">{spec.value}</span>
                     </div>
                     <div className="flex items-start gap-1.5">
                       <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30 flex-shrink-0 mt-1.5" />
-                      <span className="text-[10px] sm:text-xs font-normal text-muted-foreground leading-snug">{spec.commonValue?.trim() ? spec.commonValue : '—'}</span>
+                      <span className="text-[10px] sm:xs font-normal text-muted-foreground leading-snug">{spec.commonValue?.trim() ? spec.commonValue : '—'}</span>
                     </div>
                   </div>
                 ))}

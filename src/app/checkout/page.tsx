@@ -29,7 +29,8 @@ import {
   alpha as muiAlpha,
   Autocomplete,
   InputAdornment,
-  Chip
+  Chip,
+  Skeleton
 } from '@mui/material';
 import { 
   CreditCard, 
@@ -346,7 +347,9 @@ function CheckoutContent() {
       promoCode: promoStatus === 'success' ? promoCode.trim().toUpperCase() : null,
       promoDiscount: promoStatus === 'success' ? promoDiscount : 0,
       promoDiscountType: promoStatus === 'success' ? promoDiscountType : null,
-      totalAmount: finalTotal
+      totalAmount: finalTotal,
+      requiresHandling,
+      requiresPremiumProtection
     };
 
     try {
@@ -581,28 +584,32 @@ function CheckoutContent() {
                   </Typography>
                 </MuiBox>
 
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Artisan Handling</Typography>
-                  <MuiBox sx={{ textAlign: 'right' }}>
-                    <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.handling ?? 40) === 0 ? 'success.main' : 'inherit' }}>
-                      {(chargesPreview?.charges.handling ?? 40) === 0 ? 'FREE' : `₹${chargesPreview?.charges.handling}`}
-                    </Typography>
-                    {(chargesPreview?.charges.handling ?? 40) === 0 && (
-                      <Typography variant="caption" sx={{ color: 'success.main', display: 'block', fontSize: '0.55rem', fontWeight: 800 }}>Not applicable</Typography>
-                    )}
-                  </MuiBox>
+                  {isCalculating ? (
+                    <Skeleton width={40} height={20} />
+                  ) : chargesPreview?.charges.handling === 0 && !requiresHandling ? (
+                    <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.65rem', color: 'text.disabled', textDecoration: 'line-through' }}>₹40</Typography>
+                      <Typography sx={{ fontWeight: 800, fontSize: '0.65rem', color: 'success.main' }}>FREE</Typography>
+                    </MuiBox>
+                  ) : (
+                    <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.handling ?? 40}</Typography>
+                  )}
                 </MuiBox>
 
-                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Premium Protection</Typography>
-                  <MuiBox sx={{ textAlign: 'right' }}>
-                    <Typography sx={{ fontWeight: 700, color: (chargesPreview?.charges.premium ?? 20) === 0 ? 'success.main' : 'inherit' }}>
-                      {(chargesPreview?.charges.premium ?? 20) === 0 ? 'FREE' : `₹${chargesPreview?.charges.premium}`}
-                    </Typography>
-                    {(chargesPreview?.charges.premium ?? 20) === 0 && (
-                      <Typography variant="caption" sx={{ color: 'success.main', display: 'block', fontSize: '0.55rem', fontWeight: 800 }}>Not applicable</Typography>
-                    )}
-                  </MuiBox>
+                  {isCalculating ? (
+                    <Skeleton width={40} height={20} />
+                  ) : chargesPreview?.charges.premium === 0 && !requiresPremiumProtection ? (
+                    <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.65rem', color: 'text.disabled', textDecoration: 'line-through' }}>₹20</Typography>
+                      <Typography sx={{ fontWeight: 800, fontSize: '0.65rem', color: 'success.main' }}>FREE</Typography>
+                    </MuiBox>
+                  ) : (
+                    <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview?.charges.premium ?? 20}</Typography>
+                  )}
                 </MuiBox>
 
                 {chargesPreview?.freeDelivery.isFree && !isCalculating && (

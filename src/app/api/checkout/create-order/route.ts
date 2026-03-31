@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Validate Inventory, Pricing and Logistics Flags from Source of Truth (DB)
     for (const item of items) {
-      const product = await KalamicProduct.findById(item.productId);
+      const product = await KalamicProduct.findById(item.productId).select('price name images requiresHandling requiresPremiumProtection');
       if (!product) throw new Error(`Product ${item.productId} is no longer available.`);
       
       subtotal += product.price * item.quantity;

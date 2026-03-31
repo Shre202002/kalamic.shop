@@ -23,8 +23,8 @@ export interface OrderCharges {
  * RULES:
  * 1. Kanpur: Always FREE (₹0)
  * 2. Outside Kanpur: FREE if subtotal >= 499, else ₹50
- * 3. Handling: ₹40 only if required by any product in order
- * 4. Premium Protection: ₹20 only if required by any product in order
+ * 3. Handling: ₹40 only if required by any product in order (default true)
+ * 4. Premium Protection: ₹20 only if required by any product in order (default true)
  */
 export function calculateOrderCharges(
   subtotal: number, 
