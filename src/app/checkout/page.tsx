@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
@@ -82,6 +81,11 @@ function CheckoutContent() {
   const [chargesPreview, setChargesPreview] = useState<ChargesPreview | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
+  // States for old cart item fallback logic
+  const [dbRequiresHandling, setDbRequiresHandling] = useState(true);
+  const [dbRequiresPremium, setDbRequiresPremium] = useState(true);
+  const [flagsLoaded, setFlagsLoaded] = useState(false);
+
   // Promo Code States
   const [promoCode, setPromoCode] = useState('');
   const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -122,9 +126,67 @@ function CheckoutContent() {
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
 
-  // Determination of strict handling/premium flags based on bag content
-  const requiresHandling = cartItems?.some(item => item.requiresHandling !== false) ?? true;
-  const requiresPremiumProtection = cartItems?.some(item => item.requiresPremiumProtection !== false) ?? true;
+  // Fallback Effect: Fetch flags from DB if cart items are old (missing requiresHandling/requiresPremiumProtection)
+  useEffect(() => {
+    const fetchProductFlags = async () => {
+      if (!cartItems?.length) {
+        setFlagsLoaded(true);
+        return;
+      }
+      
+      const needsFetch = cartItems.some(
+        item => item.requiresHandling === undefined ||
+                item.requiresPremiumProtection === undefined
+      );
+      
+      if (!needsFetch) {
+        setFlagsLoaded(true);
+        return;
+      }
+      
+      try {
+        const productIds = cartItems.map(
+          item => item.productVariantId || item.id
+        ).filter(Boolean);
+        
+        let handlingNeeded = false;
+        let premiumNeeded = false;
+        
+        for (const productId of productIds) {
+          const res = await fetch(`/api/products/${productId}/flags`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.requiresHandling !== false) handlingNeeded = true;
+            if (data.requiresPremiumProtection !== false) premiumNeeded = true;
+          } else {
+            // Fallback: if API fails, assume true for safety
+            handlingNeeded = true;
+            premiumNeeded = true;
+          }
+        }
+        
+        setDbRequiresHandling(handlingNeeded);
+        setDbRequiresPremium(premiumNeeded);
+      } catch (e) {
+        console.error('[FLAGS FETCH]:', e);
+        setDbRequiresHandling(true);
+        setDbRequiresPremium(true);
+      } finally {
+        setFlagsLoaded(true);
+      }
+    };
+    
+    fetchProductFlags();
+  }, [cartItems]);
+
+  // Derive final logistics requirements using the strictest rule
+  const requiresHandling = cartItems?.every(item => item.requiresHandling !== undefined)
+    ? (cartItems?.some(item => item.requiresHandling !== false) ?? true)
+    : dbRequiresHandling;
+
+  const requiresPremiumProtection = cartItems?.every(item => item.requiresPremiumProtection !== undefined)
+    ? (cartItems?.some(item => item.requiresPremiumProtection !== false) ?? true)
+    : dbRequiresPremium;
 
   // Backup cart clearing if returning with order_id
   useEffect(() => {
@@ -166,13 +228,13 @@ function CheckoutContent() {
   };
 
   useEffect(() => {
-    if (mounted && subtotal > 0) {
+    if (mounted && subtotal > 0 && flagsLoaded) {
       fetchCharges(formData.city);
     }
-  }, [mounted, subtotal, requiresHandling, requiresPremiumProtection]);
+  }, [mounted, subtotal, requiresHandling, requiresPremiumProtection, flagsLoaded]);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !flagsLoaded) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       fetchCharges(formData.city);
@@ -342,7 +404,7 @@ function CheckoutContent() {
       customerName: formData.fullName,
       customerPhone: formData.phone,
       customerEmail: formData.email,
-      items: cartItems.map(i => ({ productId: i.productVariantId, quantity: i.quantity })),
+      items: cartItems.map(i => ({ productId: i.productVariantId || i.id, quantity: i.quantity })),
       shippingDetails: formData,
       promoCode: promoStatus === 'success' ? promoCode.trim().toUpperCase() : null,
       promoDiscount: promoStatus === 'success' ? promoDiscount : 0,
@@ -385,7 +447,7 @@ function CheckoutContent() {
     }
   };
 
-  if (!mounted || isAuthLoading || isCartLoading) {
+  if (!mounted || isAuthLoading || isCartLoading || !flagsLoaded) {
     return (
       <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
         <CircularProgress sx={{ color: '#EA781E' }} />
