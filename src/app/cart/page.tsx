@@ -25,6 +25,10 @@ export default function CartPage() {
 
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [cartFlags, setCartFlags] = useState({
+    requiresHandling: true,
+    requiresPremiumProtection: true
+  });
 
   const cartQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -33,6 +37,7 @@ export default function CartPage() {
 
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
+  // Sync profile for shipping calculation
   useEffect(() => {
     async function loadProfile() {
       if (user) {
@@ -50,10 +55,62 @@ export default function CartPage() {
     loadProfile();
   }, [user]);
 
+  // Sync product-specific flags for old/new cart items
+  useEffect(() => {
+    const fetchFlags = async () => {
+      if (!cartItems?.length) return;
+      
+      // Check if flags already exist in cart items (New Flow)
+      const hasFlags = cartItems.every(
+        item => item.requiresHandling !== undefined && item.requiresPremiumProtection !== undefined
+      );
+      
+      if (hasFlags) {
+        setCartFlags({
+          requiresHandling: cartItems.some(item => item.requiresHandling !== false),
+          requiresPremiumProtection: cartItems.some(item => item.requiresPremiumProtection !== false)
+        });
+        return;
+      }
+      
+      // Fallback: Fetch from DB for old cart items
+      let handlingNeeded = false;
+      let premiumNeeded = false;
+      
+      for (const item of cartItems) {
+        const productId = item.productVariantId || item.id;
+        try {
+          const res = await fetch(`/api/products/${productId}/flags`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.requiresHandling !== false) handlingNeeded = true;
+            if (data.requiresPremiumProtection !== false) premiumNeeded = true;
+          } else {
+            handlingNeeded = true;
+            premiumNeeded = true;
+          }
+        } catch {
+          handlingNeeded = true;
+          premiumNeeded = true;
+        }
+      }
+      
+      setCartFlags({
+        requiresHandling: handlingNeeded,
+        requiresPremiumProtection: premiumNeeded
+      });
+    };
+    
+    fetchFlags();
+  }, [cartItems]);
+
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
   
   const userCity = userProfile?.city || '';
-  const charges = calculateOrderCharges(subtotal, userCity);
+  const charges = calculateOrderCharges(subtotal, userCity, {
+    requiresHandling: cartFlags.requiresHandling,
+    requiresPremiumProtection: cartFlags.requiresPremiumProtection
+  });
   const freeDeliveryInfo = isEligibleForFreeDelivery(subtotal, userCity);
 
   const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
@@ -202,14 +259,20 @@ export default function CartPage() {
 
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Artisan Handling</span>
-                        <span className={`font-medium ${charges.handling === 0 ? 'text-green-600' : ''}`}>
-                          {charges.handling === 0 ? 'FREE' : `₹${charges.handling}`}
-                        </span>
+                        {!cartFlags.requiresHandling ? (
+                          <span className="text-green-600 font-bold">FREE</span>
+                        ) : (
+                          <span className="font-medium">₹40</span>
+                        )}
                       </div>
 
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Premium Protection</span>
-                        <span className="font-medium">₹{charges.premium}</span>
+                        {!cartFlags.requiresPremiumProtection ? (
+                          <span className="text-green-600 font-bold">FREE</span>
+                        ) : (
+                          <span className="font-medium">₹20</span>
+                        )}
                       </div>
                     </div>
                     
