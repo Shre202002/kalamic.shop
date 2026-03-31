@@ -520,13 +520,13 @@ export default function Home() {
               
               <div className="relative z-10 max-w-3xl mx-auto space-y-10">
                 <div className="space-y-4">
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-inner-button-text/60">
                     Stay in the Studio Loop
                   </span>
-                  <h2 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-white tracking-tight leading-tight">
+                  <h2 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-inner-button-text tracking-tight leading-tight">
                     Be First to See New <br /> Kalamic Masterpieces
                   </h2>
-                  <p className="text-white/70 font-medium text-lg max-w-xl mx-auto leading-relaxed">
+                  <p className="text-inner-button-text font-medium text-lg max-w-xl mx-auto leading-relaxed">
                     Get notified about limited edition launches, exclusive collector offers, and studio updates before anyone else.
                   </p>
                 </div>
@@ -549,14 +549,14 @@ export default function Home() {
                     <button
                       onClick={handleSubscribe}
                       disabled={subStatus === 'loading'}
-                      className="h-16 px-10 rounded-2xl bg-white text-primary font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-2xl flex-shrink-0"
+                      className="h-16 px-10 rounded-2xl bg-white text-primary font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-2xl flex-shrink-0 text-inner-button-text"
                     >
                       {subStatus === 'loading' ? 'Joining...' : 'Notify Me'}
                     </button>
                   </div>
                 )}
                 
-                <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                <p className="text-inner-button-text/40 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
                   <ShieldCheck className="h-3 w-3" /> Secure Heritage. No spam. Unsubscribe anytime.
                 </p>
               </div>
@@ -622,10 +622,10 @@ export default function Home() {
               <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.3em]">
                 <Package className="h-4 w-4" /> Start Your Collection Today
               </div>
-              <h2 className="font-display font-black text-5xl sm:text-6xl lg:text-7xl tracking-tighter text-foreground leading-[1] text-balance">
+              <h2 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl tracking-tighter text-foreground leading-[1] text-balance">
                 Own a Piece <br /> of Indian Heritage
               </h2>
-              <p className="text-lg md:text-2xl text-muted-foreground font-medium leading-relaxed max-w-2xl mx-auto text-balance">
+              <p className="text-md md:text-2xl text-muted-foreground font-medium leading-relaxed max-w-2xl mx-auto text-balance">
                 Each ceramic creation is one of a kind, handcrafted with love. Browse our collection before your favourite masterpiece sells out.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
