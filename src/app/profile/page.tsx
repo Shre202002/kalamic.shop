@@ -134,47 +134,39 @@ export default function ProfilePage() {
 
   const handleSendPhoneOtp = async () => {
     setPhoneError('');
+
     const rawPhone = formData.phone.replace(/\D/g, '');
-    
+
     if (rawPhone.length < 10) {
       setPhoneError('Please enter a valid 10-digit number.');
       return;
     }
-    
-    const phoneE164 = rawPhone.startsWith('91') 
-      ? `+${rawPhone}` 
-      : `+91${rawPhone.slice(-10)}`;
-    
-    setIsVerifyingPhone(true);
-    
-    try {
-      if (!auth) {
-        throw new Error('Auth service not ready. Please refresh the page.');
-      }
-      
-      // Before creating RecaptchaVerifier, verify auth:
-      console.log('[AUTH CHECK]', {
-        auth: !!auth,
-        authApp: !!(auth as any)?.app,
-        authType: typeof auth,
-      });
 
-      if (!(auth as any)?.app) {
-        throw new Error('Firebase Auth not ready. Please refresh.');
+    const phoneE164 = rawPhone.startsWith('91')
+      ? `+${rawPhone}`
+      : `+91${rawPhone.slice(-10)}`;
+
+    setIsVerifyingPhone(true);
+
+    try {
+      // auth is from: const auth = useAuth();
+      // This is the Auth instance from FirebaseProvider context — fully initialized
+      if (!auth?.app) {
+        throw new Error('Firebase not ready. Please refresh.');
       }
 
       // Clear old verifier if exists
       if (recaptchaVerifierRef.current) {
         try {
           recaptchaVerifierRef.current.clear();
-        } catch (e) {}
+        } catch (e) { /* ignore */ }
         recaptchaVerifierRef.current = null;
       }
-      
-      const { RecaptchaVerifier, signInWithPhoneNumber } = await import('firebase/auth');
-      
-      // Initialize reCAPTCHA with correctly scoped auth from useAuth()
+
+      // Use STATIC imports — same module scope as Firebase initialization
+      // modular signature: new RecaptchaVerifier(auth, container, params)
       recaptchaVerifierRef.current = new RecaptchaVerifier(
+        auth,
         'phone-recaptcha-container',
         {
           size: 'invisible',
@@ -184,43 +176,42 @@ export default function ProfilePage() {
           'expired-callback': () => {
             recaptchaVerifierRef.current = null;
           }
-        },
-        auth as any
+        }
       );
-      
+
       console.log('[PHONE OTP] Sending to:', phoneE164);
-      
+
       const confirmationResult = await signInWithPhoneNumber(
-        auth as any,
+        auth,
         phoneE164,
         recaptchaVerifierRef.current
       );
-      
+
       confirmationResultRef.current = confirmationResult;
       setIsPhoneOtpSent(true);
-      
+
       toast({
         title: "OTP Sent",
         description: `Code sent to ${phoneE164}`
       });
-      
+
     } catch (err: any) {
       console.error('[PHONE OTP ERROR]:', err);
-      
+
       if (recaptchaVerifierRef.current) {
         try {
           recaptchaVerifierRef.current.clear();
-        } catch (e) {}
+        } catch (e) { /* ignore */ }
         recaptchaVerifierRef.current = null;
       }
-      
+
       const msgs: Record<string, string> = {
-        'auth/invalid-phone-number': 'Invalid phone number format.',
+        'auth/invalid-phone-number': 'Invalid phone number.',
         'auth/too-many-requests': 'Too many attempts. Try later.',
         'auth/quota-exceeded': 'SMS quota exceeded. Try later.',
         'auth/captcha-check-failed': 'reCAPTCHA failed. Refresh and retry.',
       };
-      
+
       setPhoneError(msgs[err.code] || err.message || 'Failed to send OTP.');
     } finally {
       setIsVerifyingPhone(false);
