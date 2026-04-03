@@ -42,9 +42,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
-import {
+import { 
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  PhoneAuthProvider,
+  linkWithCredential
 } from 'firebase/auth';
 
 export default function ProfilePage() {
@@ -149,8 +151,6 @@ export default function ProfilePage() {
     setIsVerifyingPhone(true);
 
     try {
-      // auth is from: const auth = useAuth();
-      // This is the Auth instance from FirebaseProvider context — fully initialized
       if (!auth?.app) {
         throw new Error('Firebase not ready. Please refresh.');
       }
@@ -163,8 +163,6 @@ export default function ProfilePage() {
         recaptchaVerifierRef.current = null;
       }
 
-      // Use STATIC imports — same module scope as Firebase initialization
-      // modular signature: new RecaptchaVerifier(auth, container, params)
       recaptchaVerifierRef.current = new RecaptchaVerifier(
         auth,
         'phone-recaptcha-container',
@@ -225,16 +223,36 @@ export default function ProfilePage() {
     setPhoneError('');
     
     try {
-      const result = await confirmationResultRef.current.confirm(phoneOtpCode);
+      // Get the verification ID from the confirmation result
+      const verificationId = confirmationResultRef.current.verificationId;
       
-      console.log('[PHONE] Verified:', result.user.phoneNumber);
+      // Create a phone credential
+      const phoneCredential = PhoneAuthProvider.credential(
+        verificationId,
+        phoneOtpCode
+      );
       
+      // LINK the phone to the existing user instead of signing in as new user
+      if (!user) throw new Error('Not logged in');
+      
+      try {
+        await linkWithCredential(user, phoneCredential);
+        console.log('[PHONE] Linked to existing user');
+      } catch (linkErr: any) {
+        // If already linked, that's fine
+        if (linkErr.code !== 'auth/provider-already-linked' && linkErr.code !== 'auth/credential-already-in-use') {
+          throw linkErr;
+        }
+        console.log('[PHONE] Already linked:', linkErr.code);
+      }
+      
+      // Save to MongoDB
       const rawPhone = formData.phone.replace(/\D/g, '');
       const phoneE164 = rawPhone.startsWith('91')
         ? `+${rawPhone}`
         : `+91${rawPhone.slice(-10)}`;
       
-      const updated = await updateProfile(user!.uid, {
+      const updated = await updateProfile(user.uid, {
         phone: phoneE164,
         phoneVerified: true,
       } as any);
@@ -246,16 +264,17 @@ export default function ProfilePage() {
       
       toast({
         title: "Phone Verified ✓",
-        description: "Your phone number has been verified."
+        description: "Phone number verified successfully."
       });
       
     } catch (err: any) {
       console.error('[PHONE VERIFY ERROR]:', err);
       const msgs: Record<string, string> = {
-        'auth/invalid-verification-code': 'Incorrect OTP. Try again.',
+        'auth/invalid-verification-code': 'Incorrect OTP. Please try again.',
         'auth/code-expired': 'OTP expired. Request a new one.',
+        'auth/credential-already-in-use': 'This phone is linked to another account.',
       };
-      setPhoneError(msgs[err.code] || 'Verification failed.');
+      setPhoneError(msgs[err.code] || 'Verification failed. Try again.');
     } finally {
       setIsVerifyingPhone(false);
     }
