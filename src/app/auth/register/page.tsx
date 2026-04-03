@@ -1,94 +1,85 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import { 
-  getAuth, 
-  createUserWithEmailAndPassword,
-  updateProfile,
-  GoogleAuthProvider,
-  signInWithPopup,
-  CheckAuthProvider
+  RecaptchaVerifier, 
+  signInWithPhoneNumber 
 } from 'firebase/auth';
 import { motion } from 'framer-motion';
 import { 
   CheckCircle2, 
   Loader2, 
-  Eye, 
-  EyeOff, 
+  Phone,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 export default function RegisterPage() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const auth = useAuth();
+  const router = useRouter();
+  
+  const [step, setStep] = useState<'phone' | 'verify'>('phone');
+  const [phone, setPhone] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  const recaptchaVerifierRef = useRef<any>(null);
+  const confirmationResultRef = useRef<any>(null);
+  const otpRefs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
 
-  const router = useRouter();
-  const auth = useAuth();
-
-  const setSession = async (user: any) => {
-    const idToken = await user.getIdToken();
-    await fetch('/api/auth/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken })
-    });
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    setError('');
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      const result = await signInWithPopup(auth, provider);
-      await setSession(result.user);
-      router.push('/');
-      router.refresh();
-    } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setError('Google sign-up failed. Please try again.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password || !firstName) {
-      setError('Please fill in all required fields.');
+  const handleSendOtp = async () => {
+    const rawPhone = phone.replace(/\D/g, '');
+    if (rawPhone.length < 10) {
+      setError('Enter a valid 10-digit number');
       return;
     }
     
+    const phoneE164 = `+91${rawPhone.slice(-10)}`;
     setIsLoading(true);
     setError('');
     
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (e) {}
+        recaptchaVerifierRef.current = null;
+      }
       
-      // Update Firebase profile with name
-      await updateProfile(result.user, {
-        displayName: `${firstName} ${lastName}`.trim()
-      });
-
-      await setSession(result.user);
-      router.push('/');
-      router.refresh();
+      recaptchaVerifierRef.current = new RecaptchaVerifier(
+        auth,
+        'recaptcha-container',
+        { 
+          size: 'invisible',
+          callback: () => console.log('[reCAPTCHA] Solved')
+        }
+      );
+      
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        phoneE164,
+        recaptchaVerifierRef.current
+      );
+      
+      confirmationResultRef.current = confirmation;
+      setStep('verify');
     } catch (err: any) {
+      console.error('[REGISTER OTP]:', err);
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (e) {}
+        recaptchaVerifierRef.current = null;
+      }
       const msgs: Record<string, string> = {
-        'auth/email-already-in-use': 'This email is already registered.',
-        'auth/invalid-email': 'Invalid email address.',
-        'auth/weak-password': 'Password should be at least 6 characters.',
+        'auth/invalid-phone-number': 'Invalid phone number.',
+        'auth/too-many-requests': 'Too many attempts. Try later.',
       };
       setError(msgs[err.code] || err.message);
     } finally {
@@ -96,9 +87,40 @@ export default function RegisterPage() {
     }
   };
 
+  const handleVerifyOtp = async (code: string) => {
+    if (code.length < 6 || !confirmationResultRef.current) return;
+    
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const result = await confirmationResultRef.current.confirm(code);
+      const idToken = await result.user.getIdToken(true);
+      
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      
+      sessionStorage.setItem('reg_phone', result.user.phoneNumber || '');
+      router.push('/auth/setup');
+    } catch (err: any) {
+      const msgs: Record<string, string> = {
+        'auth/invalid-verification-code': 'Incorrect OTP.',
+        'auth/code-expired': 'OTP expired. Request new one.',
+      };
+      setError(msgs[err.code] || err.message);
+      setOtpDigits(['', '', '', '', '', '']);
+      otpRefs[0].current?.focus();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
-      {/* Left Panel - desktop only */}
+      {/* Left Panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col items-center justify-center p-16 relative overflow-hidden">
         <div className="absolute top-0 right-0 h-96 w-96 rounded-full bg-white/10 blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-white/5 blur-3xl translate-y-1/2 -translate-x-1/2" />
@@ -111,7 +133,7 @@ export default function RegisterPage() {
             {[
               'Early Access to Kiln Firings',
               'Personalized Collection Management',
-              'Direct Support from Kanpur Artisans'
+              'Verified Artisan Support'
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-4 text-white/90">
                 <div className="h-7 w-7 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
@@ -124,106 +146,117 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Right Panel - auth form */}
+      {/* Right Panel */}
       <div className="flex-1 flex items-center justify-center bg-background px-6 py-12 min-h-screen">
         <div className="w-full max-w-md space-y-8">
-          
           <div className="lg:hidden text-center">
             <Link href="/" className="font-display font-black text-4xl text-primary tracking-tighter">Kalamic</Link>
           </div>
 
           <div className="text-center space-y-2">
-            <h2 className="font-display font-black text-3xl text-foreground tracking-tight">Create Account</h2>
-            <p className="text-muted-foreground font-medium text-sm">Start your artisanal collection today</p>
+            <h2 className="font-display font-black text-3xl text-foreground tracking-tight">
+              {step === 'phone' ? 'Create Account' : 'Verify Identity'}
+            </h2>
+            <p className="text-muted-foreground font-medium text-sm">
+              {step === 'phone' ? 'Start with your phone number' : `OTP sent to +91 ${phone}`}
+            </p>
           </div>
 
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={isLoading}
-            className="w-full h-14 rounded-2xl border-2 border-border bg-white flex items-center justify-center gap-3 font-black text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 shadow-sm hover:shadow-md text-xs uppercase tracking-widest"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            Sign up with Google
-          </button>
+          <div className="space-y-6">
+            {step === 'phone' ? (
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <div className="h-14 px-4 rounded-2xl border-2 border-border bg-white flex items-center text-sm font-bold flex-shrink-0">
+                    🇮🇳 +91
+                  </div>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    onKeyDown={e => e.key === 'Enter' && handleSendOtp()}
+                    placeholder="10-digit number"
+                    maxLength={10}
+                    className="flex-1 h-14 px-5 rounded-2xl border-2 border-border bg-white text-sm font-medium focus:outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+                <button
+                  onClick={handleSendOtp}
+                  disabled={isLoading || phone.length < 10}
+                  className="w-full h-14 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
+                >
+                  {isLoading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Send OTP'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex gap-2 justify-center">
+                  {otpDigits.map((digit, i) => (
+                    <input
+                      key={i}
+                      ref={otpRefs[i]}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        const newOtp = [...otpDigits];
+                        newOtp[i] = val;
+                        setOtpDigits(newOtp);
+                        if (val && i < 5) otpRefs[i + 1].current?.focus();
+                        if (newOtp.every(d => d)) handleVerifyOtp(newOtp.join(''));
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Backspace' && !digit && i > 0) otpRefs[i - 1].current?.focus();
+                      }}
+                      className="w-12 h-14 text-center text-xl font-black rounded-2xl border-2 border-border bg-white focus:border-primary focus:outline-none transition-colors"
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={() => handleVerifyOtp(otpDigits.join(''))}
+                  disabled={isLoading || otpDigits.join('').length < 6}
+                  className="w-full h-14 rounded-2xl bg-primary text-white font-black text-sm uppercase tracking-widest hover:scale-[1.02] transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
+                >
+                  Verify & Continue
+                </button>
+                <button 
+                  onClick={() => { setStep('phone'); setOtpDigits(['', '', '', '', '', '']); setError(''); }}
+                  className="w-full text-xs text-muted-foreground font-bold hover:text-primary transition-colors"
+                >
+                  ← Change number
+                </button>
+              </div>
+            )}
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-background px-4 text-muted-foreground font-black uppercase tracking-widest">or register with email</span>
-            </div>
+            {error && (
+              <div className="flex items-center gap-2 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 animate-in shake-1">
+                <AlertCircle size={16} className="text-destructive flex-shrink-0" />
+                <p className="text-destructive text-xs font-bold">{error}</p>
+              </div>
+            )}
+
+            {step === 'phone' && (
+              <p className="text-center text-sm text-muted-foreground font-medium">
+                Already have an account? <Link href="/auth/login" className="font-black text-primary hover:underline uppercase tracking-widest text-xs">Sign In</Link>
+              </p>
+            )}
           </div>
-
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text"
-                required
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                placeholder="First name"
-                className="w-full h-14 px-6 rounded-2xl border-2 border-border bg-white text-sm font-bold focus:outline-none focus:border-primary transition-all"
-              />
-              <input
-                type="text"
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                placeholder="Last name"
-                className="w-full h-14 px-6 rounded-2xl border-2 border-border bg-white text-sm font-bold focus:outline-none focus:border-primary transition-all"
-              />
-            </div>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="Email address"
-              className="w-full h-14 px-6 rounded-2xl border-2 border-border bg-white text-sm font-bold focus:outline-none focus:border-primary transition-all"
-            />
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Password (min 6 chars)"
-                className="w-full h-14 px-6 pr-14 rounded-2xl border-2 border-border bg-white text-sm font-bold focus:outline-none focus:border-primary transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-14 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 mt-2"
-            >
-              {isLoading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Create Account'}
-            </button>
-          </form>
-
-          {error && (
-            <div className="flex items-center gap-3 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 animate-in shake-1">
-              <AlertCircle size={18} className="text-destructive flex-shrink-0" />
-              <p className="text-destructive text-[10px] font-black uppercase tracking-widest">{error}</p>
-            </div>
-          )}
-
-          <p className="text-center text-sm text-muted-foreground font-medium">
-            Already have an account? <Link href="/auth/login" className="font-black text-primary hover:underline uppercase tracking-widest text-xs">Sign In</Link>
-          </p>
-
         </div>
       </div>
+
+      {isLoading && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          </div>
+          <p className="text-sm font-black text-foreground uppercase tracking-widest">
+            {step === 'phone' ? 'Sending OTP...' : 'Verifying...'}
+          </p>
+        </div>
+      )}
+
+      <div id="recaptcha-container" />
     </div>
   );
 }
