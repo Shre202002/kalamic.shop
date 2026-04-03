@@ -497,6 +497,22 @@ export default function LoginPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {isLoading && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          </div>
+          <p className="text-sm font-black text-foreground uppercase tracking-widest">
+            {activeTab === 'email' 
+              ? step === 'input'
+                ? 'Sending OTP...'
+                : 'Verifying...'
+              : 'Signing In...'
+            }
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -694,6 +694,18 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+        {(isVerifyingEmail || isVerifyingPhone) && (
+          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            </div>
+            <p className="text-sm font-black text-foreground uppercase tracking-widest">
+              {isVerifyingPhone 
+                ? 'Verifying Phone...' 
+                : 'Verifying Email...'}
+            </p>
+          </div>
+        )}
         {/* Invisible reCAPTCHA for phone verification */}
         <div id="phone-recaptcha-container" />
       </main>
