@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { useNavigation } from '@/hooks/useNavigation';
-import { collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { getProfile } from '@/lib/actions/user-actions';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -27,7 +27,6 @@ import {
   Avatar,
   alpha as muiAlpha,
   Autocomplete,
-  InputAdornment,
   Chip,
   Skeleton
 } from '@mui/material';
@@ -36,9 +35,9 @@ import {
   ShieldCheck, 
   MapPin,
   ChevronLeft,
-  Search,
   X,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
@@ -46,7 +45,7 @@ import Script from 'next/script';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { State, City } from 'country-state-city';
-import { FREE_DELIVERY_THRESHOLD } from '@/lib/utils/calculateShipping';
+import { cn } from '@/lib/utils';
 
 declare global {
   interface Window {
@@ -80,6 +79,9 @@ function CheckoutContent() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [chargesPreview, setChargesPreview] = useState<ChargesPreview | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   // States for old cart item fallback logic
   const [dbRequiresHandling, setDbRequiresHandling] = useState(true);
@@ -117,6 +119,22 @@ function CheckoutContent() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) return;
+      try {
+        const profile = await getProfile(user.uid);
+        setUserProfile(profile);
+      } catch (e) {
+        console.error('Profile load failed:', e);
+      } finally {
+        setIsProfileLoading(false);
+      }
+    };
+    if (user) loadProfile();
+    else if (!isAuthLoading) setIsProfileLoading(false);
+  }, [user, isAuthLoading]);
+
   const cartQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, 'users', user.uid, 'cart', 'cart', 'items');
@@ -125,9 +143,6 @@ function CheckoutContent() {
   const { data: cartItems, isLoading: isCartLoading } = useCollection(cartQuery);
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
-
-  // DERIVED READINESS
-  const chargesReady = chargesPreview !== null && flagsLoaded && !isCalculating;
 
   const fetchProductFlags = async (items: any[]) => {
     const results = await Promise.all(
@@ -152,7 +167,6 @@ function CheckoutContent() {
     if (subtotal === 0) return;
     setIsCalculating(true);
     
-    // Use passed flags if available, otherwise fallback to derived state
     const useHandling = handlingFlag ?? (cartItems?.every(i => i.requiresHandling !== undefined) 
       ? cartItems.some(i => i.requiresHandling !== false) 
       : dbRequiresHandling);
@@ -181,12 +195,10 @@ function CheckoutContent() {
     }
   };
 
-  // PARALLEL INITIALIZATION
   useEffect(() => {
     if (!mounted || !cartItems?.length || subtotal === 0) return;
     
     const initialize = async () => {
-      // Check if flags already in Firestore items
       const hasFlags = cartItems.every(
         item => item.requiresHandling !== undefined && item.requiresPremiumProtection !== undefined
       );
@@ -205,14 +217,12 @@ function CheckoutContent() {
       setDbRequiresPremium(finalFlags.requiresPremiumProtection);
       setFlagsLoaded(true);
 
-      // Fetch charges immediately with the known flags
       await fetchCharges(formData.city, finalFlags.requiresHandling, finalFlags.requiresPremiumProtection);
     };
     
     initialize();
   }, [mounted, cartItems, subtotal]);
 
-  // DEBOUNCED CITY CHANGE
   useEffect(() => {
     if (!mounted || !flagsLoaded) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -222,7 +232,6 @@ function CheckoutContent() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [formData.city]);
 
-  // Derived flags for creation/creation
   const requiresHandling = cartItems?.every(item => item.requiresHandling !== undefined)
     ? (cartItems?.some(item => item.requiresHandling !== false) ?? true)
     : dbRequiresHandling;
@@ -233,35 +242,28 @@ function CheckoutContent() {
 
   useEffect(() => {
     async function loadUserData() {
-      if (!user || !mounted) return;
-      try {
-        const profile = await getProfile(user.uid);
-        if (profile) {
-          setFormData(prev => ({
-            ...prev,
-            fullName: `${profile.firstName} ${profile.lastName}`.trim(),
-            email: user.email || '',
-            phone: profile.phone || '',
-            address: profile.address || '',
-            city: profile.city || '',
-            state: profile.state || '',
-            zip: profile.pincode || '',
-            landmark: profile.landmark || '',
-          }));
+      if (!user || !mounted || !userProfile) return;
+      setFormData(prev => ({
+        ...prev,
+        fullName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim(),
+        email: user.email || '',
+        phone: userProfile.phone || '',
+        address: userProfile.address || '',
+        city: userProfile.city || '',
+        state: userProfile.state || '',
+        zip: userProfile.pincode || '',
+        landmark: userProfile.landmark || '',
+      }));
 
-          if (profile.state) {
-            const foundState = statesList.find(s => s.name === profile.state);
-            if (foundState) {
-              setCitiesList(City.getCitiesOfState('IN', foundState.isoCode));
-            }
-          }
+      if (userProfile.state) {
+        const foundState = statesList.find(s => s.name === userProfile.state);
+        if (foundState) {
+          setCitiesList(City.getCitiesOfState('IN', foundState.isoCode));
         }
-      } catch (err) {
-        console.error("Error fetching auto-fill data:", err);
       }
     }
     loadUserData();
-  }, [user, mounted, statesList]);
+  }, [user, mounted, userProfile, statesList]);
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
@@ -368,6 +370,80 @@ function CheckoutContent() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  if (!mounted || isAuthLoading || isCartLoading || !flagsLoaded || isProfileLoading) {
+    return (
+      <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
+        <CircularProgress sx={{ color: '#EA781E' }} />
+        <Typography sx={{ mt: 2, color: 'text.secondary', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: 2 }}>Securing session...</Typography>
+      </MuiBox>
+    );
+  }
+
+  const isEmailVerified = userProfile?.emailVerified === true;
+  const isPhoneVerified = userProfile?.phoneVerified === true;
+  const isVerified = isEmailVerified && isPhoneVerified;
+
+  if (!isVerified) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center px-4 py-24">
+          <div className="w-full max-w-md text-center space-y-8">
+            
+            <div className="h-24 w-24 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+              <ShieldCheck className="h-12 w-12 text-destructive" />
+            </div>
+            
+            <div className="space-y-3">
+              <h1 className="font-display font-black text-3xl text-foreground">Verify to Continue</h1>
+              <p className="text-muted-foreground font-medium">Please complete verification before placing an order.</p>
+            </div>
+            
+            <div className="space-y-3 text-left">
+              <div className={cn(
+                "flex items-center gap-4 p-4 rounded-2xl border-2",
+                isEmailVerified ? "border-green-200 bg-green-50" : "border-destructive/20 bg-destructive/5"
+              )}>
+                {isEmailVerified 
+                  ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  : <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+                }
+                <div>
+                  <p className="font-bold text-sm">Email Verification</p>
+                  <p className="text-xs text-muted-foreground">{isEmailVerified ? 'Verified ✓' : 'Not verified yet'}</p>
+                </div>
+              </div>
+              
+              <div className={cn(
+                "flex items-center gap-4 p-4 rounded-2xl border-2",
+                isPhoneVerified ? "border-green-200 bg-green-50" : "border-destructive/20 bg-destructive/5"
+              )}>
+                {isPhoneVerified 
+                  ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  : <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+                }
+                <div>
+                  <p className="font-bold text-sm">Phone Verification</p>
+                  <p className="text-xs text-muted-foreground">{isPhoneVerified ? 'Verified ✓' : 'Not verified yet'}</p>
+                </div>
+              </div>
+            </div>
+            
+            <Link href="/profile">
+              <button className="w-full h-14 rounded-2xl bg-primary text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all">
+                Complete Verification →
+              </button>
+            </Link>
+            
+            <p className="text-xs text-muted-foreground">Takes less than 2 minutes</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const chargesReady = chargesPreview !== null;
   const finalTotal = (chargesPreview ? chargesPreview.total : 0) - promoDiscount;
 
   const handlePlaceOrder = async () => {
@@ -378,11 +454,7 @@ function CheckoutContent() {
     }
 
     if (!policyAccepted) {
-      toast({
-        variant: "destructive",
-        title: "Policy Agreement Required",
-        description: "You must agree to our Privacy Policy and Refund & Return Policy to proceed."
-      });
+      toast({ variant: "destructive", title: "Policy Agreement Required", description: "You must agree to our Privacy Policy and Refund & Return Policy to proceed." });
       return;
     }
 
@@ -421,11 +493,7 @@ function CheckoutContent() {
 
       if (!cashfreeLoaded) throw new Error("Payment SDK failed to load.");
 
-      const cfEnv = 
-        process.env.NEXT_PUBLIC_CASHFREE_ENV ||
-        process.env.CASHFREE_ENV ||
-        'sandbox';
-
+      const cfEnv = process.env.NEXT_PUBLIC_CASHFREE_ENV || process.env.CASHFREE_ENV || 'sandbox';
       const cashfree = new window.Cashfree({
         mode: cfEnv === 'production' ? 'production' : 'sandbox'
       });
@@ -440,17 +508,6 @@ function CheckoutContent() {
       setIsProcessing(false);
     }
   };
-
-  if (!mounted || isAuthLoading || isCartLoading) {
-    return (
-      <MuiBox sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAF4EB' }}>
-        <CircularProgress sx={{ color: '#EA781E' }} />
-        <Typography sx={{ mt: 2, color: 'text.secondary', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: 2 }}>Securing session...</Typography>
-      </MuiBox>
-    );
-  }
-
-  if (!user) return null;
 
   return (
     <>
@@ -582,7 +639,6 @@ function CheckoutContent() {
               
               <Divider sx={{ mb: 4, borderStyle: 'dashed' }} />
 
-              {/* Promo Code UI */}
               <MuiBox sx={{ mb: 4 }}>
                 <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.disabled', fontSize: '0.6rem', display: 'block', mb: 1.5 }}>
                   Promo Code
@@ -627,7 +683,6 @@ function CheckoutContent() {
                 )}
               </MuiBox>
 
-              {/* Charges Section */}
               <Stack spacing={2} sx={{ mb: 4 }}>
                 <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Subtotal</Typography>
@@ -636,11 +691,7 @@ function CheckoutContent() {
 
                 {!chargesReady ? (
                   <>
-                    {[
-                      'FragileCare™ Shipping',
-                      'Artisan Handling', 
-                      'Premium Protection'
-                    ].map((label) => (
+                    {['FragileCare™ Shipping', 'Artisan Handling', 'Premium Protection'].map((label) => (
                       <MuiBox key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>{label}</Typography>
                         <Skeleton variant="text" width={50} height={24} sx={{ borderRadius: 1 }} />
@@ -663,53 +714,21 @@ function CheckoutContent() {
 
                     <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Artisan Handling</Typography>
-                      {chargesPreview.charges.handling === 0 && !requiresHandling ? (
-                        <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography sx={{ fontWeight: 700, fontSize: '0.65rem', color: 'text.disabled', textDecoration: 'line-through' }}>₹40</Typography>
-                          <Typography sx={{ fontWeight: 800, fontSize: '0.65rem', color: 'success.main' }}>FREE</Typography>
-                        </MuiBox>
-                      ) : (
-                        <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview.charges.handling}</Typography>
-                      )}
+                      <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview.charges.handling}</Typography>
                     </MuiBox>
 
                     <MuiBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Premium Protection</Typography>
-                      {chargesPreview.charges.premium === 0 && !requiresPremiumProtection ? (
-                        <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography sx={{ fontWeight: 700, fontSize: '0.65rem', color: 'text.disabled', textDecoration: 'line-through' }}>₹20</Typography>
-                          <Typography sx={{ fontWeight: 800, fontSize: '0.65rem', color: 'success.main' }}>FREE</Typography>
-                        </MuiBox>
-                      ) : (
-                        <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview.charges.premium}</Typography>
-                      )}
+                      <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview.charges.premium}</Typography>
                     </MuiBox>
 
                     {chargesPreview.freeDelivery.isFree && (
                       <Chip
                         icon={<CheckCircle2 size={12} />}
-                        label={
-                          chargesPreview.freeDelivery.reason === 'city'
-                            ? 'Free delivery to Kanpur'
-                            : 'Free delivery on orders above ₹499'
-                        }
+                        label={chargesPreview.freeDelivery.reason === 'city' ? 'Free delivery to Kanpur' : 'Free delivery on orders above ₹499'}
                         size="small"
                         sx={{ bgcolor: muiAlpha('#6F8A7A', 0.1), color: '#6F8A7A', fontWeight: 800, fontSize: '0.6rem', border: 'none', height: 24, alignSelf: 'flex-start' }}
                       />
-                    )}
-
-                    {promoDiscount > 0 && (
-                      <>
-                        <Divider sx={{ my: 1, borderStyle: 'solid', opacity: 0.1 }} />
-                        <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Before Discount</Typography>
-                          <Typography sx={{ fontWeight: 700 }}>₹{chargesPreview.total.toLocaleString()}</Typography>
-                        </MuiBox>
-                        <MuiBox sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography color="success.main" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem' }}>Promo ({promoCode.toUpperCase()})</Typography>
-                          <Typography sx={{ fontWeight: 700, color: 'success.main' }}>- ₹{promoDiscount.toLocaleString()}</Typography>
-                        </MuiBox>
-                      </>
                     )}
 
                     <Divider sx={{ mb: 2 }} />
@@ -721,7 +740,6 @@ function CheckoutContent() {
                 )}
               </Stack>
 
-              {/* Policy Checkbox Block */}
               <MuiBox sx={{ 
                 display: 'flex', 
                 alignItems: 'flex-start', 
@@ -776,12 +794,6 @@ function CheckoutContent() {
                   `Confirm & Pay ₹${finalTotal.toLocaleString()}`
                 )}
               </Button>
-
-              {!policyAccepted && (
-                <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: 'text.secondary', fontSize: '0.6rem', mt: 1, fontStyle: 'italic' }}>
-                  Please accept the policies above to proceed
-                </Typography>
-              )}
             </Paper>
           </Grid>
         </Grid>
