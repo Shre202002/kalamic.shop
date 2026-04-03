@@ -92,7 +92,7 @@ export default function LoginPage() {
           }),
         });
         
-        router.push('/');
+        router.push('/profile');
       } catch (err: any) {
         console.error('[GOOGLE REDIRECT ERROR]:', err);
         if (err.code !== 'auth/popup-closed-by-user') {
@@ -108,7 +108,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      const from = searchParams.get('from') || '/';
+      const from = searchParams.get('from') || '/profile';
       router.push(from);
     }
   }, [user, router, searchParams]);
@@ -153,7 +153,7 @@ export default function LoginPage() {
           }),
         });
         
-        router.push('/');
+        router.push('/profile');
       }
     } catch (err: any) {
       console.error('[GOOGLE ERROR]:', err);
@@ -182,7 +182,7 @@ export default function LoginPage() {
         body: JSON.stringify({ idToken })
       });
       
-      router.push('/');
+      router.push('/profile');
     } catch (err: any) {
       const msgs: Record<string, string> = {
         'auth/user-not-found': 'No account found with this email.',
@@ -255,7 +255,7 @@ export default function LoginPage() {
         });
       }
       
-      router.push('/');
+      router.push('/profile');
     } catch (err: any) {
       setError(err.message);
     } finally {
