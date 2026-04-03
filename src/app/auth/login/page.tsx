@@ -8,7 +8,8 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   signInWithCustomToken
@@ -57,6 +58,64 @@ export default function LoginPage() {
   const { user } = useUser();
   const auth = useAuth();
 
+  // Handle Google Redirect Result
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const authInstance = getAuth();
+        const result = await getRedirectResult(authInstance);
+        
+        if (!result) return; // no redirect in progress
+        
+        console.log('[GOOGLE REDIRECT] Got result:', result.user.email);
+        setIsLoading(true);
+        
+        // Get fresh ID token
+        const idToken = await result.user.getIdToken(true);
+        
+        console.log('[GOOGLE REDIRECT] Got ID token, calling session API...');
+        
+        // Create server session
+        const sessionRes = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+        
+        if (!sessionRes.ok) {
+          const errData = await sessionRes.json();
+          throw new Error(errData.message || `Session failed: ${sessionRes.status}`);
+        }
+        
+        // Ensure profile exists in MongoDB
+        await fetch('/api/auth/sync-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firebaseId: result.user.uid,
+            email: result.user.email,
+            name: result.user.displayName,
+            photoURL: result.user.photoURL,
+          }),
+        });
+        
+        console.log('[GOOGLE REDIRECT] Success, redirecting...');
+        router.push('/');
+        router.refresh();
+        
+      } catch (err: any) {
+        console.error('[GOOGLE REDIRECT ERROR]:', err);
+        if (err.code !== 'auth/popup-closed-by-user') {
+          setError(err.message || 'Google sign-in failed. Please try again.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    handleRedirectResult();
+  }, [router]);
+
   useEffect(() => {
     if (user) {
       const from = searchParams.get('from') || '/';
@@ -81,66 +140,16 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
     try {
-      const auth = getAuth();
+      const authInstance = getAuth();
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ 
         prompt: 'select_account' 
       });
-      
-      const result = await signInWithPopup(
-        auth, provider
-      );
-      
-      console.log('[GOOGLE] Popup success:', result.user.email);
-      
-      // Get fresh ID token
-      const idToken = await result.user.getIdToken(true);
-      
-      console.log('[GOOGLE] Got ID token, calling session API...');
-      
-      // Create server session
-      const sessionRes = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      });
-      
-      console.log('[GOOGLE] Session API response:', sessionRes.status);
-      
-      if (!sessionRes.ok) {
-        const errData = await sessionRes.json();
-        throw new Error(errData.message || `Session failed: ${sessionRes.status}`);
-      }
-      
-      const sessionData = await sessionRes.json();
-      console.log('[GOOGLE] Session created:', sessionData);
-      
-      // Ensure profile exists in MongoDB
-      await fetch('/api/auth/sync-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firebaseId: result.user.uid,
-          email: result.user.email,
-          name: result.user.displayName,
-          photoURL: result.user.photoURL,
-        }),
-      });
-      
-      console.log('[GOOGLE] Redirecting to home...');
-      router.push('/');
-      router.refresh();
-      
+      // This redirects away and comes back — result handled in useEffect above
+      await signInWithRedirect(authInstance, provider);
     } catch (err: any) {
       console.error('[GOOGLE ERROR]:', err);
-      
-      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-        setIsLoading(false);
-        return;
-      }
-      
-      setError(err.message || 'Google sign-in failed. Please try again.');
-    } finally {
+      setError('Could not start Google sign-in.');
       setIsLoading(false);
     }
   };
@@ -551,7 +560,7 @@ export default function LoginPage() {
       <AnimatePresence>
         {showForgot && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-[2.5rem] p-10 w-full max-w-md space-y-8 shadow-2xl relative">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-[2.5rem] p-10 w-full max-w-md space-y-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
               <button onClick={() => { setShowForgot(false); setForgotEmail(''); setForgotSent(false); }} className="absolute top-8 right-8 text-muted-foreground hover:text-primary transition-colors"><X size={24} /></button>
               <div className="space-y-2">
                 <h3 className="font-display font-black text-2xl text-foreground tracking-tight">Reset Password</h3>
