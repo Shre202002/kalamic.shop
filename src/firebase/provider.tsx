@@ -73,7 +73,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         if (firebaseUser) {
           // Set session cookie for Middleware access
           const idToken = await firebaseUser.getIdToken();
-          document.cookie = `__session=${idToken}; path=/; max-age=3600; SameSite=Strict`;
+          // Set cookie for 5 days to match API logic
+          document.cookie = `__session=${idToken}; path=/; max-age=432000; SameSite=Strict`;
           setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
         } else {
           // Clear session cookie on logout

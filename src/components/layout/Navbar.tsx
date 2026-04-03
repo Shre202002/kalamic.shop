@@ -93,10 +93,14 @@ export function Navbar() {
   ];
 
   const handleSignOut = async () => {
-    await auth.signOut();
-    document.cookie = '__session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    router.push('/');
-    setIsMobileMenuOpen(false);
+    try {
+      await auth.signOut();
+      // The session cookie is cleared automatically by onIdTokenChanged in FirebaseProvider
+      router.push('/');
+      setIsMobileMenuOpen(false);
+    } catch (error) {
+      console.error("Sign out failed:", error);
+    }
   };
 
   const isAdmin = ['super_admin', 'admin', 'support'].includes(userRole);
