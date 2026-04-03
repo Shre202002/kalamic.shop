@@ -43,8 +43,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import {
-  PhoneAuthProvider,
-  updatePhoneNumber,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
 } from 'firebase/auth';
 
 export default function ProfilePage() {
@@ -148,12 +148,8 @@ export default function ProfilePage() {
     setIsVerifyingPhone(true);
     
     try {
-      // Lazy-load Firebase Auth functions to ensure environment is ready
-      const { getAuth, RecaptchaVerifier, signInWithPhoneNumber } = await import('firebase/auth');
-      const authInstance = getAuth();
-      
-      if (!authInstance) {
-        throw new Error('Firebase Auth not initialized. Please refresh the page.');
+      if (!auth) {
+        throw new Error('Auth service not ready. Please refresh the page.');
       }
       
       // Clear old verifier if exists
@@ -164,7 +160,7 @@ export default function ProfilePage() {
         recaptchaVerifierRef.current = null;
       }
       
-      // Initialize reCAPTCHA lazily
+      // Initialize reCAPTCHA with correctly scoped auth from useAuth()
       recaptchaVerifierRef.current = new RecaptchaVerifier(
         'phone-recaptcha-container',
         {
@@ -176,13 +172,13 @@ export default function ProfilePage() {
             recaptchaVerifierRef.current = null;
           }
         },
-        authInstance
+        auth
       );
       
       console.log('[PHONE OTP] Sending to:', phoneE164);
       
       const confirmationResult = await signInWithPhoneNumber(
-        authInstance,
+        auth,
         phoneE164,
         recaptchaVerifierRef.current
       );
@@ -206,7 +202,7 @@ export default function ProfilePage() {
       }
       
       const msgs: Record<string, string> = {
-        'auth/invalid-phone-number': 'Invalid phone number.',
+        'auth/invalid-phone-number': 'Invalid phone number format.',
         'auth/too-many-requests': 'Too many attempts. Try later.',
         'auth/quota-exceeded': 'SMS quota exceeded. Try later.',
         'auth/captcha-check-failed': 'reCAPTCHA failed. Refresh and retry.',
@@ -246,7 +242,7 @@ export default function ProfilePage() {
       
       toast({
         title: "Phone Verified ✓",
-        description: "Phone number verified."
+        description: "Your phone number has been verified."
       });
       
     } catch (err: any) {
