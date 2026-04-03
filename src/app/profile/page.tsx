@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useUser, useAuth } from '@/firebase';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
@@ -43,6 +43,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  PhoneAuthProvider,
+  updatePhoneNumber,
+} from 'firebase/auth';
 
 export default function ProfilePage() {
   const { user, loading: isAuthLoading } = useProtectedRoute();
@@ -57,6 +64,15 @@ export default function ProfilePage() {
   const [emailOtpCode, setEmailOtpCode] = useState('');
   const [isEmailOtpSent, setIsEmailOtpSent] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+
+  // Phone OTP State
+  const [isPhoneOtpSent, setIsPhoneOtpSent] = useState(false);
+  const [phoneOtpCode, setPhoneOtpCode] = useState('');
+  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+
+  const recaptchaVerifierRef = useRef<any>(null);
+  const confirmationResultRef = useRef<any>(null);
 
   // Address validation states
   const [statesList] = useState(State.getStatesOfCountry('IN'));
@@ -120,6 +136,144 @@ export default function ProfilePage() {
     loadData();
   }, [user]);
 
+  // reCAPTCHA setup
+  useEffect(() => {
+    if (profile?.phoneVerified) return;
+    
+    const authInstance = getAuth();
+    
+    if (recaptchaVerifierRef.current) {
+      recaptchaVerifierRef.current.clear();
+      recaptchaVerifierRef.current = null;
+    }
+    
+    try {
+      recaptchaVerifierRef.current = new RecaptchaVerifier(
+        authInstance,
+        'phone-recaptcha-container',
+        {
+          size: 'invisible',
+          callback: () => {
+            console.log('[reCAPTCHA] Solved');
+          },
+          'expired-callback': () => {
+            console.warn('[reCAPTCHA] Expired');
+            recaptchaVerifierRef.current = null;
+          }
+        }
+      );
+    } catch (err) {
+      console.error('[reCAPTCHA] Init error:', err);
+    }
+    
+    return () => {
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
+    };
+  }, [profile?.phoneVerified]);
+
+  const handleSendPhoneOtp = async () => {
+    setPhoneError('');
+    const rawPhone = formData.phone.replace(/\D/g, '');
+    
+    if (rawPhone.length < 10) {
+      setPhoneError('Please enter a valid 10-digit phone number.');
+      return;
+    }
+    
+    const phoneE164 = rawPhone.startsWith('91') 
+      ? `+${rawPhone}` 
+      : `+91${rawPhone.slice(-10)}`;
+    
+    setIsVerifyingPhone(true);
+    
+    try {
+      const authInstance = getAuth();
+      
+      if (!recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(
+          authInstance,
+          'phone-recaptcha-container',
+          { size: 'invisible' }
+        );
+      }
+      
+      const confirmationResult = await signInWithPhoneNumber(
+        authInstance,
+        phoneE164,
+        recaptchaVerifierRef.current
+      );
+      
+      confirmationResultRef.current = confirmationResult;
+      setIsPhoneOtpSent(true);
+      
+      toast({
+        title: "OTP Sent",
+        description: `Verification code sent to ${phoneE164}`
+      });
+      
+    } catch (err: any) {
+      console.error('[PHONE OTP ERROR]:', err);
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
+      
+      const errorMessages: Record<string, string> = {
+        'auth/invalid-phone-number': 'Invalid phone number format.',
+        'auth/too-many-requests': 'Too many attempts. Try again later.',
+        'auth/quota-exceeded': 'SMS quota exceeded. Try again later.',
+        'auth/captcha-check-failed': 'reCAPTCHA failed. Please refresh and retry.',
+      };
+      
+      setPhoneError(errorMessages[err.code] || err.message || 'Failed to send OTP.');
+    } finally {
+      setIsVerifyingPhone(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async () => {
+    if (!phoneOtpCode || !confirmationResultRef.current) return;
+    
+    setIsVerifyingPhone(true);
+    setPhoneError('');
+    
+    try {
+      const result = await confirmationResultRef.current.confirm(phoneOtpCode);
+      const rawPhone = formData.phone.replace(/\D/g, '');
+      const phoneE164 = rawPhone.startsWith('91')
+        ? `+${rawPhone}`
+        : `+91${rawPhone.slice(-10)}`;
+      
+      const updated = await updateProfile(user!.uid, {
+        phone: phoneE164,
+        phoneVerified: true,
+      } as any);
+      
+      setProfile(updated);
+      setIsPhoneOtpSent(false);
+      setPhoneOtpCode('');
+      confirmationResultRef.current = null;
+      
+      toast({
+        title: "Phone Verified ✓",
+        description: "Your phone number has been verified."
+      });
+      
+    } catch (err: any) {
+      console.error('[PHONE VERIFY ERROR]:', err);
+      const errorMessages: Record<string, string> = {
+        'auth/invalid-verification-code': 'Incorrect OTP. Please try again.',
+        'auth/code-expired': 'OTP expired. Please request a new one.',
+      };
+      setPhoneError(errorMessages[err.code] || 'Verification failed. Try again.');
+    } finally {
+      setIsVerifyingPhone(false);
+    }
+  };
+
   // Handle Pincode Auto-fill
   const handlePincodeChange = async (val: string) => {
     const cleanVal = val.replace(/\D/g, '').slice(0, 6);
@@ -134,7 +288,6 @@ export default function ProfilePage() {
 
         if (data[0].Status === "Success") {
           const postOffice = data[0].PostOffice[0];
-          // Find matching state from our list
           const foundState = statesList.find(s => 
             s.name.toLowerCase().includes(postOffice.State.toLowerCase()) || 
             postOffice.State.toLowerCase().includes(s.name.toLowerCase())
@@ -142,8 +295,6 @@ export default function ProfilePage() {
           
           if (foundState) {
             const stateCities = City.getCitiesOfState('IN', foundState.isoCode);
-            
-            // Look for a match in cities list using District or Block
             const apiDistrict = postOffice.District;
             let matchedCityName = apiDistrict;
 
@@ -157,12 +308,7 @@ export default function ProfilePage() {
               matchedCityName = existingCity.name;
             }
 
-            // Update cities list for the dropdown
             setCitiesList(stateCities);
-            
-            // If the matched city isn't in our list (rare, but possible due to naming), 
-            // we should still allow it to be set and displayed.
-            // The Select component requires the value to exist in the list.
             if (!existingCity) {
               setCitiesList(prev => [{ name: apiDistrict }, ...prev]);
             }
@@ -256,7 +402,8 @@ export default function ProfilePage() {
 
   const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.state && formData.pincode);
   const isEmailVerified = profile?.emailVerified;
-  const isFullyVerified = isProfileComplete && isEmailVerified;
+  const isPhoneVerified = profile?.phoneVerified;
+  const isFullyVerified = isProfileComplete && isEmailVerified && isPhoneVerified;
 
   const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : 2024;
 
@@ -309,7 +456,8 @@ export default function ProfilePage() {
                   <h3 className="text-2xl font-black text-primary">Information Required</h3>
                   <p className="text-muted-foreground text-base max-w-lg">
                     {!isEmailVerified && "• Please verify your email address. "}
-                    {!isProfileComplete && "• Complete your profile details to enable seamless checkout."}
+                    {!isPhoneVerified && "• Please verify your phone number. "}
+                    {!isProfileComplete && "• Complete your profile to enable checkout."}
                   </p>
                 </div>
               </CardContent>
@@ -353,8 +501,79 @@ export default function ProfilePage() {
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone *</Label>
                           <div className="relative">
                             <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
-                            <Input required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} placeholder="+91 XXXXX XXXXX" className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
+                            <Input
+                              required
+                              value={formData.phone}
+                              onChange={(e) => {
+                                setFormData({ ...formData, phone: e.target.value });
+                                setPhoneError('');
+                                if (profile?.phoneVerified) {
+                                  setIsPhoneOtpSent(false);
+                                }
+                              }}
+                              disabled={profile?.phoneVerified}
+                              placeholder="+91 XXXXX XXXXX"
+                              className="pl-14 pr-24 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium disabled:bg-muted"
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              {profile?.phoneVerified ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-[10px] font-bold text-primary"
+                                  onClick={handleSendPhoneOtp}
+                                  disabled={isVerifyingPhone || !formData.phone}
+                                >
+                                  {isVerifyingPhone ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Verify'}
+                                </Button>
+                              )}
+                            </div>
                           </div>
+                          {phoneError && (
+                            <p className="text-[10px] font-bold text-destructive ml-1 flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              {phoneError}
+                            </p>
+                          )}
+                          {!profile?.phoneVerified && isPhoneOtpSent && (
+                            <div className="flex items-center gap-2 mt-2 animate-in slide-in-from-top-2 bg-primary/5 p-3 rounded-2xl border border-primary/20">
+                              <div className="relative flex-1">
+                                <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50 z-10" />
+                                <Input
+                                  placeholder="6-digit OTP"
+                                  maxLength={6}
+                                  inputMode="numeric"
+                                  value={phoneOtpCode}
+                                  onChange={(e) => setPhoneOtpCode(e.target.value.replace(/\D/g, ''))}
+                                  className="pl-10 h-10 rounded-xl font-bold text-center tracking-widest border-border"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleVerifyPhoneOtp}
+                                disabled={isVerifyingPhone || phoneOtpCode.length < 6}
+                              >
+                                {isVerifyingPhone ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm"}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setIsPhoneOtpSent(false);
+                                  setPhoneOtpCode('');
+                                  setPhoneError('');
+                                }}
+                                className="text-muted-foreground text-[10px]"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          )}
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Email Address</Label>
@@ -502,6 +721,8 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+        {/* Invisible reCAPTCHA for phone verification */}
+        <div id="phone-recaptcha-container" />
       </main>
       <Footer />
     </div>
