@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
@@ -149,7 +148,6 @@ export default function ProfilePage() {
     
     try {
       recaptchaVerifierRef.current = new RecaptchaVerifier(
-        authInstance,
         'phone-recaptcha-container',
         {
           size: 'invisible',
@@ -160,7 +158,8 @@ export default function ProfilePage() {
             console.warn('[reCAPTCHA] Expired');
             recaptchaVerifierRef.current = null;
           }
-        }
+        },
+        authInstance
       );
     } catch (err) {
       console.error('[reCAPTCHA] Init error:', err);
@@ -194,11 +193,22 @@ export default function ProfilePage() {
       
       if (!recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current = new RecaptchaVerifier(
-          authInstance,
           'phone-recaptcha-container',
-          { size: 'invisible' }
+          { 
+            size: 'invisible',
+            callback: () => {
+              console.log('[reCAPTCHA] Solved');
+            },
+            'expired-callback': () => {
+              console.warn('[reCAPTCHA] Expired');
+              recaptchaVerifierRef.current = null;
+            }
+          },
+          authInstance
         );
       }
+      
+      console.log('[PHONE OTP] Sending to:', phoneE164);
       
       const confirmationResult = await signInWithPhoneNumber(
         authInstance,
