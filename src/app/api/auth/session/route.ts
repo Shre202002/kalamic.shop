@@ -1,33 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-
-/**
- * @fileOverview API to set the Firebase ID token as a secure session cookie.
- * Secure but accessible to client-side sync listeners for seamless auth state management.
- */
+import { adminAuth } from '@/lib/firebase-admin';
+import { getOrCreateProfile } from '@/lib/actions/user-actions';
 
 export async function POST(req: NextRequest) {
   try {
-    const { idToken } = await req.json();
-    const cookieStore = await cookies();
+    console.log('[SESSION] Request received');
     
-    // Set cookie for 5 days
-    cookieStore.set('__session', idToken, {
-      maxAge: 60 * 60 * 24 * 5,
-      httpOnly: false, // Must be accessible to client listeners for state sync
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      sameSite: 'strict',
+    const { idToken } = await req.json();
+    
+    if (!idToken) {
+      return NextResponse.json(
+        { message: 'ID token required' }, 
+        { status: 400 }
+      );
+    }
+    
+    if (!adminAuth) {
+      console.error('[SESSION] adminAuth is null');
+      return NextResponse.json(
+        { message: 'Auth service unavailable' }, 
+        { status: 503 }
+      );
+    }
+    
+    // Verify the ID token
+    console.log('[SESSION] Verifying token...');
+    const decoded = await adminAuth.verifyIdToken(idToken);
+    console.log('[SESSION] Token verified for:', decoded.email);
+    
+    // Get or create MongoDB profile
+    const profile = await getOrCreateProfile(
+      decoded.uid,
+      decoded.email
+    );
+    console.log('[SESSION] Profile ready:', profile.role);
+    
+    // Set session cookie
+    const response = NextResponse.json({ 
+      success: true,
+      role: profile.role
     });
     
-    return NextResponse.json({ success: true });
+    response.cookies.set('__session', idToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+    
+    return response;
+    
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('[SESSION ERROR]:', error);
+    return NextResponse.json(
+      { message: error.message || 'Session creation failed' }, 
+      { status: 500 }
+    );
   }
 }
 
 export async function DELETE() {
-  const cookieStore = await cookies();
-  cookieStore.delete('__session');
-  return NextResponse.json({ success: true });
+  const response = NextResponse.json({ success: true });
+  response.cookies.delete('__session');
+  return response;
 }

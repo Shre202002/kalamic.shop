@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -26,8 +25,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'password' | 'email' | 'phone'>('password');
@@ -80,28 +77,69 @@ export default function LoginPage() {
     }
   }, [activeTab]);
 
-  const setSession = async (user: any) => {
-    const idToken = await user.getIdToken();
-    await fetch('/api/auth/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken })
-    });
-  };
-
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError('');
     try {
+      const auth = getAuth();
       const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      const result = await signInWithPopup(auth, provider);
-      await setSession(result.user);
-      router.refresh();
-    } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setError('Google sign-in failed. Please try again.');
+      provider.setCustomParameters({ 
+        prompt: 'select_account' 
+      });
+      
+      const result = await signInWithPopup(
+        auth, provider
+      );
+      
+      console.log('[GOOGLE] Popup success:', result.user.email);
+      
+      // Get fresh ID token
+      const idToken = await result.user.getIdToken(true);
+      
+      console.log('[GOOGLE] Got ID token, calling session API...');
+      
+      // Create server session
+      const sessionRes = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      
+      console.log('[GOOGLE] Session API response:', sessionRes.status);
+      
+      if (!sessionRes.ok) {
+        const errData = await sessionRes.json();
+        throw new Error(errData.message || `Session failed: ${sessionRes.status}`);
       }
+      
+      const sessionData = await sessionRes.json();
+      console.log('[GOOGLE] Session created:', sessionData);
+      
+      // Ensure profile exists in MongoDB
+      await fetch('/api/auth/sync-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firebaseId: result.user.uid,
+          email: result.user.email,
+          name: result.user.displayName,
+          photoURL: result.user.photoURL,
+        }),
+      });
+      
+      console.log('[GOOGLE] Redirecting to home...');
+      router.push('/');
+      router.refresh();
+      
+    } catch (err: any) {
+      console.error('[GOOGLE ERROR]:', err);
+      
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        setIsLoading(false);
+        return;
+      }
+      
+      setError(err.message || 'Google sign-in failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -115,8 +153,17 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      await setSession(result.user);
+      const authInstance = getAuth();
+      const result = await signInWithEmailAndPassword(authInstance, email, password);
+      
+      const idToken = await result.user.getIdToken();
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      
+      router.push('/');
       router.refresh();
     } catch (err: any) {
       const msgs: Record<string, string> = {
@@ -136,7 +183,8 @@ export default function LoginPage() {
     if (!forgotEmail) return;
     setIsLoading(true);
     try {
-      await sendPasswordResetEmail(auth, forgotEmail);
+      const authInstance = getAuth();
+      await sendPasswordResetEmail(authInstance, forgotEmail);
       setForgotSent(true);
     } catch (err: any) {
       setError('Could not send reset email. Check the address and try again.');
@@ -177,8 +225,17 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       
-      const result = await signInWithCustomToken(auth, data.token);
-      await setSession(result.user);
+      const authInstance = getAuth();
+      const result = await signInWithCustomToken(authInstance, data.token);
+      
+      const idToken = await result.user.getIdToken();
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      
+      router.push('/');
       router.refresh();
     } catch (err: any) {
       setError(err.message);
@@ -192,8 +249,9 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
     try {
+      const authInstance = getAuth();
       const fullPhone = `+91${phone}`;
-      confirmationResultRef.current = await signInWithPhoneNumber(auth, fullPhone, recaptchaVerifierRef.current);
+      confirmationResultRef.current = await signInWithPhoneNumber(authInstance, fullPhone, recaptchaVerifierRef.current);
       setStep('otp');
     } catch (err: any) {
       setError('Failed to send SMS. Please check the number or try again later.');
@@ -207,7 +265,13 @@ export default function LoginPage() {
     setError('');
     try {
       const result = await confirmationResultRef.current.confirm(code);
-      await setSession(result.user);
+      const idToken = await result.user.getIdToken();
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      router.push('/');
       router.refresh();
     } catch (err: any) {
       setError('Invalid code. Please try again.');
@@ -488,7 +552,7 @@ export default function LoginPage() {
         {showForgot && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-[2.5rem] p-10 w-full max-w-md space-y-8 shadow-2xl relative">
-              <button onClick={() => setShowForgot(false)} className="absolute top-8 right-8 text-muted-foreground hover:text-primary transition-colors"><X size={24} /></button>
+              <button onClick={() => { setShowForgot(false); setForgotEmail(''); setForgotSent(false); }} className="absolute top-8 right-8 text-muted-foreground hover:text-primary transition-colors"><X size={24} /></button>
               <div className="space-y-2">
                 <h3 className="font-display font-black text-2xl text-foreground tracking-tight">Reset Password</h3>
                 <p className="text-muted-foreground text-sm font-medium">Recover your artisanal credentials</p>
