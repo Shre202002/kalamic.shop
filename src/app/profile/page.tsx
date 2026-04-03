@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -152,6 +152,17 @@ export default function ProfilePage() {
         throw new Error('Auth service not ready. Please refresh the page.');
       }
       
+      // Before creating RecaptchaVerifier, verify auth:
+      console.log('[AUTH CHECK]', {
+        auth: !!auth,
+        authApp: !!(auth as any)?.app,
+        authType: typeof auth,
+      });
+
+      if (!(auth as any)?.app) {
+        throw new Error('Firebase Auth not ready. Please refresh.');
+      }
+
       // Clear old verifier if exists
       if (recaptchaVerifierRef.current) {
         try {
@@ -159,6 +170,8 @@ export default function ProfilePage() {
         } catch (e) {}
         recaptchaVerifierRef.current = null;
       }
+      
+      const { RecaptchaVerifier, signInWithPhoneNumber } = await import('firebase/auth');
       
       // Initialize reCAPTCHA with correctly scoped auth from useAuth()
       recaptchaVerifierRef.current = new RecaptchaVerifier(
@@ -172,13 +185,13 @@ export default function ProfilePage() {
             recaptchaVerifierRef.current = null;
           }
         },
-        auth
+        auth as any
       );
       
       console.log('[PHONE OTP] Sending to:', phoneE164);
       
       const confirmationResult = await signInWithPhoneNumber(
-        auth,
+        auth as any,
         phoneE164,
         recaptchaVerifierRef.current
       );
@@ -389,20 +402,6 @@ export default function ProfilePage() {
   const isFullyVerified = isProfileComplete && isEmailVerified && isPhoneVerified;
 
   const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : 2024;
-
-  if (isAuthLoading || isLoadingData) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!user) return null;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
