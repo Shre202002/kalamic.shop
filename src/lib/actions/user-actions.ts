@@ -28,12 +28,29 @@ export async function getProfile(firebaseId: string) {
 }
 
 /**
- * Creates a base profile for a new user using an atomic upsert.
+ * Creates or retrieves a profile for a user.
+ * Prioritizes email lookup to prevent E11000 duplicate key errors.
  */
 export async function getOrCreateProfile(firebaseId: string, email?: string | null) {
   try {
     await dbConnect();
     const cleanEmail = email?.trim().toLowerCase();
+
+    // 1. CRITICAL: Check by email first to avoid E11000 duplicate key on email_1 index
+    // This happens if a user previously logged in with Google/Password and now uses OTP (which creates a temp ID)
+    if (cleanEmail) {
+      const existingUser = await User.findOne({ email: cleanEmail });
+      if (existingUser) {
+        // If the firebaseId has changed (e.g., transitioning from temp ID to real ID), update it
+        if (existingUser.firebaseId !== firebaseId) {
+          existingUser.firebaseId = firebaseId;
+          await existingUser.save();
+        }
+        return JSON.parse(JSON.stringify(existingUser));
+      }
+    }
+
+    // 2. Proceed with find/upsert by firebaseId
     const role = cleanEmail === PERMANENT_SUPER_ADMIN ? 'super_admin' : 'buyer';
     
     const onInsert: any = {
