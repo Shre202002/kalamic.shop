@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyOtp } from '@/lib/actions/otp-actions';
 import { getOrCreateProfile } from '@/lib/actions/user-actions';
 import { adminAuth, createCustomToken } from '@/lib/firebase-admin';
+import dbConnect from '@/lib/db';
+import User from '@/lib/models/User';
 
 /**
  * @fileOverview API to verify email OTP and return a Firebase custom token.
- * Uses Firebase Admin to find or create a real user account for the email.
+ * Restricted to registered users only.
  */
 
 const verifyLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -33,7 +35,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const allowed = checkRateLimit(`verify:${email}`, 5, 5 * 60 * 1000);
+    const cleanEmail = email.trim().toLowerCase();
+
+    const allowed = checkRateLimit(`verify:${cleanEmail}`, 5, 5 * 60 * 1000);
     if (!allowed) {
       return NextResponse.json(
         { message: 'Too many attempts. Wait 5 minutes.' }, 
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 1: Verify OTP via DB
-    const result = await verifyOtp(email, otp);
+    const result = await verifyOtp(cleanEmail, otp);
     if (!result.success) {
       return NextResponse.json(
         { message: result.message || 'Invalid OTP' }, 
@@ -50,7 +54,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 2: Get or create REAL Firebase Auth user
+    // Step 2: Check if user exists in MongoDB first (Source of Truth)
+    await dbConnect();
+    const existingMongoUser = await User.findOne({ email: cleanEmail }).lean();
+
+    if (!existingMongoUser) {
+      return NextResponse.json({
+        message: 'No account found with this email. Please register first.'
+      }, { status: 404 });
+    }
+
+    // Step 3: Get or handle REAL Firebase Auth user
     if (!adminAuth) {
       return NextResponse.json(
         { message: 'Auth service unavailable. Check server environment variables.' }, 
@@ -62,28 +76,35 @@ export async function POST(req: NextRequest) {
     
     try {
       // Try to find existing Firebase Auth user by email
-      const existingUser = await adminAuth.getUserByEmail(email);
+      const existingUser = await adminAuth.getUserByEmail(cleanEmail);
       firebaseUid = existingUser.uid;
-      console.log('[OTP] Found existing Firebase user:', firebaseUid);
     } catch (err: any) {
       if (err.code === 'auth/user-not-found') {
-        // Create new Firebase Auth user for this verified email
+        // Edge case: User exists in DB but not in Firebase Auth
+        // Fix the gap by creating the Firebase user
         const newUser = await adminAuth.createUser({
-          email: email.trim().toLowerCase(),
-          emailVerified: true, // Verification via OTP counts as verified
-          displayName: email.split('@')[0],
+          email: cleanEmail,
+          emailVerified: true,
+          displayName: existingMongoUser.firstName 
+            ? `${existingMongoUser.firstName} ${existingMongoUser.lastName || ''}`.trim()
+            : cleanEmail.split('@')[0],
         });
         firebaseUid = newUser.uid;
-        console.log('[OTP] Created new Firebase user:', firebaseUid);
+        
+        // Update MongoDB with the newly created Firebase UID to maintain link
+        await User.updateOne(
+          { email: cleanEmail },
+          { $set: { firebaseId: firebaseUid } }
+        );
+        
+        console.log('[OTP] Fixed missing Firebase user:', firebaseUid);
       } else {
         throw err;
       }
     }
 
-    // Step 3: Get or create MongoDB profile with REAL Firebase UID
-    const profile = await getOrCreateProfile(firebaseUid, email);
-
-    // Step 4: Create custom token for client-side login
+    // Step 4: Sync/Get profile and create custom token for client-side login
+    const profile = await getOrCreateProfile(firebaseUid, cleanEmail);
     const customToken = await createCustomToken(firebaseUid, { role: profile.role });
 
     return NextResponse.json({ 
