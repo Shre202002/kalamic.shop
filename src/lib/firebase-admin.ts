@@ -1,4 +1,3 @@
-
 import * as admin from 'firebase-admin';
 import { IOrderedItem } from './models/OrderedItem';
 
@@ -9,16 +8,24 @@ import { IOrderedItem } from './models/OrderedItem';
 
 if (!admin.apps.length) {
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-    });
-    console.log('[FIREBASE_ADMIN] Initialized successfully');
+    const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '')
+      .replace(/\\n/g, '\n')
+      .replace(/^"|"$/g, '');
+    
+    if (!privateKey || !process.env.FIREBASE_PROJECT_ID) {
+      console.warn('[FIREBASE_ADMIN] Missing credentials');
+    } else {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey,
+        }),
+      });
+      console.log('[FIREBASE_ADMIN] Initialized successfully');
+    }
   } catch (error: any) {
-    console.warn('[FIREBASE_ADMIN] Initialization failed (missing credentials). Sync and Admin APIs will be limited.', error.message);
+    console.warn('[FIREBASE_ADMIN] Init failed:', error.message);
   }
 }
 
