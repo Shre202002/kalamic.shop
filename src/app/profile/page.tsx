@@ -43,9 +43,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
   PhoneAuthProvider,
   updatePhoneNumber,
 } from 'firebase/auth';
@@ -135,50 +132,12 @@ export default function ProfilePage() {
     loadData();
   }, [user]);
 
-  // reCAPTCHA setup
-  useEffect(() => {
-    if (profile?.phoneVerified) return;
-    
-    const authInstance = getAuth();
-    
-    if (recaptchaVerifierRef.current) {
-      recaptchaVerifierRef.current.clear();
-      recaptchaVerifierRef.current = null;
-    }
-    
-    try {
-      recaptchaVerifierRef.current = new RecaptchaVerifier(
-        'phone-recaptcha-container',
-        {
-          size: 'invisible',
-          callback: () => {
-            console.log('[reCAPTCHA] Solved');
-          },
-          'expired-callback': () => {
-            console.warn('[reCAPTCHA] Expired');
-            recaptchaVerifierRef.current = null;
-          }
-        },
-        authInstance
-      );
-    } catch (err) {
-      console.error('[reCAPTCHA] Init error:', err);
-    }
-    
-    return () => {
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
-      }
-    };
-  }, [profile?.phoneVerified]);
-
   const handleSendPhoneOtp = async () => {
     setPhoneError('');
     const rawPhone = formData.phone.replace(/\D/g, '');
     
     if (rawPhone.length < 10) {
-      setPhoneError('Please enter a valid 10-digit phone number.');
+      setPhoneError('Please enter a valid 10-digit number.');
       return;
     }
     
@@ -189,24 +148,36 @@ export default function ProfilePage() {
     setIsVerifyingPhone(true);
     
     try {
+      // Lazy-load Firebase Auth functions to ensure environment is ready
+      const { getAuth, RecaptchaVerifier, signInWithPhoneNumber } = await import('firebase/auth');
       const authInstance = getAuth();
       
-      if (!recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current = new RecaptchaVerifier(
-          'phone-recaptcha-container',
-          { 
-            size: 'invisible',
-            callback: () => {
-              console.log('[reCAPTCHA] Solved');
-            },
-            'expired-callback': () => {
-              console.warn('[reCAPTCHA] Expired');
-              recaptchaVerifierRef.current = null;
-            }
-          },
-          authInstance
-        );
+      if (!authInstance) {
+        throw new Error('Firebase Auth not initialized. Please refresh the page.');
       }
+      
+      // Clear old verifier if exists
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (e) {}
+        recaptchaVerifierRef.current = null;
+      }
+      
+      // Initialize reCAPTCHA lazily
+      recaptchaVerifierRef.current = new RecaptchaVerifier(
+        'phone-recaptcha-container',
+        {
+          size: 'invisible',
+          callback: () => {
+            console.log('[reCAPTCHA] Solved');
+          },
+          'expired-callback': () => {
+            recaptchaVerifierRef.current = null;
+          }
+        },
+        authInstance
+      );
       
       console.log('[PHONE OTP] Sending to:', phoneE164);
       
@@ -221,24 +192,27 @@ export default function ProfilePage() {
       
       toast({
         title: "OTP Sent",
-        description: `Verification code sent to ${phoneE164}`
+        description: `Code sent to ${phoneE164}`
       });
       
     } catch (err: any) {
       console.error('[PHONE OTP ERROR]:', err);
+      
       if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (e) {}
         recaptchaVerifierRef.current = null;
       }
       
-      const errorMessages: Record<string, string> = {
-        'auth/invalid-phone-number': 'Invalid phone number format.',
-        'auth/too-many-requests': 'Too many attempts. Try again later.',
-        'auth/quota-exceeded': 'SMS quota exceeded. Try again later.',
-        'auth/captcha-check-failed': 'reCAPTCHA failed. Please refresh and retry.',
+      const msgs: Record<string, string> = {
+        'auth/invalid-phone-number': 'Invalid phone number.',
+        'auth/too-many-requests': 'Too many attempts. Try later.',
+        'auth/quota-exceeded': 'SMS quota exceeded. Try later.',
+        'auth/captcha-check-failed': 'reCAPTCHA failed. Refresh and retry.',
       };
       
-      setPhoneError(errorMessages[err.code] || err.message || 'Failed to send OTP.');
+      setPhoneError(msgs[err.code] || err.message || 'Failed to send OTP.');
     } finally {
       setIsVerifyingPhone(false);
     }
@@ -252,6 +226,9 @@ export default function ProfilePage() {
     
     try {
       const result = await confirmationResultRef.current.confirm(phoneOtpCode);
+      
+      console.log('[PHONE] Verified:', result.user.phoneNumber);
+      
       const rawPhone = formData.phone.replace(/\D/g, '');
       const phoneE164 = rawPhone.startsWith('91')
         ? `+${rawPhone}`
@@ -269,16 +246,16 @@ export default function ProfilePage() {
       
       toast({
         title: "Phone Verified ✓",
-        description: "Your phone number has been verified."
+        description: "Phone number verified."
       });
       
     } catch (err: any) {
       console.error('[PHONE VERIFY ERROR]:', err);
-      const errorMessages: Record<string, string> = {
-        'auth/invalid-verification-code': 'Incorrect OTP. Please try again.',
-        'auth/code-expired': 'OTP expired. Please request a new one.',
+      const msgs: Record<string, string> = {
+        'auth/invalid-verification-code': 'Incorrect OTP. Try again.',
+        'auth/code-expired': 'OTP expired. Request a new one.',
       };
-      setPhoneError(errorMessages[err.code] || 'Verification failed. Try again.');
+      setPhoneError(msgs[err.code] || 'Verification failed.');
     } finally {
       setIsVerifyingPhone(false);
     }
