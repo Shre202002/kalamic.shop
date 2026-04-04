@@ -1,4 +1,3 @@
-
 'use server';
 
 import dbConnect from '@/lib/db';
@@ -18,7 +17,8 @@ export async function getGalleryItems(filters?: {
     if (filters?.isActive !== undefined) query.isActive = filters.isActive;
     if (filters?.isFeatured !== undefined) query.isFeatured = filters.isFeatured;
 
-    const items = await GalleryItem.find(query).sort({ sortOrder: 1, createdAt: -1 }).lean();
+    const finalQuery = { isActive: true, ...query };
+    const items = await GalleryItem.find(finalQuery).sort({ sortOrder: 1, createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(items)) as IGalleryItem[];
   } catch (error) {
     console.error("Error fetching gallery items:", error);
