@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth, useUser } from '@/firebase';
 import { 
@@ -32,7 +32,7 @@ import {
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [activeTab, setActiveTab] = useState<'password' | 'email' | 'phone'>('password');
   const [step, setStep] = useState<'input' | 'otp'>('input');
   const [email, setEmail] = useState('');
@@ -385,5 +385,22 @@ export default function LoginPage() {
 
       <div id="recaptcha-container" />
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <p className="text-sm font-black text-muted-foreground uppercase tracking-widest">
+            Loading...
+          </p>
+        </div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 }

@@ -56,7 +56,6 @@ const nextConfig: NextConfig = {
   },
   compress: true,
   poweredByHeader: false,
-  swcMinify: true,
 };
 
 export default nextConfig;
