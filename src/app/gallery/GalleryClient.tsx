@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -23,7 +22,7 @@ const CATEGORIES = ['All', 'Pillars & Stambh', 'Photo Frames', 'Wall Art', 'Mand
 export default function GalleryClient({ items }: { items: any[] }) {
   const [activeCategory, setActiveCategory] = useState('All');
   const [mediaFilter, setMediaFilter] = useState<'all' | 'image' | 'video'>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'masonry'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'masonry'>('masonry');
   const [lightboxItem, setLightboxItem] = useState<any | null>(null);
   const [visibleCount, setVisibleCount] = useState(12);
   const [isScrolled, setIsScrolled] = useState(false);
