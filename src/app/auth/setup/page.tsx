@@ -20,7 +20,7 @@ import {
   Key
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
+import { Label } from '@/components/ui/label';
 export default function SetupPage() {
   const auth = useAuth();
   const { user } = useUser();

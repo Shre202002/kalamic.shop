@@ -218,15 +218,39 @@ export default function LoginPage() {
     
     setIsLoading(true);
     setError('');
+    
+    const phoneE164 = `+91${raw.slice(-10)}`;
+
     try {
+      // Check if phone is registered first
+      const checkRes = await fetch(
+        '/api/auth/phone-otp/check',
+        {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json' 
+          },
+          body: JSON.stringify({ phone: phoneE164 }),
+        }
+      );
+      const checkData = await checkRes.json();
+      if (!checkRes.ok) {
+        setError(
+          checkData.message || 
+          'No account found with this number.'
+        );
+        setIsLoading(false);
+        return; // Stop here — don't send OTP
+      }
+
       if (recaptchaVerifierRef.current) recaptchaVerifierRef.current.clear();
       recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
       
-      const phoneE164 = `+91${raw.slice(-10)}`;
       const confirmation = await signInWithPhoneNumber(auth, phoneE164, recaptchaVerifierRef.current);
       confirmationResultRef.current = confirmation;
       setStep('otp');
     } catch (err: any) {
+      console.error('[PHONE OTP ERROR]:', err);
       setError('SMS delivery failed. Try again.');
     } finally {
       setIsLoading(false);
