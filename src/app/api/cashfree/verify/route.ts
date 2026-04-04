@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
@@ -7,14 +6,11 @@ import { getCashfreeOrderStatus } from '@/lib/actions/cashfree';
 import { syncOrderToFirestore, clearCartAfterOrder } from '@/lib/firebase-admin';
 
 /**
- * @fileOverview Ground Truth Verification API.
- * Proactively checks with Cashfree when a user returns to the success page.
+ * @fileOverview Unified Payment Verification API.
+ * Reconciles local order state with Cashfree gateway state.
  */
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const orderId = searchParams.get('orderId');
-
+async function handleVerify(orderId: string | null) {
   if (!orderId) {
     return NextResponse.json({ message: 'Missing orderId' }, { status: 400 });
   }
@@ -22,34 +18,34 @@ export async function GET(req: NextRequest) {
   await dbConnect();
 
   try {
-    console.log(`[VERIFY_START] Checking order: ${orderId}`);
-
-    // Lookup using robust $or query
     const order = await OrderedItem.findOne({
       $or: [{ orderNumber: orderId }, { gatewayOrderId: orderId }]
     });
 
     if (!order) {
-      console.error(`[VERIFY_ERROR] Order ${orderId} not found in database.`);
       return NextResponse.json({ message: `Order ${orderId} not found.` }, { status: 404 });
     }
 
-    // Return early if already reconciled by webhook
+    // Return if already verified by webhook or previous call
     if (order.paymentVerified) {
-      console.log(`[VERIFY_SKIP] Order ${orderId} already verified.`);
-      return NextResponse.json({ success: true, status: order.orderStatus });
+      return NextResponse.json({
+        success: true,
+        paymentVerified: true,
+        paymentStatus: order.paymentStatus,
+        paymentId: order.paymentId,
+        orderNumber: order.orderNumber,
+        orderStatus: order.orderStatus,
+        message: 'Payment verified successfully'
+      });
     }
 
-    // Direct server-to-server check
+    // Check with gateway
     const cfOrder = await getCashfreeOrderStatus(orderId);
-    console.log(`[VERIFY_GATEWAY_RESPONSE] Status: ${cfOrder.order_status}`);
+    const cfStatus = cfOrder.order_status;
 
-    if (cfOrder.order_status === 'PAID') {
+    if (cfStatus === 'PAID') {
       const updatedOrder = await OrderedItem.findOneAndUpdate(
-        {
-          _id: order._id,
-          paymentVerified: { $ne: true }
-        },
+        { _id: order._id, paymentVerified: { $ne: true } },
         {
           $set: {
             paymentStatus: 'paid',
@@ -65,30 +61,77 @@ export async function GET(req: NextRequest) {
       );
 
       if (updatedOrder) {
-        // Sync to Firestore for real-time UI updates
-
-        // ADD THESE LOGS
-        console.log('[DEBUG_ORDER_ITEMS]', JSON.stringify(updatedOrder.items, null, 2));
         await syncOrderToFirestore(updatedOrder);
-
-        // Remove purchased items from Firestore cart
         await clearCartAfterOrder(updatedOrder.userId, updatedOrder.items);
 
-        // Sync product sales analytics
         for (const item of updatedOrder.items) {
           await KalamicProduct.findByIdAndUpdate(item.productId, {
             $inc: { 'analytics.total_orders': item.quantity }
           });
         }
-        console.log(`[VERIFY_SUCCESS] Order ${orderId} confirmed and cart cleared.`);
-        return NextResponse.json({ success: true, status: 'Confirmed' });
+
+        return NextResponse.json({
+          success: true,
+          paymentVerified: true,
+          paymentStatus: 'paid',
+          paymentId: updatedOrder.paymentId,
+          orderNumber: updatedOrder.orderNumber,
+          orderStatus: updatedOrder.orderStatus,
+          message: 'Payment verified successfully'
+        });
       }
+    } else if (['FAILED', 'CANCELLED', 'USER_DROPPED'].includes(cfStatus)) {
+      const updatedOrder = await OrderedItem.findOneAndUpdate(
+        { _id: order._id },
+        {
+          $set: {
+            paymentStatus: 'failed',
+            paymentVerified: false,
+            orderStatus: 'Cancelled',
+            updatedAt: new Date()
+          }
+        },
+        { new: true }
+      );
+
+      return NextResponse.json({
+        success: true,
+        paymentVerified: false,
+        paymentStatus: 'failed',
+        paymentId: null,
+        orderNumber: updatedOrder?.orderNumber || order.orderNumber,
+        orderStatus: 'Cancelled',
+        message: 'Payment failed or was cancelled'
+      });
     }
 
-    return NextResponse.json({ success: false, status: order.orderStatus });
+    return NextResponse.json({
+      success: true,
+      paymentVerified: order.paymentVerified,
+      paymentStatus: order.paymentStatus,
+      paymentId: order.paymentId || null,
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      message: 'Payment pending verification'
+    });
 
   } catch (error: any) {
-    console.error(`[VERIFY_CRITICAL] ${error.message}`);
+    console.error(`[VERIFY_API_ERROR] ${error.message}`);
     return NextResponse.json({ message: error.message }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const orderId = searchParams.get('orderId');
+  return handleVerify(orderId);
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { orderId } = await req.json();
+    return handleVerify(orderId);
+  } catch {
+    return NextResponse.json({ message: 'Invalid payload' }, { status: 400 });
   }
 }

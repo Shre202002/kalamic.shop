@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -41,8 +40,9 @@ import {
   ShieldCheck, 
   MessageCircle,
   Clock,
-  ArrowRight,
-  Sparkles
+  Sparkles,
+  XCircle,
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -133,7 +133,7 @@ export default function OrderDetailPage() {
     reconcilePayment();
 
     const interval = setInterval(() => {
-      if (['Delivered', 'Canceled'].includes(orderStatusRef.current)) {
+      if (['Delivered', 'Canceled', 'Cancelled'].includes(orderStatusRef.current)) {
         clearInterval(interval);
         return;
       }
@@ -170,10 +170,22 @@ export default function OrderDetailPage() {
     );
   }
 
+  const isPaid = 
+    order?.paymentVerified === true &&
+    order?.paymentStatus === 'paid' &&
+    order?.paymentId != null;
+
+  const isFailed =
+    order?.paymentStatus === 'failed' ||
+    order?.paymentStatus === 'cancelled' ||
+    order?.orderStatus === 'Cancelled' ||
+    order?.orderStatus === 'Canceled';
+
+  const isPending = !isPaid && !isFailed;
+
   const currentStatus = order?.orderStatus || 'Initiated';
   const currentStep = STEPS.indexOf(currentStatus);
-  const isCanceled = currentStatus === 'Canceled';
-  const isPaymentPending = order?.isPaymentPending ?? false;
+  const isCanceled = currentStatus === 'Canceled' || currentStatus === 'Cancelled';
 
   const formatDate = (date: any) => {
     if (!date) return 'TBD';
@@ -212,7 +224,7 @@ export default function OrderDetailPage() {
                   </Typography>
                 </Stack>
               </Box>
-              {!isPaymentPending && (
+              {isPaid && (
                 <Chip 
                   label={currentStatus.toUpperCase()} 
                   sx={{ 
@@ -232,19 +244,48 @@ export default function OrderDetailPage() {
             </Stack>
           </Box>
 
-          {isPaymentPending ? (
+          {isFailed ? (
+            <Paper sx={{ p: { xs: 6, md: 10 }, borderRadius: '4rem', textAlign: 'center', bgcolor: 'white', border: `1px solid ${alpha(theme.palette.error.main, 0.1)}`, boxShadow: `0 20px 60px ${alpha(theme.palette.error.main, 0.05)}` }}>
+              <Stack spacing={4} alignItems="center" sx={{ maxWidth: 500, mx: 'auto' }}>
+                <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <XCircle className="h-10 w-10 text-destructive" />
+                </div>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 900, mb: 2, color: darkTerracotta, fontFamily: 'Playfair Display' }}>Payment Failed</Typography>
+                  <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600, lineHeight: 1.8 }}>
+                    This order was not completed. No amount was charged to your account.
+                  </Typography>
+                </Box>
+                <div className="flex gap-3 justify-center w-full">
+                  <Link href="/cart" className="flex-1">
+                    <Button fullWidth variant="contained" sx={{ height: 56, borderRadius: '1.25rem', fontWeight: 900, bgcolor: primarySaffron }}>
+                      Try Again
+                    </Button>
+                  </Link>
+                  <Link href="/products" className="flex-1">
+                    <Button fullWidth variant="outlined" sx={{ height: 56, borderRadius: '1.25rem', fontWeight: 900, color: primarySaffron, borderColor: primarySaffron }}>
+                      Browse Products
+                    </Button>
+                  </Link>
+                </div>
+              </Stack>
+            </Paper>
+          ) : isPending ? (
             <Paper sx={{ p: { xs: 6, md: 10 }, borderRadius: '4rem', textAlign: 'center', bgcolor: 'white', border: `1px solid ${alpha(primarySaffron, 0.1)}`, boxShadow: `0 20px 60px ${alpha(primarySaffron, 0.05)}` }}>
-              <Stack spacing={4} alignItems="center">
+              <Stack spacing={4} alignItems="center" sx={{ maxWidth: 500, mx: 'auto' }}>
                 <Box sx={{ position: 'relative', display: 'inline-flex' }}>
                   <CircularProgress size={100} sx={{ color: primarySaffron }} thickness={2} />
                   <Box sx={{ top: 0, left: 0, bottom: 0, right: 0, position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Clock size={40} color={primarySaffron} />
+                    <RefreshCw size={40} color={primarySaffron} className="animate-spin" style={{ animationDuration: '3s' }} />
                   </Box>
                 </Box>
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 900, mb: 2, color: darkTerracotta, fontFamily: 'Playfair Display' }}>Reconciling Payment</Typography>
-                  <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto', fontWeight: 600, lineHeight: 1.8 }}>
-                    Your transaction is currently being confirmed by our financial gateway. This dossier will unlock automatically once finalized.
+                  <Typography variant="h4" sx={{ fontWeight: 900, mb: 2, color: darkTerracotta, fontFamily: 'Playfair Display' }}>Payment Confirming</Typography>
+                  <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600, lineHeight: 1.8 }}>
+                    Your transaction is being processed. This page refreshes automatically.
+                  </Typography>
+                  <Typography variant="caption" sx={{ mt: 2, display: 'block', color: 'text.secondary' }}>
+                    Contact <a href="mailto:kalamicshop@gmail.com" style={{ color: primarySaffron, fontWeight: 800 }}>kalamicshop@gmail.com</a> if not resolved in 24 hours.
                   </Typography>
                 </Box>
               </Stack>
@@ -256,34 +297,28 @@ export default function OrderDetailPage() {
                   <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 5, textTransform: 'uppercase', letterSpacing: 2, color: primarySaffron, display: 'flex', alignItems: 'center', gap: 2, fontSize: '0.8rem' }}>
                     <Truck size={22} /> Generational Logistics Path
                   </Typography>
-                  {isCanceled ? (
-                    <Alert severity="error" variant="outlined" sx={{ borderRadius: '2rem', fontWeight: 800, p: 3, borderStyle: 'dashed' }}>
-                      This artisanal acquisition has been canceled and archived.
-                    </Alert>
-                  ) : (
-                    <Box sx={{ width: '100%' }}>
-                      <Stepper 
-                        activeStep={currentStep} 
-                        orientation={isMobile ? "vertical" : "horizontal"}
-                        alternativeLabel={!isMobile}
-                        connector={<ColorlibConnector />}
-                        sx={{ 
-                          '& .MuiStepLabel-label': { fontWeight: 900, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 1, mt: isMobile ? 0 : 2, color: alpha(darkTerracotta, 0.4) },
-                          '& .MuiStepLabel-label.Mui-active': { color: primarySaffron },
-                          '& .MuiStepLabel-label.Mui-completed': { color: theme.palette.success.main },
-                          '& .MuiStepIcon-root': { width: 28, height: 28 },
-                          '& .MuiStepIcon-root.Mui-active': { color: primarySaffron },
-                          '& .MuiStepIcon-root.Mui-completed': { color: theme.palette.success.main },
-                        }}
-                      >
-                        {STEPS.map((label) => (
-                          <Step key={label}>
-                            <StepLabel>{label}</StepLabel>
-                          </Step>
-                        ))}
-                      </Stepper>
-                    </Box>
-                  )}
+                  <Box sx={{ width: '100%' }}>
+                    <Stepper 
+                      activeStep={currentStep} 
+                      orientation={isMobile ? "vertical" : "horizontal"}
+                      alternativeLabel={!isMobile}
+                      connector={<ColorlibConnector />}
+                      sx={{ 
+                        '& .MuiStepLabel-label': { fontWeight: 900, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 1, mt: isMobile ? 0 : 2, color: alpha(darkTerracotta, 0.4) },
+                        '& .MuiStepLabel-label.Mui-active': { color: primarySaffron },
+                        '& .MuiStepLabel-label.Mui-completed': { color: theme.palette.success.main },
+                        '& .MuiStepIcon-root': { width: 28, height: 28 },
+                        '& .MuiStepIcon-root.Mui-active': { color: primarySaffron },
+                        '& .MuiStepIcon-root.Mui-completed': { color: theme.palette.success.main },
+                      }}
+                    >
+                      {STEPS.map((label) => (
+                        <Step key={label}>
+                          <StepLabel>{label}</StepLabel>
+                        </Step>
+                      ))}
+                    </Stepper>
+                  </Box>
                 </Paper>
               </Grid>
 
@@ -341,13 +376,7 @@ export default function OrderDetailPage() {
                           {order?.promoCode && (
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1, color: 'text.secondary' }}>Promo Applied</Typography>
-                              <Chip 
-                                label={order.promoCode} 
-                                variant="outlined" 
-                                color="success" 
-                                size="small" 
-                                sx={{ fontWeight: 900, fontFamily: 'monospace', fontSize: '0.65rem' }} 
-                              />
+                              <Chip label={order.promoCode} variant="outlined" color="success" size="small" sx={{ fontWeight: 900, fontFamily: 'monospace', fontSize: '0.65rem' }} />
                             </Box>
                           )}
                           {order?.paymentVerified && (
@@ -383,16 +412,10 @@ export default function OrderDetailPage() {
                     {order?.promoCode && (
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Box>
-                          <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                            Promo Discount
-                          </Typography>
-                          <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'success.main', fontWeight: 800 }}>
-                            {order.promoCode}
-                          </Typography>
+                          <Typography variant="body2" color="text.secondary" fontWeight={600}>Promo Discount</Typography>
+                          <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'success.main', fontWeight: 800 }}>{order.promoCode}</Typography>
                         </Box>
-                        <Typography variant="body2" fontWeight={800} sx={{ color: 'success.main' }}>
-                          - ₹{order.promoDiscount?.toLocaleString()}
-                        </Typography>
+                        <Typography variant="body2" fontWeight={800} sx={{ color: 'success.main' }}>- ₹{order.promoDiscount?.toLocaleString()}</Typography>
                       </Box>
                     )}
 
@@ -419,7 +442,7 @@ export default function OrderDetailPage() {
                       fullWidth 
                       variant="outlined" 
                       startIcon={<Sparkles size={18} />} 
-                      sx={{ height: 56, borderRadius: '1.5rem', fontWeight: 900, color: primarySaffron, borderColor: primarySaffron, borderSize: 2, textTransform: 'none', '&:hover': { borderSize: 2, bgcolor: alpha(primarySaffron, 0.05) } }} 
+                      sx={{ height: 56, borderRadius: '1.5rem', fontWeight: 900, color: primarySaffron, borderColor: primarySaffron, textTransform: 'none', '&:hover': { bgcolor: alpha(primarySaffron, 0.05) } }} 
                       component={Link} 
                       href="/products"
                     >
