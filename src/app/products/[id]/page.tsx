@@ -73,30 +73,34 @@ export default async function ProductPage({ params }: Props) {
     .filter((p: any) => p.category_id === product.category_id && p._id !== product._id)
     .slice(0, 4);
 
-  // Schema.org JSON-LD for Rich Results (Price, Stock, Rating)
+  // Schema.org JSON-LD for Rich Results (Price, Stock, Rating, Seller)
   const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    "name": product.name,
-    "image": product.images?.map((img: any) => img.url),
-    "description": product.short_description || product.description,
-    "sku": product.sku || product._id,
-    "brand": {
-      "@type": "Brand",
-      "name": "Kalamic"
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    image: product.images?.map((img: any) => img.url),
+    description: product.short_description || product.description,
+    sku: product.sku || product.slug || product._id,
+    brand: {
+      '@type': 'Brand',
+      name: 'Kalamic'
     },
-    "offers": {
-      "@type": "Offer",
-      "url": `https://kalamic.shop/products/${product.slug || product._id}`,
-      "priceCurrency": "INR",
-      "price": product.price,
-      "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      "itemCondition": "https://schema.org/NewCondition"
+    offers: {
+      '@type': 'Offer',
+      url: `https://kalamic.shop/products/${product.slug || product._id}`,
+      priceCurrency: 'INR',
+      price: product.price,
+      availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      itemCondition: 'https://schema.org/NewCondition',
+      seller: {
+        '@type': 'Organization',
+        name: 'Kalamic'
+      }
     },
-    "aggregateRating": product.analytics?.review_count > 0 ? {
-      "@type": "AggregateRating",
-      "ratingValue": product.analytics.average_rating,
-      "reviewCount": product.analytics.review_count
+    aggregateRating: product.analytics?.review_count > 0 ? {
+      '@type': 'AggregateRating',
+      ratingValue: product.analytics.average_rating,
+      reviewCount: product.analytics.review_count
     } : undefined
   };
 
