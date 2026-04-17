@@ -1,7 +1,7 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
   siteUrl: 'https://kalamic.shop',
-  generateRobotsTxt: true, // generates /robots.txt automatically
+  generateRobotsTxt: true,
   changefreq: 'weekly',
   priority: 0.7,
   sitemapSize: 5000,
@@ -21,13 +21,9 @@ module.exports = {
         disallow: ['/auth/', '/checkout/', '/account/', '/admin/', '/api/', '/wishlist'],
       },
     ],
-    additionalSitemaps: [
-      'https://kalamic.shop/sitemap.xml',
-    ],
+    // ✅ REMOVED: additionalSitemaps that was referencing itself (caused 404)
   },
-  // Boost product pages — they're your money pages
   transform: async (config, path) => {
-    // Increase priority for individual product pages
     if (path.startsWith('/products/')) {
       return {
         loc: path,
@@ -36,7 +32,6 @@ module.exports = {
         lastmod: new Date().toISOString(),
       };
     }
-    // Homepage is the top priority
     if (path === '/') {
       return {
         loc: path,
@@ -45,7 +40,6 @@ module.exports = {
         lastmod: new Date().toISOString(),
       };
     }
-    // Default transformation for other pages
     return {
       loc: path,
       changefreq: config.changefreq,
