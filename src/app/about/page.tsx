@@ -235,7 +235,7 @@ export default function AboutPage() {
               <div className="grid grid-cols-2 gap-4 md:gap-6">
                 <div className="space-y-4 md:space-y-6">
                   <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-lg bg-muted">
-                    <Image src="https://ik.imagekit.io/ari07rsa2/kalamic/gallery/images/ceramic-mirror-detailing-1775328958498.webp?updatedAt=1775328960276" alt="Clay shaping" fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" data-ai-hint="clay artisan" />
+                    <Image src="https://ik.imagekit.io/ari07rsa2/kalamic/products/Untitled%20design%20(4).png?updatedAt=1773228516337" alt="Clay shaping" fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" data-ai-hint="clay artisan" />
                   </div>
                   <div className="relative w-full aspect-[3/4] rounded-[2rem] overflow-hidden shadow-lg bg-muted">
                     <Image src="https://ik.imagekit.io/ari07rsa2/kalamic/gallery/images/best-custom-made-ceramic-photoframe-1775330537002.webp?updatedAt=1775330539210" alt="Detailed carving" fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" data-ai-hint="pottery detail" />
@@ -340,7 +340,7 @@ export default function AboutPage() {
                 </div>
               </motion.div>
               <div className="relative w-full aspect-video md:aspect-square lg:aspect-video rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white bg-muted">
-                <Image src="https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?q=80&w=1000" alt="Artisan working on a pottery wheel" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" data-ai-hint="pottery wheel" />
+                <Image src="https://ik.imagekit.io/ari07rsa2/kalamic/gallery/images/kalamic--best-cyramic-home-decore-1773224498903.webp?updatedAt=1773224501007" alt="Artisan working on a pottery wheel" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" data-ai-hint="pottery wheel" />
               </div>
             </div>
           </div>
