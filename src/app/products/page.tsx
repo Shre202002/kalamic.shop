@@ -1,3 +1,4 @@
+
 import { getProducts } from '@/lib/actions/products';
 import ProductsClient from './ProductsClient';
 import { ProductGridSkeleton } from './ProductGridSkeleton';
@@ -5,11 +6,12 @@ import { Suspense } from 'react';
 import { Metadata } from 'next';
 
 /**
- * @fileOverview Products Archive.
- * Leverages ISR and Server Components for superior performance metrics.
+ * @fileOverview Products Archive Server Component.
+ * Leverages ISR for superior performance and crawlability.
  */
 
-export const revalidate = 60; // ISR: Revalidate every 60 seconds
+// Re-generate page cache every hour
+export const revalidate = 3600; 
 
 const categoryMeta: Record<string, { title: string; description: string }> = {
   'wall-art': {
@@ -63,6 +65,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function ProductsPage({ searchParams }: Props) {
   const { category } = await searchParams;
+  
+  // Data fetch happens on the server to ensure crawlers see the full list
   const products = await getProducts({ category });
 
   return (
