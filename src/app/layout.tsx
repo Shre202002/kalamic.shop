@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import React from 'react';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
@@ -6,23 +6,9 @@ import { TopLoader } from '@/components/layout/TopLoader';
 import { SurveyPopup } from '@/components/survey/SurveyPopup';
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from 'next/script';
+import { metadata, LocalBusinessJsonLd } from './layout.metadata';
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://kalamic.shop'),
-  title: {
-    default: 'Kalamic | Handcrafted Ceramic Artistry',
-    template: '%s | Kalamic',
-  },
-  description: 'Discover Kalamic - your home for premium handmade ceramics, from spiritual pillars to modern home decor. Handcrafted with love in India.',
-  keywords: ['handmade ceramics', 'Indian handicraft', 'ceramic art', 'Kalamic shop', 'Mor Stambh', 'Mandala wheels'],
-  openGraph: {
-    title: 'Kalamic | Handcrafted Ceramic Artistry',
-    description: 'Modern ceramic art for the next generation.',
-    siteName: 'Kalamic',
-    locale: 'en_IN',
-    type: 'website',
-  }
-};
+export { metadata };
 
 export default function RootLayout({
   children,
@@ -62,6 +48,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body className="font-body antialiased selection:bg-accent/30 min-h-screen flex flex-col" suppressHydrationWarning>
+        <LocalBusinessJsonLd />
         <FirebaseClientProvider>
           <TopLoader />
           {children}
