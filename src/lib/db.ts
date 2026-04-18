@@ -1,3 +1,4 @@
+
 import mongoose from 'mongoose';
 
 /**
@@ -8,7 +9,7 @@ import mongoose from 'mongoose';
 const MONGODB_URI = process.env.MONGODB_URI!;
 
 if (!MONGODB_URI) {
-  console.warn('[DB_WARNING] MONGODB_URI is not defined in environment variables.');
+  console.warn('[DB_WARNING] MONGODB_URI is not defined in environment variables. Database operations will fail.');
 }
 
 // Global caching to prevent connection leaks during Next.js Hot Module Replacement (HMR)
@@ -19,7 +20,10 @@ if (!cached) {
 }
 
 async function dbConnect() {
-  if (!MONGODB_URI) return null;
+  if (!MONGODB_URI) {
+    console.error('[DB_ERROR] MONGODB_URI is missing. Please add it to your environment variables.');
+    return null;
+  }
 
   if (cached.conn) {
     return cached.conn;

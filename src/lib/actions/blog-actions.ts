@@ -15,30 +15,35 @@ export async function getPublishedBlogs(options?: {
   return unstable_cache(
     async () => {
       await dbConnect();
-      const query: any = { status: 'published' };
-      
-      if (options?.category && options.category !== 'All') {
-        query.category = options.category;
-      }
-      
-      if (options?.tag) {
-        query.tags = options.tag;
-      }
-      
-      if (options?.featured) {
-        query.isFeatured = true;
-      }
-      
-      if (options?.excludeSlug) {
-        query.slug = { $ne: options.excludeSlug };
-      }
-
-      const blogs = await BlogPost.find(query)
-        .sort({ publishedAt: -1 })
-        .limit(options?.limit || 100)
-        .lean();
+      try {
+        const query: any = { status: 'published' };
         
-      return JSON.parse(JSON.stringify(blogs));
+        if (options?.category && options.category !== 'All') {
+          query.category = options.category;
+        }
+        
+        if (options?.tag) {
+          query.tags = options.tag;
+        }
+        
+        if (options?.featured) {
+          query.isFeatured = true;
+        }
+        
+        if (options?.excludeSlug) {
+          query.slug = { $ne: options.excludeSlug };
+        }
+
+        const blogs = await BlogPost.find(query)
+          .sort({ publishedAt: -1 })
+          .limit(options?.limit || 100)
+          .lean();
+          
+        return JSON.parse(JSON.stringify(blogs));
+      } catch (e) {
+        console.error("[BLOG_ACTIONS] getPublishedBlogs error:", e);
+        return [];
+      }
     },
     ['published-blogs', JSON.stringify(options)],
     { revalidate: 60, tags: ['blogs'] }
@@ -56,6 +61,7 @@ export async function getBlogBySlug(slug: string) {
     
     return blog ? JSON.parse(JSON.stringify(blog)) : null;
   } catch (error) {
+    console.error("[BLOG_ACTIONS] getBlogBySlug error:", error);
     return null;
   }
 }
@@ -73,10 +79,11 @@ export async function getSuggestedBlogs(currentSlug: string, tags: string[], lim
     .lean();
 
     if (suggested.length < limit) {
+      const existingIds = suggested.map(s => s._id);
       const more = await BlogPost.find({
         status: 'published',
         slug: { $ne: currentSlug },
-        _id: { $趕ne: suggested.map(s => s._id) }
+        _id: { $nin: existingIds }
       })
       .sort({ publishedAt: -1 })
       .limit(limit - suggested.length)
@@ -86,6 +93,7 @@ export async function getSuggestedBlogs(currentSlug: string, tags: string[], lim
 
     return JSON.parse(JSON.stringify(suggested));
   } catch (error) {
+    console.error("[BLOG_ACTIONS] getSuggestedBlogs error:", error);
     return [];
   }
 }
@@ -93,15 +101,20 @@ export async function getSuggestedBlogs(currentSlug: string, tags: string[], lim
 export async function getFeaturedBlogs(limit = 3) {
   return unstable_cache(
     async () => {
-      await dbConnect();
-      const blogs = await BlogPost.find({
-        status: 'published',
-        isFeatured: true
-      })
-      .sort({ publishedAt: -1 })
-      .limit(limit)
-      .lean();
-      return JSON.parse(JSON.stringify(blogs));
+      try {
+        await dbConnect();
+        const blogs = await BlogPost.find({
+          status: 'published',
+          isFeatured: true
+        })
+        .sort({ publishedAt: -1 })
+        .limit(limit)
+        .lean();
+        return JSON.parse(JSON.stringify(blogs));
+      } catch (e) {
+        console.error("[BLOG_ACTIONS] getFeaturedBlogs error:", e);
+        return [];
+      }
     },
     ['featured-blogs', limit],
     { revalidate: 300, tags: ['blogs'] }
@@ -110,6 +123,10 @@ export async function getFeaturedBlogs(limit = 3) {
 
 export async function getAllBlogSlugs() {
   await dbConnect();
-  const blogs = await BlogPost.find({ status: 'published' }).select('slug updatedAt').lean();
-  return JSON.parse(JSON.stringify(blogs));
+  try {
+    const blogs = await BlogPost.find({ status: 'published' }).select('slug updatedAt').lean();
+    return JSON.parse(JSON.stringify(blogs));
+  } catch (e) {
+    return [];
+  }
 }

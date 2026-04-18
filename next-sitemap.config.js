@@ -17,14 +17,8 @@ module.exports = {
     policies: [
       {
         userAgent: '*',
-        allow: '/',
-        disallow: ['/auth/', '/checkout/', '/account/', '/admin/', '/api/'],
-      },
-      // ✅ Allow the feed specifically
-      {
-        userAgent: 'Googlebot',
         allow: ['/api/feed/'],
-        disallow: ['/auth/', '/checkout/', '/account/', '/admin/'],
+        disallow: ['/auth/', '/checkout/', '/account/', '/admin/', '/api/', '/wishlist'],
       },
     ],
   },

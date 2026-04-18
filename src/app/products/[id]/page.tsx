@@ -23,10 +23,16 @@ interface Props {
  * Generate static paths for all products at build time for maximum performance.
  */
 export async function generateStaticParams() {
-  const products = await getProducts();
-  return products.map((product: any) => ({
-    id: product.slug || product._id,
-  }));
+  try {
+    const products = await getProducts();
+    if (!products) return [];
+    return products.map((product: any) => ({
+      id: (product.slug || product._id).toString(),
+    }));
+  } catch (e) {
+    console.error("[PRODUCT_SSR] Static Params error:", e);
+    return [];
+  }
 }
 
 /**
@@ -38,6 +44,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   
   if (!product) return { title: 'Piece Not Found | Kalamic' };
 
+  const imageUrl = Array.isArray(product.images) 
+    ? (product.images.find((i: any) => i.is_primary)?.url || product.images[0]?.url)
+    : '';
+
   return {
     title: `${product.name} | Kalamic`,
     description: product.seo?.meta_description || product.short_description || product.description.substring(0, 160),
@@ -46,7 +56,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${product.name} | Handcrafted Ceramic Artistry`,
       description: product.short_description || product.description.substring(0, 160),
       type: 'website',
-      images: [{ url: product.images?.find((i: any) => i.is_primary)?.url || product.images?.[0]?.url }],
+      images: imageUrl ? [{ url: imageUrl }] : [],
     },
     alternates: {
       canonical: `https://kalamic.shop/products/${product.slug || product._id}`
@@ -70,7 +80,7 @@ export default async function ProductPage({ params }: Props) {
 
   // Filter related products
   const relatedProducts = allProducts
-    .filter((p: any) => p.category_id === product.category_id && p._id !== product._id)
+    .filter((p: any) => p.category_id?.toString() === product.category_id?.toString() && p._id?.toString() !== product._id?.toString())
     .slice(0, 4);
 
   // Schema.org JSON-LD for Rich Results (Price, Stock, Rating, Seller)
@@ -78,9 +88,9 @@ export default async function ProductPage({ params }: Props) {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
-    image: product.images?.map((img: any) => img.url),
+    image: Array.isArray(product.images) ? product.images.map((img: any) => img.url) : [],
     description: product.short_description || product.description,
-    sku: product.sku || product.slug || product._id,
+    sku: product.sku || product.slug || product._id.toString(),
     brand: {
       '@type': 'Brand',
       name: 'Kalamic'
