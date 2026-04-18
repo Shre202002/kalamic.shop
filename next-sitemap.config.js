@@ -18,10 +18,15 @@ module.exports = {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/auth/', '/checkout/', '/account/', '/admin/', '/api/', '/wishlist'],
+        disallow: ['/auth/', '/checkout/', '/account/', '/admin/', '/api/'],
+      },
+      // ✅ Allow the feed specifically
+      {
+        userAgent: 'Googlebot',
+        allow: ['/api/feed/'],
+        disallow: ['/auth/', '/checkout/', '/account/', '/admin/'],
       },
     ],
-    // ✅ REMOVED: additionalSitemaps that was referencing itself (caused 404)
   },
   transform: async (config, path) => {
     if (path.startsWith('/products/')) {
