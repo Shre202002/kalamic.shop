@@ -1,15 +1,12 @@
-# *
-User-agent: *
-Allow: /
+User-Agent: *
+Allow: /api/feed/
+Disallow: /api/
+Disallow: /admin/
 Disallow: /auth/
 Disallow: /checkout/
-Disallow: /account/
-Disallow: /admin/
-Disallow: /api/
-Disallow: /wishlist
+Disallow: /profile/
+Disallow: /cart/
+Disallow: /wishlist/
 
-# Host
 Host: https://kalamic.shop
-
-# Sitemaps
 Sitemap: https://kalamic.shop/sitemap.xml
