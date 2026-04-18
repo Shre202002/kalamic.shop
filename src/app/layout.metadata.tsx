@@ -8,7 +8,7 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   metadataBase: new URL('https://kalamic.shop'),
   title: {
-    default: 'Handcrafted Ceramic Artistry in India | Kalamic',
+    default: "Handcrafted Ceramic Home Decor | Kalamic — Made in Kanpur, India",
     template: '%s | Kalamic',
   },
   description: 'Shop premium handcrafted ceramics including traditional Mor Stambh pillars, mandala wall art, and custom home decor. Made by master artisans in Kanpur, India.',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     'Kalamic shop'
   ],
   openGraph: {
-    title: 'Handcrafted Ceramic Artistry in India | Kalamic',
+    title: "Handcrafted Ceramic Home Decor | Kalamic — Made in Kanpur, India",
     description: 'Bespoke ceramic treasures for modern homes, rooted in Indian heritage.',
     url: 'https://kalamic.shop',
     siteName: 'Kalamic',
@@ -40,12 +40,17 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Handcrafted Ceramic Artistry in India | Kalamic',
+    title: "Handcrafted Ceramic Home Decor | Kalamic — Made in Kanpur, India",
     description: 'Earthy, intentional, and unique ceramic pieces for your space.',
   },
   alternates: {
     canonical: 'https://kalamic.shop',
   },
+
+  verification: {
+    google:"QigR6xvzIwr05ex0jqejL0EbHZsR3l7LophSQkCHbvQ",
+  }
+
 };
 
 /**
