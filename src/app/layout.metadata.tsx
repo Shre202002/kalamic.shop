@@ -22,6 +22,9 @@ export const metadata: Metadata = {
     'Kanpur artisans',
     'Kalamic shop'
   ],
+  icons: {
+    icon: '/favicon.ico',
+  },
   openGraph: {
     title: "Handcrafted Ceramic Home Decor | Kalamic — Made in Kanpur, India",
     description: 'Bespoke ceramic treasures for modern homes, rooted in Indian heritage.',
@@ -46,11 +49,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://kalamic.shop',
   },
-
   verification: {
-    google:"QigR6xvzIwr05ex0jqejL0EbHZsR3l7LophSQkCHbvQ",
+    google: "QigR6xvzIwr05ex0jqejL0EbHZsR3l7LophSQkCHbvQ",
   }
-
 };
 
 /**

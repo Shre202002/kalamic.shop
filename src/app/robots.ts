@@ -1,24 +1,5 @@
-import { MetadataRoute } from 'next';
-
-/**
- * @fileOverview Standard robots.txt configuration for Kalamic.
- * Ensures crawlers find the correct XML sitemap and avoid restricted areas.
- */
-
-export default function robots(): MetadataRoute.Robots {
-  return {
-    rules: {
-      userAgent: '*',
-      allow: '/',
-      disallow: [
-        '/admin/',
-        '/api/',
-        '/profile/',
-        '/cart/',
-        '/checkout/'
-      ],
-    },
-    sitemap: 'https://kalamic.shop/sitemap.xml',
-    host: 'https://kalamic.shop',
-};
+// This file is removed to prevent conflict with next-sitemap static generation.
+// next-sitemap handles robots.txt and sitemap.xml generation in the public folder.
+export default function robots() {
+  return null;
 }

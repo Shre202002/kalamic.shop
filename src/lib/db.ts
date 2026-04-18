@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 
 /**
@@ -6,10 +5,10 @@ import mongoose from 'mongoose';
  * Optimized for Next.js Server Components and high-concurrency environments.
  */
 
-const MONGODB_URI = process.env.MONGODB_URI!;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-  console.warn('[DB_WARNING] MONGODB_URI is not defined in environment variables. Database operations will fail.');
+if (!MONGODB_URI && process.env.NODE_ENV === 'production') {
+  console.error('[DB_ERROR] MONGODB_URI is not defined in environment variables.');
 }
 
 // Global caching to prevent connection leaks during Next.js Hot Module Replacement (HMR)
@@ -21,7 +20,9 @@ if (!cached) {
 
 async function dbConnect() {
   if (!MONGODB_URI) {
-    console.error('[DB_ERROR] MONGODB_URI is missing. Please add it to your environment variables.');
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[DB_WAIT] Waiting for MONGODB_URI to be configured...');
+    }
     return null;
   }
 
