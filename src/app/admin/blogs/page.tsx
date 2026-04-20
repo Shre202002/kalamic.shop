@@ -455,7 +455,31 @@ export default function BlogStudio() {
                         suppressContentEditableWarning
                         dangerouslySetInnerHTML={{ __html: formData.content }}
                         onInput={(e) => setFormData({ ...formData, content: e.currentTarget.innerHTML })}
-                        sx={{ p: 4, minHeight: 400, bgcolor: 'white', outline: 'none', '& img': { width: '100%', height: 'auto', borderRadius: 4, my: 4 } }}
+                        sx={{ 
+                          p: 4, 
+                          minHeight: 500, 
+                          bgcolor: 'white', 
+                          outline: 'none',
+                          '& h1': { fontSize: '2.2rem', fontWeight: 900, margin: '1.5rem 0 0.75rem', lineHeight: 1.2, fontFamily: 'inherit' },
+                          '& h2': { fontSize: '1.7rem', fontWeight: 800, margin: '1.4rem 0 0.6rem', lineHeight: 1.25 },
+                          '& h3': { fontSize: '1.35rem', fontWeight: 700, margin: '1.2rem 0 0.5rem' },
+                          '& h4': { fontSize: '1.1rem', fontWeight: 700, margin: '1rem 0 0.4rem' },
+                          '& p': { fontSize: '1rem', lineHeight: 1.8, margin: '0.75rem 0', color: '#333' },
+                          '& ul': { listStyle: 'disc', paddingLeft: '1.75rem', margin: '1rem 0' },
+                          '& ol': { listStyle: 'decimal', paddingLeft: '1.75rem', margin: '1rem 0' },
+                          '& li': { fontSize: '1rem', lineHeight: 1.7, margin: '0.35rem 0' },
+                          '& blockquote': { borderLeft: '4px solid #C17D3C', padding: '0.75rem 1.25rem', margin: '1.5rem 0', background: '#FDF6EE', borderRadius: '0 0.75rem 0.75rem 0', fontStyle: 'italic', color: '#5a3e28' },
+                          '& strong': { fontWeight: 800 },
+                          '& em': { fontStyle: 'italic' },
+                          '& a': { color: '#C17D3C', textDecoration: 'underline' },
+                          '& hr': { border: 'none', borderTop: '2px solid #e5e0d8', margin: '2rem 0' },
+                          '& img': { maxWidth: '100%', height: 'auto', borderRadius: '1rem', margin: '1.5rem 0' },
+                          '& code': { background: '#f3ede4', padding: '0.15rem 0.4rem', borderRadius: '0.3rem', fontFamily: 'monospace', fontSize: '0.9rem' },
+                          '& pre': { background: '#1e1e1e', color: '#f8f8f2', padding: '1.25rem', borderRadius: '0.75rem', overflowX: 'auto', fontSize: '0.875rem' },
+                          '& table': { width: '100%', borderCollapse: 'collapse', margin: '1.5rem 0' },
+                          '& th': { background: '#f3ede4', fontWeight: 800, padding: '0.75rem 1rem', border: '1px solid #e0d8cc', textAlign: 'left' },
+                          '& td': { padding: '0.65rem 1rem', border: '1px solid #e0d8cc' }
+                        }}
                       />
                     ) : (
                       <TextField fullWidth multiline minRows={20} value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} sx={{ '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, '& textarea': { fontFamily: 'monospace' } }} />
@@ -470,7 +494,12 @@ export default function BlogStudio() {
                   <LinearProgress variant="determinate" value={seoScore} sx={{ height: 10, borderRadius: 5, my: 2 }} color={seoScore < 50 ? 'error' : 'success'} />
                   <List>
                     {seoChecks.map((c, i) => (
-                      <ListItem key={i}><ListItemIcon>{c.pass ? <CheckCircle color="success" /> : <XCircle color="error" />}</ListItemIcon><ListItemText primary={c.label} secondary={c.tip} /></ListItem>
+                      <ListItem key={i}>
+                        <ListItemIcon>
+                          {c.pass ? <CheckCircle color="success" /> : <XCircle color="error" />}
+                        </ListItemIcon>
+                        <ListItemText primary={c.label} secondary={c.tip} />
+                      </ListItem>
                     ))}
                   </List>
                 </Paper>
