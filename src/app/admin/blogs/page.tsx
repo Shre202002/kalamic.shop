@@ -8,7 +8,7 @@ import {
   IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
   Tabs, Tab, Switch, FormControlLabel, Avatar, LinearProgress,
   Tooltip, CircularProgress, Container, Accordion, AccordionSummary, AccordionDetails,
-  Popover, List, ListItem, ListItemAvatar, ListItemText, Divider
+  Popover, List, ListItem, ListItemAvatar, ListItemIcon, ListItemText, Divider
 } from '@mui/material';
 import {
   Add, Edit, Delete, Visibility, Star, StarBorder, CloudUpload,
@@ -700,7 +700,7 @@ export default function BlogStudio() {
                       {seoChecks.map((check, i) => (
                         <ListItem key={i} sx={{ px: 0, py: 0.5 }}>
                           <ListItemIcon sx={{ minWidth: 32 }}>
-                            {check.pass ? <CheckCircle color="success" sx={{ fontSize: 18 }} /> : <XCircle color="error" sx={{ fontSize: 18 }} />}
+                            {check.pass ? <CheckCircle color="success" sx={{ fontSize: 18 }} /> : <Close color="error" sx={{ fontSize: 18 }} />}
                           </ListItemIcon>
                           <ListItemText 
                             primary={<Typography variant="body2" fontWeight={700}>{check.label}</Typography>}
@@ -922,6 +922,3 @@ export default function BlogStudio() {
   );
 }
 
-function XCircle({ color, sx }: any) {
-  return <Close sx={{ color: color === 'error' ? 'error.main' : 'inherit', ...sx }} />;
-}
