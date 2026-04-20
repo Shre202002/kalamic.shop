@@ -62,6 +62,10 @@ export default function BlogStudio() {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [savedDraft, setSavedDraft] = useState<any>(null);
 
+  // Layout selection state for Gallery Picker
+  const [pendingGalleryImage, setPendingGalleryImage] = useState<any>(null);
+  const [galleryImageLayout, setGalleryImageLayout] = useState<'full' | 'float' | 'center'>('full');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const visualEditorRef = useRef<HTMLDivElement>(null);
 
@@ -261,7 +265,9 @@ export default function BlogStudio() {
       if (isCover) {
         setFormData({ ...formData, coverImage: { url: result.url, alt: formData.title } });
       } else {
-        insertAtCursor(`<img src="${result.url}" class="rounded-2xl shadow-lg my-8 w-full h-auto" />`);
+        // Use responsive wrapper with inline styles for inline content images
+        const responsiveHTML = `<div class="blog-image-wrapper" style="width:100%;margin:2.5rem 0;display:flex;justify-content:center;"><img src="${result.url}" alt="${formData.title || 'Artisan image'}" style="width:100%;height:auto;max-width:100%;border-radius:1rem;display:block;box-shadow:0 8px 32px rgba(0,0,0,0.12);" /></div>`;
+        insertAtCursor(responsiveHTML);
       }
       loadGallery();
     } catch (e) {
@@ -269,6 +275,26 @@ export default function BlogStudio() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleInsertGalleryImage = () => {
+    if (!pendingGalleryImage) return;
+
+    let html = '';
+    const { url, altText } = pendingGalleryImage;
+    const baseImgStyle = "width:100%;height:auto;max-width:100%;border-radius:1rem;display:block;box-shadow:0 8px 32px rgba(0,0,0,0.12);";
+
+    if (galleryImageLayout === 'full') {
+      html = `<div class="blog-image-wrapper" style="width:100%;margin:2.5rem 0;display:flex;justify-content:center;"><img src="${url}" alt="${altText}" style="${baseImgStyle}" /></div>`;
+    } else if (galleryImageLayout === 'float') {
+      html = `<div class="blog-image-wrapper" style="width:45%;float:right;margin:1rem 0 1.5rem 2rem;display:block;"><img src="${url}" alt="${altText}" style="${baseImgStyle.replace('8px 32px', '6px 24px')}" /></div>`;
+    } else if (galleryImageLayout === 'center') {
+      html = `<div class="blog-image-wrapper" style="width:70%;margin:3.5rem auto;display:flex;justify-content:center;"><img src="${url}" alt="${altText}" style="${baseImgStyle.replace('1rem', '1.5rem').replace('8px 32px', '12px 48px')};border:1px solid rgba(0,0,0,0.05);" /></div>`;
+    }
+
+    insertAtCursor(html);
+    setPendingGalleryImage(null);
+    setShowGalleryPicker(false);
   };
 
   const seoChecks = useMemo(() => {
@@ -460,26 +486,89 @@ export default function BlogStudio() {
       </Dialog>
 
       {/* Gallery Picker */}
-      <Dialog open={showGalleryPicker} onClose={() => setShowGalleryPicker(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 900 }}>Artisan Gallery</DialogTitle>
+      <Dialog open={showGalleryPicker} onClose={() => { setShowGalleryPicker(false); setPendingGalleryImage(null); }} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 900 }}>
+          {pendingGalleryImage ? 'Configure Image Layout' : 'Artisan Gallery'}
+        </DialogTitle>
         <DialogContent dividers>
-          <Grid container spacing={2}>
-            {galleryItems.map((item) => (
-              <Grid item xs={6} sm={3} key={item._id}>
-                <Box sx={{ position: 'relative', aspectRatio: '1/1', cursor: 'pointer', borderRadius: 2, overflow: 'hidden' }} onClick={() => {
-                  if (activeTab === 0 && editorMode === 'visual') {
-                    insertAtCursor(`<img src="${item.url}" alt="${item.altText}" class="w-full h-auto rounded-xl my-6" />`);
-                  } else {
-                    setFormData({ ...formData, coverImage: { url: item.url, alt: item.altText } });
-                  }
-                  setShowGalleryPicker(false);
-                }}>
-                  <Image src={item.url} alt={item.altText} fill className="object-cover" />
-                </Box>
+          {!pendingGalleryImage ? (
+            <Grid container spacing={2}>
+              {galleryItems.map((item) => (
+                <Grid item xs={6} sm={3} key={item._id}>
+                  <Box 
+                    sx={{ position: 'relative', aspectRatio: '1/1', cursor: 'pointer', borderRadius: 2, overflow: 'hidden', border: '2px solid transparent', '&:hover': { borderColor: 'primary.main' } }} 
+                    onClick={() => {
+                      if (activeTab === 0 && editorMode === 'visual') {
+                        setPendingGalleryImage(item);
+                      } else {
+                        setFormData({ ...formData, coverImage: { url: item.url, alt: item.altText } });
+                        setShowGalleryPicker(false);
+                      }
+                    }}
+                  >
+                    <Image src={item.url} alt={item.altText} fill className="object-cover" />
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Box sx={{ py: 2 }}>
+              <Grid container spacing={4} alignItems="center">
+                <Grid item xs={12} md={5}>
+                   <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 3, overflow: 'hidden', boxShadow: 3 }}>
+                      <Image src={pendingGalleryImage.url} alt={pendingGalleryImage.altText} fill className="object-cover" />
+                   </Box>
+                   <Typography variant="caption" sx={{ mt: 2, display: 'block', textAlign: 'center', fontWeight: 700 }}>
+                     Preview: {pendingGalleryImage.name}
+                   </Typography>
+                </Grid>
+                <Grid item xs={12} md={7}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 3 }}>Choose Article Placement:</Typography>
+                  <Stack spacing={2}>
+                    {[
+                      { id: 'full', label: 'Full Width (100%)', icon: <ViewColumn />, desc: 'Spans across the entire content width. Best for landscape shots.' },
+                      { id: 'float', label: 'Floating Right (45%)', icon: <ViewWeek />, desc: 'Text wraps around the image. Best for portrait shots on desktop.' },
+                      { id: 'center', label: 'Centered Highlight (70%)', icon: <HorizontalRule />, desc: 'Focused centerpiece with extra breathing room and shadow.' },
+                    ].map((opt) => (
+                      <Paper 
+                        key={opt.id}
+                        variant="outlined"
+                        onClick={() => setGalleryImageLayout(opt.id as any)}
+                        sx={{ 
+                          p: 2, cursor: 'pointer', borderRadius: 3, 
+                          transition: 'all 0.2s',
+                          borderColor: galleryImageLayout === opt.id ? 'primary.main' : 'divider',
+                          bgcolor: galleryImageLayout === opt.id ? alpha('#EA781E', 0.05) : 'transparent',
+                          '&:hover': { bgcolor: alpha('#EA781E', 0.02) }
+                        }}
+                      >
+                        <Stack direction="row" spacing={2} alignItems="center">
+                          <Box sx={{ color: galleryImageLayout === opt.id ? 'primary.main' : 'text.disabled' }}>{opt.icon}</Box>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 800 }}>{opt.label}</Typography>
+                            <Typography variant="caption" color="text.secondary">{opt.desc}</Typography>
+                          </Box>
+                        </Stack>
+                      </Paper>
+                    ))}
+                  </Stack>
+                </Grid>
               </Grid>
-            ))}
-          </Grid>
+            </Box>
+          )}
         </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          {pendingGalleryImage ? (
+            <>
+              <Button onClick={() => setPendingGalleryImage(null)}>Back to Gallery</Button>
+              <Button variant="contained" onClick={handleInsertGalleryImage} sx={{ borderRadius: 2, fontWeight: 900, px: 4 }}>
+                Insert into Article
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setShowGalleryPicker(false)}>Cancel</Button>
+          )}
+        </DialogActions>
       </Dialog>
 
       {/* Product Picker */}
