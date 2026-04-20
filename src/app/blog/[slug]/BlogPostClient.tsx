@@ -109,9 +109,15 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
       <div className="container mx-auto px-4 md:px-6 max-w-7xl py-12 md:py-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
           <main className="lg:col-span-8">
-            <article className="prose prose-base sm:prose-lg md:prose-xl prose-stone max-w-none prose-img:rounded-2xl prose-img:shadow-xl">
-              <div dangerouslySetInnerHTML={{ __html: post.content }} />
-            </article>
+            <article 
+              className="prose prose-lg md:prose-xl prose-stone max-w-none 
+                         prose-headings:font-display prose-headings:font-black 
+                         prose-a:text-primary prose-img:rounded-2xl prose-img:shadow-xl
+                         prose-blockquote:border-primary prose-blockquote:bg-primary/5 
+                         prose-blockquote:rounded-r-2xl prose-code:bg-primary/10 
+                         prose-code:text-primary prose-strong:text-foreground"
+              dangerouslySetInnerHTML={{ __html: post.content }} 
+            />
 
             {/* Comments System */}
             <section className="mt-20 md:mt-32 pt-12 border-t border-primary/10">

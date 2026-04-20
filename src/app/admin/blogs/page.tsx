@@ -8,7 +8,8 @@ import {
   IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
   Tabs, Tab, Switch, FormControlLabel, LinearProgress,
   Tooltip, CircularProgress, Container, Accordion, AccordionSummary, AccordionDetails,
-  Popover, List, ListItem, ListItemAvatar, ListItemIcon, ListItemText, Divider
+  Popover, List, ListItem, ListItemAvatar, ListItemIcon, ListItemText, Divider,
+  Menu, ToggleButton, ToggleButtonGroup
 } from '@mui/material';
 import {
   Add, Edit, Delete, CloudUpload,
@@ -16,7 +17,8 @@ import {
   FormatQuote, AddPhotoAlternate,
   Title, ExpandMore, Code as CodeIcon, EditNote, 
   HorizontalRule, ViewColumn, ViewWeek, Info, Warning, CheckCircle, Error as XCircle,
-  PhotoLibrary
+  PhotoLibrary, FormatListBulleted, FormatListNumbered, Link as LinkIcon,
+  FormatUnderlined, StrikethroughS, FormatClear, ViewQuilt, Message
 } from '@mui/icons-material';
 import { Copy, Package, Image as ImageIcon } from 'lucide-react';
 import { useUser } from '@/firebase';
@@ -66,6 +68,9 @@ export default function BlogStudio() {
   // Layout selection state for Gallery Picker
   const [pendingGalleryImage, setPendingGalleryImage] = useState<any>(null);
   const [galleryImageLayout, setGalleryImageLayout] = useState<'full' | 'float' | 'center'>('full');
+
+  // Callout Menu State
+  const [calloutAnchorEl, setCalloutAnchorEl] = useState<null | HTMLElement>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const visualEditorRef = useRef<HTMLDivElement>(null);
@@ -189,7 +194,6 @@ export default function BlogStudio() {
         sel.removeAllRanges();
         sel.addRange(range);
       } else {
-        // Fallback: append to end
         visualEditorRef.current.innerHTML += html;
       }
       setFormData((prev: any) => ({
@@ -199,6 +203,17 @@ export default function BlogStudio() {
     } else {
       const currentContent = formData.content || '';
       setFormData((prev: any) => ({ ...prev, content: currentContent + html }));
+    }
+  };
+
+  const execFormatting = (command: string, value: string = '') => {
+    if (editorMode !== 'visual') return;
+    document.execCommand(command, false, value);
+    if (visualEditorRef.current) {
+      setFormData((prev: any) => ({
+        ...prev,
+        content: visualEditorRef.current!.innerHTML
+      }));
     }
   };
 
@@ -215,6 +230,16 @@ export default function BlogStudio() {
 
     setIsSaving(true);
     try {
+      // Sanitization Pass
+      const cleanContent = DOMPurify.sanitize(formData.content, {
+        ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','p','ul','ol','li',
+          'blockquote','strong','em','u','s','a','img','div','span',
+          'hr','table','thead','tbody','tr','th','td','code','pre','br'],
+        ALLOWED_ATTR: ['href','src','alt','class','style','target','rel',
+          'width','height','id'],
+        FORCE_BODY: true
+      });
+
       // Slug uniqueness check
       let finalSlug = formData.slug;
       const slugCheckUrl = `/api/admin/blogs/check-slug?slug=${encodeURIComponent(finalSlug)}${formData._id ? `&excludeId=${formData._id}` : ''}`;
@@ -234,6 +259,7 @@ export default function BlogStudio() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           ...formData, 
+          content: cleanContent,
           slug: finalSlug,
           adminId: user.uid,
           scheduledAt: formData.scheduledAt || null
@@ -282,7 +308,6 @@ export default function BlogStudio() {
       if (isCover) {
         setFormData({ ...formData, coverImage: { url: result.url, alt: formData.title } });
       } else {
-        // Use responsive wrapper with inline styles for inline content images
         const responsiveHTML = `<div class="blog-image-wrapper" style="width:100%;margin:2.5rem 0;display:flex;justify-content:center;"><img src="${result.url}" alt="${formData.title || 'Artisan image'}" style="width:100%;height:auto;max-width:100%;border-radius:1rem;display:block;box-shadow:0 8px 32px rgba(0,0,0,0.12);" /></div>`;
         insertAtCursor(responsiveHTML);
       }
@@ -312,6 +337,34 @@ export default function BlogStudio() {
     insertAtCursor(html);
     setPendingGalleryImage(null);
     setShowGalleryPicker(false);
+  };
+
+  const insertCallout = (type: 'info' | 'warning' | 'success' | 'error') => {
+    const configs = {
+      info: { bg: '#EFF6FF', border: '#BFDBFE', title: 'Info', titleColor: '#1D4ED8', textColor: '#1E40AF' },
+      warning: { bg: '#FFFBEB', border: '#FEF3C7', title: 'Note', titleColor: '#B45309', textColor: '#92400E' },
+      success: { bg: '#F0FDF4', border: '#DCFCE7', title: 'Tip', titleColor: '#15803D', textColor: '#166534' },
+      error: { bg: '#FEF2F2', border: '#FEE2E2', title: 'Caution', titleColor: '#B91C1C', textColor: '#991B1B' }
+    };
+    const c = configs[type];
+    const html = `
+      <div style="padding:1rem 1.25rem;border-radius:0.75rem;margin:1.5rem 0;background:${c.bg};border:1px solid ${c.border};">
+        <p style="font-weight:800;color:${c.titleColor};margin:0 0 0.25rem;">${c.title}</p>
+        <p style="color:${c.textColor};margin:0;">Write your callout text here...</p>
+      </div>
+    `;
+    insertAtCursor(html);
+    setCalloutAnchorEl(null);
+  };
+
+  const insertGrid = () => {
+    const html = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin:2rem 0;">
+        <div style="min-height:80px;border:1px dashed #ccc;padding:1rem;border-radius:0.5rem;">Left column content...</div>
+        <div style="min-height:80px;border:1px dashed #ccc;padding:1rem;border-radius:0.5rem;">Right column content...</div>
+      </div>
+    `;
+    insertAtCursor(html);
   };
 
   const seoChecks = useMemo(() => {
@@ -382,7 +435,7 @@ export default function BlogStudio() {
                   <Stack direction="row" spacing={1} justifyContent="flex-end">
                     <Tooltip title="Duplicate post"><IconButton size="small" onClick={() => { handleOpenEditor(); setFormData({ ...row, _id: undefined, title: `Copy of ${row.title}`, slug: `copy-of-${row.slug}`, status: 'draft' }); }}><Copy size={16} /></IconButton></Tooltip>
                     <IconButton size="small" onClick={() => handleOpenEditor(row)}><Edit fontSize="small" /></IconButton>
-                    <IconButton size="small" color="error"><Delete fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={async () => { if(confirm('Delete story?')) { await fetch(`/api/admin/blogs/${row._id}?adminId=${user?.uid}`, { method: 'DELETE' }); loadBlogs(); } }}><Delete fontSize="small" /></IconButton>
                   </Stack>
                 </TableCell>
               </TableRow>
@@ -433,19 +486,62 @@ export default function BlogStudio() {
                   </Paper>
 
                   <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
-                    <Box sx={{ p: 1, bgcolor: alpha(theme.palette.primary.main, 0.05), borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between' }}>
-                      <Stack direction="row" spacing={0.5}>
-                        <Button size="small" variant={editorMode === 'visual' ? 'contained' : 'text'} onClick={() => setEditorMode('visual')}>Visual</Button>
-                        <Button size="small" variant={editorMode === 'html' ? 'contained' : 'text'} onClick={() => setEditorMode('html')}>HTML</Button>
-                      </Stack>
-                      {editorMode === 'visual' && (
-                        <Stack direction="row" spacing={0.5}>
-                          <IconButton onClick={() => document.execCommand('bold')}><FormatBold /></IconButton>
-                          <IconButton onClick={() => document.execCommand('italic')}><FormatItalic /></IconButton>
-                          <IconButton onClick={() => { setGalleryInsertMode('content'); loadGallery(); setShowGalleryPicker(true); }}><AddPhotoAlternate /></IconButton>
-                          <IconButton onClick={(e) => { setProductAnchorEl(e.currentTarget); setShowProductPicker(true); }}><Package size={18} /></IconButton>
+                    <Box sx={{ p: 1, bgcolor: alpha(theme.palette.primary.main, 0.05), borderBottom: '1px solid', borderColor: 'divider' }}>
+                      {/* TOOLBAR ROW 1 */}
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1, px: 1 }}>
+                        <FormControl size="small" sx={{ minWidth: 140 }}>
+                          <Select
+                            value=""
+                            displayEmpty
+                            onChange={(e) => execFormatting('formatBlock', e.target.value)}
+                            sx={{ height: 32, fontSize: '0.75rem', fontWeight: 800 }}
+                          >
+                            <MenuItem value="p">Paragraph</MenuItem>
+                            <MenuItem value="h1">Heading 1</MenuItem>
+                            <MenuItem value="h2">Heading 2</MenuItem>
+                            <MenuItem value="h3">Heading 3</MenuItem>
+                            <MenuItem value="h4">Heading 4</MenuItem>
+                            <MenuItem value="blockquote">Blockquote</MenuItem>
+                            <MenuItem value="pre">Code Block</MenuItem>
+                          </Select>
+                        </FormControl>
+
+                        <Divider orientation="vertical" flexItem />
+
+                        <Stack direction="row">
+                          <IconButton size="small" onClick={() => execFormatting('bold')}><FormatBold fontSize="small" /></IconButton>
+                          <IconButton size="small" onClick={() => execFormatting('italic')}><FormatItalic fontSize="small" /></IconButton>
+                          <IconButton size="small" onClick={() => execFormatting('underline')}><FormatUnderlined fontSize="small" /></IconButton>
+                          <IconButton size="small" onClick={() => execFormatting('strikeThrough')}><StrikethroughS fontSize="small" /></IconButton>
+                          <IconButton size="small" onClick={() => execFormatting('insertHTML', '<code>' + window.getSelection() + '</code>')}><CodeIcon fontSize="small" /></IconButton>
+                          <IconButton size="small" onClick={() => { const url = prompt('Enter URL:'); if(url) execFormatting('createLink', url); }}><LinkIcon fontSize="small" /></IconButton>
+                          <IconButton size="small" onClick={() => execFormatting('removeFormat')}><FormatClear fontSize="small" /></IconButton>
                         </Stack>
-                      )}
+
+                        <Box sx={{ flex: 1 }} />
+
+                        <ToggleButtonGroup size="small" value={editorMode} exclusive onChange={(_, v) => v && setEditorMode(v)}>
+                          <ToggleButton value="visual"><EditNote sx={{ mr: 0.5 }} /> Visual</ToggleButton>
+                          <ToggleButton value="html"><CodeIcon sx={{ mr: 0.5 }} /> HTML</ToggleButton>
+                        </ToggleButtonGroup>
+                      </Stack>
+
+                      <Divider />
+
+                      {/* TOOLBAR ROW 2 */}
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1, px: 1 }}>
+                        <IconButton size="small" onClick={() => execFormatting('insertUnorderedList')}><FormatListBulleted fontSize="small" /></IconButton>
+                        <IconButton size="small" onClick={() => execFormatting('insertOrderedList')}><FormatListNumbered fontSize="small" /></IconButton>
+                        
+                        <Divider orientation="vertical" flexItem />
+
+                        <IconButton size="small" onClick={() => { setGalleryInsertMode('content'); loadGallery(); setShowGalleryPicker(true); }}><AddPhotoAlternate fontSize="small" /></IconButton>
+                        <IconButton size="small" onClick={(e) => { setProductAnchorEl(e.currentTarget); setShowProductPicker(true); }}><Package size={18} /></IconButton>
+                        <IconButton size="small" onClick={() => insertAtCursor('<hr style="border:none;border-top:2px solid #e5e0d8;margin:2rem 0;" />')}><HorizontalRule fontSize="small" /></IconButton>
+                        
+                        <IconButton size="small" onClick={(e) => setCalloutAnchorEl(e.currentTarget)}><Message fontSize="small" /></IconButton>
+                        <IconButton size="small" onClick={insertGrid}><ViewQuilt fontSize="small" /></IconButton>
+                      </Stack>
                     </Box>
 
                     {editorMode === 'visual' ? (
@@ -482,7 +578,20 @@ export default function BlogStudio() {
                         }}
                       />
                     ) : (
-                      <TextField fullWidth multiline minRows={20} value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} sx={{ '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, '& textarea': { fontFamily: 'monospace' } }} />
+                      <Box sx={{ p: 0, bgcolor: '#1e1e1e' }}>
+                        <Typography variant="caption" sx={{ color: '#888', p: 1, display: 'block' }}>Direct HTML editing mode. Changes sync with Visual mode.</Typography>
+                        <TextField 
+                          fullWidth 
+                          multiline 
+                          minRows={20} 
+                          value={formData.content} 
+                          onChange={(e) => setFormData({ ...formData, content: e.target.value })} 
+                          sx={{ 
+                            '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, 
+                            '& textarea': { fontFamily: 'monospace', color: '#f8f8f2', fontSize: '14px', p: 4 } 
+                          }} 
+                        />
+                      </Box>
                     )}
                   </Paper>
                 </Stack>
@@ -530,6 +639,14 @@ export default function BlogStudio() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Callout Menu */}
+      <Menu anchorEl={calloutAnchorEl} open={Boolean(calloutAnchorEl)} onClose={() => setCalloutAnchorEl(null)}>
+        <MenuItem onClick={() => insertCallout('info')}><Info sx={{ mr: 1, color: '#1D4ED8' }} /> Info Callout</MenuItem>
+        <MenuItem onClick={() => insertCallout('warning')}><Warning sx={{ mr: 1, color: '#B45309' }} /> Warning Callout</MenuItem>
+        <MenuItem onClick={() => insertCallout('success')}><CheckCircle sx={{ mr: 1, color: '#15803D' }} /> Success Callout</MenuItem>
+        <MenuItem onClick={() => insertCallout('error')}><XCircle sx={{ mr: 1, color: '#B91C1C' }} /> Error Callout</MenuItem>
+      </Menu>
 
       {/* Gallery Picker */}
       <Dialog open={showGalleryPicker} onClose={() => { setShowGalleryPicker(false); setPendingGalleryImage(null); }} maxWidth="md" fullWidth>
@@ -624,7 +741,7 @@ export default function BlogStudio() {
           <List>
             {productResults.map(p => (
               <ListItem key={p._id} button onClick={() => {
-                insertAtCursor(`<a href="/products/${p.slug}" class="inline-flex items-center gap-2 px-4 py-2 my-4 rounded-xl bg-primary/10 text-primary font-bold no-underline">🏺 ${p.name} — ₹${p.price}</a>`);
+                insertAtCursor(`<a href="/products/${p.slug}" class="inline-flex items-center gap-2 px-4 py-2 my-4 rounded-xl bg-primary/10 text-primary font-bold text-sm hover:bg-primary hover:text-white transition-all no-underline">🏺 ${p.name} — ₹${p.price}</a>`);
                 setShowProductPicker(false);
               }}>
                 <ListItemText primary={p.name} secondary={`₹${p.price}`} />
