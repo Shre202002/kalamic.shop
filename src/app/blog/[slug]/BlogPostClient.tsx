@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, Clock, User, ArrowUp, 
   ChevronRight, Sparkles, Send, Loader2,
-  Share2, MessageSquare, Reply
+  Share2, MessageSquare, Reply, X
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,11 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { useUser, useAuth } from '@/firebase';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { useToast } from '@/hooks/use-toast';
+
+// Extend dayjs with the relativeTime plugin to support .fromNow()
+dayjs.extend(relativeTime);
 
 const BLOG_PLACEHOLDER = "https://picsum.photos/seed/kalamic-blog/1200/675";
 
@@ -77,6 +81,10 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
     return comments.filter((c: any) => c.parentId === parentId);
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="fixed top-0 left-0 h-1 bg-primary z-[100] transition-all" style={{ width: `${scrollProgress}%` }} />
@@ -92,6 +100,7 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
             <div className="flex gap-6 text-white/80 text-xs font-black mt-6 uppercase tracking-widest">
               <span className="flex items-center gap-2"><User size={14} /> {post.author.name}</span>
               <span className="flex items-center gap-2"><Clock size={14} /> {post.readTime} MIN READ</span>
+              <span>{dayjs(post.publishedAt).format('MMM D, YYYY')}</span>
             </div>
           </div>
         </div>
@@ -116,7 +125,9 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
                   {replyTo && (
                     <div className="flex items-center justify-between mb-4 p-3 bg-primary/5 rounded-xl">
                       <span className="text-xs font-bold text-primary">Replying to @{replyTo.userName}</span>
-                      <button onClick={() => setReplyTo(null)}><X size={14} /></button>
+                      <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-primary transition-colors">
+                        <X size={14} />
+                      </button>
                     </div>
                   )}
                   <form onSubmit={handlePostComment} className="space-y-4">
@@ -142,14 +153,21 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
                 {comments.filter((c: any) => !c.parentId).map((comment: any) => (
                   <div key={comment._id} className="space-y-6">
                     <div className="flex gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center font-black text-primary">{comment.userName[0]}</div>
+                      <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center font-black text-primary uppercase shadow-inner">
+                        {comment.userName[0]}
+                      </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
                           <span className="font-bold text-sm">{comment.userName}</span>
                           <span className="text-[10px] text-muted-foreground">{dayjs(comment.createdAt).fromNow()}</span>
                         </div>
                         <p className="text-muted-foreground text-sm leading-relaxed">{comment.content}</p>
-                        <button onClick={() => setReplyTo(comment)} className="mt-2 text-[10px] font-black uppercase text-primary flex items-center gap-1"><Reply size={12}/> Reply</button>
+                        <button 
+                          onClick={() => setReplyTo(comment)} 
+                          className="mt-2 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:underline"
+                        >
+                          <Reply size={12}/> Reply
+                        </button>
                       </div>
                     </div>
                     
@@ -157,7 +175,9 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
                     <div className="ml-16 space-y-6 border-l-2 border-primary/5 pl-6">
                       {getCommentReplies(comment._id).map((reply: any) => (
                         <div key={reply._id} className="flex gap-4">
-                          <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center font-black text-accent text-xs">{reply.userName[0]}</div>
+                          <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center font-black text-accent text-xs uppercase shadow-inner">
+                            {reply.userName[0]}
+                          </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-1">
                               <span className="font-bold text-xs">{reply.userName}</span>
@@ -176,20 +196,55 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
 
           <aside className="lg:col-span-4">
             <div className="sticky top-32 space-y-12">
-              <div className="bg-primary rounded-[3rem] p-10 text-white shadow-2xl">
-                <Sparkles className="mb-6 opacity-40" />
+              <div className="bg-primary rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 h-32 w-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                <Sparkles className="mb-6 opacity-40 h-8 w-8" />
                 <h3 className="text-2xl font-display font-bold mb-2">Artisan Loop</h3>
                 <p className="text-white/70 text-sm mb-6">Get notified about kiln firings and new heritage stories.</p>
-                <Input placeholder="Email" className="bg-white/10 border-white/20 text-white mb-3" />
-                <Button className="w-full bg-white text-primary font-black uppercase">Join Circle</Button>
+                <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
+                  <Input placeholder="Collector Email" className="bg-white/10 border-white/20 text-white placeholder:text-white/40 h-12 rounded-xl" />
+                  <Button className="w-full bg-white text-primary font-black uppercase tracking-widest text-[10px] h-12 rounded-xl hover:bg-white/90">Join Circle</Button>
+                </form>
               </div>
+
+              {suggested.length > 0 && (
+                <div className="space-y-6">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Read Next</h4>
+                  <div className="space-y-6">
+                    {suggested.map((s: any) => (
+                      <Link key={s._id} href={`/blog/${s.slug}`} className="group flex gap-4 items-center">
+                        <div className="relative h-20 w-20 rounded-2xl overflow-hidden flex-shrink-0 bg-muted">
+                          <Image src={s.coverImage?.url || BLOG_PLACEHOLDER} alt={s.title} fill className="object-cover transition-transform group-hover:scale-110" />
+                        </div>
+                        <div className="space-y-1">
+                          <h5 className="font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">{s.title}</h5>
+                          <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{dayjs(s.publishedAt).format('MMM D, YYYY')}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
         </div>
       </div>
+
+      <AnimatePresence>
+        {scrollProgress > 20 && (
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-primary text-white shadow-2xl flex items-center justify-center z-50 hover:scale-110 transition-transform active:scale-95"
+          >
+            <ArrowUp size={24} />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       <Footer />
     </div>
   );
 }
-
-import { X } from 'lucide-react';
