@@ -7,20 +7,23 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
   Tabs, Tab, Switch, FormControlLabel, Avatar, LinearProgress,
-  Tooltip, CircularProgress, Container
+  Tooltip, CircularProgress, Container, Accordion, AccordionSummary, AccordionDetails,
+  Popover, List, ListItem, ListItemAvatar, ListItemText, Divider
 } from '@mui/material';
 import {
   Add, Edit, Delete, Visibility, Star, StarBorder, CloudUpload,
   Search, Save, Close, Link as LinkIcon, FormatBold, FormatItalic,
   FormatListBulleted, FormatQuote, Code, AddPhotoAlternate,
-  InsertLink, Title
+  InsertLink, Title, ExpandMore, Code as CodeIcon, EditNote, 
+  HorizontalRule, ViewColumn, ViewWeek, Info, Warning, CheckCircle
 } from '@mui/icons-material';
+import { Copy, Package, Trash2, Plus } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import dayjs from 'dayjs';
 import Image from 'next/image';
 
-const CATEGORIES = ["Tips", "Heritage", "Product Spotlight", "How-to", "News", "Care Guide"];
+const DEFAULT_CATEGORIES = ["Tips", "Heritage", "Product Spotlight", "How-to", "News", "Care Guide"];
 
 export default function BlogStudio() {
   const theme = useTheme();
@@ -36,7 +39,18 @@ export default function BlogStudio() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const [editingBlog, setEditingBlog] = useState<any>(null);
+  // --- NEW UPGRADE STATES ---
+  const [formData, setFormData] = useState<any>(null);
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  const [tagInput, setTagInput] = useState('');
+  const [editorMode, setEditorMode] = useState<'visual' | 'html'>('visual');
+  const [productSearch, setProductSearch] = useState('');
+  const [productResults, setProductResults] = useState<any[]>([]);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [productAnchorEl, setProductAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [newCategory, setNewCategory] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contentInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,11 +72,48 @@ export default function BlogStudio() {
     loadBlogs();
   }, [user]);
 
+  // UPGRADE 1: AUTO SLUG GENERATION
+  useEffect(() => {
+    if (formData && !slugManuallyEdited && formData.title) {
+      const generated = formData.title
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      setFormData((prev: any) => ({ 
+        ...prev, slug: generated 
+      }));
+    }
+  }, [formData?.title, slugManuallyEdited]);
+
+  // UPGRADE 4: PRODUCT SEARCH
+  useEffect(() => {
+    if (!productSearch.trim()) {
+      setProductResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const res = await fetch(`/api/admin/products`);
+      if (res.ok) {
+        const data = await res.json();
+        // Local filtering since we already have the data
+        const filtered = data.filter((p: any) => 
+          p.name.toLowerCase().includes(productSearch.toLowerCase())
+        ).slice(0, 5);
+        setProductResults(filtered);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [productSearch]);
+
   const handleOpenEditor = (blog?: any) => {
     if (blog) {
-      setEditingBlog({ ...blog });
+      setFormData({ ...blog });
+      setSlugManuallyEdited(true);
     } else {
-      setEditingBlog({
+      setFormData({
         title: '',
         excerpt: '',
         content: '',
@@ -73,29 +124,71 @@ export default function BlogStudio() {
         linkedProducts: [],
         status: 'draft',
         isFeatured: false,
+        scheduledAt: null,
         author: { name: user?.displayName || 'Kalamic Artisan' }
       });
+      setSlugManuallyEdited(false);
     }
     setActiveTab(0);
     setEditorOpen(true);
   };
 
+  const handleClonePost = (post: any) => {
+    setFormData({
+      ...post,
+      _id: undefined,
+      title: `Copy of ${post.title}`,
+      slug: `copy-of-${post.slug}`,
+      status: 'draft',
+      isFeatured: false,
+      publishedAt: null,
+      scheduledAt: null,
+      views: 0,
+    });
+    setSlugManuallyEdited(false);
+    setEditorOpen(true);
+    setActiveTab(0);
+  };
+
+  const insertAtCursor = (text: string) => {
+    const textarea = contentInputRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentContent = formData.content || '';
+    
+    const newContent = currentContent.substring(0, start) + text + currentContent.substring(end);
+    setFormData({ ...formData, content: newContent });
+    
+    // Focus back and set selection
+    setTimeout(() => {
+      textarea.focus();
+      const newPos = start + text.length;
+      textarea.setSelectionRange(newPos, newPos);
+    }, 10);
+  };
+
   const handleSave = async () => {
-    if (!editingBlog.title || !editingBlog.content || !user) {
+    if (!formData.title || !formData.content || !user) {
       toast({ variant: 'destructive', title: 'Missing Info', description: 'Title and Content are required.' });
       return;
     }
 
     setIsSaving(true);
     try {
-      const isUpdate = !!editingBlog._id;
-      const url = isUpdate ? `/api/admin/blogs/${editingBlog._id}` : '/api/admin/blogs';
+      const isUpdate = !!formData._id;
+      const url = isUpdate ? `/api/admin/blogs/${formData._id}` : '/api/admin/blogs';
       const method = isUpdate ? 'PATCH' : 'POST';
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...editingBlog, adminId: user.uid })
+        body: JSON.stringify({ 
+          ...formData, 
+          adminId: user.uid,
+          scheduledAt: formData.scheduledAt || null
+        })
       });
 
       if (!res.ok) throw new Error('Failed to save blog');
@@ -127,28 +220,21 @@ export default function BlogStudio() {
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('seoName', editingBlog.title || 'blog-image');
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      formDataUpload.append('seoName', formData.title || 'blog-image');
 
       const res = await fetch('/api/admin/blogs/upload', {
         method: 'POST',
-        body: formData
+        body: formDataUpload
       });
       const result = await res.json();
 
       if (isCover) {
-        setEditingBlog({ ...editingBlog, coverImage: { url: result.url, alt: editingBlog.title } });
+        setFormData({ ...formData, coverImage: { url: result.url, alt: formData.title } });
       } else {
-        // Insert into content at cursor
-        const textarea = contentInputRef.current;
-        if (textarea) {
-          const start = textarea.selectionStart;
-          const end = textarea.selectionEnd;
-          const imgTag = `\n<img src="${result.url}" alt="${editingBlog.title}" class="rounded-2xl shadow-lg my-8" />\n<p class="text-center text-xs italic text-muted-foreground mt-2">Caption here</p>\n`;
-          const newContent = editingBlog.content.substring(0, start) + imgTag + editingBlog.content.substring(end);
-          setEditingBlog({ ...editingBlog, content: newContent });
-        }
+        const imgTag = `\n<img src="${result.url}" alt="${formData.title}" class="rounded-2xl shadow-lg my-8" />\n<p class="text-center text-xs italic text-muted-foreground mt-2">Caption here</p>\n`;
+        insertAtCursor(imgTag);
       }
     } catch (e) {
       toast({ variant: 'destructive', title: 'Upload Failed' });
@@ -163,7 +249,7 @@ export default function BlogStudio() {
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const selectedText = editingBlog.content.substring(start, end);
+    const selectedText = formData.content.substring(start, end);
     
     let replacement = '';
     if (type === 'wrap') {
@@ -172,16 +258,57 @@ export default function BlogStudio() {
       replacement = `\n<${tag} class="${tag === 'blockquote' ? 'border-l-4 border-primary pl-6 py-4 italic my-8' : ''}">${selectedText || 'New ' + tag}</${tag}>\n`;
     }
 
-    const newContent = editingBlog.content.substring(0, start) + replacement + editingBlog.content.substring(end);
-    setEditingBlog({ ...editingBlog, content: newContent });
+    const newContent = formData.content.substring(0, start) + replacement + formData.content.substring(end);
+    setFormData({ ...formData, content: newContent });
   };
 
-  const stats = {
-    total: blogs.length,
-    published: blogs.filter(b => b.status === 'published').length,
-    drafts: blogs.filter(b => b.status === 'draft').length,
-    views: blogs.reduce((acc, b) => acc + (b.views || 0), 0)
-  };
+  // UPGRADE 7: SEO CHECKER
+  const seoChecks = formData ? [
+    {
+      label: 'Meta title length (50-60 chars)',
+      pass: formData.seo?.metaTitle?.length >= 50 && formData.seo?.metaTitle?.length <= 60,
+      tip: `Currently: ${formData.seo?.metaTitle?.length || 0} chars`
+    },
+    {
+      label: 'Meta description (120-160 chars)',
+      pass: formData.seo?.metaDescription?.length >= 120 && formData.seo?.metaDescription?.length <= 160,
+      tip: `Currently: ${formData.seo?.metaDescription?.length || 0} chars`
+    },
+    {
+      label: 'At least 3 keywords',
+      pass: (formData.seo?.metaKeywords?.length || 0) >= 3,
+      tip: `Currently: ${formData.seo?.metaKeywords?.length || 0} keywords`
+    },
+    {
+      label: 'Cover image set',
+      pass: !!formData.coverImage?.url,
+      tip: 'Upload a cover image'
+    },
+    {
+      label: 'At least 3 tags',
+      pass: (formData.tags?.length || 0) >= 3,
+      tip: `Currently: ${formData.tags?.length || 0} tags`
+    },
+    {
+      label: 'Content > 300 words',
+      pass: (formData.content?.split(/\s+/).length || 0) > 300,
+      tip: `Currently: ${formData.content?.split(/\s+/).length || 0} words`
+    },
+    {
+      label: 'Slug is URL-friendly',
+      pass: /^[a-z0-9-]+$/.test(formData.slug || ''),
+      tip: 'Slug should only have lowercase, numbers and hyphens'
+    },
+    {
+      label: 'Excerpt filled',
+      pass: (formData.excerpt?.length || 0) > 50,
+      tip: 'Add a summary excerpt'
+    },
+  ] : [];
+
+  const seoScore = formData ? Math.round(
+    (seoChecks.filter(c => c.pass).length / seoChecks.length) * 100
+  ) : 0;
 
   const filteredBlogs = blogs.filter(b => {
     const matchesSearch = b.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -189,14 +316,11 @@ export default function BlogStudio() {
     return matchesSearch && matchesStatus;
   });
 
-  const getSeoScore = () => {
-    if (!editingBlog) return 0;
-    let score = 0;
-    if (editingBlog.seo?.metaTitle?.length >= 50 && editingBlog.seo?.metaTitle?.length <= 60) score += 25;
-    if (editingBlog.seo?.metaDescription?.length >= 120 && editingBlog.seo?.metaDescription?.length <= 160) score += 25;
-    if (editingBlog.tags?.length >= 3) score += 25;
-    if (editingBlog.coverImage?.url) score += 25;
-    return score;
+  const stats = {
+    total: blogs.length,
+    published: blogs.filter(b => b.status === 'published').length,
+    drafts: blogs.filter(b => b.status === 'draft').length,
+    views: blogs.reduce((acc, b) => acc + (b.views || 0), 0)
   };
 
   return (
@@ -292,6 +416,9 @@ export default function BlogStudio() {
                 <TableCell sx={{ fontSize: '0.75rem', fontWeight: 600 }}>{row.publishedAt ? dayjs(row.publishedAt).format('DD MMM YYYY') : '—'}</TableCell>
                 <TableCell align="right">
                   <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Tooltip title="Duplicate post">
+                      <IconButton size="small" onClick={() => handleClonePost(row)}><Copy size={16} /></IconButton>
+                    </Tooltip>
                     <IconButton size="small" onClick={() => handleOpenEditor(row)}><Edit fontSize="small" /></IconButton>
                     <IconButton size="small" color="error" onClick={() => handleDelete(row._id)}><Delete fontSize="small" /></IconButton>
                   </Stack>
@@ -313,7 +440,7 @@ export default function BlogStudio() {
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 3, py: 1.5 }}>
             <Stack direction="row" spacing={2} alignItems="center">
               <IconButton onClick={() => setEditorOpen(false)}><Close /></IconButton>
-              <Typography variant="h6" fontWeight={900}>{editingBlog?._id ? 'Refine Story' : 'New Creation'}</Typography>
+              <Typography variant="h6" fontWeight={900}>{formData?._id ? 'Refine Story' : 'New Creation'}</Typography>
             </Stack>
             <Stack direction="row" spacing={2}>
               <Button onClick={() => setEditorOpen(false)} disabled={isSaving}>Discard</Button>
@@ -324,7 +451,7 @@ export default function BlogStudio() {
                 disabled={isSaving}
                 sx={{ borderRadius: 2, fontWeight: 800, px: 4 }}
               >
-                {editingBlog?.status === 'published' ? 'Sync Archive' : 'Save Draft'}
+                {formData?.status === 'published' ? 'Sync Archive' : 'Save Draft'}
               </Button>
             </Stack>
           </Stack>
@@ -336,7 +463,7 @@ export default function BlogStudio() {
         </DialogTitle>
 
         <DialogContent sx={{ p: 4 }}>
-          {editingBlog && (
+          {formData && (
             <Container maxWidth="md">
               {activeTab === 0 && (
                 <Stack spacing={4}>
@@ -345,8 +472,8 @@ export default function BlogStudio() {
                       fullWidth 
                       placeholder="Article Title..." 
                       variant="standard"
-                      value={editingBlog.title}
-                      onChange={(e) => setEditingBlog({ ...editingBlog, title: e.target.value })}
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       InputProps={{ 
                         style: { fontSize: '2.5rem', fontWeight: 900, fontFamily: '"Playfair Display", serif' },
                         disableUnderline: true
@@ -356,18 +483,59 @@ export default function BlogStudio() {
                       <FormControl size="small" sx={{ width: 200 }}>
                         <InputLabel>Category</InputLabel>
                         <Select 
-                          value={editingBlog.category} 
+                          value={formData.category} 
                           label="Category" 
-                          onChange={(e) => setEditingBlog({ ...editingBlog, category: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                         >
-                          {CATEGORIES.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                          {categories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                          <MenuItem value="">
+                            <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+                              <input
+                                placeholder="Add new category..."
+                                value={newCategory}
+                                onChange={e => {
+                                  e.stopPropagation();
+                                  setNewCategory(e.target.value);
+                                }}
+                                onClick={e => e.stopPropagation()}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && newCategory.trim()) {
+                                    e.stopPropagation();
+                                    const cat = newCategory.trim();
+                                    if (!categories.includes(cat)) {
+                                      setCategories(prev => [...prev, cat]);
+                                    }
+                                    setFormData((prev: any) => ({ ...prev, category: cat }));
+                                    setNewCategory('');
+                                  }
+                                }}
+                                style={{ flex: 1, border: 'none', outline: 'none', fontSize: '14px' }}
+                              />
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  const cat = newCategory.trim();
+                                  if (cat && !categories.includes(cat)) {
+                                    setCategories(prev => [...prev, cat]);
+                                  }
+                                  if (cat) setFormData((prev: any) => ({ ...prev, category: cat }));
+                                  setNewCategory('');
+                                }}
+                              >
+                                + Add
+                              </button>
+                            </Box>
+                          </MenuItem>
                         </Select>
                       </FormControl>
                       <TextField 
                         size="small" 
                         label="Slug" 
-                        value={editingBlog.slug || ''} 
-                        onChange={(e) => setEditingBlog({ ...editingBlog, slug: e.target.value })}
+                        value={formData.slug || ''} 
+                        onChange={(e) => {
+                          setSlugManuallyEdited(true);
+                          setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') });
+                        }}
                         helperText="Permanent identifier for URLs"
                       />
                     </Stack>
@@ -392,8 +560,8 @@ export default function BlogStudio() {
                         position: 'relative'
                       }}
                     >
-                      {editingBlog.coverImage?.url ? (
-                        <img src={editingBlog.coverImage.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {formData.coverImage?.url ? (
+                        <img src={formData.coverImage.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         <>
                           <CloudUpload sx={{ fontSize: 48, color: 'primary.main', opacity: 0.5, mb: 1 }} />
@@ -407,52 +575,106 @@ export default function BlogStudio() {
                       fullWidth 
                       size="small" 
                       label="Alternative Text (for accessibility)" 
-                      value={editingBlog.coverImage?.alt || ''}
-                      onChange={(e) => setEditingBlog({ ...editingBlog, coverImage: { ...editingBlog.coverImage, alt: e.target.value } })}
+                      value={formData.coverImage?.alt || ''}
+                      onChange={(e) => setFormData({ ...formData, coverImage: { ...formData.coverImage, alt: e.target.value } })}
                       sx={{ mt: 2 }}
                     />
                   </Paper>
 
-                  <Paper sx={{ p: 4, borderRadius: 4 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 900, mb: 2, display: 'block', color: 'text.secondary' }}>THE STORY EXCERPT</Typography>
-                    <TextField 
-                      fullWidth 
-                      multiline 
-                      rows={3} 
-                      placeholder="A short hook to capture the reader's soul..."
-                      value={editingBlog.excerpt}
-                      onChange={(e) => setEditingBlog({ ...editingBlog, excerpt: e.target.value.substring(0, 300) })}
-                      helperText={`${editingBlog.excerpt.length}/300 chars`}
-                    />
-                  </Paper>
-
                   <Paper sx={{ p: 0, borderRadius: 4, overflow: 'hidden' }}>
-                    <Box sx={{ p: 1, bgcolor: alpha(theme.palette.primary.main, 0.05), borderBottom: '1px solid', borderColor: 'divider' }}>
+                    {/* UPGRADE 3: EDITOR MODE TOGGLE */}
+                    <Box sx={{ p: 1, bgcolor: alpha(theme.palette.primary.main, 0.05), borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between' }}>
                       <Stack direction="row" spacing={0.5}>
-                        <Tooltip title="Heading 1"><IconButton size="small" onClick={() => insertFormat('h1', 'block')}><Title /></IconButton></Tooltip>
-                        <Tooltip title="Heading 2"><IconButton size="small" onClick={() => insertFormat('h2', 'block')}><Typography sx={{ fontWeight: 900 }}>H2</Typography></IconButton></Tooltip>
-                        <Tooltip title="Bold"><IconButton size="small" onClick={() => insertFormat('strong')}><FormatBold /></IconButton></Tooltip>
-                        <Tooltip title="Italic"><IconButton size="small" onClick={() => insertFormat('em')}><FormatItalic /></IconButton></Tooltip>
-                        <Tooltip title="Quote"><IconButton size="small" onClick={() => insertFormat('blockquote', 'block')}><FormatQuote /></IconButton></Tooltip>
-                        <Tooltip title="Insert Image"><IconButton size="small" component="label"><AddPhotoAlternate /><input type="file" hidden accept="image/*" onChange={(e) => handleUpload(e, false)} /></IconButton></Tooltip>
-                        <Tooltip title="Link"><IconButton size="small" onClick={() => insertFormat('a')}><InsertLink /></IconButton></Tooltip>
+                        <Button 
+                          size="small" 
+                          startIcon={<EditNote />} 
+                          variant={editorMode === 'visual' ? 'contained' : 'text'}
+                          onClick={() => setEditorMode('visual')}
+                          sx={{ fontWeight: 800, fontSize: '0.7rem' }}
+                        >
+                          Visual
+                        </Button>
+                        <Button 
+                          size="small" 
+                          startIcon={<CodeIcon />} 
+                          variant={editorMode === 'html' ? 'contained' : 'text'}
+                          onClick={() => setEditorMode('html')}
+                          sx={{ fontWeight: 800, fontSize: '0.7rem' }}
+                        >
+                          HTML
+                        </Button>
                       </Stack>
+                      {editorMode === 'visual' && (
+                        <Stack direction="row" spacing={0.5}>
+                          <Tooltip title="Heading 1"><IconButton size="small" onClick={() => insertFormat('h1', 'block')}><Title /></IconButton></Tooltip>
+                          <Tooltip title="Heading 2"><IconButton size="small" onClick={() => insertFormat('h2', 'block')}><Typography sx={{ fontWeight: 900 }}>H2</Typography></IconButton></Tooltip>
+                          <Tooltip title="Bold"><IconButton size="small" onClick={() => insertFormat('strong')}><FormatBold /></IconButton></Tooltip>
+                          <Tooltip title="Italic"><IconButton size="small" onClick={() => insertFormat('em')}><FormatItalic /></IconButton></Tooltip>
+                          <Tooltip title="Quote"><IconButton size="small" onClick={() => insertFormat('blockquote', 'block')}><FormatQuote /></IconButton></Tooltip>
+                          <Tooltip title="Insert Image"><IconButton size="small" component="label"><AddPhotoAlternate /><input type="file" hidden accept="image/*" onChange={(e) => handleUpload(e, false)} /></IconButton></Tooltip>
+                          <Tooltip title="Insert Product"><IconButton size="small" onClick={(e) => { setProductAnchorEl(e.currentTarget); setShowProductPicker(true); }}><Package size={18} /></IconButton></Tooltip>
+                          <Tooltip title="Divider"><IconButton size="small" onClick={() => insertAtCursor('\n<hr class="my-8 border-primary/20" />\n')}><HorizontalRule /></IconButton></Tooltip>
+                        </Stack>
+                      )}
                     </Box>
-                    <TextField 
-                      fullWidth 
-                      multiline 
-                      rows={20} 
-                      placeholder="Speak your truth..."
-                      inputRef={contentInputRef}
-                      value={editingBlog.content}
-                      onChange={(e) => setEditingBlog({ ...editingBlog, content: e.target.value })}
-                      sx={{ '& .MuiOutlinedInput-notchedOutline': { border: 'none' } }}
-                    />
+                    
+                    {editorMode === 'visual' && (
+                      <Box sx={{ p: 1, bgcolor: alpha('#000', 0.02), borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Stack direction="row" spacing={1} flexWrap="wrap">
+                          <Button size="small" variant="outlined" startIcon={<ViewColumn />} onClick={() => insertAtCursor('\n<div class="grid grid-cols-2 gap-8 my-8"><div><p>Left column content here...</p></div><div><img src="IMAGE_URL" alt="description" class="w-full rounded-2xl" /></div></div>')} sx={{ textTransform: 'none', fontSize: '0.65rem' }}>2-Col</Button>
+                          <Button size="small" variant="outlined" startIcon={<ViewWeek />} onClick={() => insertAtCursor('\n<div class="grid grid-cols-3 gap-6 my-8"><div class="text-center p-4 rounded-2xl bg-primary/5"><p class="font-bold">Column 1</p></div><div class="text-center p-4 rounded-2xl bg-primary/5"><p class="font-bold">Column 2</p></div><div class="text-center p-4 rounded-2xl bg-primary/5"><p class="font-bold">Column 3</p></div></div>')} sx={{ textTransform: 'none', fontSize: '0.65rem' }}>3-Col</Button>
+                          <Button size="small" variant="outlined" startIcon={<Info />} onClick={() => insertAtCursor('\n<div class="my-6 p-5 rounded-2xl bg-blue-50 border border-blue-200"><p class="font-bold text-blue-800 mb-1">ℹ️ Info</p><p class="text-blue-700">Your information here...</p></div>')} sx={{ textTransform: 'none', fontSize: '0.65rem' }}>Info Box</Button>
+                          <Button size="small" variant="outlined" startIcon={<Warning />} onClick={() => insertAtCursor('\n<div class="my-6 p-5 rounded-2xl bg-yellow-50 border border-yellow-200"><p class="font-bold text-yellow-800 mb-1">⚠️ Note</p><p class="text-yellow-700">Your note here...</p></div>')} sx={{ textTransform: 'none', fontSize: '0.65rem' }}>Warning</Button>
+                          <Button size="small" variant="outlined" startIcon={<CheckCircle />} onClick={() => insertAtCursor('\n<div class="my-6 p-5 rounded-2xl bg-green-50 border border-green-200"><p class="font-bold text-green-800 mb-1">✅ Tip</p><p class="text-green-700">Your tip here...</p></div>')} sx={{ textTransform: 'none', fontSize: '0.65rem' }}>Success</Button>
+                        </Stack>
+                      </Box>
+                    )}
+
+                    <Box sx={{ position: 'relative' }}>
+                      {editorMode === 'html' && (
+                        <Box sx={{ p: 1, bgcolor: '#271E1B', color: '#EA781E', textAlign: 'center' }}>
+                          <Typography variant="caption" fontWeight={800}>Direct HTML editing mode. Changes sync with Visual mode.</Typography>
+                        </Box>
+                      )}
+                      <TextField 
+                        fullWidth 
+                        multiline 
+                        rows={20} 
+                        placeholder={editorMode === 'html' ? "<!-- Write raw HTML here -->" : "Speak your truth..."}
+                        inputRef={contentInputRef}
+                        value={formData.content}
+                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                        sx={{ 
+                          '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                          '& textarea': { 
+                            fontFamily: 'monospace', 
+                            fontSize: '14px',
+                            minHeight: '500px'
+                          } 
+                        }}
+                      />
+                    </Box>
+
                     <Box sx={{ p: 2, bgcolor: alpha('#000', 0.02), borderTop: '1px solid', borderColor: 'divider' }}>
                       <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>
-                        {editingBlog.content.split(/\s+/).filter(Boolean).length} words · Estimated {Math.ceil(editingBlog.content.split(/\s+/).filter(Boolean).length / 200)} min read
+                        {formData.content.split(/\s+/).filter(Boolean).length} words · Estimated {Math.ceil(formData.content.split(/\s+/).filter(Boolean).length / 200)} min read
                       </Typography>
                     </Box>
+
+                    {/* LIVE PREVIEW */}
+                    <Accordion sx={{ boxShadow: 'none', borderTop: '1px solid', borderColor: 'divider' }}>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Typography variant="caption" fontWeight={900}>👁 PREVIEW (CLICK TO EXPAND)</Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Box sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'white' }}>
+                          <div 
+                            className="prose prose-lg max-w-none"
+                            dangerouslySetInnerHTML={{ __html: formData.content }}
+                          />
+                        </Box>
+                      </AccordionDetails>
+                    </Accordion>
                   </Paper>
                 </Stack>
               )}
@@ -464,42 +686,48 @@ export default function BlogStudio() {
                     <Box sx={{ mb: 4 }}>
                       <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
                         <Typography variant="caption" fontWeight={800}>SEO Readiness</Typography>
-                        <Typography variant="caption" fontWeight={800}>{getSeoScore()}%</Typography>
+                        <Typography variant="caption" fontWeight={800}>{seoScore}%</Typography>
                       </Stack>
-                      <LinearProgress variant="determinate" value={getSeoScore()} sx={{ height: 8, borderRadius: 4 }} color={getSeoScore() > 70 ? "success" : "warning"} />
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={seoScore} 
+                        sx={{ height: 8, borderRadius: 4 }} 
+                        color={seoScore < 50 ? "error" : seoScore < 75 ? "warning" : "success"} 
+                      />
                     </Box>
+
+                    <List sx={{ mb: 4 }}>
+                      {seoChecks.map((check, i) => (
+                        <ListItem key={i} sx={{ px: 0, py: 0.5 }}>
+                          <ListItemIcon sx={{ minWidth: 32 }}>
+                            {check.pass ? <CheckCircle color="success" sx={{ fontSize: 18 }} /> : <XCircle color="error" sx={{ fontSize: 18 }} />}
+                          </ListItemIcon>
+                          <ListItemText 
+                            primary={<Typography variant="body2" fontWeight={700}>{check.label}</Typography>}
+                            secondary={<Typography variant="caption">{check.tip}</Typography>}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
 
                     <Stack spacing={3}>
                       <TextField 
                         fullWidth 
                         label="Meta Title" 
-                        value={editingBlog.seo?.metaTitle || ''}
-                        onChange={(e) => setEditingBlog({ ...editingBlog, seo: { ...editingBlog.seo, metaTitle: e.target.value.substring(0, 60) } })}
-                        helperText={`${editingBlog.seo?.metaTitle?.length || 0}/60 (Optimum: 50-60)`}
+                        value={formData.seo?.metaTitle || ''}
+                        onChange={(e) => setFormData({ ...formData, seo: { ...formData.seo, metaTitle: e.target.value.substring(0, 60) } })}
+                        helperText={`${formData.seo?.metaTitle?.length || 0}/60 (Optimum: 50-60)`}
                       />
                       <TextField 
                         fullWidth 
                         multiline 
                         rows={3} 
                         label="Meta Description" 
-                        value={editingBlog.seo?.metaDescription || ''}
-                        onChange={(e) => setEditingBlog({ ...editingBlog, seo: { ...editingBlog.seo, metaDescription: e.target.value.substring(0, 160) } })}
-                        helperText={`${editingBlog.seo?.metaDescription?.length || 0}/160 (Optimum: 120-160)`}
+                        value={formData.seo?.metaDescription || ''}
+                        onChange={(e) => setFormData({ ...formData, seo: { ...formData.seo, metaDescription: e.target.value.substring(0, 160) } })}
+                        helperText={`${formData.seo?.metaDescription?.length || 0}/160 (Optimum: 120-160)`}
                       />
                     </Stack>
-                  </Paper>
-
-                  <Paper sx={{ p: 4, borderRadius: 4, bgcolor: 'white' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 900, mb: 2, display: 'block', color: 'text.secondary' }}>SEARCH ENGINE PREVIEW</Typography>
-                    <Box sx={{ border: '1px solid #dfe1e5', borderRadius: '8px', p: 3, maxWidth: 600 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>kalamic.shop › blog › {editingBlog.slug || '...'}</Typography>
-                      <Typography variant="h6" sx={{ color: '#1a0dab', fontSize: '1.25rem', '&:hover': { textDecoration: 'underline' }, cursor: 'pointer' }}>
-                        {editingBlog.seo?.metaTitle || editingBlog.title || 'Page Title'}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: '#4d5156' }}>
-                        {editingBlog.seo?.metaDescription || editingBlog.excerpt || 'Meta description will appear here...'}
-                      </Typography>
-                    </Box>
                   </Paper>
                 </Stack>
               )}
@@ -510,24 +738,122 @@ export default function BlogStudio() {
                     <Typography variant="h6" fontWeight={900} gutterBottom>Publication Protocol</Typography>
                     <Stack spacing={3}>
                       <FormControlLabel 
-                        control={<Switch checked={editingBlog.status === 'published'} onChange={(e) => setEditingBlog({ ...editingBlog, status: e.target.checked ? 'published' : 'draft' })} />} 
+                        control={<Switch checked={formData.status === 'published'} onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'published' : 'draft' })} />} 
                         label={<Typography fontWeight={800}>Published to Live Archive</Typography>} 
                       />
+
+                      {/* UPGRADE 5: SCHEDULED PUBLISHING */}
+                      {formData.status === 'draft' && (
+                        <Box sx={{ mt: 1, p: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={!!formData.scheduledAt}
+                                onChange={e => {
+                                  if (e.target.checked) {
+                                    const tomorrow = new Date();
+                                    tomorrow.setDate(tomorrow.getDate() + 1);
+                                    tomorrow.setHours(9, 0, 0, 0);
+                                    setFormData((prev: any) => ({
+                                      ...prev,
+                                      scheduledAt: tomorrow.toISOString().slice(0, 16)
+                                    }));
+                                  } else {
+                                    setFormData((prev: any) => ({ ...prev, scheduledAt: null }));
+                                  }
+                                }}
+                              />
+                            }
+                            label={<Typography variant="body2" fontWeight={800}>Schedule for later</Typography>}
+                          />
+                          {formData.scheduledAt && (
+                            <TextField
+                              type="datetime-local"
+                              size="small"
+                              fullWidth
+                              value={formData.scheduledAt}
+                              onChange={e => setFormData((prev: any) => ({ ...prev, scheduledAt: e.target.value }))}
+                              sx={{ mt: 1, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                              helperText="Post will auto-publish at this time"
+                            />
+                          )}
+                        </Box>
+                      )}
+
                       <FormControlLabel 
-                        control={<Switch checked={editingBlog.isFeatured} onChange={(e) => setEditingBlog({ ...editingBlog, isFeatured: e.target.checked })} />} 
+                        control={<Switch checked={formData.isFeatured} onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })} />} 
                         label={<Typography fontWeight={800}>Highlight on Homepage</Typography>} 
                       />
-                      <TextField 
-                        fullWidth 
-                        label="Tags (Comma separated)" 
-                        value={editingBlog.tags?.join(', ') || ''} 
-                        onChange={(e) => setEditingBlog({ ...editingBlog, tags: e.target.value.split(',').map(t => t.trim()) })}
-                      />
+                      
+                      {/* UPGRADE 2: TAGS CHIP UI */}
+                      <Box>
+                        <Typography variant="caption" sx={{ fontWeight: 800, mb: 1, display: 'block' }}>Tags</Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+                          {formData.tags?.map((tag: string, i: number) => (
+                            <Chip
+                              key={i}
+                              label={tag}
+                              size="small"
+                              onDelete={() => {
+                                setFormData((prev: any) => ({
+                                  ...prev,
+                                  tags: prev.tags.filter((_: any, idx: number) => idx !== i)
+                                }));
+                              }}
+                              sx={{ 
+                                bgcolor: alpha('#EA781E', 0.1),
+                                color: '#EA781E',
+                                fontWeight: 700,
+                                '& .MuiChip-deleteIcon': { color: '#EA781E' }
+                              }}
+                            />
+                          ))}
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <TextField
+                            size="small"
+                            value={tagInput}
+                            onChange={e => setTagInput(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ',') {
+                                e.preventDefault();
+                                const newTag = tagInput.trim().toLowerCase().replace(/,/g, '');
+                                if (newTag && !formData.tags?.includes(newTag)) {
+                                  setFormData((prev: any) => ({ ...prev, tags: [...(prev.tags || []), newTag] }));
+                                }
+                                setTagInput('');
+                              }
+                              if (e.key === 'Backspace' && !tagInput && formData.tags?.length > 0) {
+                                setFormData((prev: any) => ({ ...prev, tags: prev.tags.slice(0, -1) }));
+                              }
+                            }}
+                            placeholder="Type tag + Enter"
+                            fullWidth
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => {
+                              const newTag = tagInput.trim().toLowerCase();
+                              if (newTag && !formData.tags?.includes(newTag)) {
+                                setFormData((prev: any) => ({ ...prev, tags: [...(prev.tags || []), newTag] }));
+                              }
+                              setTagInput('');
+                            }}
+                            sx={{ borderRadius: 2, flexShrink: 0 }}
+                          >
+                            Add
+                          </Button>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">Press Enter or comma to add a tag</Typography>
+                      </Box>
+
                       <TextField 
                         fullWidth 
                         label="Author Identity" 
-                        value={editingBlog.author?.name || ''}
-                        onChange={(e) => setEditingBlog({ ...editingBlog, author: { ...editingBlog.author, name: e.target.value } })}
+                        value={formData.author?.name || ''}
+                        onChange={(e) => setFormData({ ...formData, author: { ...formData.author, name: e.target.value } })}
                       />
                     </Stack>
                   </Paper>
@@ -537,6 +863,65 @@ export default function BlogStudio() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* UPGRADE 4: PRODUCT PICKER POPOVER */}
+      <Popover
+        open={showProductPicker}
+        anchorEl={productAnchorEl}
+        onClose={() => setShowProductPicker(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+        PaperProps={{ sx: { p: 2, width: 320, borderRadius: 3, boxShadow: '0 10px 40px rgba(0,0,0,0.1)' } }}
+      >
+        <Typography variant="caption" fontWeight={900} sx={{ mb: 1, display: 'block' }}>LINK ARTISAN PIECE</Typography>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search catalog..."
+          value={productSearch}
+          onChange={(e) => setProductSearch(e.target.value)}
+          autoFocus
+          InputProps={{ startAdornment: <Search sx={{ fontSize: 18, mr: 1, color: 'text.disabled' }} /> }}
+        />
+        <List sx={{ mt: 1 }}>
+          {productResults.length === 0 ? (
+            <Typography variant="caption" sx={{ p: 2, display: 'block', textAlign: 'center', color: 'text.disabled' }}>
+              {productSearch ? 'No pieces found' : 'Start typing to search...'}
+            </Typography>
+          ) : productResults.map((product) => (
+            <ListItem 
+              key={product._id} 
+              disablePadding 
+              sx={{ mb: 1 }}
+              secondaryAction={
+                <Button 
+                  size="small" 
+                  onClick={() => {
+                    const primaryImg = product.images?.find((i: any) => i.is_primary)?.url || product.images?.[0]?.url;
+                    insertAtCursor(`\n<a href="/products/${product.slug}" class="inline-flex items-center gap-2 px-4 py-2 my-2 rounded-xl bg-primary/10 text-primary font-bold text-sm hover:bg-primary hover:text-white transition-all no-underline">🏺 ${product.name} — ₹${product.price}</a>\n`);
+                    setShowProductPicker(false);
+                    setProductSearch('');
+                  }}
+                >
+                  Insert
+                </Button>
+              }
+            >
+              <ListItemAvatar>
+                <Avatar variant="rounded" src={product.images?.[0]?.url} sx={{ width: 40, height: 40 }} />
+              </ListItemAvatar>
+              <ListItemText 
+                primary={<Typography variant="caption" fontWeight={800} noWrap>{product.name}</Typography>}
+                secondary={<Typography variant="caption">₹{product.price}</Typography>}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </Popover>
     </Box>
   );
+}
+
+function XCircle({ color, sx }: any) {
+  return <Close sx={{ color: color === 'error' ? 'error.main' : 'inherit', ...sx }} />;
 }
