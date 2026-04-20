@@ -243,7 +243,7 @@ export default function BlogStudio() {
       if (!res.ok) throw new Error('Failed to save blog');
 
       localStorage.removeItem('blog_draft_autosave');
-      toast({ title: if (isUpdate) 'Post Refined' : 'Post Created' });
+      toast({ title: isUpdate ? 'Post Refined' : 'Post Created' });
       setEditorOpen(false);
       loadBlogs();
     } catch (e: any) {
