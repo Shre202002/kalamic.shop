@@ -1,98 +1,64 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getBlogBySlug, getSuggestedBlogs } from '@/lib/actions/blog-actions';
+import dbConnect from '@/lib/db';
+import BlogPost from '@/lib/models/BlogPost';
+import Comment from '@/lib/models/Comment';
+import { getSuggestedBlogs } from '@/lib/actions/blog-actions';
 import BlogPostClient from './BlogPostClient';
 
 /**
  * @fileOverview Blog Post Detail Server Component (Next.js 15).
- * Responsible for data fetching, SEO Metadata generation, and rendering the interactive Client UI.
+ * Fetches blog content and comments on the server for optimal SEO and crawler friendliness.
  */
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-/**
- * Dynamically generates SEO metadata based on the article content.
- */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getBlogBySlug(slug);
+  await dbConnect();
+  const post = await BlogPost.findOne({ slug, status: 'published' }).lean();
   if (!post) return { title: 'Story Not Found | Kalamic' };
   
-  const coverUrl = post.coverImage?.url || 'https://kalamic.shop/logo.png';
-
   return {
-    title: post.seo?.metaTitle || `${post.title} | Kalamic Journal`,
+    title: post.seo?.metaTitle || `${post.title} | Kalamic`,
     description: post.seo?.metaDescription || post.excerpt,
     keywords: post.seo?.metaKeywords?.join(', '),
-    authors: [{ name: post.author.name }],
     openGraph: {
-      title: post.seo?.metaTitle || post.title,
-      description: post.seo?.metaDescription || post.excerpt,
-      images: [{ url: coverUrl }],
+      title: post.title,
+      description: post.excerpt,
+      images: [{ url: post.coverImage?.url || '' }],
       type: 'article',
-      publishedTime: post.publishedAt,
-      section: post.category,
-      tags: post.tags
-    },
-    alternates: {
-      canonical: `https://kalamic.shop/blog/${post.slug}`
     }
   };
 }
 
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
-  
-  // Data Fetching: High-performance parallel execution
-  const [post, allSuggested] = await Promise.all([
-    getBlogBySlug(slug),
-    getSuggestedBlogs(slug, []) // Fetch base suggested in case tags are empty
-  ]);
-  
+  await dbConnect();
+
+  const post = await BlogPost.findOneAndUpdate(
+    { slug, status: 'published' },
+    { $inc: { views: 1 } },
+    { new: true }
+  ).lean();
+
   if (!post) notFound();
 
-  // If the post has tags, fetch contextually relevant suggestions
-  const suggested = post.tags?.length > 0 
-    ? await getSuggestedBlogs(post.slug, post.tags) 
-    : allSuggested;
+  // Fetch comments on the server
+  const comments = await Comment.find({ blogId: post._id, status: 'active' })
+    .sort({ createdAt: -1 })
+    .lean();
 
-  // Rich Results for Search Engines (JSON-LD)
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "headline": post.title,
-    "image": post.coverImage?.url,
-    "author": {
-      "@type": "Person",
-      "name": post.author.name
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Kalamic Ceramic Studio",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://kalamic.shop/logo.png"
-      }
-    },
-    "datePublished": post.publishedAt,
-    "dateModified": post.updatedAt,
-    "description": post.excerpt,
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": `https://kalamic.shop/blog/${post.slug}`
-    }
-  };
+  const suggested = await getSuggestedBlogs(post.slug, post.tags || []);
 
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <BlogPostClient post={post} suggested={suggested} />
-    </>
+    <BlogPostClient 
+      post={JSON.parse(JSON.stringify(post))} 
+      initialComments={JSON.parse(JSON.stringify(comments))}
+      suggested={JSON.parse(JSON.stringify(suggested))}
+    />
   );
 }
