@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Box, Typography, Paper, Grid, Button, Stack, alpha, useTheme,
   TextField, MenuItem, Select, FormControl, InputLabel, Chip,
@@ -11,17 +11,17 @@ import {
   Popover, List, ListItem, ListItemAvatar, ListItemIcon, ListItemText, Divider
 } from '@mui/material';
 import {
-  Add, Edit, Delete, Visibility, Star, StarBorder, CloudUpload,
-  Search, Save, Close, Link as LinkIcon, FormatBold, FormatItalic,
-  FormatListBulleted, FormatQuote, Code, AddPhotoAlternate,
-  InsertLink, Title, ExpandMore, Code as CodeIcon, EditNote, 
+  Add, Edit, Delete, CloudUpload,
+  Search, Save, Close, FormatBold, FormatItalic,
+  FormatQuote, AddPhotoAlternate,
+  Title, ExpandMore, Code as CodeIcon, EditNote, 
   HorizontalRule, ViewColumn, ViewWeek, Info, Warning, CheckCircle
 } from '@mui/icons-material';
-import { Copy, Package, Trash2, Plus } from 'lucide-react';
+import { Copy, Package } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import dayjs from 'dayjs';
-import Image from 'next/image';
+import DOMPurify from 'dompurify';
 
 const DEFAULT_CATEGORIES = ["Tips", "Heritage", "Product Spotlight", "How-to", "News", "Care Guide"];
 
@@ -39,7 +39,6 @@ export default function BlogStudio() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // --- NEW UPGRADE STATES ---
   const [formData, setFormData] = useState<any>(null);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [tagInput, setTagInput] = useState('');
@@ -50,11 +49,19 @@ export default function BlogStudio() {
   const [productAnchorEl, setProductAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [newCategory, setNewCategory] = useState('');
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [savedDraft, setSavedDraft] = useState<any>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contentInputRef = useRef<HTMLTextAreaElement>(null);
 
-  const loadBlogs = async () => {
+  const wordCount = useMemo(() => {
+    return formData?.content?.split(/\s+/).filter(Boolean).length || 0;
+  }, [formData?.content]);
+
+  const readTime = useMemo(() => Math.ceil(wordCount / 200), [wordCount]);
+
+  const loadBlogs = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -66,13 +73,12 @@ export default function BlogStudio() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     loadBlogs();
-  }, [user]);
+  }, [loadBlogs]);
 
-  // UPGRADE 1: AUTO SLUG GENERATION
   useEffect(() => {
     if (formData && !slugManuallyEdited && formData.title) {
       const generated = formData.title
@@ -88,31 +94,39 @@ export default function BlogStudio() {
     }
   }, [formData?.title, slugManuallyEdited]);
 
-  // UPGRADE 4: PRODUCT SEARCH
   useEffect(() => {
     if (!productSearch.trim()) {
       setProductResults([]);
       return;
     }
     const t = setTimeout(async () => {
-      const res = await fetch(`/api/admin/products`);
+      const res = await fetch(`/api/admin/products?search=${encodeURIComponent(productSearch)}`);
       if (res.ok) {
         const data = await res.json();
-        // Local filtering since we already have the data
-        const filtered = data.filter((p: any) => 
-          p.name.toLowerCase().includes(productSearch.toLowerCase())
-        ).slice(0, 5);
-        setProductResults(filtered);
+        setProductResults(data.products?.slice(0, 5) || data.slice?.(0, 5) || []);
       }
     }, 400);
     return () => clearTimeout(t);
   }, [productSearch]);
 
+  useEffect(() => {
+    if (!editorOpen || !formData) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem('blog_draft_autosave', JSON.stringify(formData));
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [formData, editorOpen]);
+
   const handleOpenEditor = (blog?: any) => {
+    const draft = localStorage.getItem('blog_draft_autosave');
     if (blog) {
       setFormData({ ...blog });
       setSlugManuallyEdited(true);
     } else {
+      if (draft) {
+        setSavedDraft(JSON.parse(draft));
+        setRestoreDialogOpen(true);
+      }
       setFormData({
         title: '',
         excerpt: '',
@@ -131,6 +145,14 @@ export default function BlogStudio() {
     }
     setActiveTab(0);
     setEditorOpen(true);
+  };
+
+  const handleRestoreDraft = () => {
+    if (savedDraft) {
+      setFormData(savedDraft);
+      setRestoreDialogOpen(false);
+      setSavedDraft(null);
+    }
   };
 
   const handleClonePost = (post: any) => {
@@ -161,7 +183,6 @@ export default function BlogStudio() {
     const newContent = currentContent.substring(0, start) + text + currentContent.substring(end);
     setFormData({ ...formData, content: newContent });
     
-    // Focus back and set selection
     setTimeout(() => {
       textarea.focus();
       const newPos = start + text.length;
@@ -177,6 +198,26 @@ export default function BlogStudio() {
 
     setIsSaving(true);
     try {
+      let finalSlug = formData.slug;
+      const slugCheckUrl = `/api/admin/blogs/check-slug?slug=${encodeURIComponent(finalSlug)}${formData._id ? `&excludeId=${formData._id}` : ''}`;
+      const checkRes = await fetch(slugCheckUrl);
+      const checkData = await checkRes.json();
+      
+      if (checkData.exists) {
+        let count = 1;
+        let unique = false;
+        while(!unique) {
+          const testSlug = `${formData.slug}-${count}`;
+          const r = await fetch(`/api/admin/blogs/check-slug?slug=${encodeURIComponent(testSlug)}`);
+          const d = await r.json();
+          if (!d.exists) {
+            finalSlug = testSlug;
+            unique = true;
+          }
+          count++;
+        }
+      }
+
       const isUpdate = !!formData._id;
       const url = isUpdate ? `/api/admin/blogs/${formData._id}` : '/api/admin/blogs';
       const method = isUpdate ? 'PATCH' : 'POST';
@@ -186,6 +227,7 @@ export default function BlogStudio() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           ...formData, 
+          slug: finalSlug,
           adminId: user.uid,
           scheduledAt: formData.scheduledAt || null
         })
@@ -193,6 +235,7 @@ export default function BlogStudio() {
 
       if (!res.ok) throw new Error('Failed to save blog');
 
+      localStorage.removeItem('blog_draft_autosave');
       toast({ title: isUpdate ? 'Post Refined' : 'Post Created' });
       setEditorOpen(false);
       loadBlogs();
@@ -262,53 +305,56 @@ export default function BlogStudio() {
     setFormData({ ...formData, content: newContent });
   };
 
-  // UPGRADE 7: SEO CHECKER
-  const seoChecks = formData ? [
-    {
-      label: 'Meta title length (50-60 chars)',
-      pass: formData.seo?.metaTitle?.length >= 50 && formData.seo?.metaTitle?.length <= 60,
-      tip: `Currently: ${formData.seo?.metaTitle?.length || 0} chars`
-    },
-    {
-      label: 'Meta description (120-160 chars)',
-      pass: formData.seo?.metaDescription?.length >= 120 && formData.seo?.metaDescription?.length <= 160,
-      tip: `Currently: ${formData.seo?.metaDescription?.length || 0} chars`
-    },
-    {
-      label: 'At least 3 keywords',
-      pass: (formData.seo?.metaKeywords?.length || 0) >= 3,
-      tip: `Currently: ${formData.seo?.metaKeywords?.length || 0} keywords`
-    },
-    {
-      label: 'Cover image set',
-      pass: !!formData.coverImage?.url,
-      tip: 'Upload a cover image'
-    },
-    {
-      label: 'At least 3 tags',
-      pass: (formData.tags?.length || 0) >= 3,
-      tip: `Currently: ${formData.tags?.length || 0} tags`
-    },
-    {
-      label: 'Content > 300 words',
-      pass: (formData.content?.split(/\s+/).length || 0) > 300,
-      tip: `Currently: ${formData.content?.split(/\s+/).length || 0} words`
-    },
-    {
-      label: 'Slug is URL-friendly',
-      pass: /^[a-z0-9-]+$/.test(formData.slug || ''),
-      tip: 'Slug should only have lowercase, numbers and hyphens'
-    },
-    {
-      label: 'Excerpt filled',
-      pass: (formData.excerpt?.length || 0) > 50,
-      tip: 'Add a summary excerpt'
-    },
-  ] : [];
+  const seoChecks = useMemo(() => {
+    if (!formData) return [];
+    return [
+      {
+        label: 'Meta title length (50-60 chars)',
+        pass: formData.seo?.metaTitle?.length >= 50 && formData.seo?.metaTitle?.length <= 60,
+        tip: `Currently: ${formData.seo?.metaTitle?.length || 0} chars`
+      },
+      {
+        label: 'Meta description (120-160 chars)',
+        pass: formData.seo?.metaDescription?.length >= 120 && formData.seo?.metaDescription?.length <= 160,
+        tip: `Currently: ${formData.seo?.metaDescription?.length || 0} chars`
+      },
+      {
+        label: 'At least 3 keywords',
+        pass: (formData.seo?.metaKeywords?.length || 0) >= 3,
+        tip: `Currently: ${formData.seo?.metaKeywords?.length || 0} keywords`
+      },
+      {
+        label: 'Cover image set',
+        pass: !!formData.coverImage?.url,
+        tip: 'Upload a cover image'
+      },
+      {
+        label: 'At least 3 tags',
+        pass: (formData.tags?.length || 0) >= 3,
+        tip: `Currently: ${formData.tags?.length || 0} tags`
+      },
+      {
+        label: 'Content > 300 words',
+        pass: wordCount > 300,
+        tip: `Currently: ${wordCount} words`
+      },
+      {
+        label: 'Slug is URL-friendly',
+        pass: /^[a-z0-9-]+$/.test(formData.slug || ''),
+        tip: 'Slug should only have lowercase, numbers and hyphens'
+      },
+      {
+        label: 'Excerpt filled',
+        pass: (formData.excerpt?.length || 0) > 50,
+        tip: 'Add a summary excerpt'
+      },
+    ];
+  }, [formData, wordCount]);
 
-  const seoScore = formData ? Math.round(
-    (seoChecks.filter(c => c.pass).length / seoChecks.length) * 100
-  ) : 0;
+  const seoScore = useMemo(() => {
+    if (!seoChecks.length) return 0;
+    return Math.round((seoChecks.filter(c => c.pass).length / seoChecks.length) * 100);
+  }, [seoChecks]);
 
   const filteredBlogs = blogs.filter(b => {
     const matchesSearch = b.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -429,21 +475,29 @@ export default function BlogStudio() {
         </Table>
       </TableContainer>
 
-      {/* BLOG EDITOR DIALOG */}
       <Dialog 
         open={editorOpen} 
-        onClose={() => !isSaving && setEditorOpen(false)} 
+        onClose={() => {
+          localStorage.removeItem('blog_draft_autosave');
+          setEditorOpen(false);
+        }} 
         fullScreen
         PaperProps={{ sx: { bgcolor: '#F6F1E9' } }}
       >
         <DialogTitle sx={{ p: 0, bgcolor: 'white', borderBottom: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 3, py: 1.5 }}>
             <Stack direction="row" spacing={2} alignItems="center">
-              <IconButton onClick={() => setEditorOpen(false)}><Close /></IconButton>
+              <IconButton onClick={() => {
+                localStorage.removeItem('blog_draft_autosave');
+                setEditorOpen(false);
+              }}><Close /></IconButton>
               <Typography variant="h6" fontWeight={900}>{formData?._id ? 'Refine Story' : 'New Creation'}</Typography>
             </Stack>
             <Stack direction="row" spacing={2}>
-              <Button onClick={() => setEditorOpen(false)} disabled={isSaving}>Discard</Button>
+              <Button onClick={() => {
+                localStorage.removeItem('blog_draft_autosave');
+                setEditorOpen(false);
+              }} disabled={isSaving}>Discard</Button>
               <Button 
                 variant="contained" 
                 startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : <Save />}
@@ -561,7 +615,7 @@ export default function BlogStudio() {
                       }}
                     >
                       {formData.coverImage?.url ? (
-                        <img src={formData.coverImage.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={formData.coverImage.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={formData.title} />
                       ) : (
                         <>
                           <CloudUpload sx={{ fontSize: 48, color: 'primary.main', opacity: 0.5, mb: 1 }} />
@@ -582,7 +636,6 @@ export default function BlogStudio() {
                   </Paper>
 
                   <Paper sx={{ p: 0, borderRadius: 4, overflow: 'hidden' }}>
-                    {/* UPGRADE 3: EDITOR MODE TOGGLE */}
                     <Box sx={{ p: 1, bgcolor: alpha(theme.palette.primary.main, 0.05), borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between' }}>
                       <Stack direction="row" spacing={0.5}>
                         <Button 
@@ -657,11 +710,10 @@ export default function BlogStudio() {
 
                     <Box sx={{ p: 2, bgcolor: alpha('#000', 0.02), borderTop: '1px solid', borderColor: 'divider' }}>
                       <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>
-                        {formData.content.split(/\s+/).filter(Boolean).length} words · Estimated {Math.ceil(formData.content.split(/\s+/).filter(Boolean).length / 200)} min read
+                        {wordCount} words · Estimated {readTime} min read
                       </Typography>
                     </Box>
 
-                    {/* LIVE PREVIEW */}
                     <Accordion sx={{ boxShadow: 'none', borderTop: '1px solid', borderColor: 'divider' }}>
                       <AccordionSummary expandIcon={<ExpandMore />}>
                         <Typography variant="caption" fontWeight={900}>👁 PREVIEW (CLICK TO EXPAND)</Typography>
@@ -670,7 +722,7 @@ export default function BlogStudio() {
                         <Box sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'white' }}>
                           <div 
                             className="prose prose-lg max-w-none"
-                            dangerouslySetInnerHTML={{ __html: formData.content }}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }}
                           />
                         </Box>
                       </AccordionDetails>
@@ -742,7 +794,6 @@ export default function BlogStudio() {
                         label={<Typography fontWeight={800}>Published to Live Archive</Typography>} 
                       />
 
-                      {/* UPGRADE 5: SCHEDULED PUBLISHING */}
                       {formData.status === 'draft' && (
                         <Box sx={{ mt: 1, p: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
                           <FormControlLabel
@@ -785,7 +836,6 @@ export default function BlogStudio() {
                         label={<Typography fontWeight={800}>Highlight on Homepage</Typography>} 
                       />
                       
-                      {/* UPGRADE 2: TAGS CHIP UI */}
                       <Box>
                         <Typography variant="caption" sx={{ fontWeight: 800, mb: 1, display: 'block' }}>Tags</Typography>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
@@ -864,7 +914,6 @@ export default function BlogStudio() {
         </DialogContent>
       </Dialog>
 
-      {/* UPGRADE 4: PRODUCT PICKER POPOVER */}
       <Popover
         open={showProductPicker}
         anchorEl={productAnchorEl}
@@ -897,7 +946,6 @@ export default function BlogStudio() {
                 <Button 
                   size="small" 
                   onClick={() => {
-                    const primaryImg = product.images?.find((i: any) => i.is_primary)?.url || product.images?.[0]?.url;
                     insertAtCursor(`\n<a href="/products/${product.slug}" class="inline-flex items-center gap-2 px-4 py-2 my-2 rounded-xl bg-primary/10 text-primary font-bold text-sm hover:bg-primary hover:text-white transition-all no-underline">🏺 ${product.name} — ₹${product.price}</a>\n`);
                     setShowProductPicker(false);
                     setProductSearch('');
@@ -918,7 +966,20 @@ export default function BlogStudio() {
           ))}
         </List>
       </Popover>
+
+      <Dialog open={restoreDialogOpen} onClose={() => setRestoreDialogOpen(false)}>
+        <DialogTitle sx={{ fontWeight: 900 }}>Restore Draft?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">We found an unsaved draft from your previous session. Would you like to restore it?</Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => {
+            localStorage.removeItem('blog_draft_autosave');
+            setRestoreDialogOpen(false);
+          }}>Ignore</Button>
+          <Button variant="contained" onClick={handleRestoreDraft} sx={{ borderRadius: 2, fontWeight: 800 }}>Restore</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
-
