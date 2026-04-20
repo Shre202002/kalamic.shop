@@ -90,14 +90,14 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
       <div className="fixed top-0 left-0 h-1 bg-primary z-[100] transition-all" style={{ width: `${scrollProgress}%` }} />
       <Navbar />
 
-      <section className="relative w-full h-[60vh] overflow-hidden pt-20">
+      <section className="relative w-full h-[45vh] md:h-[60vh] overflow-hidden mt-16 md:mt-24">
         <Image src={post.coverImage?.url || BLOG_PLACEHOLDER} alt={post.title} fill className="object-cover" priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-        <div className="absolute bottom-12 left-0 w-full">
-          <div className="container mx-auto px-6 max-w-7xl">
-            <Badge className="mb-4 bg-primary text-white">{post.category}</Badge>
-            <h1 className="text-4xl md:text-7xl font-display font-bold text-white tracking-tight">{post.title}</h1>
-            <div className="flex gap-6 text-white/80 text-xs font-black mt-6 uppercase tracking-widest">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
+        <div className="absolute bottom-8 md:bottom-12 left-0 w-full">
+          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
+            <Badge className="mb-3 md:mb-4 bg-primary text-white text-[10px] md:text-sm uppercase tracking-widest">{post.category}</Badge>
+            <h1 className="text-3xl sm:text-5xl md:text-7xl font-display font-bold text-white tracking-tight leading-tight">{post.title}</h1>
+            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6 text-white/80 text-[10px] md:text-xs font-black mt-4 md:mt-6 uppercase tracking-widest">
               <span className="flex items-center gap-2"><User size={14} /> {post.author.name}</span>
               <span className="flex items-center gap-2"><Clock size={14} /> {post.readTime} MIN READ</span>
               <span>{dayjs(post.publishedAt).format('MMM D, YYYY')}</span>
@@ -106,22 +106,22 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
         </div>
       </section>
 
-      <div className="container mx-auto px-6 max-w-7xl py-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+      <div className="container mx-auto px-4 md:px-6 max-w-7xl py-12 md:py-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
           <main className="lg:col-span-8">
-            <article className="prose prose-lg md:prose-xl prose-stone max-w-none prose-img:rounded-2xl prose-img:shadow-xl">
+            <article className="prose prose-base sm:prose-lg md:prose-xl prose-stone max-w-none prose-img:rounded-2xl prose-img:shadow-xl">
               <div dangerouslySetInnerHTML={{ __html: post.content }} />
             </article>
 
             {/* Comments System */}
-            <section className="mt-32 pt-12 border-t border-primary/10">
-              <div className="flex items-center gap-4 mb-12">
-                <MessageSquare className="text-primary" />
-                <h2 className="text-3xl font-display font-bold">Collector Discussions</h2>
+            <section className="mt-20 md:mt-32 pt-12 border-t border-primary/10">
+              <div className="flex items-center gap-4 mb-8 md:mb-12">
+                <MessageSquare className="text-primary h-6 w-6 md:h-8 md:w-8" />
+                <h2 className="text-2xl md:text-3xl font-display font-bold">Collector Discussions</h2>
               </div>
 
               {user ? (
-                <div className="mb-16 bg-white p-8 rounded-[2rem] shadow-xl border border-primary/5">
+                <div className="mb-12 md:mb-16 bg-white p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] shadow-xl border border-primary/5">
                   {replyTo && (
                     <div className="flex items-center justify-between mb-4 p-3 bg-primary/5 rounded-xl">
                       <span className="text-xs font-bold text-primary">Replying to @{replyTo.userName}</span>
@@ -137,13 +137,13 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
                       placeholder="Share your thoughts with the studio..."
                       className="w-full h-32 p-4 rounded-2xl bg-muted border-none focus:ring-2 focus:ring-primary text-sm"
                     />
-                    <Button disabled={isSubmitting} className="h-12 px-8 rounded-xl font-black uppercase text-[10px]">
+                    <Button disabled={isSubmitting} className="h-12 px-8 rounded-xl font-black uppercase text-[10px] w-full sm:w-auto">
                       {isSubmitting ? <Loader2 className="animate-spin" /> : 'Post Comment'}
                     </Button>
                   </form>
                 </div>
               ) : (
-                <div className="mb-16 p-8 rounded-[2rem] bg-primary/5 border border-dashed border-primary/20 text-center">
+                <div className="mb-12 md:mb-16 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-primary/5 border border-dashed border-primary/20 text-center">
                   <p className="text-sm font-bold text-muted-foreground mb-4">Please sign in to join the discussion.</p>
                   <Link href="/auth/login"><Button size="sm">Sign In</Button></Link>
                 </div>
@@ -153,7 +153,7 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
                 {comments.filter((c: any) => !c.parentId).map((comment: any) => (
                   <div key={comment._id} className="space-y-6">
                     <div className="flex gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center font-black text-primary uppercase shadow-inner">
+                      <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-primary/10 flex items-center justify-center font-black text-primary uppercase shadow-inner flex-shrink-0">
                         {comment.userName[0]}
                       </div>
                       <div className="flex-1">
@@ -172,10 +172,10 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
                     </div>
                     
                     {/* Replies */}
-                    <div className="ml-16 space-y-6 border-l-2 border-primary/5 pl-6">
+                    <div className="ml-8 md:ml-16 space-y-6 border-l-2 border-primary/5 pl-4 md:pl-6">
                       {getCommentReplies(comment._id).map((reply: any) => (
-                        <div key={reply._id} className="flex gap-4">
-                          <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center font-black text-accent text-xs uppercase shadow-inner">
+                        <div key={reply._id} className="flex gap-3 md:gap-4">
+                          <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-accent/10 flex items-center justify-center font-black text-accent text-[10px] md:text-xs uppercase shadow-inner flex-shrink-0">
                             {reply.userName[0]}
                           </div>
                           <div className="flex-1">
@@ -194,13 +194,13 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
             </section>
           </main>
 
-          <aside className="lg:col-span-4">
-            <div className="sticky top-32 space-y-12">
-              <div className="bg-primary rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden">
+          <aside className="lg:col-span-4 mt-20 lg:mt-0">
+            <div className="lg:sticky lg:top-32 space-y-12">
+              <div className="bg-primary rounded-[2rem] md:rounded-[3rem] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 h-32 w-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
                 <Sparkles className="mb-6 opacity-40 h-8 w-8" />
                 <h3 className="text-2xl font-display font-bold mb-2">Artisan Loop</h3>
-                <p className="text-white/70 text-sm mb-6">Get notified about kiln firings and new heritage stories.</p>
+                <p className="text-white/70 text-sm mb-6 font-medium">Get notified about kiln firings and new heritage stories.</p>
                 <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
                   <Input placeholder="Collector Email" className="bg-white/10 border-white/20 text-white placeholder:text-white/40 h-12 rounded-xl" />
                   <Button className="w-full bg-white text-primary font-black uppercase tracking-widest text-[10px] h-12 rounded-xl hover:bg-white/90">Join Circle</Button>
@@ -208,17 +208,17 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
               </div>
 
               {suggested.length > 0 && (
-                <div className="space-y-6">
+                <div className="space-y-6 px-2 md:px-0">
                   <h4 className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Read Next</h4>
                   <div className="space-y-6">
                     {suggested.map((s: any) => (
-                      <Link key={s._id} href={`/blog/${s.slug}`} className="group flex gap-4 items-center">
-                        <div className="relative h-20 w-20 rounded-2xl overflow-hidden flex-shrink-0 bg-muted">
+                      <Link key={s._id} href={`/blog/${s.slug}`} className="group flex gap-4 items-start sm:items-center">
+                        <div className="relative h-16 w-16 md:h-20 md:w-20 rounded-xl md:rounded-2xl overflow-hidden flex-shrink-0 bg-muted">
                           <Image src={s.coverImage?.url || BLOG_PLACEHOLDER} alt={s.title} fill className="object-cover transition-transform group-hover:scale-110" />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0">
                           <h5 className="font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">{s.title}</h5>
-                          <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{dayjs(s.publishedAt).format('MMM D, YYYY')}</p>
+                          <p className="text-[9px] md:text-[10px] text-muted-foreground uppercase font-black tracking-widest">{dayjs(s.publishedAt).format('MMM D, YYYY')}</p>
                         </div>
                       </Link>
                     ))}
@@ -237,7 +237,7 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             onClick={scrollToTop}
-            className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-primary text-white shadow-2xl flex items-center justify-center z-50 hover:scale-110 transition-transform active:scale-95"
+            className="fixed bottom-6 right-6 md:bottom-8 md:right-8 h-12 w-12 md:h-14 md:w-14 rounded-full bg-primary text-white shadow-2xl flex items-center justify-center z-50 hover:scale-110 transition-transform active:scale-95"
           >
             <ArrowUp size={24} />
           </motion.button>
