@@ -55,6 +55,7 @@ export default function BlogStudio() {
   const [productResults, setProductResults] = useState<any[]>([]);
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [showGalleryPicker, setShowGalleryPicker] = useState(false);
+  const [galleryInsertMode, setGalleryInsertMode] = useState<'cover' | 'content'>('cover');
   const [galleryItems, setGalleryItems] = useState<any[]>([]);
   const [productAnchorEl, setProductAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
@@ -175,13 +176,29 @@ export default function BlogStudio() {
     setEditorOpen(true);
   };
 
-  const insertAtCursor = (text: string) => {
+  const insertAtCursor = (html: string) => {
     if (editorMode === 'visual' && visualEditorRef.current) {
-      document.execCommand('insertHTML', false, text);
-      setFormData((prev: any) => ({ ...prev, content: visualEditorRef.current!.innerHTML }));
+      visualEditorRef.current.focus();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        const fragment = range.createContextualFragment(html);
+        range.insertNode(fragment);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } else {
+        // Fallback: append to end
+        visualEditorRef.current.innerHTML += html;
+      }
+      setFormData((prev: any) => ({
+        ...prev,
+        content: visualEditorRef.current!.innerHTML
+      }));
     } else {
       const currentContent = formData.content || '';
-      setFormData((prev: any) => ({ ...prev, content: currentContent + text }));
+      setFormData((prev: any) => ({ ...prev, content: currentContent + html }));
     }
   };
 
@@ -408,7 +425,7 @@ export default function BlogStudio() {
                     <Typography variant="caption" sx={{ fontWeight: 900, mb: 2, display: 'block' }}>COVER IMAGE</Typography>
                     <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
                       <Button variant="outlined" startIcon={<CloudUpload />} component="label">Upload<input type="file" hidden accept="image/*" onChange={(e) => handleUpload(e, true)} /></Button>
-                      <Button variant="outlined" startIcon={<PhotoLibrary />} onClick={() => { loadGallery(); setShowGalleryPicker(true); }}>Choose from Gallery</Button>
+                      <Button variant="outlined" startIcon={<PhotoLibrary />} onClick={() => { setGalleryInsertMode('cover'); loadGallery(); setShowGalleryPicker(true); }}>Choose from Gallery</Button>
                     </Stack>
                     <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 3, overflow: 'hidden', bgcolor: alpha('#000', 0.05) }}>
                       {formData.coverImage?.url && <Image src={formData.coverImage.url} alt="Cover" fill className="object-cover" />}
@@ -425,7 +442,7 @@ export default function BlogStudio() {
                         <Stack direction="row" spacing={0.5}>
                           <IconButton onClick={() => document.execCommand('bold')}><FormatBold /></IconButton>
                           <IconButton onClick={() => document.execCommand('italic')}><FormatItalic /></IconButton>
-                          <IconButton onClick={() => { loadGallery(); setShowGalleryPicker(true); }}><AddPhotoAlternate /></IconButton>
+                          <IconButton onClick={() => { setGalleryInsertMode('content'); loadGallery(); setShowGalleryPicker(true); }}><AddPhotoAlternate /></IconButton>
                           <IconButton onClick={(e) => { setProductAnchorEl(e.currentTarget); setShowProductPicker(true); }}><Package size={18} /></IconButton>
                         </Stack>
                       )}
@@ -498,7 +515,7 @@ export default function BlogStudio() {
                   <Box 
                     sx={{ position: 'relative', aspectRatio: '1/1', cursor: 'pointer', borderRadius: 2, overflow: 'hidden', border: '2px solid transparent', '&:hover': { borderColor: 'primary.main' } }} 
                     onClick={() => {
-                      if (activeTab === 0 && editorMode === 'visual') {
+                      if (galleryInsertMode === 'content' && editorMode === 'visual') {
                         setPendingGalleryImage(item);
                       } else {
                         setFormData({ ...formData, coverImage: { url: item.url, alt: item.altText } });
