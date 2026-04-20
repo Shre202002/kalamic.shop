@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -106,19 +107,21 @@ const testimonials = [
 ];
 
 export default function HomeClient({ 
-  initialProducts, 
-  categoryCounts,
+  initialProducts = [], 
+  categoryCounts = {},
   featuredBlogs = []
 }: { 
-  initialProducts: any[], 
-  categoryCounts: Record<string, number>,
+  initialProducts?: any[], 
+  categoryCounts?: Record<string, number>,
   featuredBlogs?: any[]
 }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [email, setEmail] = useState('');
   const [subStatus, setSubStatus] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const timer = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % heroSlides.length);
     }, 8000);
@@ -309,7 +312,7 @@ export default function HomeClient({
                         <p className="text-muted-foreground text-sm font-medium line-clamp-2 leading-relaxed">{post.excerpt}</p>
                         <div className="flex items-center justify-between pt-4 border-t border-primary/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                           <span className="flex items-center gap-2"><Clock className="h-3 w-3" /> {post.readTime} MIN READ</span>
-                          <span>{dayjs(post.publishedAt).format('MMM D, YYYY')}</span>
+                          <span>{isMounted ? dayjs(post.publishedAt).format('MMM D, YYYY') : ''}</span>
                         </div>
                       </div>
                     </Link>
