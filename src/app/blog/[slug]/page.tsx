@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Metadata } from 'next';
 import Image from 'next/image';
@@ -9,13 +8,19 @@ import { Footer } from '@/components/layout/Footer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
-  Calendar, Clock, User, ArrowRight, BookOpen, 
+  Calendar, Clock, User, ArrowRight, 
   ChevronRight, Share2, Facebook, Twitter, Linkedin,
-  ChevronLeft, Award, Sparkles, ShoppingBag
+  ChevronLeft, Award, Sparkles
 } from 'lucide-react';
 import { getBlogBySlug, getSuggestedBlogs } from '@/lib/actions/blog-actions';
 import dayjs from 'dayjs';
-import { cn } from '@/lib/utils';
+
+const BLOG_PLACEHOLDER = "https://picsum.photos/seed/kalamic-blog/1200/675";
+
+const getCoverImage = (url?: string) => {
+  if (!url || url.trim() === "") return BLOG_PLACEHOLDER;
+  return url;
+};
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -34,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: post.seo?.metaTitle || post.title,
       description: post.seo?.metaDescription || post.excerpt,
-      images: [{ url: post.seo?.ogImage || post.coverImage.url }],
+      images: [{ url: post.seo?.ogImage || getCoverImage(post.coverImage?.url) }],
       type: 'article',
       publishedTime: post.publishedAt,
       tags: post.tags
@@ -57,7 +62,7 @@ export default async function BlogPostPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     "headline": post.title,
-    "image": post.coverImage.url,
+    "image": getCoverImage(post.coverImage?.url),
     "author": {
       "@type": "Person",
       "name": post.author.name
@@ -119,8 +124,15 @@ export default async function BlogPostPage({ params }: Props) {
 
         {/* COVER IMAGE */}
         <div className="max-w-6xl mx-auto px-6 mb-20">
-          <div className="relative aspect-[21/9] rounded-[3rem] overflow-hidden shadow-2xl border border-primary/5">
-            <Image src={post.coverImage.url} alt={post.coverImage.alt} fill className="object-cover" priority />
+          <div className="relative aspect-[21/9] rounded-[3rem] overflow-hidden shadow-2xl border border-primary/5 bg-muted">
+            <Image 
+              src={getCoverImage(post.coverImage?.url)} 
+              alt={post.coverImage?.alt || post.title} 
+              fill 
+              className="object-cover" 
+              priority 
+              sizes="100vw"
+            />
           </div>
         </div>
 
@@ -185,8 +197,8 @@ export default async function BlogPostPage({ params }: Props) {
                     <div className="space-y-6">
                       {post.linkedProducts.map((p: any) => (
                         <Link key={p.productId} href={`/products/${p.productSlug}`} className="group flex items-center gap-4 p-3 rounded-2xl hover:bg-primary/5 transition-all">
-                          <div className="relative h-20 w-20 rounded-xl overflow-hidden flex-shrink-0 shadow-md border-2 border-white">
-                            <Image src={p.productImage} alt={p.productName} fill className="object-cover transition-transform group-hover:scale-110" />
+                          <div className="relative h-20 w-20 rounded-xl overflow-hidden flex-shrink-0 shadow-md border-2 border-white bg-muted">
+                            <Image src={p.productImage} alt={p.productName} fill className="object-cover transition-transform group-hover:scale-110" sizes="80px" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">{p.productName}</p>
@@ -243,8 +255,14 @@ export default async function BlogPostPage({ params }: Props) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                 {suggested.map((s: any) => (
                   <Link key={s._id} href={`/blog/${s.slug}`} className="group space-y-6">
-                    <div className="relative aspect-video rounded-[2rem] overflow-hidden shadow-lg border-2 border-white">
-                      <Image src={s.coverImage.url} alt={s.coverImage.alt} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <div className="relative aspect-video rounded-[2rem] overflow-hidden shadow-lg border-2 border-white bg-muted">
+                      <Image 
+                        src={getCoverImage(s.coverImage?.url)} 
+                        alt={s.coverImage?.alt || s.title} 
+                        fill 
+                        className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                        sizes="(max-width: 768px) 100vw, 400px"
+                      />
                     </div>
                     <div className="space-y-3">
                       <Badge className="bg-primary/10 text-primary border-none px-3 py-1 text-[8px] font-black uppercase tracking-widest">{s.category}</Badge>

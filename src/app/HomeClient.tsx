@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -32,6 +31,13 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import dayjs from 'dayjs';
+
+const BLOG_PLACEHOLDER = "https://picsum.photos/seed/kalamic-blog/1200/675";
+
+const getCoverImage = (url?: string) => {
+  if (!url || url.trim() === "") return BLOG_PLACEHOLDER;
+  return url;
+};
 
 // --- ANIMATION VARIANTS ---
 const fadeUp = {
@@ -286,8 +292,14 @@ export default function HomeClient({
                 {featuredBlogs.map((post, idx) => (
                   <motion.article key={post._id} variants={fadeUp} className="group">
                     <Link href={`/blog/${post.slug}`} className="block space-y-6">
-                      <div className="relative aspect-video rounded-3xl overflow-hidden shadow-lg border border-primary/5">
-                        <Image src={post.coverImage.url} alt={post.coverImage.alt} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                      <div className="relative aspect-video rounded-3xl overflow-hidden shadow-lg border border-primary/5 bg-muted">
+                        <Image 
+                          src={getCoverImage(post.coverImage?.url)} 
+                          alt={post.coverImage?.alt || post.title} 
+                          fill 
+                          className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                          sizes="(max-width: 768px) 100vw, 400px"
+                        />
                         <div className="absolute top-4 left-4">
                           <Badge className="bg-white/90 backdrop-blur-md text-primary text-[8px] font-black uppercase tracking-widest border-none px-3 py-1 shadow-sm">{post.category}</Badge>
                         </div>

@@ -1,8 +1,7 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Navbar } from '@/components/layout/Navbar';
@@ -10,13 +9,19 @@ import { Footer } from '@/components/layout/Footer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
-  Calendar, Clock, User, ArrowRight, BookOpen, 
-  ChevronRight, Sparkles, Loader2, Filter
+  Calendar, Clock, BookOpen, 
+  Loader2, Filter
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import dayjs from 'dayjs';
 
 const CATEGORIES = ["All", "Tips", "Heritage", "Product Spotlight", "How-to", "News", "Care Guide"];
+const BLOG_PLACEHOLDER = "https://picsum.photos/seed/kalamic-blog/1200/675";
+
+const getCoverImage = (url?: string) => {
+  if (!url || url.trim() === "") return BLOG_PLACEHOLDER;
+  return url;
+};
 
 export default function BlogListPage() {
   const [blogs, setBlogs] = useState<any[]>([]);
@@ -79,8 +84,15 @@ export default function BlogListPage() {
               className="mb-24"
             >
               <Link href={`/blog/${featuredPost.slug}`}>
-                <div className="group relative aspect-[21/9] rounded-[3rem] overflow-hidden shadow-2xl bg-white border border-primary/5">
-                  <Image src={featuredPost.coverImage.url} alt={featuredPost.coverImage.alt} fill className="object-cover transition-transform duration-1000 group-hover:scale-105" priority />
+                <div className="group relative aspect-[21/9] rounded-[3rem] overflow-hidden shadow-2xl bg-muted border border-primary/5">
+                  <Image 
+                    src={getCoverImage(featuredPost.coverImage?.url)} 
+                    alt={featuredPost.coverImage?.alt || featuredPost.title} 
+                    fill 
+                    className="object-cover transition-transform duration-1000 group-hover:scale-105" 
+                    priority 
+                    sizes="100vw"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                   <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full md:w-3/4 space-y-4">
                     <Badge className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5">Featured Story</Badge>
@@ -138,8 +150,14 @@ export default function BlogListPage() {
                   className="group"
                 >
                   <Link href={`/blog/${post.slug}`} className="space-y-6 block">
-                    <div className="relative aspect-video rounded-[2rem] overflow-hidden shadow-lg border border-primary/5">
-                      <Image src={post.coverImage.url} alt={post.coverImage.alt} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <div className="relative aspect-video rounded-[2rem] overflow-hidden shadow-lg border border-primary/5 bg-muted">
+                      <Image 
+                        src={getCoverImage(post.coverImage?.url)} 
+                        alt={post.coverImage?.alt || post.title} 
+                        fill 
+                        className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                        sizes="(max-width: 768px) 100vw, 400px"
+                      />
                       <div className="absolute top-4 left-4">
                         <Badge className="bg-white/90 backdrop-blur-md text-primary text-[8px] font-black uppercase tracking-widest border-none px-3 py-1 shadow-sm">
                           {post.category}

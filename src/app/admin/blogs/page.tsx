@@ -15,15 +15,22 @@ import {
   Search, Save, Close, FormatBold, FormatItalic,
   FormatQuote, AddPhotoAlternate,
   Title, ExpandMore, Code as CodeIcon, EditNote, 
-  HorizontalRule, ViewColumn, ViewWeek, Info, Warning, CheckCircle
+  HorizontalRule, ViewColumn, ViewWeek, Info, Warning, CheckCircle, Error as XCircle
 } from '@mui/icons-material';
 import { Copy, Package } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import dayjs from 'dayjs';
 import DOMPurify from 'dompurify';
+import Image from 'next/image';
 
 const DEFAULT_CATEGORIES = ["Tips", "Heritage", "Product Spotlight", "How-to", "News", "Care Guide"];
+const BLOG_PLACEHOLDER = "https://picsum.photos/seed/kalamic-blog/1200/675";
+
+const getCoverImage = (url?: string) => {
+  if (!url || url.trim() === "") return BLOG_PLACEHOLDER;
+  return url;
+};
 
 export default function BlogStudio() {
   const theme = useTheme();
@@ -236,7 +243,7 @@ export default function BlogStudio() {
       if (!res.ok) throw new Error('Failed to save blog');
 
       localStorage.removeItem('blog_draft_autosave');
-      toast({ title: isUpdate ? 'Post Refined' : 'Post Created' });
+      toast({ title: if (isUpdate) 'Post Refined' : 'Post Created' });
       setEditorOpen(false);
       loadBlogs();
     } catch (e: any) {
@@ -440,7 +447,15 @@ export default function BlogStudio() {
               <TableRow key={row._id} hover>
                 <TableCell>
                   <Stack direction="row" spacing={2} alignItems="center">
-                    <Avatar variant="rounded" src={row.coverImage?.url} sx={{ width: 48, height: 48, bgcolor: alpha('#000', 0.05) }} />
+                    <Box sx={{ position: 'relative', width: 48, height: 48, borderRadius: 2, overflow: 'hidden', bgcolor: alpha('#000', 0.05) }}>
+                      <Image 
+                        src={getCoverImage(row.coverImage?.url)} 
+                        alt={row.title} 
+                        fill 
+                        className="object-cover" 
+                        sizes="48px"
+                      />
+                    </Box>
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 800 }}>{row.title}</Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', maxWidth: 200, noWrap: true, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.excerpt}</Typography>
@@ -536,51 +551,13 @@ export default function BlogStudio() {
                     <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
                       <FormControl size="small" sx={{ width: 200 }}>
                         <InputLabel>Category</InputLabel>
-                        <Select 
+                        <select 
                           value={formData.category} 
-                          label="Category" 
+                          className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
                           onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                         >
-                          {categories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                          <MenuItem value="">
-                            <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
-                              <input
-                                placeholder="Add new category..."
-                                value={newCategory}
-                                onChange={e => {
-                                  e.stopPropagation();
-                                  setNewCategory(e.target.value);
-                                }}
-                                onClick={e => e.stopPropagation()}
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter' && newCategory.trim()) {
-                                    e.stopPropagation();
-                                    const cat = newCategory.trim();
-                                    if (!categories.includes(cat)) {
-                                      setCategories(prev => [...prev, cat]);
-                                    }
-                                    setFormData((prev: any) => ({ ...prev, category: cat }));
-                                    setNewCategory('');
-                                  }
-                                }}
-                                style={{ flex: 1, border: 'none', outline: 'none', fontSize: '14px' }}
-                              />
-                              <button
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  const cat = newCategory.trim();
-                                  if (cat && !categories.includes(cat)) {
-                                    setCategories(prev => [...prev, cat]);
-                                  }
-                                  if (cat) setFormData((prev: any) => ({ ...prev, category: cat }));
-                                  setNewCategory('');
-                                }}
-                              >
-                                + Add
-                              </button>
-                            </Box>
-                          </MenuItem>
-                        </Select>
+                          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
                       </FormControl>
                       <TextField 
                         size="small" 
@@ -615,7 +592,13 @@ export default function BlogStudio() {
                       }}
                     >
                       {formData.coverImage?.url ? (
-                        <img src={formData.coverImage.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={formData.title} />
+                        <Image 
+                          src={formData.coverImage.url} 
+                          alt={formData.title} 
+                          fill 
+                          className="object-cover"
+                          sizes="(max-width: 1200px) 100vw, 800px"
+                        />
                       ) : (
                         <>
                           <CloudUpload sx={{ fontSize: 48, color: 'primary.main', opacity: 0.5, mb: 1 }} />
@@ -720,6 +703,15 @@ export default function BlogStudio() {
                       </AccordionSummary>
                       <AccordionDetails>
                         <Box sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'white' }}>
+                          <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9', mb: 4, borderRadius: 4, overflow: 'hidden', bgcolor: alpha('#000', 0.05) }}>
+                            <Image 
+                              src={getCoverImage(formData.coverImage?.url)} 
+                              alt={formData.title || 'Preview cover'} 
+                              fill 
+                              className="object-cover" 
+                              sizes="(max-width: 1200px) 100vw, 800px"
+                            />
+                          </Box>
                           <div 
                             className="prose prose-lg max-w-none"
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }}
@@ -752,7 +744,7 @@ export default function BlogStudio() {
                       {seoChecks.map((check, i) => (
                         <ListItem key={i} sx={{ px: 0, py: 0.5 }}>
                           <ListItemIcon sx={{ minWidth: 32 }}>
-                            {check.pass ? <CheckCircle color="success" sx={{ fontSize: 18 }} /> : <Close color="error" sx={{ fontSize: 18 }} />}
+                            {check.pass ? <CheckCircle color="success" sx={{ fontSize: 18 }} /> : <XCircle color="error" sx={{ fontSize: 18 }} />}
                           </ListItemIcon>
                           <ListItemText 
                             primary={<Typography variant="body2" fontWeight={700}>{check.label}</Typography>}
@@ -956,7 +948,14 @@ export default function BlogStudio() {
               }
             >
               <ListItemAvatar>
-                <Avatar variant="rounded" src={product.images?.[0]?.url} sx={{ width: 40, height: 40 }} />
+                <Box sx={{ position: 'relative', width: 40, height: 40, borderRadius: 1, overflow: 'hidden' }}>
+                  <Image 
+                    src={product.images?.[0]?.url || "https://placehold.co/100x100?text=🏺"} 
+                    alt={product.name} 
+                    fill 
+                    className="object-cover"
+                  />
+                </Box>
               </ListItemAvatar>
               <ListItemText 
                 primary={<Typography variant="caption" fontWeight={800} noWrap>{product.name}</Typography>}
