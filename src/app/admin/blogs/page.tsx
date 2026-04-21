@@ -7,20 +7,21 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
   Tabs, Tab, Switch, FormControlLabel, LinearProgress,
-  Tooltip, CircularProgress, Container, Accordion, AccordionSummary, AccordionDetails,
-  Popover, List, ListItem, ListItemAvatar, ListItemIcon, ListItemText, Divider,
-  Menu, ToggleButton, ToggleButtonGroup
+  Tooltip, CircularProgress, Container,
+  Menu, ToggleButton, ToggleButtonGroup,
+  List, ListItem, ListItemIcon, ListItemText, Divider,
+  Alert
 } from '@mui/material';
 import {
   Add, Edit, Delete, CloudUpload,
   Search, Save, Close, FormatBold, FormatItalic,
-  FormatQuote, AddPhotoAlternate,
-  Title, ExpandMore, Code as CodeIcon, EditNote, 
+  AddPhotoAlternate,
+  EditNote, 
   HorizontalRule, ViewColumn, ViewWeek, Info, Warning, CheckCircle, Error as XCircle,
   PhotoLibrary, FormatListBulleted, FormatListNumbered, Link as LinkIcon,
   FormatUnderlined, StrikethroughS, FormatClear, ViewQuilt, Message
 } from '@mui/icons-material';
-import { Copy, Package, Image as ImageIcon } from 'lucide-react';
+import { Copy, Package } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import dayjs from 'dayjs';
@@ -51,7 +52,6 @@ export default function BlogStudio() {
 
   const [formData, setFormData] = useState<any>(null);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
-  const [tagInput, setTagInput] = useState('');
   const [editorMode, setEditorMode] = useState<'visual' | 'html'>('visual');
   const [productSearch, setProductSearch] = useState('');
   const [productResults, setProductResults] = useState<any[]>([]);
@@ -61,7 +61,6 @@ export default function BlogStudio() {
   const [galleryItems, setGalleryItems] = useState<any[]>([]);
   const [productAnchorEl, setProductAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
-  const [newCategory, setNewCategory] = useState('');
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [savedDraft, setSavedDraft] = useState<any>(null);
 
@@ -469,6 +468,10 @@ export default function BlogStudio() {
             <Container maxWidth="md">
               {activeTab === 0 && (
                 <Stack spacing={4}>
+                  <Alert severity="warning" sx={{ borderRadius: 3 }}>
+                    ⚠️ Do not include the article title or hero section in the content body. The title and cover image are rendered automatically by the blog template above the content.
+                  </Alert>
+
                   <Paper sx={{ p: 4, borderRadius: 4 }}>
                     <TextField fullWidth placeholder="Article Title..." variant="standard" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} InputProps={{ style: { fontSize: '2.5rem', fontWeight: 900 }, disableUnderline: true }} />
                     <TextField fullWidth multiline rows={3} placeholder="Article Excerpt (Min 120 chars)..." value={formData.excerpt} onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })} sx={{ mt: 2 }} />
@@ -564,10 +567,10 @@ export default function BlogStudio() {
                           '& ul': { listStyle: 'disc', paddingLeft: '1.75rem', margin: '1rem 0' },
                           '& ol': { listStyle: 'decimal', paddingLeft: '1.75rem', margin: '1rem 0' },
                           '& li': { fontSize: '1rem', lineHeight: 1.7, margin: '0.35rem 0' },
-                          '& blockquote': { borderLeft: '4px solid #C17D3C', padding: '0.75rem 1.25rem', margin: '1.5rem 0', background: '#FDF6EE', borderRadius: '0 0.75rem 0.75rem 0', fontStyle: 'italic', color: '#5a3e28' },
+                          '& blockquote': { borderLeft: '4px solid #EA781E', padding: '0.75rem 1.25rem', margin: '1.5rem 0', background: '#FAF4EB', borderRadius: '0 0.75rem 0.75rem 0', fontStyle: 'italic', color: '#5a3e28' },
                           '& strong': { fontWeight: 800 },
                           '& em': { fontStyle: 'italic' },
-                          '& a': { color: '#C17D3C', textDecoration: 'underline' },
+                          '& a': { color: '#EA781E', textDecoration: 'underline' },
                           '& hr': { border: 'none', borderTop: '2px solid #e5e0d8', margin: '2rem 0' },
                           '& img': { maxWidth: '100%', height: 'auto', borderRadius: '1rem', margin: '1.5rem 0' },
                           '& code': { background: '#f3ede4', padding: '0.15rem 0.4rem', borderRadius: '0.3rem', fontFamily: 'monospace', fontSize: '0.9rem' },

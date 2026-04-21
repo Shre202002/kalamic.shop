@@ -36,7 +36,7 @@ export function Footer() {
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white mb-8">Shop</h3>
             <ul className="space-y-4 text-sm text-[#b0a090] font-medium">
               <li><Link href="/products" className="hover:text-primary transition-colors">Artisan Gallery</Link></li>
-              <li><Link href="/products?category=temple" className="hover:text-primary transition-colors">Spiritual Decor</Link></li>
+              <li><Link href="/blog" className="hover:text-primary transition-colors">Blog & Stories</Link></li>
               <li><Link href="/products?category=wall-art" className="hover:text-primary transition-colors">Wall Artistry</Link></li>
               <li><Link href="/wishlist" className="hover:text-primary transition-colors">Private Favorites</Link></li>
             </ul>

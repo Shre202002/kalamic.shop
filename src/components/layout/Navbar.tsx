@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useNavigation } from '@/hooks/useNavigation';
-import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut, LayoutDashboard, Sparkles } from 'lucide-react';
+import { Search, ShoppingCart, User, Heart, Menu, X, ChevronRight, Package, LogOut, LayoutDashboard, Sparkles, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
@@ -88,6 +88,7 @@ export function Navbar() {
   const navLinks = [
     { name: 'Creations', href: '/products', icon: Package },
     { name: 'Gallery', href: '/gallery', icon: Sparkles },
+    { name: 'Blog', href: '/blog', icon: BookOpen },
     { name: 'Our Story', href: '/about', icon: Heart },
     { name: 'Contact', href: '/contact', icon: ChevronRight },
   ];

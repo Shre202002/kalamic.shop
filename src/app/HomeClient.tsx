@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -24,7 +23,8 @@ import {
   Gift,
   Home as HomeIcon,
   Clock,
-  BookOpen
+  BookOpen,
+  Calendar
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -149,6 +149,11 @@ export default function HomeClient({
   };
 
   const slide = heroSlides[currentSlide];
+
+  // Logic for blog section redesign
+  const mainPost = featuredBlogs[0];
+  const sidebarPosts = featuredBlogs.slice(1, 3);
+  const scrollPosts = featuredBlogs.slice(3);
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -281,48 +286,99 @@ export default function HomeClient({
             </div>
           </motion.section>
 
-          {/* BLOG SECTION */}
+          {/* REDESIGNED BLOG SECTION */}
           {featuredBlogs.length > 0 && (
-            <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="py-24">
-              <motion.div variants={slideLeft} className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
+            <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="py-24 bg-[#FDFAF6] rounded-[4rem] px-6 md:px-12 -mx-4 md:-mx-10 my-24">
+              <motion.div variants={slideLeft} className="flex items-end justify-between mb-16">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-4"><div className="h-1 w-16 bg-primary rounded-full" /><span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">From the Journal</span></div>
-                  <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tight text-foreground">Ceramic Stories & Guides</h2>
+                  <p className="text-xs font-black uppercase tracking-[0.25em] text-primary">From The Studio</p>
+                  <h2 className="text-4xl md:text-6xl font-display font-bold text-foreground leading-tight">
+                    Heritage Stories &<br/>Artisan Insights
+                  </h2>
                 </div>
-                <Link href="/blog"><Button variant="ghost" className="text-primary font-black uppercase tracking-widest text-[10px] h-12 px-8 rounded-full border border-primary/10 hover:bg-primary/5">Read All Articles <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+                <Link href="/blog" className="hidden md:flex items-center gap-2 text-sm font-bold text-primary hover:gap-3 transition-all px-6 py-3 rounded-full border border-primary/20 bg-white shadow-sm">
+                  View All Stories <ChevronRight size={16} />
+                </Link>
               </motion.div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                {featuredBlogs.map((post, idx) => (
-                  <motion.article key={post._id} variants={fadeUp} className="group">
-                    <Link href={`/blog/${post.slug}`} className="block space-y-6">
-                      <div className="relative aspect-video rounded-3xl overflow-hidden shadow-lg border border-primary/5 bg-muted">
-                        <Image 
-                          src={getCoverImage(post.coverImage?.url)} 
-                          alt={post.coverImage?.alt || post.title} 
-                          fill 
-                          className="object-cover transition-transform duration-700 group-hover:scale-110" 
-                          sizes="(max-width: 768px) 100vw, 400px"
-                        />
-                        <div className="absolute top-4 left-4">
-                          <Badge className="bg-white/90 backdrop-blur-md text-primary text-[8px] font-black uppercase tracking-widest border-none px-3 py-1 shadow-sm">{post.category}</Badge>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+                {/* Featured Post - 60% wide on desktop */}
+                {mainPost && (
+                  <motion.div variants={fadeUp} className="lg:col-span-7 group">
+                    <Link href={`/blog/${mainPost.slug}`} className="block space-y-6">
+                      <div className="relative aspect-video rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl">
+                        <Image src={getCoverImage(mainPost.coverImage?.url)} alt={mainPost.title} fill className="object-cover transition-transform duration-1000 group-hover:scale-110" priority sizes="(max-width: 1024px) 100vw, 800px" />
+                        <div className="absolute top-6 left-6">
+                          <Badge className="bg-primary text-white text-[10px] font-black uppercase tracking-widest border-none px-4 py-1.5 shadow-lg">{mainPost.category}</Badge>
                         </div>
                       </div>
-                      <div className="space-y-3 px-2">
-                        <h3 className="text-2xl font-display font-bold text-foreground group-hover:text-primary transition-colors leading-tight line-clamp-2">{post.title}</h3>
-                        <p className="text-muted-foreground text-sm font-medium line-clamp-2 leading-relaxed">{post.excerpt}</p>
-                        <div className="flex items-center justify-between pt-4 border-t border-primary/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          <span className="flex items-center gap-2"><Clock className="h-3 w-3" /> {post.readTime} MIN READ</span>
-                          <span>{isMounted ? dayjs(post.publishedAt).format('MMM D, YYYY') : ''}</span>
+                      <div className="space-y-4 px-2">
+                        <h3 className="text-3xl md:text-4xl font-display font-bold text-foreground group-hover:text-primary transition-colors leading-tight">{mainPost.title}</h3>
+                        <p className="text-muted-foreground text-base md:text-lg line-clamp-2 max-w-2xl font-medium leading-relaxed">{mainPost.excerpt}</p>
+                        <div className="flex items-center justify-between pt-6 border-t border-primary/10">
+                          <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                             <span className="flex items-center gap-2"><Clock className="h-4 w-4" /> {mainPost.readTime} MIN READ</span>
+                             <span className="hidden sm:flex items-center gap-2"><Calendar className="h-4 w-4" /> {isMounted ? dayjs(mainPost.publishedAt).format('MMM D, YYYY') : ''}</span>
+                          </div>
+                          <span className="text-primary font-bold text-sm flex items-center gap-2 group-hover:gap-4 transition-all">Read Story <ArrowRight size={16}/></span>
                         </div>
                       </div>
                     </Link>
-                  </motion.article>
-                ))}
+                  </motion.div>
+                )}
+
+                {/* Sidebar Posts - Stacked */}
+                <div className="lg:col-span-5 space-y-8">
+                  {sidebarPosts.map((post) => (
+                    <motion.article key={post._id} variants={fadeUp} className="group bg-white p-4 rounded-[2rem] border border-primary/5 shadow-sm hover:shadow-xl transition-all duration-500">
+                      <Link href={`/blog/${post.slug}`} className="flex gap-6 items-center">
+                        <div className="relative w-1/3 aspect-square rounded-2xl overflow-hidden flex-shrink-0">
+                          <Image src={getCoverImage(post.coverImage?.url)} alt={post.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" sizes="150px" />
+                        </div>
+                        <div className="flex-1 space-y-2 pr-4">
+                          <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/10 text-primary mb-1">{post.category}</Badge>
+                          <h4 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">{post.title}</h4>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{post.readTime} MIN READ</p>
+                        </div>
+                      </Link>
+                    </motion.article>
+                  ))}
+                  
+                  <div className="pt-4 px-4">
+                    <div className="p-8 rounded-[2rem] bg-primary/[0.03] border border-dashed border-primary/20 space-y-4">
+                      <p className="text-xs font-black text-primary uppercase tracking-widest text-center">Collector Newsletter</p>
+                      <p className="text-sm text-center font-medium text-muted-foreground leading-relaxed">Join 2,000+ collectors. Get kiln firing updates and first-access to limited pieces.</p>
+                      <div className="flex gap-2">
+                        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="flex-1 h-12 px-4 rounded-xl bg-white border border-border text-sm focus:outline-none focus:border-primary transition-all" />
+                        <button onClick={handleSubscribe} className="h-12 px-6 rounded-xl bg-primary text-white font-black text-[10px] uppercase tracking-widest">Join</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+              
+              {/* Horizontal Scrollable Row for remaining */}
+              {scrollPosts.length > 0 && (
+                <div className="mt-20 pt-16 border-t border-primary/10 overflow-x-auto no-scrollbar -mx-6 px-6">
+                  <div className="flex gap-8 w-max pb-4">
+                    {scrollPosts.map((post) => (
+                      <Link key={post._id} href={`/blog/${post.slug}`} className="block w-[280px] space-y-4 group">
+                         <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-lg">
+                           <Image src={getCoverImage(post.coverImage?.url)} alt={post.title} fill className="object-cover transition-transform group-hover:scale-105" sizes="280px" />
+                         </div>
+                         <div className="space-y-1">
+                           <h5 className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors">{post.title}</h5>
+                           <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{post.readTime} MIN READ</p>
+                         </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.section>
           )}
 
-          {/* NEWSLETTER */}
+          {/* NEWSLETTER (Original) */}
           <section className="py-24"><div className="bg-primary rounded-[4rem] p-12 md:p-24 text-center relative overflow-hidden shadow-2xl shadow-primary/20">
             <div className="absolute top-0 left-0 h-96 w-96 rounded-full bg-white/10 blur-[100px] -translate-x-1/2 -translate-y-1/2" /><div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-white/10 blur-[100px] translate-x-1/2 translate-y-1/2" />
             <div className="relative z-10 max-w-3xl mx-auto space-y-10">
