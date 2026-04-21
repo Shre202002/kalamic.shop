@@ -10,7 +10,7 @@ import {
   Tooltip, CircularProgress, Container,
   Menu, ToggleButton, ToggleButtonGroup,
   List, ListItem, ListItemIcon, ListItemText, Divider,
-  Alert
+  Alert, Popover
 } from '@mui/material';
 import {
   Add, Edit, Delete, CloudUpload,
@@ -19,7 +19,8 @@ import {
   EditNote, 
   HorizontalRule, ViewColumn, ViewWeek, Info, Warning, CheckCircle, Error as XCircle,
   PhotoLibrary, FormatListBulleted, FormatListNumbered, Link as LinkIcon,
-  FormatUnderlined, StrikethroughS, FormatClear, ViewQuilt, Message
+  FormatUnderlined, StrikethroughS, FormatClear, ViewQuilt, Message,
+  Code as CodeIcon
 } from '@mui/icons-material';
 import { Copy, Package } from 'lucide-react';
 import { useUser } from '@/firebase';
@@ -61,8 +62,6 @@ export default function BlogStudio() {
   const [galleryItems, setGalleryItems] = useState<any[]>([]);
   const [productAnchorEl, setProductAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
-  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
-  const [savedDraft, setSavedDraft] = useState<any>(null);
 
   // Layout selection state for Gallery Picker
   const [pendingGalleryImage, setPendingGalleryImage] = useState<any>(null);
@@ -156,10 +155,6 @@ export default function BlogStudio() {
       setFormData({ ...blog });
       setSlugManuallyEdited(true);
     } else {
-      if (draft) {
-        setSavedDraft(JSON.parse(draft));
-        setRestoreDialogOpen(true);
-      }
       setFormData({
         title: '',
         excerpt: '',
@@ -560,7 +555,7 @@ export default function BlogStudio() {
                           bgcolor: 'white', 
                           outline: 'none',
                           '& h1': { fontSize: '2.2rem', fontWeight: 900, margin: '1.5rem 0 0.75rem', lineHeight: 1.2, fontFamily: 'inherit' },
-                          '& h2': { fontSize: '1.7rem', fontWeight: 800, margin: '1.4rem 0 0.6rem', lineHeight: 1.25 },
+                          '& h2': { fontSize: '1.7rem', fontWeight: 800, margin: '1.4rem 0 0.6rem', lineHeight: 1.25, color: '#EA781E' },
                           '& h3': { fontSize: '1.35rem', fontWeight: 700, margin: '1.2rem 0 0.5rem' },
                           '& h4': { fontSize: '1.1rem', fontWeight: 700, margin: '1rem 0 0.4rem' },
                           '& p': { fontSize: '1rem', lineHeight: 1.8, margin: '0.75rem 0', color: '#333' },
@@ -743,10 +738,10 @@ export default function BlogStudio() {
           <TextField fullWidth size="small" placeholder="Search product..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} />
           <List>
             {productResults.map(p => (
-              <ListItem key={p._id} button onClick={() => {
+              <ListItem key={p._id} onClick={() => {
                 insertAtCursor(`<a href="/products/${p.slug}" class="inline-flex items-center gap-2 px-4 py-2 my-4 rounded-xl bg-primary/10 text-primary font-bold text-sm hover:bg-primary hover:text-white transition-all no-underline">🏺 ${p.name} — ₹${p.price}</a>`);
                 setShowProductPicker(false);
-              }}>
+              }} sx={{ cursor: 'pointer' }}>
                 <ListItemText primary={p.name} secondary={`₹${p.price}`} />
               </ListItem>
             ))}
