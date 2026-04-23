@@ -98,7 +98,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-1">Call Our Artisans</h3>
-                    <a href="tel:+916387562920" className="text-xl font-bold text-primary hover:underline transition-all">+91 63875 62920</a>
+                    <a href="https://wa.me/916387562920" target="_blank" rel="noopener noreferrer" className="text-xl font-bold text-primary hover:underline transition-all">+91 63875 62920</a>
                   </div>
                 </div>
                 <div className="flex items-start gap-6 group">
