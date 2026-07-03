@@ -1,118 +1,134 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import { 
-  RecaptchaVerifier, 
-  signInWithPhoneNumber 
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle2, 
   Loader2, 
-  Phone,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
   AlertCircle,
-  ArrowRight,
-  ShieldCheck
+  Key
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
 
 export default function RegisterPage() {
   const auth = useAuth();
   const router = useRouter();
   
-  const [step, setStep] = useState<'phone' | 'verify'>('phone');
-  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<'credentials' | 'verify-email'>('credentials');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+  
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   
-  const recaptchaVerifierRef = useRef<any>(null);
-  const confirmationResultRef = useRef<any>(null);
   const otpRefs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
 
   const handleSendOtp = async () => {
-    const rawPhone = phone.replace(/\D/g, '');
-    if (rawPhone.length < 10) {
-      setError('Enter a valid 10-digit number');
+    const { email, password, confirmPassword } = formData;
+    
+    if (!email || !password || !confirmPassword) {
+      setError('All fields are required.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
     
-    const phoneE164 = `+91${rawPhone.slice(-10)}`;
     setIsLoading(true);
     setError('');
     
     try {
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch (e) {}
-        recaptchaVerifierRef.current = null;
-      }
+      const res = await fetch('/api/auth/email-otp/send-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
       
-      recaptchaVerifierRef.current = new RecaptchaVerifier(
-        auth,
-        'recaptcha-container',
-        { 
-          size: 'invisible',
-          callback: () => console.log('[reCAPTCHA] Solved')
-        }
-      );
-      
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        phoneE164,
-        recaptchaVerifierRef.current
-      );
-      
-      confirmationResultRef.current = confirmation;
-      setStep('verify');
+      setStep('verify-email');
     } catch (err: any) {
-      console.error('[REGISTER OTP]:', err);
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch (e) {}
-        recaptchaVerifierRef.current = null;
-      }
-      const msgs: Record<string, string> = {
-        'auth/invalid-phone-number': 'Invalid phone number.',
-        'auth/too-many-requests': 'Too many attempts. Try later.',
-      };
-      setError(msgs[err.code] || err.message);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleVerifyOtp = async (code: string) => {
-    if (code.length < 6 || !confirmationResultRef.current) return;
+  const handleVerifyAndSignup = async (code: string) => {
+    if (code.length < 6) return;
     
     setIsLoading(true);
     setError('');
     
     try {
-      const result = await confirmationResultRef.current.confirm(code);
-      const idToken = await result.user.getIdToken(true);
+      // 1. Verify email OTP in DB
+      const verifyRes = await fetch('/api/auth/email-otp/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, otp: code }),
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok) throw new Error(verifyData.message || 'Invalid or expired OTP');
       
+      // 2. Create Firebase User
+      const result = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      
+      // 3. Setup Session
+      const idToken = await result.user.getIdToken(true);
       await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken }),
       });
       
-      sessionStorage.setItem('reg_phone', result.user.phoneNumber || '');
-      router.push('/auth/setup');
+      // 4. Sync Initial Profile to MongoDB
+      await fetch('/api/auth/sync-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firebaseId: result.user.uid,
+          email: formData.email,
+          firstName: '',
+          lastName: '',
+          phone: '',
+          phoneVerified: false,
+          emailVerified: true,
+        }),
+      });
+      
+      router.push('/auth/complete-profile');
     } catch (err: any) {
+      console.error('[REGISTRATION ERROR]:', err);
       const msgs: Record<string, string> = {
-        'auth/invalid-verification-code': 'Incorrect OTP.',
-        'auth/code-expired': 'OTP expired. Request new one.',
+        'auth/email-already-in-use': 'This email is already registered.',
+        'auth/invalid-email': 'Invalid email address.',
+        'auth/weak-password': 'Password is too weak.',
       };
       setError(msgs[err.code] || err.message);
       setOtpDigits(['', '', '', '', '', '']);
-      otpRefs[0].current?.focus();
     } finally {
       setIsLoading(false);
     }
@@ -120,10 +136,9 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
-      {/* Left Panel */}
+      {/* Brand Panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col items-center justify-center p-16 relative overflow-hidden">
         <div className="absolute top-0 right-0 h-96 w-96 rounded-full bg-white/10 blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-white/5 blur-3xl translate-y-1/2 -translate-x-1/2" />
         <div className="relative z-10 text-white space-y-8 max-w-md">
           <Link href="/" className="font-display font-black text-6xl tracking-tighter">Kalamic</Link>
           <p className="text-xl font-medium text-white/80 leading-relaxed">
@@ -136,59 +151,104 @@ export default function RegisterPage() {
               'Verified Artisan Support'
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-4 text-white/90">
-                <div className="h-7 w-7 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 size={16} />
-                </div>
-                <span className="font-bold text-sm uppercase tracking-wide">{item}</span>
+                <CheckCircle2 size={16} /> <span className="font-bold text-sm uppercase tracking-wide">{item}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Right Panel */}
+      {/* Register Panel */}
       <div className="flex-1 flex items-center justify-center bg-background px-6 py-12 min-h-screen">
         <div className="w-full max-w-md space-y-8">
-          <div className="lg:hidden text-center">
-            <Link href="/" className="font-display font-black text-4xl text-primary tracking-tighter">Kalamic</Link>
-          </div>
-
           <div className="text-center space-y-2">
             <h2 className="font-display font-black text-3xl text-foreground tracking-tight">
-              {step === 'phone' ? 'Create Account' : 'Verify Identity'}
+              {step === 'credentials' ? 'Create Account' : 'Verify Email'}
             </h2>
             <p className="text-muted-foreground font-medium text-sm">
-              {step === 'phone' ? 'Start with your phone number' : `OTP sent to +91 ${phone}`}
+              {step === 'credentials' ? 'Start your artisan journey' : `OTP sent to ${formData.email}`}
             </p>
           </div>
 
-          <div className="space-y-6">
-            {step === 'phone' ? (
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <div className="h-14 px-4 rounded-2xl border-2 border-border bg-white flex items-center text-sm font-bold flex-shrink-0">
-                    🇮🇳 +91
+          <AnimatePresence mode="wait">
+            {step === 'credentials' ? (
+              <motion.div 
+                key="credentials"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Email Address</Label>
+                    <input 
+                      type="email" 
+                      value={formData.email} 
+                      onChange={e => setFormData({...formData, email: e.target.value})} 
+                      placeholder="aarav@example.com" 
+                      className="w-full h-14 px-5 rounded-2xl border-2 border-border focus:border-primary transition-all text-sm font-medium" 
+                    />
                   </div>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    onKeyDown={e => e.key === 'Enter' && handleSendOtp()}
-                    placeholder="10-digit number"
-                    maxLength={10}
-                    className="flex-1 h-14 px-5 rounded-2xl border-2 border-border bg-white text-sm font-medium focus:outline-none focus:border-primary transition-colors"
-                  />
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Password</Label>
+                    <div className="relative">
+                      <input 
+                        type={showPassword ? 'text' : 'password'} 
+                        value={formData.password} 
+                        onChange={e => setFormData({...formData, password: e.target.value})} 
+                        placeholder="••••••••" 
+                        className="w-full h-14 px-5 pr-14 rounded-2xl border-2 border-border focus:border-primary transition-all text-sm font-medium" 
+                      />
+                      <button onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 ml-1">Confirm Password</Label>
+                    <div className="relative">
+                      <input 
+                        type={showConfirm ? 'text' : 'password'} 
+                        value={formData.confirmPassword} 
+                        onChange={e => setFormData({...formData, confirmPassword: e.target.value})} 
+                        placeholder="••••••••" 
+                        className="w-full h-14 px-5 pr-14 rounded-2xl border-2 border-border focus:border-primary transition-all text-sm font-medium" 
+                      />
+                      <button onClick={() => setShowConfirm(!showConfirm)} className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  onClick={handleSendOtp}
-                  disabled={isLoading || phone.length < 10}
-                  className="w-full h-14 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
+
+                <button 
+                  onClick={handleSendOtp} 
+                  disabled={isLoading} 
+                  className="w-full h-14 rounded-2xl bg-primary text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20"
                 >
-                  {isLoading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Send OTP'}
+                  {isLoading ? <Loader2 className="animate-spin mx-auto" /> : 'Register Now'}
                 </button>
-              </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-background px-4 text-muted-foreground font-bold uppercase">or</span>
+                  </div>
+                </div>
+
+                <GoogleAuthButton label="Sign up with Google" />
+              </motion.div>
             ) : (
-              <div className="space-y-6">
+              <motion.div 
+                key="otp"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-8"
+              >
                 <div className="flex gap-2 justify-center">
                   {otpDigits.map((digit, i) => (
                     <input
@@ -200,48 +260,39 @@ export default function RegisterPage() {
                       value={digit}
                       onChange={e => {
                         const val = e.target.value.replace(/\D/g, '');
-                        const newOtp = [...otpDigits];
-                        newOtp[i] = val;
-                        setOtpDigits(newOtp);
-                        if (val && i < 5) otpRefs[i + 1].current?.focus();
-                        if (newOtp.every(d => d)) handleVerifyOtp(newOtp.join(''));
+                        const next = [...otpDigits];
+                        next[i] = val;
+                        setOtpDigits(next);
+                        if (val && i < 5) otpRefs[i+1].current?.focus();
+                        if (next.every(d => d)) handleVerifyAndSignup(next.join(''));
                       }}
                       onKeyDown={e => {
-                        if (e.key === 'Backspace' && !digit && i > 0) otpRefs[i - 1].current?.focus();
+                        if (e.key === 'Backspace' && !digit && i > 0) otpRefs[i-1].current?.focus();
                       }}
-                      className="w-12 h-14 text-center text-xl font-black rounded-2xl border-2 border-border bg-white focus:border-primary focus:outline-none transition-colors"
+                      className="w-12 h-14 text-center text-xl font-black rounded-2xl border-2 border-border focus:border-primary transition-all"
                     />
                   ))}
                 </div>
-                <button
-                  onClick={() => handleVerifyOtp(otpDigits.join(''))}
-                  disabled={isLoading || otpDigits.join('').length < 6}
-                  className="w-full h-14 rounded-2xl bg-primary text-white font-black text-sm uppercase tracking-widest hover:scale-[1.02] transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
-                >
-                  Verify & Continue
-                </button>
-                <button 
-                  onClick={() => { setStep('phone'); setOtpDigits(['', '', '', '', '', '']); setError(''); }}
-                  className="w-full text-xs text-muted-foreground font-bold hover:text-primary transition-colors"
-                >
-                  ← Change number
-                </button>
-              </div>
+                
+                <div className="text-center">
+                  <button onClick={() => setStep('credentials')} className="text-xs text-muted-foreground font-bold hover:text-primary transition-colors">
+                    ← Change email
+                  </button>
+                </div>
+              </motion.div>
             )}
+          </AnimatePresence>
 
-            {error && (
-              <div className="flex items-center gap-2 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 animate-in shake-1">
-                <AlertCircle size={16} className="text-destructive flex-shrink-0" />
-                <p className="text-destructive text-xs font-bold">{error}</p>
-              </div>
-            )}
+          {error && (
+            <div className="flex items-center gap-2 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold animate-in fade-in">
+              <AlertCircle size={16} />
+              {error}
+            </div>
+          )}
 
-            {step === 'phone' && (
-              <p className="text-center text-sm text-muted-foreground font-medium">
-                Already have an account? <Link href="/auth/login" className="font-black text-primary hover:underline uppercase tracking-widest text-xs">Sign In</Link>
-              </p>
-            )}
-          </div>
+          <p className="text-center text-sm text-muted-foreground font-medium">
+            Already have an account? <Link href="/auth/login" className="font-black text-primary hover:underline uppercase tracking-widest text-xs">Sign In</Link>
+          </p>
         </div>
       </div>
 
@@ -250,13 +301,9 @@ export default function RegisterPage() {
           <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
             <Loader2 className="h-8 w-8 text-primary animate-spin" />
           </div>
-          <p className="text-sm font-black text-foreground uppercase tracking-widest">
-            {step === 'phone' ? 'Sending OTP...' : 'Verifying...'}
-          </p>
+          <p className="text-sm font-black text-foreground uppercase tracking-widest">Processing...</p>
         </div>
       )}
-
-      <div id="recaptcha-container" />
     </div>
   );
 }
