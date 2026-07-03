@@ -23,25 +23,29 @@ export function GoogleAuthButton({ label }: GoogleAuthButtonProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const handleRedirectResult = async () => {
+    const handleRedirect = async () => {
+      console.log('[GOOGLE AUTH DEBUG] Component mounted, checking redirect result. Current origin:', window.location.origin);
+      
       try {
         const result = await getRedirectResult(auth);
+        console.log('[GOOGLE AUTH DEBUG] Redirect result:', result);
+        
         if (!result) return;
 
         setIsLoading(true);
         const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
         const idToken = await result.user.getIdToken(true);
         
-        // Create session
+        // Create server-side session
         const sessionRes = await fetch('/api/auth/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken }),
         });
 
-        if (!sessionRes.ok) throw new Error('Failed to create session');
+        if (!sessionRes.ok) throw new Error('Session creation failed');
 
-        // Sync profile
+        // Sync user profile to MongoDB
         await fetch('/api/auth/sync-profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -58,24 +62,21 @@ export function GoogleAuthButton({ label }: GoogleAuthButtonProps) {
           }),
         });
 
-        if (isNewUser) {
-          router.push('/auth/complete-profile');
-        } else {
-          router.push('/products');
-        }
+        // Navigate based on user status
+        router.push(isNewUser ? '/auth/complete-profile' : '/products');
       } catch (err: any) {
-        console.error('[GOOGLE REDIRECT ERROR]:', err);
+        console.error('[GOOGLE REDIRECT RESULT ERROR]:', err);
         toast({
           variant: 'destructive',
           title: 'Google Sign-In Failed',
-          description: err.message || 'Verification failed. Please try again.'
+          description: `${err.code || 'unknown'}: ${err.message || 'Please try again.'}`
         });
       } finally {
         setIsLoading(false);
       }
     };
 
-    handleRedirectResult();
+    handleRedirect();
   }, [auth, router, toast]);
 
   const handleGoogleSignIn = async () => {
@@ -84,13 +85,13 @@ export function GoogleAuthButton({ label }: GoogleAuthButtonProps) {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithRedirect(auth, provider);
-      // Page will navigate away to Google
+      // No further code runs here as the full page navigates to Google
     } catch (err: any) {
-      console.error('[GOOGLE AUTH ERROR]:', err);
+      console.error('[GOOGLE SIGN-IN INITIATION ERROR]:', err);
       toast({
         variant: 'destructive',
         title: 'Google Sign-In Failed',
-        description: err.message || 'Please try again or use another method.'
+        description: `${err.code || 'unknown'}: ${err.message || 'Please try again.'}`
       });
       setIsLoading(false);
     }
