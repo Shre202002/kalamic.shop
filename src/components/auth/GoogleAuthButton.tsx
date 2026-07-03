@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import { 
   GoogleAuthProvider, 
-  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult,
   getAdditionalUserInfo 
 } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
@@ -21,58 +22,76 @@ export function GoogleAuthButton({ label }: GoogleAuthButtonProps) {
   const router = useRouter();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (!result) return;
+
+        setIsLoading(true);
+        const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
+        const idToken = await result.user.getIdToken(true);
+        
+        // Create session
+        const sessionRes = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+
+        if (!sessionRes.ok) throw new Error('Failed to create session');
+
+        // Sync profile
+        await fetch('/api/auth/sync-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firebaseId: result.user.uid,
+            email: result.user.email,
+            name: result.user.displayName,
+            firstName: result.user.displayName?.split(' ')[0] || '',
+            lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
+            photoURL: result.user.photoURL,
+            emailVerified: true,
+            phone: '',
+            phoneVerified: false
+          }),
+        });
+
+        if (isNewUser) {
+          router.push('/auth/complete-profile');
+        } else {
+          router.push('/products');
+        }
+      } catch (err: any) {
+        console.error('[GOOGLE REDIRECT ERROR]:', err);
+        toast({
+          variant: 'destructive',
+          title: 'Google Sign-In Failed',
+          description: err.message || 'Verification failed. Please try again.'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    handleRedirectResult();
+  }, [auth, router, toast]);
+
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      
-      const result = await signInWithPopup(auth, provider);
-      const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
-      
-      const idToken = await result.user.getIdToken(true);
-      
-      // Create session
-      const sessionRes = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (!sessionRes.ok) throw new Error('Failed to create session');
-
-      // Sync profile
-      await fetch('/api/auth/sync-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firebaseId: result.user.uid,
-          email: result.user.email,
-          name: result.user.displayName,
-          firstName: result.user.displayName?.split(' ')[0] || '',
-          lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
-          photoURL: result.user.photoURL,
-          emailVerified: true,
-          phone: '',
-          phoneVerified: false
-        }),
-      });
-
-      if (isNewUser) {
-        router.push('/auth/complete-profile');
-      } else {
-        router.push('/products');
-      }
+      await signInWithRedirect(auth, provider);
+      // Page will navigate away to Google
     } catch (err: any) {
       console.error('[GOOGLE AUTH ERROR]:', err);
-      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
-        toast({
-          variant: 'destructive',
-          title: 'Google Sign-In Failed',
-          description: err.message || 'Please try again or use another method.'
-        });
-      }
-    } finally {
+      toast({
+        variant: 'destructive',
+        title: 'Google Sign-In Failed',
+        description: err.message || 'Please try again or use another method.'
+      });
       setIsLoading(false);
     }
   };
