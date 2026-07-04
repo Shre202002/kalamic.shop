@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -8,20 +7,15 @@ import ProductDetailClient from './ProductDetailClient';
 
 /**
  * @fileOverview Product Detail Server Component (Next.js 15).
- * Handles high-impact SEO: Server-side data fetching, Metadata, and JSON-LD.
- * Ensures Googlebot receives full HTML content on the first request.
+ * Optimized for high-impact SEO and verified collector confidence.
  */
 
-// Force SSR with revalidation (ISR) - 1 hour
 export const revalidate = 3600; 
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-/**
- * Generate static paths for all products at build time for maximum performance.
- */
 export async function generateStaticParams() {
   try {
     const products = await getProducts();
@@ -35,9 +29,6 @@ export async function generateStaticParams() {
   }
 }
 
-/**
- * Generates dynamic SEO metadata for each artisan piece.
- */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const product = await getProductById(id);
@@ -49,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : '';
 
   return {
-    title: `${product.name} | Kalamic`,
+    title: `${product.name} | Kalamic Artisan Shop`,
     description: product.seo?.meta_description || product.short_description || product.description.substring(0, 160),
     keywords: product.seo?.meta_keywords?.join(', '),
     openGraph: {
@@ -67,7 +58,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
   
-  // Server-side data fetching: This ensures the HTML is fully rendered for SEO
   const [product, allProducts] = await Promise.all([
     getProductById(id),
     getProducts()
@@ -75,15 +65,12 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) notFound();
 
-  // Fetch reviews on the server
   const reviews = await getProductReviews(product._id);
 
-  // Filter related products
   const relatedProducts = allProducts
     .filter((p: any) => p.category_id?.toString() === product.category_id?.toString() && p._id?.toString() !== product._id?.toString())
     .slice(0, 4);
 
-  // Schema.org JSON-LD for Rich Results (Price, Stock, Rating, Seller)
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -121,9 +108,9 @@ export default async function ProductPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <ProductDetailClient 
-        initialProduct={product} 
-        initialReviews={reviews} 
-        relatedProducts={relatedProducts} 
+        initialProduct={JSON.parse(JSON.stringify(product))} 
+        initialReviews={JSON.parse(JSON.stringify(reviews))} 
+        relatedProducts={JSON.parse(JSON.stringify(relatedProducts))} 
       />
     </>
   );

@@ -158,7 +158,7 @@ export function ProductCard({
       onMouseLeave={() => setIsHovered(false)}
     >
       <Card 
-        className="group border-none bg-card rounded-[2rem] overflow-hidden shadow-md hover:shadow-2xl hover:shadow-primary/10 transition-all duration-700 cursor-pointer h-full flex flex-col relative"
+        className="group border-none bg-white rounded-[2rem] overflow-hidden shadow-md hover:shadow-2xl hover:shadow-primary/10 transition-all duration-700 cursor-pointer h-full flex flex-col relative"
         onClick={() => router.push(`/products/${slug || id}`)}
       >
         <div className="relative aspect-square overflow-hidden bg-muted">
@@ -174,16 +174,41 @@ export function ProductCard({
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-700" />
           <div className="absolute top-4 left-4 z-10">
-            <Badge className="gradient-saffron text-primary-foreground border-none text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-[0.15em] animate-in slide-in-from-left duration-700">
+            <Badge className="bg-primary text-white border-none text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-[0.15em] animate-in slide-in-from-left duration-700">
               {tag || "Artisan"}
             </Badge>
           </div>
           <button onClick={handleAddToWishlist} className={cn("absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-xl transition-all duration-500 shadow-xl z-10", isFavorited ? "bg-primary text-white scale-110" : "bg-white/80 opacity-0 group-hover:opacity-100 text-primary hover:bg-white")}><Heart className={cn("h-4 w-4 transition-colors", isFavorited && "fill-current")} /></button>
           <AnimatePresence>{isHovered && (<motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.85 }} transition={{ duration: 0.2 }} className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="bg-primary/90 text-white p-4 rounded-full shadow-2xl backdrop-blur-sm"><Eye className="h-5 w-5" /></div></motion.div>)}</AnimatePresence>
         </div>
-        <CardHeader className="p-6 pb-2 space-y-1.5"><div className="flex items-center gap-1 text-accent mb-1">{[1,2,3,4,5].map(i => (<Star key={i} className={cn("h-3 w-3", i <= Math.round(rating) ? "fill-current" : "opacity-20")} />))}<span className="text-[10px] font-bold text-muted-foreground ml-1 tabular-nums">{rating.toFixed(1)}</span></div><Link href={`/products/${slug || id}`} className="hover:text-primary transition-colors"><h3 className="font-serif text-xl font-semibold text-black line-clamp-2 leading-snug min-h-[2.8rem]">{name}</h3></Link></CardHeader>
-        <CardContent className="px-6 pb-4 flex-1">{description && (<p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed font-normal">{description}</p>)}</CardContent>
-        <CardFooter className="px-6 pb-8 flex flex-col gap-4 mt-auto"><div className="w-full flex items-baseline justify-between"><div className="flex items-baseline gap-3"><span className="text-2xl font-black text-primary tracking-tight tabular-nums">₹{price.toLocaleString()}</span>{originalPrice && (<span className="text-sm text-muted-foreground line-through opacity-40 font-semibold tabular-nums">₹{originalPrice.toLocaleString()}</span>)}</div></div><div className="grid grid-cols-2 gap-3 w-full"><Button variant="outline" className="h-12 rounded-xl border-primary/20 text-primary hover:bg-primary/5 text-[9px] font-black uppercase tracking-[0.15em] gap-2 transition-all active:scale-95" onClick={handleAddToCart}><ShoppingBag className="h-4 w-4" /> Add</Button><Button className="h-12 rounded-xl gradient-saffron text-primary-foreground border-none text-[9px] font-black uppercase tracking-[0.15em] gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95" onClick={handleBuyNow}><ShoppingCart className="h-4 w-4" /> Buy Now</Button></div></CardFooter>
+        <CardHeader className="p-6 pb-2 space-y-1.5">
+          <div className="flex items-center gap-1 text-amber-500 mb-1">
+            {[1,2,3,4,5].map(i => (<Star key={i} className={cn("h-3 w-3", i <= Math.round(rating) ? "fill-current" : "opacity-20")} />))}
+            <span className="text-[10px] font-bold text-muted-foreground ml-1 tabular-nums">{rating.toFixed(1)}</span>
+          </div>
+          <Link href={`/products/${slug || id}`} className="hover:text-primary transition-colors">
+            <h3 className="font-serif text-xl font-semibold text-heading line-clamp-2 leading-snug min-h-[2.8rem]">{name}</h3>
+          </Link>
+        </CardHeader>
+        <CardContent className="px-6 pb-4 flex-1">
+          {description && (<p className="text-xs text-body line-clamp-2 leading-relaxed font-normal">{description}</p>)}
+        </CardContent>
+        <CardFooter className="px-6 pb-8 flex flex-col gap-4 mt-auto">
+          <div className="w-full flex items-baseline justify-between">
+            <div className="flex items-baseline gap-3">
+              <span className="text-2xl font-black text-primary tracking-tight tabular-nums">₹{price.toLocaleString()}</span>
+              {originalPrice && (<span className="text-sm text-muted-foreground line-through opacity-40 font-semibold tabular-nums">₹{originalPrice.toLocaleString()}</span>)}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 w-full">
+            <Button variant="outline" className="h-12 rounded-xl border-primary/20 text-primary hover:bg-primary/5 text-[9px] font-black uppercase tracking-[0.15em] gap-2 transition-all active:scale-95" onClick={handleAddToCart}>
+              <ShoppingBag className="h-4 w-4" /> Add
+            </Button>
+            <Button className="h-12 rounded-xl bg-primary text-white border-none text-[9px] font-black uppercase tracking-[0.15em] gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95" onClick={handleBuyNow}>
+              <ShoppingCart className="h-4 w-4" /> Buy Now
+            </Button>
+          </div>
+        </CardFooter>
       </Card>
     </motion.div>
   );
