@@ -349,7 +349,7 @@ export default function HomeClient({
                       <p className="text-xs font-black text-primary uppercase tracking-widest text-center">Collector Newsletter</p>
                       <p className="text-sm text-center font-medium text-muted-foreground leading-relaxed">Join 2,000+ collectors. Get kiln firing updates and first-access to limited pieces.</p>
                       <div className="flex gap-2">
-                        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="flex-1 h-12 px-4 rounded-xl bg-white border border-border text-sm focus:outline-none focus:border-primary transition-all" />
+                        <input suppressHydrationWarning value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="flex-1 h-12 px-4 rounded-xl bg-white border border-border text-sm focus:outline-none focus:border-primary transition-all" />
                         <button onClick={handleSubscribe} className="h-12 px-6 rounded-xl bg-primary text-white font-black text-[10px] uppercase tracking-widest">Join</button>
                       </div>
                     </div>
@@ -387,7 +387,7 @@ export default function HomeClient({
                 <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-center justify-center gap-4 bg-white/10 rounded-[2.5rem] p-8 border border-white/20 backdrop-blur-md"><CheckCircle2 className="h-8 w-8 text-white" /><p className="text-white font-black text-xl uppercase tracking-widest">Welcome to the List!</p></motion.div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubscribe()} placeholder="Enter your email" className="flex-1 h-16 px-8 rounded-2xl bg-white/20 border border-white/30 text-white placeholder-white/60 font-bold text-base focus:outline-none focus:bg-white/30 focus:border-white/60 transition-all backdrop-blur-xl shadow-inner" />
+                  <input suppressHydrationWarning type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubscribe()} placeholder="Enter your email" className="flex-1 h-16 px-8 rounded-2xl bg-white/20 border border-white/30 text-white placeholder-white/60 font-bold text-base focus:outline-none focus:bg-white/30 focus:border-white/60 transition-all backdrop-blur-xl shadow-inner" />
                   <button onClick={handleSubscribe} disabled={subStatus === 'loading'} className="h-16 px-10 rounded-2xl bg-white text-primary font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-2xl flex-shrink-0">{subStatus === 'loading' ? 'Joining...' : 'Notify Me'}</button>
                 </div>
               )}
