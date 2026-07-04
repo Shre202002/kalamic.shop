@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import { 
@@ -33,10 +33,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
 
   const router = useRouter();
   const auth = useAuth();
   const otpRefs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handlePasswordSignIn = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -122,6 +127,10 @@ export default function LoginPage() {
     }
   };
 
+  if (!isMounted) {
+    return <div className="min-h-screen bg-background" />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       {/* Brand Panel */}
@@ -185,7 +194,8 @@ export default function LoginPage() {
                         value={email} 
                         onChange={e => setEmail(e.target.value)} 
                         placeholder="aarav@example.com" 
-                        className="w-full h-14 px-14 rounded-2xl border-2 border-border focus:border-primary transition-all text-sm font-medium" 
+                        className="w-full h-14 px-14 rounded-2xl border-2 border-border focus:border-primary transition-all text-sm font-medium"
+                        suppressHydrationWarning
                       />
                     </div>
                   </div>
@@ -235,6 +245,7 @@ export default function LoginPage() {
                           onChange={e => setEmail(e.target.value)} 
                           placeholder="aarav@example.com" 
                           className="w-full h-14 px-5 rounded-2xl border-2 border-border focus:border-primary transition-all text-sm font-medium" 
+                          suppressHydrationWarning
                         />
                       </div>
                       <button 

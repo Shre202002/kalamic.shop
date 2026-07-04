@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import { 
@@ -37,8 +37,13 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   
   const otpRefs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSendOtp = async () => {
     const { email, password, confirmPassword } = formData;
@@ -133,6 +138,10 @@ export default function RegisterPage() {
     }
   };
 
+  if (!isMounted) {
+    return <div className="min-h-screen bg-background" />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       {/* Brand Panel */}
@@ -186,7 +195,8 @@ export default function RegisterPage() {
                       value={formData.email} 
                       onChange={e => setFormData({...formData, email: e.target.value})} 
                       placeholder="aarav@example.com" 
-                      className="w-full h-14 px-5 rounded-2xl border-2 border-border focus:border-primary transition-all text-sm font-medium" 
+                      className="w-full h-14 px-5 rounded-2xl border-2 border-border focus:border-primary transition-all text-sm font-medium"
+                      suppressHydrationWarning
                     />
                   </div>
 
