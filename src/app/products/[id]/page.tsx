@@ -2,12 +2,14 @@ import React from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getProductById, getProducts } from '@/lib/actions/products';
-import { getProductReviews } from '@/lib/actions/reviews';
+import { getProductReviews, checkUserReviewEligibility } from '@/lib/actions/reviews';
 import ProductDetailClient from './ProductDetailClient';
+import { cookies } from 'next/headers';
+import { verifySession } from '@/lib/firebase-admin';
 
 /**
  * @fileOverview Product Detail Server Component (Next.js 15).
- * Optimized for high-impact SEO and verified collector confidence.
+ * Optimized for high-impact SEO and sticky-layout presentation.
  */
 
 export const revalidate = 3600; 
@@ -65,53 +67,28 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) notFound();
 
-  const reviews = await getProductReviews(product._id);
+  // Review Eligibility Check
+  const sessionCookie = (await cookies()).get('__session')?.value;
+  let isEligible = false;
+  if (sessionCookie) {
+    const decoded = await verifySession(sessionCookie);
+    if (decoded) {
+      isEligible = await checkUserReviewEligibility(decoded.uid, product._id.toString());
+    }
+  }
+
+  const reviews = await getProductReviews(product._id.toString());
 
   const relatedProducts = allProducts
     .filter((p: any) => p.category_id?.toString() === product.category_id?.toString() && p._id?.toString() !== product._id?.toString())
     .slice(0, 4);
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    image: Array.isArray(product.images) ? product.images.map((img: any) => img.url) : [],
-    description: product.short_description || product.description,
-    sku: product.sku || product.slug || product._id.toString(),
-    brand: {
-      '@type': 'Brand',
-      name: 'Kalamic'
-    },
-    offers: {
-      '@type': 'Offer',
-      url: `https://kalamic.shop/products/${product.slug || product._id}`,
-      priceCurrency: 'INR',
-      price: product.price,
-      availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      itemCondition: 'https://schema.org/NewCondition',
-      seller: {
-        '@type': 'Organization',
-        name: 'Kalamic'
-      }
-    },
-    aggregateRating: product.analytics?.review_count > 0 ? {
-      '@type': 'AggregateRating',
-      ratingValue: product.analytics.average_rating,
-      reviewCount: product.analytics.review_count
-    } : undefined
-  };
-
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <ProductDetailClient 
-        initialProduct={JSON.parse(JSON.stringify(product))} 
-        initialReviews={JSON.parse(JSON.stringify(reviews))} 
-        relatedProducts={JSON.parse(JSON.stringify(relatedProducts))} 
-      />
-    </>
+    <ProductDetailClient 
+      initialProduct={JSON.parse(JSON.stringify(product))} 
+      initialReviews={JSON.parse(JSON.stringify(reviews))} 
+      relatedProducts={JSON.parse(JSON.stringify(relatedProducts))}
+      isEligible={isEligible}
+    />
   );
 }

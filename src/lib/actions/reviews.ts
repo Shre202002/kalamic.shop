@@ -1,18 +1,27 @@
-
 'use server';
 
 import dbConnect from '@/lib/db';
 import Review from '@/lib/models/Review';
 import KalamicProduct from '@/lib/models/KalamicProduct';
+import OrderedItem from '@/lib/models/OrderedItem';
 import { revalidatePath } from 'next/cache';
 
 /**
- * Checks if a user has actually purchased the product to mark as verified.
+ * Checks if a user has actually purchased the product and it has been delivered.
  */
-async function checkVerifiedPurchase(userId: string, productId: string) {
-  // In a production environment, this would query the MongoDB Orders collection.
-  // For this prototype, we'll return false or true based on business logic.
-  return false;
+export async function checkUserReviewEligibility(userId: string, productId: string) {
+  await dbConnect();
+  try {
+    const order = await OrderedItem.findOne({
+      userId,
+      'items.productId': productId,
+      orderStatus: 'Delivered'
+    });
+    return !!order;
+  } catch (error) {
+    console.error("[REVIEWS] Eligibility Check Error:", error);
+    return false;
+  }
 }
 
 /**
@@ -31,7 +40,6 @@ export async function getProductReviews(productId: string) {
 
 /**
  * Submits or updates a review for a specific product.
- * Ensures one review per user per product using an atomic upsert.
  */
 export async function submitReview(data: {
   productId: string;
@@ -44,13 +52,7 @@ export async function submitReview(data: {
 }) {
   await dbConnect();
   
-  console.log(`[REVIEWS] >>> SUBMIT_REVIEW_START`);
-  console.log(`[REVIEWS] Piece ID: ${data.productId}`);
-  console.log(`[REVIEWS] Collector ID: ${data.userId}`);
-
   try {
-    // 1. Perform Atomic Upsert
-    // Matches by product and user. Updates fields if exists, otherwise inserts.
     const result = await Review.findOneAndUpdate(
       { product_id: data.productId, user_id: data.userId },
       { 
@@ -60,12 +62,12 @@ export async function submitReview(data: {
           rating: data.rating,
           comment: data.reviewText,
           review_images: data.images || [],
-          status: 'approved', // Auto-approval for prototype simplicity
+          status: 'approved',
           updatedAt: new Date()
         },
         $setOnInsert: {
           createdAt: new Date(),
-          is_verified_purchase: false,
+          is_verified_purchase: true,
           likes_count: 0
         }
       },
@@ -77,11 +79,7 @@ export async function submitReview(data: {
       }
     );
 
-    const isUpdate = result.updatedAt.getTime() > result.createdAt.getTime();
-    console.log(`[REVIEWS] DB Success: ${isUpdate ? 'REFINED' : 'CREATED'} review ${result._id}`);
-
-    // 2. Atomic Aggregate Recalculation
-    // We must recalculate the product's analytics every time a review changes.
+    // Atomic Aggregate Recalculation
     const stats = await Review.aggregate([
       { $match: { product_id: data.productId, status: 'approved' } },
       { 
@@ -97,32 +95,18 @@ export async function submitReview(data: {
       const newAverage = parseFloat(stats[0].avgRating.toFixed(1));
       const newCount = stats[0].totalReviews;
       
-      console.log(`[REVIEWS] Updating Piece Analytics -> Avg: ${newAverage}, Count: ${newCount}`);
-      
-      const productSync = await KalamicProduct.findByIdAndUpdate(data.productId, {
+      await KalamicProduct.findByIdAndUpdate(data.productId, {
         $set: { 
           'analytics.average_rating': newAverage,
           'analytics.review_count': newCount
         }
       });
-
-      if (!productSync) {
-        console.warn(`[REVIEWS] WARNING: Review saved but Piece ${data.productId} not found for sync.`);
-      }
     }
 
-    // 3. Purge Caches
     revalidatePath(`/products/${data.productId}`);
-    revalidatePath(`/`);
-    
-    console.log(`[REVIEWS] <<< SUBMIT_REVIEW_SUCCESS`);
-    
-    return { 
-      success: true, 
-      review: JSON.parse(JSON.stringify(result)) 
-    };
+    return { success: true, review: JSON.parse(JSON.stringify(result)) };
   } catch (error: any) {
     console.error("[REVIEWS] SUBMISSION_FAILED:", error);
-    throw new Error(error.message || "Failed to process your feedback in the archive.");
+    throw new Error(error.message || "Failed to process your feedback.");
   }
 }
