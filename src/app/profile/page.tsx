@@ -243,7 +243,7 @@ export default function ProfilePage() {
     router.refresh();
   };
 
-  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.state && formData.pincode);
+  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.address && formData.city && formData.state && formData.pincode);
   const isEmailVerified = profile?.emailVerified;
   const isFullyVerified = isProfileComplete && isEmailVerified;
 
@@ -337,11 +337,11 @@ export default function ProfilePage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone *</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone</Label>
                           <div className="relative">
                             <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                             <Input
-                              required
+                              disabled
                               value={formData.phone}
                               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                               placeholder="+91 XXXXX XXXXX"

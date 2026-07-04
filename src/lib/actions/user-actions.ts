@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
 import OrderedItem from '@/lib/models/OrderedItem';
 import WishlistItem from '@/lib/models/WishlistItem';
+import { revalidatePath } from 'next/cache';
 
 const PERMANENT_SUPER_ADMIN = 'sriyanshgupta24@gmail.com';
 
@@ -89,6 +90,7 @@ export async function verifyUserEmail(firebaseId: string, email: string) {
       { $set: { emailVerified: true, email: email.toLowerCase() } },
       { new: true, upsert: true }
     ).lean();
+    revalidatePath('/profile');
     return JSON.parse(JSON.stringify(user));
   } catch (error: any) {
     console.error(`[DB_ERROR] verifyUserEmail failed:`, error.message);
@@ -109,6 +111,7 @@ export async function updateProfile(firebaseId: string, data: any) {
       { $set: updateData },
       { new: true, upsert: true, runValidators: true }
     ).lean();
+    revalidatePath('/profile');
     return JSON.parse(JSON.stringify(user));
   } catch (error: any) {
     console.error(`[DB_ERROR] updateProfile failed:`, error.message);
