@@ -46,6 +46,7 @@ import { doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { ProductCard } from '@/components/product/ProductCard';
+import dayjs from 'dayjs';
 
 interface ProductDetailClientProps {
   initialProduct: any;
@@ -66,6 +67,7 @@ export default function ProductDetailClient({ initialProduct, initialReviews, re
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [timeLeft, setTimeLeft] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
 
   const product = initialProduct;
   const reviews = initialReviews;
@@ -80,6 +82,7 @@ export default function ProductDetailClient({ initialProduct, initialReviews, re
   const isFavorited = !!wishlistDoc;
 
   useEffect(() => {
+    setIsMounted(true);
     incrementProductViews(product._id);
     
     const endTime = Date.now() + 48 * 60 * 60 * 1000;
@@ -549,7 +552,9 @@ export default function ProductDetailClient({ initialProduct, initialReviews, re
                                    </div>
                                 </div>
                              </div>
-                             <span className="text-[10px] font-bold text-muted">{dayjs(review.createdAt).format('DD MMM YYYY')}</span>
+                             <span className="text-[10px] font-bold text-muted">
+                                {isMounted ? dayjs(review.createdAt).format('DD MMM YYYY') : ''}
+                             </span>
                           </div>
                           <p className="text-body leading-relaxed font-medium">"{review.comment}"</p>
                        </Card>
