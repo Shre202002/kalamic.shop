@@ -14,8 +14,7 @@ import {
   Lock,
   Eye,
   EyeOff,
-  AlertCircle,
-  Key
+  AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -140,7 +139,7 @@ export default function RegisterPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col items-center justify-center p-16 relative overflow-hidden">
         <div className="absolute top-0 right-0 h-96 w-96 rounded-full bg-white/10 blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative z-10 text-white space-y-8 max-w-md">
-          <Link href="/" className="font-display font-black text-6xl tracking-tighter">Kalamic</Link>
+          <Link href="/" className="font-display font-black text-6xl tracking-tighter text-white hover:text-white">Kalamic</Link>
           <p className="text-xl font-medium text-white/80 leading-relaxed">
             Join our community of art collectors and heritage enthusiasts.
           </p>
@@ -232,10 +231,12 @@ export default function RegisterPage() {
                   {isLoading ? <Loader2 className="animate-spin mx-auto" /> : 'Register Now'}
                 </button>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="bg-background px-4 text-muted-foreground font-bold uppercase">or</span>
+                <div className="relative my-8">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t"></div>
+                  </div>
+                  <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest">
+                    <span className="bg-background px-4 text-muted-foreground">Or sign up with</span>
                   </div>
                 </div>
 

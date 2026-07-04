@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import { 
   GoogleAuthProvider, 
-  signInWithRedirect, 
-  getRedirectResult,
+  signInWithPopup, 
   getAdditionalUserInfo 
 } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
@@ -22,77 +21,63 @@ export function GoogleAuthButton({ label }: GoogleAuthButtonProps) {
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const handleRedirect = async () => {
-      console.log('[GOOGLE AUTH DEBUG] Component mounted, checking redirect result. Current origin:', window.location.origin);
-      
-      try {
-        const result = await getRedirectResult(auth);
-        console.log('[GOOGLE AUTH DEBUG] Redirect result:', result);
-        
-        if (!result) return;
-
-        setIsLoading(true);
-        const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
-        const idToken = await result.user.getIdToken(true);
-        
-        // Create server-side session
-        const sessionRes = await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken }),
-        });
-
-        if (!sessionRes.ok) throw new Error('Session creation failed');
-
-        // Sync user profile to MongoDB
-        await fetch('/api/auth/sync-profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            firebaseId: result.user.uid,
-            email: result.user.email,
-            name: result.user.displayName,
-            firstName: result.user.displayName?.split(' ')[0] || '',
-            lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
-            photoURL: result.user.photoURL,
-            emailVerified: true,
-            phone: '',
-            phoneVerified: false
-          }),
-        });
-
-        // Navigate based on user status
-        router.push(isNewUser ? '/auth/complete-profile' : '/products');
-      } catch (err: any) {
-        console.error('[GOOGLE REDIRECT RESULT ERROR]:', err);
-        toast({
-          variant: 'destructive',
-          title: 'Google Sign-In Failed',
-          description: `${err.code || 'unknown'}: ${err.message || 'Please try again.'}`
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    handleRedirect();
-  }, [auth, router, toast]);
-
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      await signInWithRedirect(auth, provider);
-      // No further code runs here as the full page navigates to Google
+      
+      const result = await signInWithPopup(auth, provider);
+      
+      if (!result) return;
+
+      const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
+      const idToken = await result.user.getIdToken(true);
+      
+      // 1. Create server-side session
+      const sessionRes = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!sessionRes.ok) throw new Error('Session creation failed');
+
+      // 2. Sync user profile to MongoDB (Handles linking by email automatically)
+      await fetch('/api/auth/sync-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firebaseId: result.user.uid,
+          email: result.user.email,
+          name: result.user.displayName,
+          firstName: result.user.displayName?.split(' ')[0] || '',
+          lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
+          photoURL: result.user.photoURL,
+          emailVerified: true,
+          phone: '',
+          phoneVerified: false
+        }),
+      });
+
+      // 3. Navigate based on user status
+      toast({ title: 'Welcome to Kalamic', description: 'Identity verified successfully.' });
+      router.push(isNewUser ? '/auth/complete-profile' : '/products');
+      
     } catch (err: any) {
-      console.error('[GOOGLE SIGN-IN INITIATION ERROR]:', err);
+      console.error('[GOOGLE SIGN-IN ERROR]:', err);
+      
+      // Handle common Firebase errors
+      const errorMsg = err.code === 'auth/popup-closed-by-user' 
+        ? 'Sign-in window was closed.' 
+        : 'Google sign-in failed. Please try again.';
+
       toast({
         variant: 'destructive',
-        title: 'Google Sign-In Failed',
-        description: `${err.code || 'unknown'}: ${err.message || 'Please try again.'}`
+        title: 'Authentication Error',
+        description: errorMsg
       });
+    } finally {
       setIsLoading(false);
     }
   };
