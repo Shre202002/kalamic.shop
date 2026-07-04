@@ -380,8 +380,7 @@ function CheckoutContent() {
   }
 
   const isEmailVerified = userProfile?.emailVerified === true;
-  const isPhoneVerified = userProfile?.phoneVerified === true;
-  const isVerified = isEmailVerified && isPhoneVerified;
+  const isVerified = isEmailVerified;
 
   if (!isVerified) {
     return (
@@ -396,7 +395,7 @@ function CheckoutContent() {
             
             <div className="space-y-3">
               <h1 className="font-display font-black text-3xl text-foreground">Verify to Continue</h1>
-              <p className="text-muted-foreground font-medium">Please complete verification before placing an order.</p>
+              <p className="text-muted-foreground font-medium">Please complete email verification before placing an order.</p>
             </div>
             
             <div className="space-y-3 text-left">
@@ -413,20 +412,6 @@ function CheckoutContent() {
                   <p className="text-xs text-muted-foreground">{isEmailVerified ? 'Verified ✓' : 'Not verified yet'}</p>
                 </div>
               </div>
-              
-              <div className={cn(
-                "flex items-center gap-4 p-4 rounded-2xl border-2",
-                isPhoneVerified ? "border-green-200 bg-green-50" : "border-destructive/20 bg-destructive/5"
-              )}>
-                {isPhoneVerified 
-                  ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-                  : <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-                }
-                <div>
-                  <p className="font-bold text-sm">Phone Verification</p>
-                  <p className="text-xs text-muted-foreground">{isPhoneVerified ? 'Verified ✓' : 'Not verified yet'}</p>
-                </div>
-              </div>
             </div>
             
             <Link href="/profile">
@@ -435,7 +420,7 @@ function CheckoutContent() {
               </button>
             </Link>
             
-            <p className="text-xs text-muted-foreground">Takes less than 2 minutes</p>
+            <p className="text-xs text-muted-foreground">Takes less than a minute</p>
           </div>
         </main>
         <Footer />

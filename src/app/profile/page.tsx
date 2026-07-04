@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import React, { useEffect, useState } from 'react';
+import { useUser, useAuth } from '@/firebase';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -22,10 +22,8 @@ import {
   Home,
   CheckCircle2,
   Key,
-  Map as MapIcon,
   Flag,
-  Search,
-  ChevronDown
+  Sparkles
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getProfile, updateProfile, verifyUserEmail, getOrCreateProfile } from '@/lib/actions/user-actions';
@@ -42,15 +40,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
-import { 
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  PhoneAuthProvider,
-  linkWithCredential
-} from 'firebase/auth';
 
 export default function ProfilePage() {
-  const { user, loading: isAuthLoading } = useProtectedRoute();
+  const { user, isUserLoading } = useProtectedRoute();
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -62,15 +54,6 @@ export default function ProfilePage() {
   const [emailOtpCode, setEmailOtpCode] = useState('');
   const [isEmailOtpSent, setIsEmailOtpSent] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
-
-  // Phone OTP State
-  const [isPhoneOtpSent, setIsPhoneOtpSent] = useState(false);
-  const [phoneOtpCode, setPhoneOtpCode] = useState('');
-  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
-  const [phoneError, setPhoneError] = useState('');
-
-  const recaptchaVerifierRef = useRef<any>(null);
-  const confirmationResultRef = useRef<any>(null);
 
   // Address validation states
   const [statesList] = useState(State.getStatesOfCountry('IN'));
@@ -133,152 +116,6 @@ export default function ProfilePage() {
     }
     loadData();
   }, [user]);
-
-  const handleSendPhoneOtp = async () => {
-    setPhoneError('');
-
-    const rawPhone = formData.phone.replace(/\D/g, '');
-
-    if (rawPhone.length < 10) {
-      setPhoneError('Please enter a valid 10-digit number.');
-      return;
-    }
-
-    const phoneE164 = rawPhone.startsWith('91')
-      ? `+${rawPhone}`
-      : `+91${rawPhone.slice(-10)}`;
-
-    setIsVerifyingPhone(true);
-
-    try {
-      if (!auth?.app) {
-        throw new Error('Firebase not ready. Please refresh.');
-      }
-
-      // Clear old verifier if exists
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch (e) { /* ignore */ }
-        recaptchaVerifierRef.current = null;
-      }
-
-      recaptchaVerifierRef.current = new RecaptchaVerifier(
-        auth,
-        'phone-recaptcha-container',
-        {
-          size: 'invisible',
-          callback: () => {
-            console.log('[reCAPTCHA] Solved');
-          },
-          'expired-callback': () => {
-            recaptchaVerifierRef.current = null;
-          }
-        }
-      );
-
-      console.log('[PHONE OTP] Sending to:', phoneE164);
-
-      const confirmationResult = await signInWithPhoneNumber(
-        auth,
-        phoneE164,
-        recaptchaVerifierRef.current
-      );
-
-      confirmationResultRef.current = confirmationResult;
-      setIsPhoneOtpSent(true);
-
-      toast({
-        title: "OTP Sent",
-        description: `Code sent to ${phoneE164}`
-      });
-
-    } catch (err: any) {
-      console.error('[PHONE OTP ERROR]:', err);
-
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch (e) { /* ignore */ }
-        recaptchaVerifierRef.current = null;
-      }
-
-      const msgs: Record<string, string> = {
-        'auth/invalid-phone-number': 'Invalid phone number.',
-        'auth/too-many-requests': 'Too many attempts. Try later.',
-        'auth/quota-exceeded': 'SMS quota exceeded. Try later.',
-        'auth/captcha-check-failed': 'reCAPTCHA failed. Refresh and retry.',
-      };
-
-      setPhoneError(msgs[err.code] || err.message || 'Failed to send OTP.');
-    } finally {
-      setIsVerifyingPhone(false);
-    }
-  };
-
-  const handleVerifyPhoneOtp = async () => {
-    if (!phoneOtpCode || !confirmationResultRef.current) return;
-    
-    setIsVerifyingPhone(true);
-    setPhoneError('');
-    
-    try {
-      // Get the verification ID from the confirmation result
-      const verificationId = confirmationResultRef.current.verificationId;
-      
-      // Create a phone credential
-      const phoneCredential = PhoneAuthProvider.credential(
-        verificationId,
-        phoneOtpCode
-      );
-      
-      // LINK the phone to the existing user instead of signing in as new user
-      if (!user) throw new Error('Not logged in');
-      
-      try {
-        await linkWithCredential(user, phoneCredential);
-        console.log('[PHONE] Linked to existing user');
-      } catch (linkErr: any) {
-        // If already linked, that's fine
-        if (linkErr.code !== 'auth/provider-already-linked' && linkErr.code !== 'auth/credential-already-in-use') {
-          throw linkErr;
-        }
-        console.log('[PHONE] Already linked:', linkErr.code);
-      }
-      
-      // Save to MongoDB
-      const rawPhone = formData.phone.replace(/\D/g, '');
-      const phoneE164 = rawPhone.startsWith('91')
-        ? `+${rawPhone}`
-        : `+91${rawPhone.slice(-10)}`;
-      
-      const updated = await updateProfile(user.uid, {
-        phone: phoneE164,
-        phoneVerified: true,
-      } as any);
-      
-      setProfile(updated);
-      setIsPhoneOtpSent(false);
-      setPhoneOtpCode('');
-      confirmationResultRef.current = null;
-      
-      toast({
-        title: "Phone Verified ✓",
-        description: "Phone number verified successfully."
-      });
-      
-    } catch (err: any) {
-      console.error('[PHONE VERIFY ERROR]:', err);
-      const msgs: Record<string, string> = {
-        'auth/invalid-verification-code': 'Incorrect OTP. Please try again.',
-        'auth/code-expired': 'OTP expired. Request a new one.',
-        'auth/credential-already-in-use': 'This phone is linked to another account.',
-      };
-      setPhoneError(msgs[err.code] || 'Verification failed. Try again.');
-    } finally {
-      setIsVerifyingPhone(false);
-    }
-  };
 
   // Handle Pincode Auto-fill
   const handlePincodeChange = async (val: string) => {
@@ -408,10 +245,21 @@ export default function ProfilePage() {
 
   const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.state && formData.pincode);
   const isEmailVerified = profile?.emailVerified;
-  const isPhoneVerified = profile?.phoneVerified;
-  const isFullyVerified = isProfileComplete && isEmailVerified && isPhoneVerified;
+  const isFullyVerified = isProfileComplete && isEmailVerified;
 
   const memberSinceYear = profile?.createdAt ? new Date(profile.createdAt).getFullYear() : 2024;
+
+  if (isUserLoading || isLoadingData) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -448,7 +296,6 @@ export default function ProfilePage() {
                   <h3 className="text-2xl font-black text-primary">Information Required</h3>
                   <p className="text-muted-foreground text-base max-w-lg">
                     {!isEmailVerified && "• Please verify your email address. "}
-                    {!isPhoneVerified && "• Please verify your phone number. "}
                     {!isProfileComplete && "• Complete your profile to enable checkout."}
                   </p>
                 </div>
@@ -496,76 +343,11 @@ export default function ProfilePage() {
                             <Input
                               required
                               value={formData.phone}
-                              onChange={(e) => {
-                                setFormData({ ...formData, phone: e.target.value });
-                                setPhoneError('');
-                                if (profile?.phoneVerified) {
-                                  setIsPhoneOtpSent(false);
-                                }
-                              }}
-                              disabled={profile?.phoneVerified}
+                              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                               placeholder="+91 XXXXX XXXXX"
-                              className="pl-14 pr-24 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium disabled:bg-muted"
+                              className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium"
                             />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                              {profile?.phoneVerified ? (
-                                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                              ) : (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-[10px] font-bold text-primary"
-                                  onClick={handleSendPhoneOtp}
-                                  disabled={isVerifyingPhone || !formData.phone}
-                                >
-                                  {isVerifyingPhone ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Verify'}
-                                </Button>
-                              )}
-                            </div>
                           </div>
-                          {phoneError && (
-                            <p className="text-[10px] font-bold text-destructive ml-1 flex items-center gap-1">
-                              <AlertCircle className="h-3 w-3" />
-                              {phoneError}
-                            </p>
-                          )}
-                          {!profile?.phoneVerified && isPhoneOtpSent && (
-                            <div className="flex items-center gap-2 mt-2 animate-in slide-in-from-top-2 bg-primary/5 p-3 rounded-2xl border border-primary/20">
-                              <div className="relative flex-1">
-                                <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50 z-10" />
-                                <Input
-                                  placeholder="6-digit OTP"
-                                  maxLength={6}
-                                  inputMode="numeric"
-                                  value={phoneOtpCode}
-                                  onChange={(e) => setPhoneOtpCode(e.target.value.replace(/\D/g, ''))}
-                                  className="pl-10 h-10 rounded-xl font-bold text-center tracking-widest border-border"
-                                />
-                              </div>
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={handleVerifyPhoneOtp}
-                                disabled={isVerifyingPhone || phoneOtpCode.length < 6}
-                              >
-                                {isVerifyingPhone ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm"}
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setIsPhoneOtpSent(false);
-                                  setPhoneOtpCode('');
-                                  setPhoneError('');
-                                }}
-                                className="text-muted-foreground text-[10px]"
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          )}
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Email Address</Label>
@@ -713,20 +495,16 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-        {(isVerifyingEmail || isVerifyingPhone) && (
+        {isVerifyingEmail && (
           <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
               <Loader2 className="h-8 w-8 text-primary animate-spin" />
             </div>
             <p className="text-sm font-black text-foreground uppercase tracking-widest">
-              {isVerifyingPhone 
-                ? 'Verifying Phone...' 
-                : 'Verifying Email...'}
+              Verifying Email...
             </p>
           </div>
         )}
-        {/* Invisible reCAPTCHA for phone verification */}
-        <div id="phone-recaptcha-container" />
       </main>
       <Footer />
     </div>
