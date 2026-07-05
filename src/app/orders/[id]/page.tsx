@@ -433,7 +433,7 @@ export default function OrderDetailPage() {
                       startIcon={<MessageCircle size={20} />} 
                       sx={{ height: 64, borderRadius: '1.5rem', fontWeight: 900, bgcolor: '#25D366', '&:hover': { bgcolor: '#128C7E' }, textTransform: 'none', fontSize: '1rem', boxShadow: '0 10px 30px rgba(37, 211, 102, 0.2)' }} 
                       component={Link} 
-                      href={`https://wa.me/916387562920?text=Inquiry regarding order ${order?.orderNumber}`} 
+                      href={`https://wa.me/917376761679?text=Inquiry regarding order ${order?.orderNumber}`} 
                       target="_blank"
                     >
                       Studio WhatsApp

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from 'react';
@@ -111,7 +110,7 @@ export default function FAQPage() {
                 <a href="mailto:contact@kalamic.shop">Email Our Studio</a>
               </Button>
               <Button asChild className="h-14 rounded-2xl bg-[#1E1E1E] text-white hover:bg-black font-black px-10 border-none shadow-xl">
-                <a href="https://wa.me/916387562920" target="_blank">Chat on WhatsApp</a>
+                <a href="https://wa.me/917376761679" target="_blank">Chat on WhatsApp</a>
               </Button>
             </div>
           </div>

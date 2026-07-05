@@ -94,7 +94,7 @@ export function PurchasePanel({ product, onAddToCart, onBuyNow }: PurchasePanelP
           asChild
           className="w-full h-14 rounded-2xl bg-[#25D366] hover:bg-[#128C7E] text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-green-500/10"
         >
-          <a href={`https://wa.me/916387562920?text=I'm interested in the ${product.name}. Could you share more details?`} target="_blank">
+          <a href={`https://wa.me/917376761679?text=I'm interested in the ${product.name}. Could you share more details?`} target="_blank">
             <MessageCircle size={18} /> Chat with the Studio
           </a>
         </Button>
@@ -124,7 +124,7 @@ export function PurchasePanel({ product, onAddToCart, onBuyNow }: PurchasePanelP
                 <p className="text-[9px] text-muted-foreground font-medium">Authenticity guaranteed with every piece.</p>
              </div>
           </div>
-          <a href="tel:+916387562920" className="text-[10px] font-black text-primary hover:underline flex items-center gap-1">
+          <a href="tel:+917376761679" className="text-[10px] font-black text-primary hover:underline flex items-center gap-1">
              <Phone size={10} /> Call Support
           </a>
         </div>

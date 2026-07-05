@@ -156,7 +156,7 @@ export default function ProductDetailClient({
             </div>
          </div>
          <a 
-          href={`https://wa.me/916387562920?text=I'm inquiring about the ${product.name}. Reference: ${product.sku || product.slug}`}
+          href={`https://wa.me/917376761679?text=I'm inquiring about the ${product.name}. Reference: ${product.sku || product.slug}`}
           target="_blank"
           className="h-16 w-16 rounded-full bg-[#25D366] shadow-2xl flex items-center justify-center text-white hover:scale-110 hover:shadow-green-500/20 transition-all active:scale-95"
          >

@@ -71,7 +71,7 @@ export function Footer() {
           <p className="text-[10px] font-bold text-[#b0a090] opacity-60 mt-4 tracking-widest uppercase">
             Designed, Developed & Managed by{" "}
             <Link 
-              href="https://wa.me/916387562920" 
+              href="https://wa.me/917376761679" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-primary hover:underline transition-all"

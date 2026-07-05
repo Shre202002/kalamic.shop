@@ -253,8 +253,8 @@ function SuccessPageContent() {
               📧 kalamicshop@gmail.com
             </a>
             <span className="text-border">|</span>
-            <a href="tel:+916387562920" className="flex items-center gap-2 text-xs text-primary font-bold hover:underline">
-              📞 6387562920
+            <a href="tel:+917376761679" className="flex items-center gap-2 text-xs text-primary font-bold hover:underline">
+              📞 7376761679
             </a>
           </div>
         </div>

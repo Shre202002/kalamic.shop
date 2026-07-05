@@ -66,7 +66,7 @@ export function LocalBusinessJsonLd() {
     "image": "https://kalamic.shop/logo.png",
     "@id": "https://kalamic.shop",
     "url": "https://kalamic.shop",
-    "telephone": "+916387562920",
+    "telephone": "+917376761679",
     "priceRange": "₹₹",
     "address": {
       "@type": "PostalAddress",
