@@ -2,6 +2,7 @@
 
 import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
+import Category from '@/lib/models/Category'; // Import Category for population
 import { unstable_cache } from 'next/cache';
 
 /**
@@ -101,12 +102,18 @@ export async function getProductById(id: string) {
       await dbConnect();
       try {
         let product = null;
+        
+        // Use Type-safe population to ensure UI fields are available
         if (id.length === 24) {
-          product = await KalamicProduct.findOne({ _id: id, is_deleted: { $ne: true } }).lean();
+          product = await KalamicProduct.findOne({ _id: id, is_deleted: { $ne: true } })
+            .populate('category_id')
+            .lean();
         }
         
         if (!product) {
-          product = await KalamicProduct.findOne({ slug: id.toLowerCase(), is_deleted: { $ne: true } }).lean();
+          product = await KalamicProduct.findOne({ slug: id.toLowerCase(), is_deleted: { $ne: true } })
+            .populate('category_id')
+            .lean();
         }
 
         return product ? JSON.parse(JSON.stringify(product)) : null;

@@ -1,47 +1,81 @@
 import React from 'react';
-import Link from 'next/link';
-import { ProductCard } from '@/components/product/ProductCard';
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import dbConnect from '@/lib/db';
+import { getProductById, getProducts } from '@/lib/actions/products';
+import { getProductReviews, checkUserReviewEligibility } from '@/lib/actions/reviews';
+import ProductDetailClient from './ProductDetailClient';
+import { cookies } from 'next/headers';
+import { verifySession } from '@/lib/firebase-admin';
 
-interface RelatedProductsProps {
-  products: any[];
+/**
+ * @fileOverview Product Detail Server Component (Next.js 15).
+ * Orchestrates data fetching for the sticky-gallery detail page.
+ */
+
+interface Props {
+  params: Promise<{ id: string }>;
 }
 
-export function RelatedProducts({ products }: RelatedProductsProps) {
-  if (products.length === 0) return null;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const product = await getProductById(id);
+  if (!product) return { title: 'Product Not Found | Kalamic' };
+
+  return {
+    title: product.seo?.meta_title || `${product.name} | Kalamic`,
+    description: product.seo?.meta_description || product.short_description,
+    openGraph: {
+      title: product.name,
+      description: product.short_description,
+      images: [{ url: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || '' }],
+    },
+  };
+}
+
+export default async function ProductPage({ params }: Props) {
+  const { id } = await params;
+  await dbConnect();
+
+  const product = await getProductById(id);
+
+  if (!product) {
+    notFound();
+  }
+
+  // Fetch reviews and related products in parallel
+  const [reviews, relatedProducts] = await Promise.all([
+    getProductReviews(product._id.toString()),
+    getProducts({ limit: 4 }) 
+  ]);
+
+  // Filter out the current product from related items
+  const filteredRelated = relatedProducts.filter(
+    (p: any) => p._id.toString() !== product._id.toString()
+  );
+
+  // Check review eligibility if user is logged in
+  let isEligible = false;
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('__session')?.value;
+    
+    if (sessionCookie) {
+      const decodedToken = await verifySession(sessionCookie);
+      if (decodedToken) {
+        isEligible = await checkUserReviewEligibility(decodedToken.uid, product._id.toString());
+      }
+    }
+  } catch (error) {
+    console.error("[PRODUCT_PAGE] Eligibility check failed:", error);
+  }
 
   return (
-    <section className="py-24 border-t border-border/50">
-      <div className="space-y-12">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-display font-bold text-foreground">You May Also Like</h2>
-            <p className="text-sm text-muted-foreground font-medium">Curated artisanal picks from the same kiln firing.</p>
-          </div>
-          <Link href="/products" className="hidden sm:block text-[10px] font-black uppercase tracking-widest text-primary hover:underline">
-            View Full Gallery
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {products.map((p) => (
-            <ProductCard 
-              key={p._id} 
-              id={p._id} 
-              slug={p.slug} 
-              name={p.name} 
-              price={p.price} 
-              image={p.images?.[0]} 
-              rating={p.analytics?.average_rating || 5} 
-            />
-          ))}
-        </div>
-
-        <div className="sm:hidden text-center">
-           <Link href="/products" className="text-[10px] font-black uppercase tracking-widest text-primary">
-            View All Creations
-          </Link>
-        </div>
-      </div>
-    </section>
+    <ProductDetailClient
+      initialProduct={JSON.parse(JSON.stringify(product))}
+      initialReviews={JSON.parse(JSON.stringify(reviews))}
+      relatedProducts={JSON.parse(JSON.stringify(filteredRelated))}
+      isEligible={isEligible}
+    />
   );
 }
