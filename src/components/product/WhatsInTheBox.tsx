@@ -24,9 +24,9 @@ export function WhatsInTheBox({ productName }: { productName: string }) {
           <h2 className="text-3xl font-display font-bold">What's in the Box</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12">
+        <div className="space-y-6">
           {items.map((item, i) => (
-            <div key={i} className="flex items-center gap-4 group">
+            <div key={i} className="flex items-center gap-4 group w-full">
               <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-primary flex-shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
                 <CheckCircle2 size={14} />
               </div>
