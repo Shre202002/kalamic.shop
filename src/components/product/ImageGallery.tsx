@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Maximize2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getDisplayUrl, getZoomUrl, getThumbnailUrl } from '@/lib/utils/imagekit';
 
 interface ImageGalleryProps {
   images: Array<{ url: string; alt: string; is_primary: boolean }>;
@@ -50,11 +51,9 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
     const touch = e.touches[0];
     const { left, top, width, height } = containerRef.current.getBoundingClientRect();
     
-    // Calculate position relative to container
     const x = ((touch.pageX - left - window.scrollX) / width) * 100;
     const y = ((touch.pageY - top - window.scrollY) / height) * 100;
     
-    // Update zoom position with clamped values
     setZoomPos({ 
       x: Math.max(0, Math.min(100, x)), 
       y: Math.max(0, Math.min(100, y)) 
@@ -71,6 +70,10 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
     setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
+  const closeLightbox = useCallback(() => {
+    setIsLightboxOpen(false);
+  }, []);
+
   const lightboxContent = (
     <AnimatePresence>
       {isLightboxOpen && (
@@ -79,11 +82,11 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
-          onClick={() => setIsLightboxOpen(false)}
+          onClick={closeLightbox}
         >
           <button 
             className="absolute top-10 right-10 text-white/50 hover:text-white transition-colors z-[10000]"
-            onClick={() => setIsLightboxOpen(false)}
+            onClick={closeLightbox}
           >
             <X size={48} />
           </button>
@@ -97,11 +100,12 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
           >
             <div className="relative w-full h-full max-h-[80vh]">
               <Image 
-                src={images[activeIndex].url} 
+                src={getZoomUrl(images[activeIndex].url)} 
                 alt={images[activeIndex].alt} 
                 fill 
                 className="object-contain"
                 sizes="95vw"
+                priority
               />
             </div>
 
@@ -132,17 +136,26 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
       {/* Main Image Container */}
       <div 
         ref={containerRef}
-        className="relative aspect-square rounded-[2rem] overflow-hidden bg-white border border-border shadow-md group cursor-crosshair touch-pan-y"
-        onMouseEnter={() => setShowZoom(true)}
+        className="relative aspect-square rounded-[2rem] overflow-hidden bg-white border border-border shadow-xl shadow-primary/5 group cursor-crosshair touch-pan-y"
+        onMouseEnter={() => {
+          // Preload High-Res Zoom Image
+          const preload = new window.Image();
+          preload.src = getZoomUrl(activeImage.url);
+          setShowZoom(true);
+        }}
         onMouseLeave={() => setShowZoom(false)}
         onMouseMove={handleMouseMove}
-        onTouchStart={() => setShowZoom(true)}
+        onTouchStart={() => {
+          const preload = new window.Image();
+          preload.src = getZoomUrl(activeImage.url);
+          setShowZoom(true);
+        }}
         onTouchMove={handleTouchMove}
         onTouchEnd={() => setShowZoom(false)}
         onClick={() => setIsLightboxOpen(true)}
       >
         <Image 
-          src={activeImage.url} 
+          src={getDisplayUrl(activeImage.url)} 
           alt={activeImage.alt || productName} 
           fill 
           className={cn(
@@ -170,12 +183,12 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
           </>
         )}
 
-        {/* Hover Zoom Overlay - Enabled for all screens */}
+        {/* Hover Zoom Overlay */}
         {showZoom && (
           <div 
             className="absolute inset-0 pointer-events-none"
             style={{
-              backgroundImage: `url(${activeImage.url})`,
+              backgroundImage: `url(${getZoomUrl(activeImage.url)})`,
               backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
               backgroundSize: '250%',
               backgroundRepeat: 'no-repeat'
@@ -207,7 +220,7 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
                 : "border-transparent opacity-60 hover:opacity-100"
             )}
           >
-            <Image src={img.url} alt={img.alt} fill className="object-cover" />
+            <Image src={getThumbnailUrl(img.url)} alt={img.alt} fill className="object-cover" />
           </button>
         ))}
       </div>
