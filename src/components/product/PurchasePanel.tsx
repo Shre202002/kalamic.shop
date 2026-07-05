@@ -130,19 +130,21 @@ export function PurchasePanel({ product, onAddToCart, onBuyNow }: PurchasePanelP
         </div>
       </div>
 
-      {/* Feature Icons */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-border">
+      {/* Feature Icons - Highlighted & Responcive */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-6 pt-8 border-t border-border">
         {[
           { label: 'Made in India', icon: Flag },
           { label: 'Lead-Free Glaze', icon: CheckCircle2 },
           { label: 'Safe Delivery', icon: ShieldCheck },
           { label: 'Secure UPI', icon: Clock },
         ].map((item, i) => (
-          <div key={i} className="flex flex-col items-center text-center gap-2">
-            <div className="h-10 w-10 rounded-xl bg-white border border-border flex items-center justify-center text-primary/40 shadow-sm">
-              <item.icon size={16} />
+          <div key={i} className="flex flex-col items-center text-center gap-3 group">
+            <div className="h-12 w-12 md:h-16 md:w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner transition-transform group-hover:scale-110 duration-300">
+              <item.icon className="h-6 w-6 md:h-8 md:w-8" />
             </div>
-            <span className="text-[8px] font-black uppercase tracking-wider text-muted-foreground">{item.label}</span>
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground group-hover:text-primary transition-colors">
+              {item.label}
+            </span>
           </div>
         ))}
       </div>
