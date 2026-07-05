@@ -45,6 +45,16 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
     setZoomPos({ x, y });
   };
 
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
   const lightboxContent = (
     <AnimatePresence>
       {isLightboxOpen && (
@@ -75,20 +85,20 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
                 alt={images[activeIndex].alt} 
                 fill 
                 className="object-contain"
-                sizes="100vw"
+                sizes="95vw"
               />
             </div>
 
             {images.length > 1 && (
               <>
                 <button 
-                  onClick={() => setActiveImageIndex((activeIndex - 1 + images.length) % images.length)}
+                  onClick={handlePrev}
                   className="absolute left-0 h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
                 >
                   <ChevronLeft size={32} />
                 </button>
                 <button 
-                  onClick={() => setActiveImageIndex((activeIndex + 1) % images.length)}
+                  onClick={handleNext}
                   className="absolute right-0 h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
                 >
                   <ChevronRight size={32} />
@@ -106,7 +116,7 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
       {/* Main Image Container */}
       <div 
         ref={containerRef}
-        className="relative aspect-square md:aspect-[4/5] rounded-[2rem] overflow-hidden bg-white border border-border shadow-md group cursor-crosshair"
+        className="relative aspect-square rounded-[2rem] overflow-hidden bg-white border border-border shadow-md group cursor-crosshair"
         onMouseEnter={() => setShowZoom(true)}
         onMouseLeave={() => setShowZoom(false)}
         onMouseMove={handleMouseMove}
@@ -123,10 +133,28 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
           priority
         />
 
+        {/* Carousel Controls */}
+        {images.length > 1 && (
+          <>
+            <button 
+              onClick={handlePrev}
+              className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/60 backdrop-blur-md flex items-center justify-center text-primary opacity-0 group-hover:opacity-100 transition-all shadow-lg z-10 hover:bg-white active:scale-95"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <button 
+              onClick={handleNext}
+              className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/60 backdrop-blur-md flex items-center justify-center text-primary opacity-0 group-hover:opacity-100 transition-all shadow-lg z-10 hover:bg-white active:scale-95"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </>
+        )}
+
         {/* Desktop Hover Zoom */}
         {showZoom && (
           <div 
-            className="absolute inset-0 hidden md:block"
+            className="absolute inset-0 hidden md:block pointer-events-none"
             style={{
               backgroundImage: `url(${activeImage.url})`,
               backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,

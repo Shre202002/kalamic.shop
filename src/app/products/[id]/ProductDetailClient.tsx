@@ -76,10 +76,10 @@ export default function ProductDetailClient({
       <Navbar />
       
       <main className="flex-1">
-        <div className="container mx-auto px-6 max-w-7xl pt-20 md:pt-24 pb-20">
+        <div className="container mx-auto px-6 max-w-7xl pt-16 md:pt-20 pb-20">
           
           {/* Breadcrumb */}
-          <nav className="mb-6">
+          <nav className="mb-4">
             <Link href="/products" className="group inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground hover:text-primary transition-all">
               <ArrowLeft className="h-3 w-3 group-hover:-translate-x-1 transition-transform" /> 
               Back to Catalog
