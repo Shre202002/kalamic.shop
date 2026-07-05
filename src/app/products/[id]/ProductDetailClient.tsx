@@ -76,10 +76,10 @@ export default function ProductDetailClient({
       <Navbar />
       
       <main className="flex-1">
-        <div className="container mx-auto px-6 max-w-7xl pt-24 md:pt-32 pb-20">
+        <div className="container mx-auto px-6 max-w-7xl pt-20 md:pt-24 pb-20">
           
           {/* Breadcrumb */}
-          <nav className="mb-10">
+          <nav className="mb-6">
             <Link href="/products" className="group inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground hover:text-primary transition-all">
               <ArrowLeft className="h-3 w-3 group-hover:-translate-x-1 transition-transform" /> 
               Back to Catalog
@@ -90,7 +90,7 @@ export default function ProductDetailClient({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start mb-24">
             
             {/* LEFT COLUMN: Sticky Image Gallery */}
-            <div className="lg:col-span-6 xl:col-span-7 lg:sticky lg:top-32 h-fit">
+            <div className="lg:col-span-6 xl:col-span-7 lg:sticky lg:top-20 h-fit">
               <div className="space-y-4">
                 <span className="text-[9px] font-black uppercase tracking-[0.3em] text-accent pl-1">
                   Collection: {product.category_id?.name || 'Handcrafted Art'}
