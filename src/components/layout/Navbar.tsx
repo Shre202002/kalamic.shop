@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -36,10 +37,8 @@ export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [userRole, setUserRole] = useState<string>('buyer');
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isHidden, setIsHidden] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  const lastScrollY = useRef(0);
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -50,18 +49,7 @@ export function Navbar() {
     
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
-      // Update background visibility
       setIsScrolled(currentScrollY > 20);
-
-      // Smart Header Logic: Hide on scroll down, show on scroll up
-      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        setIsHidden(true); // Moving down
-      } else {
-        setIsHidden(false); // Moving up
-      }
-      
-      lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -96,7 +84,6 @@ export function Navbar() {
   const handleSignOut = async () => {
     try {
       await auth.signOut();
-      // The session cookie is cleared automatically by onIdTokenChanged in FirebaseProvider
       router.push('/');
       setIsMobileMenuOpen(false);
     } catch (error) {
@@ -110,8 +97,7 @@ export function Navbar() {
 
   return (
     <header className={cn(
-      "fixed top-0 z-50 w-full transition-all duration-500 ease-in-out transform-gpu will-change-transform",
-      isHidden ? "-translate-y-full" : "translate-y-0",
+      "sticky top-0 z-50 w-full transition-all duration-500 ease-in-out transform-gpu will-change-transform",
       isScrolled 
         ? "bg-white/80 backdrop-blur-xl h-16 border-b border-primary/10 shadow-lg" 
         : "bg-transparent h-20 md:h-24"
