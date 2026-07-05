@@ -1,5 +1,4 @@
 import React from 'react';
-import { Separator } from '@/components/ui/separator';
 
 interface SpecificationsSectionProps {
   product: any;
@@ -11,7 +10,7 @@ export function SpecificationsSection({ product }: SpecificationsSectionProps) {
   if (specs.length === 0) return null;
 
   return (
-    <section className="space-y-8 py-12 border-t border-border/50">
+    <section className="space-y-8 py-12 border-t border-border/50 w-full">
       <div className="space-y-2">
         <h2 className="text-3xl font-display font-bold text-foreground">Specifications</h2>
         <p className="text-sm text-muted-foreground font-medium">Detailed technical attributes of this handcrafted creation.</p>
@@ -21,11 +20,11 @@ export function SpecificationsSection({ product }: SpecificationsSectionProps) {
         <div className="overflow-hidden rounded-[2rem] border border-border bg-white shadow-sm">
           <div className="divide-y divide-border/50">
             {specs.map((spec: any, i: number) => (
-              <div key={i} className="flex items-center justify-between px-8 py-5 hover:bg-primary/[0.01] transition-colors group">
+              <div key={i} className="grid grid-cols-[110px_1fr] md:grid-cols-[160px_1fr] gap-6 items-center px-8 py-5 hover:bg-primary/[0.01] transition-colors group">
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground group-hover:text-primary transition-colors">
                   {spec.key}
                 </span>
-                <span className="text-sm font-bold text-foreground">
+                <span className="text-sm font-bold text-foreground break-words">
                   {spec.value}
                 </span>
               </div>

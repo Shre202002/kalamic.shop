@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Maximize2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,9 +17,25 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [showZoom, setShowZoom] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const activeImage = images[activeIndex] || images[0];
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLightboxOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isLightboxOpen]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -27,6 +44,62 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
     const y = ((e.pageY - top - window.scrollY) / height) * 100;
     setZoomPos({ x, y });
   };
+
+  const lightboxContent = (
+    <AnimatePresence>
+      {isLightboxOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          <button 
+            className="absolute top-10 right-10 text-white/50 hover:text-white transition-colors z-[10000]"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <X size={48} />
+          </button>
+
+          <motion.div 
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: 20 }}
+            className="relative w-full max-w-5xl h-full flex items-center justify-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="relative w-full h-full max-h-[80vh]">
+              <Image 
+                src={images[activeIndex].url} 
+                alt={images[activeIndex].alt} 
+                fill 
+                className="object-contain"
+                sizes="100vw"
+              />
+            </div>
+
+            {images.length > 1 && (
+              <>
+                <button 
+                  onClick={() => setActiveImageIndex((activeIndex - 1 + images.length) % images.length)}
+                  className="absolute left-0 h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                >
+                  <ChevronLeft size={32} />
+                </button>
+                <button 
+                  onClick={() => setActiveImageIndex((activeIndex + 1) % images.length)}
+                  className="absolute right-0 h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                >
+                  <ChevronRight size={32} />
+                </button>
+              </>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   return (
     <div className="space-y-6">
@@ -92,59 +165,8 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
         ))}
       </div>
 
-      {/* Fullscreen Lightbox Modal */}
-      <AnimatePresence>
-        {isLightboxOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
-            onClick={() => setIsLightboxOpen(false)}
-          >
-            <button 
-              className="absolute top-10 right-10 text-white/50 hover:text-white transition-colors"
-              onClick={() => setIsLightboxOpen(false)}
-            >
-              <X size={48} />
-            </button>
-
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="relative w-full max-w-5xl h-full flex items-center justify-center"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="relative w-full h-full max-h-[80vh]">
-                <Image 
-                  src={images[activeIndex].url} 
-                  alt={images[activeIndex].alt} 
-                  fill 
-                  className="object-contain"
-                  sizes="100vw"
-                />
-              </div>
-
-              {images.length > 1 && (
-                <>
-                  <button 
-                    onClick={() => setActiveImageIndex((activeIndex - 1 + images.length) % images.length)}
-                    className="absolute left-0 h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
-                  >
-                    <ChevronLeft size={32} />
-                  </button>
-                  <button 
-                    onClick={() => setActiveImageIndex((activeIndex + 1) % images.length)}
-                    className="absolute right-0 h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
-                  >
-                    <ChevronRight size={32} />
-                  </button>
-                </>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Portaled Lightbox */}
+      {mounted && createPortal(lightboxContent, document.body)}
     </div>
   );
 }

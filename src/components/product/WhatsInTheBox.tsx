@@ -12,7 +12,7 @@ export function WhatsInTheBox({ productName }: { productName: string }) {
   ];
 
   return (
-    <section className="py-12 px-10 md:px-16 rounded-[3rem] bg-foreground text-white overflow-hidden relative shadow-2xl">
+    <section className="py-12 px-10 md:px-16 rounded-[3rem] bg-foreground text-white overflow-hidden relative shadow-2xl w-full">
       {/* Decorative pattern */}
       <div className="absolute inset-0 pattern-paisley opacity-5 pointer-events-none scale-150" />
       
