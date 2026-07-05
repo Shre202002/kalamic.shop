@@ -37,8 +37,10 @@ export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [userRole, setUserRole] = useState<string>('buyer');
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
+  const lastScrollY = useRef(0);
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -49,7 +51,20 @@ export function Navbar() {
     
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
+      
+      // Determine if we are at the top
       setIsScrolled(currentScrollY > 20);
+
+      // Determine scroll direction
+      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+        // Scrolling down and not at the very top
+        setIsVisible(false);
+      } else {
+        // Scrolling up
+        setIsVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -100,7 +115,8 @@ export function Navbar() {
       "sticky top-0 z-50 w-full transition-all duration-500 ease-in-out transform-gpu will-change-transform",
       isScrolled 
         ? "bg-white/80 backdrop-blur-xl h-16 border-b border-primary/10 shadow-lg" 
-        : "bg-transparent h-20 md:h-24"
+        : "bg-transparent h-20 md:h-24",
+      !isVisible && "-translate-y-full"
     )}>
       <div className="max-w-[1400px] mx-auto px-6 md:px-10 h-full flex items-center justify-between">
         
