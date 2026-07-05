@@ -45,6 +45,22 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
     setZoomPos({ x, y });
   };
 
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    const touch = e.touches[0];
+    const { left, top, width, height } = containerRef.current.getBoundingClientRect();
+    
+    // Calculate position relative to container
+    const x = ((touch.pageX - left - window.scrollX) / width) * 100;
+    const y = ((touch.pageY - top - window.scrollY) / height) * 100;
+    
+    // Update zoom position with clamped values
+    setZoomPos({ 
+      x: Math.max(0, Math.min(100, x)), 
+      y: Math.max(0, Math.min(100, y)) 
+    });
+  };
+
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
     setActiveImageIndex((prev) => (prev + 1) % images.length);
@@ -116,10 +132,13 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
       {/* Main Image Container */}
       <div 
         ref={containerRef}
-        className="relative aspect-square rounded-[2rem] overflow-hidden bg-white border border-border shadow-md group cursor-crosshair"
+        className="relative aspect-square rounded-[2rem] overflow-hidden bg-white border border-border shadow-md group cursor-crosshair touch-pan-y"
         onMouseEnter={() => setShowZoom(true)}
         onMouseLeave={() => setShowZoom(false)}
         onMouseMove={handleMouseMove}
+        onTouchStart={() => setShowZoom(true)}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={() => setShowZoom(false)}
         onClick={() => setIsLightboxOpen(true)}
       >
         <Image 
@@ -151,10 +170,10 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
           </>
         )}
 
-        {/* Desktop Hover Zoom */}
+        {/* Hover Zoom Overlay - Enabled for all screens */}
         {showZoom && (
           <div 
-            className="absolute inset-0 hidden md:block pointer-events-none"
+            className="absolute inset-0 pointer-events-none"
             style={{
               backgroundImage: `url(${activeImage.url})`,
               backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
