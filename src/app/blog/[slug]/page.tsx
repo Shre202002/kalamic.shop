@@ -19,19 +19,28 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   await dbConnect();
-  const post = await BlogPost.findOne({ slug, status: 'published' }).lean();
+  const post: any = await BlogPost.findOne({ slug, status: 'published' }).lean();
   if (!post) return { title: 'Story Not Found | Kalamic' };
+
+  const isMorStambhGuide = slug === 'what-is-mor-stambh-history-meaning-why-it-belongs-in-your-home';
+  const title = isMorStambhGuide
+    ? 'Stambh Meaning in English: What Is a Mor Stambh?'
+    : post.seo?.metaTitle || post.title;
+  const description = isMorStambhGuide
+    ? 'Learn the meaning of Stambh in English, the history and symbolism of Mor Stambh, and how peacock pillars are used in Indian home and temple decor.'
+    : post.seo?.metaDescription || post.excerpt;
   
   return {
-    title: post.seo?.metaTitle || `${post.title} | Kalamic`,
-    description: post.seo?.metaDescription || post.excerpt,
+    title,
+    description,
     keywords: post.seo?.metaKeywords?.join(', '),
     openGraph: {
       title: post.title,
       description: post.excerpt,
       images: [{ url: post.coverImage?.url || '' }],
       type: 'article',
-    }
+    },
+    alternates: { canonical: `/blog/${slug}` },
   };
 }
 
@@ -39,7 +48,7 @@ export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
   await dbConnect();
 
-  const post = await BlogPost.findOneAndUpdate(
+  const post: any = await BlogPost.findOneAndUpdate(
     { slug, status: 'published' },
     { $inc: { views: 1 } },
     { new: true }

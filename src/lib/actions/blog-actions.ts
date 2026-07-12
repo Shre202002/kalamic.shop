@@ -116,7 +116,7 @@ export async function getFeaturedBlogs(limit = 3) {
         return [];
       }
     },
-    ['featured-blogs', limit],
+    ['featured-blogs', String(limit)],
     { revalidate: 300, tags: ['blogs'] }
   )();
 }

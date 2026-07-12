@@ -270,7 +270,7 @@ export default function OrdersPage() {
                           <Typography variant="caption" sx={{ fontWeight: 900, display: 'block', textTransform: 'uppercase', letterSpacing: 1, color: primarySaffron, fontSize: '0.7rem', mb: 0.5 }}>
                             {itemsCount} {itemsCount === 1 ? 'Handcrafted Piece' : 'Artisan Pieces'}
                           </Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 800, color: darkTerracotta, noWrap: true, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1.1rem' }}>
+                          <Typography variant="body1" noWrap sx={{ fontWeight: 800, color: darkTerracotta, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1.1rem' }}>
                             {order.items?.slice(0, 2).map((it: any) => it.name).join(', ')}
                             {itemsCount > 2 ? '...' : ''}
                           </Typography>

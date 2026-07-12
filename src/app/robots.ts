@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/admin/', '/profile/', '/cart/', '/checkout/'],
       },
     ],
-    host: 'https://kalamic.shop',
-    sitemap: 'https://kalamic.shop/sitemap.xml',
+    host: 'https://www.kalamic.shop',
+    sitemap: 'https://www.kalamic.shop/sitemap.xml',
   };
 }

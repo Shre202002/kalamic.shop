@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
     await syncOrderToFirestore(newOrder);
 
     // 7. Generate Cashfree Session
-    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
+    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://www.kalamic.shop';
     const returnUrl = `${origin}/checkout/success?order_id={order_id}`;
 
     const cashfreeResult = await createCashfreeOrder({

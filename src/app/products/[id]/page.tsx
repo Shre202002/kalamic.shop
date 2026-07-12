@@ -17,18 +17,47 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
+const productSeoOverrides: Record<string, { title: string; description: string }> = {
+  'customized-ceramic-photo-frame': {
+    title: 'Customized Ceramic Photo Frame Online',
+    description:
+      'Order a handcrafted customized ceramic photo frame for 4x6 photos. Floral and owl detailing, secure delivery and a thoughtful personalized gift.',
+  },
+  'handmade-ceramic-peacock-floral-wall-mirror': {
+    title: 'Handmade Peacock Ceramic Wall Mirror',
+    description:
+      'Shop a handmade ceramic wall mirror with peacock and floral motifs in an antique gold finish. Statement decor for living rooms, bedrooms and gifting.',
+  },
+  'handcrafted-antique-gold-floral-wall-mirror-23x18': {
+    title: 'Antique Gold Oval Wall Mirror 23 x 18 Inches',
+    description:
+      'Buy a 23 x 18 inch handcrafted antique gold floral wall mirror. A decorative oval ceramic frame for entryways, bedrooms and elegant Indian interiors.',
+  },
+  'handcrafted-peacock-mor-stambh-decorative-pillar-set': {
+    title: 'Peacock Mor Stambh Set of 2 for Home Decor',
+    description:
+      'Shop a handcrafted pair of ceramic Peacock Mor Stambh pillars for home temples, entryways and festive decor, securely packed by Kalamic in Kanpur.',
+  },
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const product = await getProductById(id);
   if (!product) return { title: 'Product Not Found | Kalamic' };
 
+  const productPath = `/products/${product.slug || product._id}`;
+  const seoOverride = productSeoOverrides[product.slug];
+
   return {
-    title: product.seo?.meta_title || `${product.name} | Kalamic`,
-    description: product.seo?.meta_description || product.short_description,
+    title: seoOverride?.title || product.seo?.meta_title || product.name,
+    description: seoOverride?.description || product.seo?.meta_description || product.short_description,
     openGraph: {
       title: product.name,
       description: product.short_description,
       images: [{ url: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || '' }],
+    },
+    alternates: {
+      canonical: productPath,
     },
   };
 }
@@ -54,6 +83,60 @@ export default async function ProductPage({ params }: Props) {
     (p: any) => p._id.toString() !== product._id.toString()
   );
 
+  const productUrl = `https://www.kalamic.shop/products/${product.slug || product._id}`;
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    '@id': `${productUrl}#product`,
+    name: product.name,
+    description: product.short_description || product.description,
+    image: product.images?.map((image: any) => image.url).filter(Boolean),
+    sku: product.sku || String(product._id),
+    mpn: product.sku || product.slug || String(product._id),
+    brand: {
+      '@type': 'Brand',
+      name: 'Kalamic',
+    },
+    material: 'Handcrafted ceramic',
+    url: productUrl,
+    offers: {
+      '@type': 'Offer',
+      url: productUrl,
+      priceCurrency: 'INR',
+      price: Number(product.price).toFixed(2),
+      availability: product.stock > 0
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+      itemCondition: 'https://schema.org/NewCondition',
+      seller: {
+        '@type': 'Organization',
+        name: 'Kalamic',
+      },
+    },
+    ...(reviews.length > 0
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: (
+              reviews.reduce((sum: number, review: any) => sum + Number(review.rating || 0), 0) /
+              reviews.length
+            ).toFixed(1),
+            reviewCount: reviews.length,
+          },
+        }
+      : {}),
+  };
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.kalamic.shop/' },
+      { '@type': 'ListItem', position: 2, name: 'Products', item: 'https://www.kalamic.shop/products' },
+      { '@type': 'ListItem', position: 3, name: product.name, item: productUrl },
+    ],
+  };
+
   // Check review eligibility if user is logged in
   let isEligible = false;
   try {
@@ -71,11 +154,21 @@ export default async function ProductPage({ params }: Props) {
   }
 
   return (
-    <ProductDetailClient
-      initialProduct={JSON.parse(JSON.stringify(product))}
-      initialReviews={JSON.parse(JSON.stringify(reviews))}
-      relatedProducts={JSON.parse(JSON.stringify(filteredRelated))}
-      isEligible={isEligible}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <ProductDetailClient
+        initialProduct={JSON.parse(JSON.stringify(product))}
+        initialReviews={JSON.parse(JSON.stringify(reviews))}
+        relatedProducts={JSON.parse(JSON.stringify(filteredRelated))}
+        isEligible={isEligible}
+      />
+    </>
   );
 }

@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Fetch User from MongoDB
     await dbConnect();
-    const user = await User.findOne({ email: cleanEmail }).lean();
+    const user: any = await User.findOne({ email: cleanEmail }).lean();
 
     if (!user || !user.firebaseId) {
       return NextResponse.json({

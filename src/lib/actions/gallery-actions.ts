@@ -5,7 +5,7 @@ import GalleryItem, { IGalleryItem } from '@/lib/models/GalleryItem';
 
 export async function getGalleryItems(filters?: {
   category?: string;
-  mediaType?: 'image' | 'video';
+  mediaType?: 'all' | 'image' | 'video';
   isActive?: boolean;
   isFeatured?: boolean;
 }) {

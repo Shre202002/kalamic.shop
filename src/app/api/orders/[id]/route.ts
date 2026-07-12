@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     // Attempt to find by orderNumber first
-    let order = await OrderedItem.findOne({ orderNumber: id }).lean();
+    let order: any = await OrderedItem.findOne({ orderNumber: id }).lean();
     
     // Fallback: search by _id if id looks like a valid MongoDB ObjectId
     if (!order && /^[0-9a-fA-F]{24}$/.test(id)) {

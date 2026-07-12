@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     // Step 2: Check if user exists in MongoDB first (Source of Truth)
     await dbConnect();
-    const existingMongoUser = await User.findOne({ email: cleanEmail }).lean();
+    const existingMongoUser: any = await User.findOne({ email: cleanEmail }).lean();
 
     if (!existingMongoUser) {
       return NextResponse.json({

@@ -67,7 +67,7 @@ const PromoCodeSchema: Schema = new Schema({
 });
 
 // Pre-save hook to ensure uppercase even if set via direct DB ops
-PromoCodeSchema.pre('save', function(next) {
+PromoCodeSchema.pre('save', function(this: IPromoCode, next) {
   if (this.isModified('code')) {
     this.code = this.code.toUpperCase();
   }

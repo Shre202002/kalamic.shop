@@ -43,6 +43,7 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import Script from 'next/script';
 import Link from 'next/link';
+import { toAnalyticsItem, trackEvent } from '@/lib/analytics';
 import { useSearchParams } from 'next/navigation';
 import { State, City } from 'country-state-city';
 import { cn } from '@/lib/utils';
@@ -444,6 +445,13 @@ function CheckoutContent() {
     }
 
     setIsProcessing(true);
+
+    trackEvent('add_shipping_info', {
+      currency: 'INR',
+      value: finalTotal,
+      shipping_tier: 'Standard',
+      items: cartItems.map((item) => toAnalyticsItem(item, item.quantity)),
+    });
 
     const payload = {
       userId: user.uid,

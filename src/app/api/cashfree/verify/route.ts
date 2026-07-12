@@ -35,6 +35,20 @@ async function handleVerify(orderId: string | null) {
         paymentId: order.paymentId,
         orderNumber: order.orderNumber,
         orderStatus: order.orderStatus,
+        ecommerce: {
+          transactionId: order.orderNumber,
+          value: order.totalAmount,
+          tax: 0,
+          shipping: order.charges?.shipping || 0,
+          currency: 'INR',
+          items: order.items.map((item: any) => ({
+            item_id: String(item.productId),
+            item_name: item.name,
+            item_brand: 'Kalamic',
+            price: item.price,
+            quantity: item.quantity,
+          })),
+        },
         message: 'Payment verified successfully'
       });
     }
@@ -77,6 +91,20 @@ async function handleVerify(orderId: string | null) {
           paymentId: updatedOrder.paymentId,
           orderNumber: updatedOrder.orderNumber,
           orderStatus: updatedOrder.orderStatus,
+          ecommerce: {
+            transactionId: updatedOrder.orderNumber,
+            value: updatedOrder.totalAmount,
+            tax: 0,
+            shipping: updatedOrder.charges?.shipping || 0,
+            currency: 'INR',
+            items: updatedOrder.items.map((item: any) => ({
+              item_id: String(item.productId),
+              item_name: item.name,
+              item_brand: 'Kalamic',
+              price: item.price,
+              quantity: item.quantity,
+            })),
+          },
           message: 'Payment verified successfully'
         });
       }

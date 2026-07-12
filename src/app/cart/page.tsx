@@ -16,6 +16,7 @@ import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Loader2, ChevronLeft, Che
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { toAnalyticsItem, trackEvent } from '@/lib/analytics';
 
 export default function CartPage() {
   const { user, isUserLoading } = useUser();
@@ -132,6 +133,11 @@ export default function CartPage() {
 
   const handleCheckoutRedirect = () => {
     if (!cartItems?.length) return;
+    trackEvent('begin_checkout', {
+      currency: 'INR',
+      value: subtotal,
+      items: cartItems.map((item) => toAnalyticsItem(item, item.quantity)),
+    });
     router.push('/checkout');
   };
 

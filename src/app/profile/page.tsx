@@ -42,7 +42,7 @@ import {
 import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
-  const { user, isUserLoading } = useProtectedRoute();
+  const { user, loading: isUserLoading } = useProtectedRoute();
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();

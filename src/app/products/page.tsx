@@ -57,8 +57,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     },
     alternates: {
       canonical: category 
-        ? `https://kalamic.shop/products?category=${category}`
-        : 'https://kalamic.shop/products'
+        ? `https://www.kalamic.shop/products?category=${category}`
+        : 'https://www.kalamic.shop/products'
     }
   };
 }
@@ -71,7 +71,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   return (
     <Suspense fallback={<ProductGridSkeleton />}>
-      <ProductsClient initialProducts={products} activeCategory={category} />
+      <ProductsClient initialProducts={products} />
     </Suspense>
   );
 }

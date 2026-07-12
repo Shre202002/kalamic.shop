@@ -24,9 +24,9 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Kalamic',
+  title: 'Privacy Policy',
   description: 'Read Kalamic\'s Privacy Policy. Learn how we collect, use and protect your personal data in compliance with India\'s DPDP Act 2023.',
-  alternates: { canonical: 'https://kalamic.shop/privacy' },
+  alternates: { canonical: 'https://www.kalamic.shop/privacy' },
   robots: { index: true, follow: true },
 };
 
@@ -104,7 +104,7 @@ export default function PrivacyPage() {
                   <h2 className="text-2xl font-black uppercase tracking-tight">2. Google Analytics</h2>
                 </div>
                 <div className="space-y-4 text-white/80 font-medium leading-relaxed">
-                  <p>We use Google Analytics 4 (ID: G-4XCEPMWYT0) to understand website usage and improve your experience. This tool processes pseudonymous data like referral sources and product interactions.</p>
+                  <p>We use Google Analytics 4 (ID: G-LB5YT7T165) to understand website usage and improve your experience. This tool processes pseudonymous data like referral sources and product interactions.</p>
                   <p>Google Analytics is configured not to receive personally identifiable information (PII) such as your name or email. You may opt out using Google’s Analytics opt-out browser add-on.</p>
                 </div>
               </div>

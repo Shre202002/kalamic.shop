@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { trackProductAction, incrementProductViews } from '@/lib/actions/products';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { toAnalyticsItem, trackEvent } from '@/lib/analytics';
 
 import { ImageGallery } from '@/components/product/ImageGallery';
 import { PurchasePanel } from '@/components/product/PurchasePanel';
@@ -38,6 +39,11 @@ export default function ProductDetailClient({
   
   useEffect(() => {
     incrementProductViews(product._id);
+    trackEvent('view_item', {
+      currency: 'INR',
+      value: Number(product.price),
+      items: [toAnalyticsItem(product)],
+    });
   }, [product._id]);
 
   const handleAddToCart = async () => {
@@ -59,6 +65,11 @@ export default function ProductDetailClient({
     }, { merge: true });
     
     trackProductAction(product._id, 'cart_add_count');
+    trackEvent('add_to_cart', {
+      currency: 'INR',
+      value: Number(product.price),
+      items: [toAnalyticsItem(product)],
+    });
     toast({ title: "Added to Bag", description: "This treasure is now in your collection." });
   };
 

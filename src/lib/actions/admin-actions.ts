@@ -257,7 +257,7 @@ export async function updateAdminRole(actorId: string, targetId: string, role: s
 }
 
 export async function removeAdminAccess(actorId: string, targetId: string) {
-  const actor = await validateRole(adminId, ['super_admin']);
+  const actor = await validateRole(actorId, ['super_admin']);
   await dbConnect();
   await User.findByIdAndUpdate(targetId, { role: 'buyer' });
   await logAction(actor, 'REVOKE_ADMIN_ACCESS', 'User', targetId, `Revoked administrative clearance`);

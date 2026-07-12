@@ -5,8 +5,8 @@
 @layer base {
   :root {
     /* Fonts */
-    --font-body: 'Poppins', 'Noto Sans Devanagari', sans-serif;
-    --font-display: 'Playfair Display', 'Noto Serif Devanagari', serif;
+    --font-body: var(--font-poppins), var(--font-noto-sans-devanagari), sans-serif;
+    --font-display: var(--font-playfair), var(--font-noto-serif-devanagari), serif;
 
     /* Primary - Deep Saffron */
     --primary: 28 89% 52%;

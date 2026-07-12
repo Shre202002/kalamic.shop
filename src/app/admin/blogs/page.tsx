@@ -419,7 +419,7 @@ export default function BlogStudio() {
                     </Box>
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 800 }}>{row.title}</Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', maxWidth: 200, noWrap: true, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.excerpt}</Typography>
+                      <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.excerpt}</Typography>
                     </Box>
                   </Stack>
                 </TableCell>
