@@ -3,6 +3,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { Button } from '@/components/ui/button';
 import { 
   ShieldCheck, 
   Lock, 
@@ -177,7 +178,7 @@ export default function PrivacyPage() {
               <div className="relative z-10">
                 <Fingerprint className="h-12 w-12 mx-auto opacity-50 mb-4" />
                 <h2 className="text-3xl md:text-4xl font-black tracking-tight uppercase">Privacy & Grievance</h2>
-                <p className="text-white/80 font-medium text-lg max-w-lg mx-auto">Our Data Governance team (Managed by Shre) is here to help you.</p>
+                <p className="text-white/80 font-medium text-lg max-w-lg mx-auto">Our Data Governance team is here to help you.</p>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-10 text-left">
                   <div className="p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
