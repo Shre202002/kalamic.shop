@@ -50,7 +50,10 @@ import { cn } from '@/lib/utils';
 
 declare global {
   interface Window {
-    Cashfree: any;
+    Razorpay: new (options: any) => {
+      open: () => void;
+      on: (event: string, callback: (response: any) => void) => void;
+    };
   }
 }
 
@@ -76,7 +79,7 @@ function CheckoutContent() {
 
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [chargesPreview, setChargesPreview] = useState<ChargesPreview | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -434,8 +437,13 @@ function CheckoutContent() {
 
   const handlePlaceOrder = async () => {
     if (!user || !cartItems?.length) return;
-    if (!formData.fullName || !formData.address || !formData.city || !formData.state || !formData.zip || !formData.phone) {
+    if (!formData.fullName || !formData.email || !formData.address || !formData.city || !formData.state || !formData.zip || !formData.phone) {
       toast({ variant: "destructive", title: "Incomplete Details", description: "All shipping details are required." });
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      toast({ variant: 'destructive', title: 'Invalid Email', description: 'Enter a valid customer email for the payment receipt.' });
       return;
     }
 
@@ -469,6 +477,10 @@ function CheckoutContent() {
     };
 
     try {
+      if (!razorpayLoaded || !window.Razorpay) {
+        throw new Error('Secure payment checkout is still loading. Please try again.');
+      }
+
       const response = await fetch('/api/checkout/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -478,23 +490,65 @@ function CheckoutContent() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
 
-      if (result.isMock) {
-        toast({ title: "Mock Payment", description: "Simulating successful transaction." });
-        router.push(`/checkout/success?order_id=${result.orderId}`);
-        return;
-      }
-
-      if (!cashfreeLoaded) throw new Error("Payment SDK failed to load.");
-
-      const cfEnv = process.env.NEXT_PUBLIC_CASHFREE_ENV || process.env.CASHFREE_ENV || 'sandbox';
-      const cashfree = new window.Cashfree({
-        mode: cfEnv === 'production' ? 'production' : 'sandbox'
+      const razorpay = new window.Razorpay({
+        key: result.keyId,
+        amount: result.amount,
+        currency: result.currency,
+        name: 'Kalamic',
+        description: `Order ${result.orderId}`,
+        order_id: result.razorpayOrderId,
+        prefill: {
+          name: formData.fullName,
+          email: formData.email,
+          contact: formData.phone.replace(/\D/g, '').slice(-10),
+        },
+        notes: {
+          kalamic_order_number: result.orderId,
+        },
+        theme: { color: '#EA781E' },
+        retry: { enabled: true, max_count: 2 },
+        modal: {
+          confirm_close: true,
+          ondismiss: () => setIsProcessing(false),
+        },
+        handler: async (payment: any) => {
+          try {
+            const verifyResponse = await fetch('/api/razorpay/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderId: result.orderId,
+                razorpay_order_id: payment.razorpay_order_id,
+                razorpay_payment_id: payment.razorpay_payment_id,
+                razorpay_signature: payment.razorpay_signature,
+              }),
+            });
+            const verification = await verifyResponse.json();
+            if (!verifyResponse.ok || !verification.paymentVerified) {
+              throw new Error(verification.message || 'Payment confirmation is pending');
+            }
+            router.push(`/checkout/success?order_id=${result.orderId}`);
+          } catch (verificationError: any) {
+            toast({
+              variant: 'destructive',
+              title: 'Payment Confirmation Pending',
+              description: verificationError.message || 'Please check your order status before retrying.',
+            });
+            router.push(`/checkout/success?order_id=${result.orderId}`);
+          }
+        },
       });
 
-      cashfree.checkout({
-        paymentSessionId: result.paymentSessionId,
-        redirectTarget: "_self" 
+      razorpay.on('payment.failed', (failure: any) => {
+        toast({
+          variant: 'destructive',
+          title: 'Payment Failed',
+          description: failure?.error?.description || 'The payment was not completed. Please try again.',
+        });
+        setIsProcessing(false);
       });
+
+      razorpay.open();
 
     } catch (error: any) {
       toast({ variant: "destructive", title: "Checkout Failed", description: error.message });
@@ -504,7 +558,11 @@ function CheckoutContent() {
 
   return (
     <>
-      <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" onLoad={() => setCashfreeLoaded(true)} />
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="afterInteractive"
+        onLoad={() => setRazorpayLoaded(true)}
+      />
       <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 12, md: 16 } }}>
         <MuiBox sx={{ mb: 6 }}>
           <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: 2 }}>
@@ -541,6 +599,9 @@ function CheckoutContent() {
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <TextField fullWidth label="Full Name" name="fullName" value={formData.fullName} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField fullWidth required type="email" label="Email for Receipt" name="email" value={formData.email} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
                   </Grid>
                   <Grid item xs={12}>
                     <TextField fullWidth label="Street Address" name="address" value={formData.address} onChange={handleInputChange} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '1rem' } }} />
@@ -602,7 +663,7 @@ function CheckoutContent() {
                   <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '1.25rem', borderColor: '#EA781E', bgcolor: muiAlpha('#EA781E', 0.03) }}>
                     <FormControlLabel value="card" control={<Radio sx={{ color: '#EA781E' }} />} label={
                       <MuiBox sx={{ ml: 1 }}>
-                        <Typography sx={{ fontWeight: 800 }}>Cashfree Secure Gateway</Typography>
+                        <Typography sx={{ fontWeight: 800 }}>Razorpay Secure Gateway</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>UPI, Cards, Net Banking</Typography>
                       </MuiBox>
                     } sx={{ width: '100%', m: 0 }} />

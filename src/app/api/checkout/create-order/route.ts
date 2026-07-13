@@ -3,14 +3,14 @@ import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import OrderedItem from '@/lib/models/OrderedItem';
 import PromoCode from '@/lib/models/PromoCode';
-import { createCashfreeOrder } from '@/lib/actions/cashfree';
-import { syncOrderToFirestore } from '@/lib/firebase-admin';
+import { createRazorpayOrder, getRazorpayKeyId } from '@/lib/actions/razorpay';
+import { syncOrderToFirestore, verifySession } from '@/lib/firebase-admin';
 import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 import crypto from 'crypto';
 
 /**
  * @fileOverview Secure Order Creation API.
- * Orchestrates MongoDB record creation, Promo validation, and Cashfree session generation.
+ * Orchestrates authenticated order creation, server-side price validation, and Razorpay order generation.
  */
 
 export async function POST(req: NextRequest) {
@@ -21,18 +21,32 @@ export async function POST(req: NextRequest) {
       userId, 
       items, 
       shippingDetails, 
-      customerName, 
-      customerPhone, 
       customerEmail,
-      // Promo Fields
       promoCode,
-      promoDiscount,
-      promoDiscountType,
       totalAmount: clientTotal
     } = await req.json();
 
     if (!userId || !items?.length) {
       return NextResponse.json({ message: 'Missing required order details' }, { status: 400 });
+    }
+
+    const sessionToken = req.cookies.get('__session')?.value;
+    const sessionUser = sessionToken ? await verifySession(sessionToken) : null;
+    if (!sessionUser) {
+      return NextResponse.json({ message: 'Please sign in again to continue' }, { status: 401 });
+    }
+    if (sessionUser.uid !== userId) {
+      return NextResponse.json({ message: 'Order identity does not match the signed-in user' }, { status: 403 });
+    }
+
+    if (!shippingDetails?.fullName || !shippingDetails?.phone || !shippingDetails?.address
+      || !shippingDetails?.city || !shippingDetails?.state || !shippingDetails?.zip) {
+      return NextResponse.json({ message: 'Complete shipping details are required' }, { status: 400 });
+    }
+
+    const normalizedEmail = String(customerEmail || sessionUser.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return NextResponse.json({ message: 'A valid customer email is required' }, { status: 400 });
     }
 
     let subtotal = 0;
@@ -42,6 +56,9 @@ export async function POST(req: NextRequest) {
 
     // 1. Validate Inventory, Pricing and Logistics Flags from Source of Truth (DB)
     for (const item of items) {
+      if (!item.productId || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 20) {
+        return NextResponse.json({ message: 'Invalid product quantity' }, { status: 400 });
+      }
       const product = await KalamicProduct.findById(item.productId).select('price name images requiresHandling requiresPremiumProtection');
       if (!product) throw new Error(`Product ${item.productId} is no longer available.`);
       
@@ -67,24 +84,53 @@ export async function POST(req: NextRequest) {
     });
     const totalCharges = calculatedCharges.shipping + calculatedCharges.handling + calculatedCharges.premium;
     
-    // 3. Final Total Verification (Server-side)
-    const promoDiscountAmount = Number(promoDiscount) || 0;
+    // 3. Validate the promo again from the database. Never trust client-supplied discount values.
+    let validatedPromoCode: string | null = null;
+    let validatedPromoType: 'flat' | 'percent' | null = null;
+    let promoDiscountAmount = 0;
+
+    if (promoCode) {
+      const cleanCode = String(promoCode).trim().toUpperCase();
+      const promo = await PromoCode.findOne({ code: cleanCode });
+      const promoUsable = promo
+        && promo.isActive
+        && (!promo.expiresAt || new Date(promo.expiresAt) >= new Date())
+        && (promo.maxUses <= 0 || promo.usedCount < promo.maxUses)
+        && subtotal >= promo.minOrderValue;
+
+      if (!promoUsable) {
+        return NextResponse.json({ message: 'The selected promo code is no longer valid' }, { status: 400 });
+      }
+
+      promoDiscountAmount = promo.discountType === 'percent'
+        ? Math.floor((subtotal * promo.discountValue) / 100)
+        : promo.discountValue;
+      promoDiscountAmount = Math.min(subtotal, promoDiscountAmount);
+      validatedPromoCode = promo.code;
+      validatedPromoType = promo.discountType;
+    }
+
+    // 4. Calculate the authoritative amount on the server.
     const baseTotal = subtotal + totalCharges;
     const finalTotal = Math.max(0, baseTotal - promoDiscountAmount);
     
-    // Tolerance check for minor rounding differences
-    if (Math.abs(finalTotal - clientTotal) > 1) {
+    // Reject stale or manipulated checkout totals instead of silently charging a different amount.
+    if (!Number.isFinite(clientTotal) || Math.abs(finalTotal - clientTotal) > 1) {
       console.warn(`[TOTAL_MISMATCH] Client: ${clientTotal}, Server: ${finalTotal}`);
+      return NextResponse.json(
+        { message: 'Your order total changed. Refresh checkout and try again.' },
+        { status: 409 }
+      );
     }
 
-    const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const orderNumber = `KAL-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
 
-    // 4. Create MongoDB Master Record
+    // 5. Create MongoDB master record.
     const newOrder = await OrderedItem.create({
       userId,
-      userName: customerName,
-      userPhone: customerPhone,
-      userEmail: customerEmail || '',
+      userName: shippingDetails.fullName,
+      userPhone: shippingDetails.phone,
+      userEmail: normalizedEmail,
       orderNumber,
       subtotal,
       charges: {
@@ -93,9 +139,9 @@ export async function POST(req: NextRequest) {
         premium: calculatedCharges.premium
       },
       // Promo data
-      promoCode: promoCode || null,
+      promoCode: validatedPromoCode,
       promoDiscount: promoDiscountAmount,
-      promoDiscountType: promoDiscountType || null,
+      promoDiscountType: validatedPromoType,
       
       totalAmount: finalTotal,
       items: validatedItems,
@@ -110,49 +156,38 @@ export async function POST(req: NextRequest) {
       },
       orderStatus: 'Initiated',
       paymentMethod: 'online',
-      paymentGateway: 'cashfree',
+      paymentGateway: 'razorpay',
       paymentStatus: 'pending',
       paymentVerified: false,
-      gatewayOrderId: orderNumber, 
+      gatewayOrderId: null,
       expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
     });
 
-    // 5. Update Promo Usage if applicable
-    if (promoCode) {
-      try {
-        await PromoCode.findOneAndUpdate(
-          { code: promoCode.toString().toUpperCase() },
-          { $inc: { usedCount: 1 } }
-        );
-      } catch (e) {
-        console.error('[PROMO_UPDATE_ERROR] Failed to increment usedCount:', e);
-      }
+    // 6. Create a real Razorpay order. There is intentionally no mock-payment fallback.
+    let razorpayOrder;
+    try {
+      razorpayOrder = await createRazorpayOrder({
+        receipt: orderNumber,
+        amountInPaise: Math.round(finalTotal * 100),
+        userId,
+      });
+      newOrder.gatewayOrderId = razorpayOrder.id;
+      await newOrder.save();
+      await syncOrderToFirestore(newOrder);
+    } catch (gatewayError) {
+      await OrderedItem.updateOne(
+        { _id: newOrder._id },
+        { $set: { paymentStatus: 'failed', orderStatus: 'Canceled', updatedAt: new Date() } }
+      );
+      throw gatewayError;
     }
 
-    // 6. Initial Sync to Firestore
-    await syncOrderToFirestore(newOrder);
-
-    // 7. Generate Cashfree Session
-    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://www.kalamic.shop';
-    const returnUrl = `${origin}/checkout/success?order_id={order_id}`;
-
-    const cashfreeResult = await createCashfreeOrder({
-      orderId: orderNumber,
-      orderAmount: finalTotal,
-      orderCurrency: 'INR',
-      customerDetails: {
-        customerId: userId,
-        customerPhone: customerPhone.replace(/\D/g, '').slice(-10),
-        customerEmail: customerEmail || 'collector@kalamic.shop',
-        customerName: customerName,
-      },
-      returnUrl
-    });
-
     return NextResponse.json({
-      paymentSessionId: cashfreeResult.paymentSessionId,
+      keyId: getRazorpayKeyId(),
+      razorpayOrderId: razorpayOrder.id,
       orderId: orderNumber,
-      isMock: cashfreeResult.isMock
+      amount: Number(razorpayOrder.amount),
+      currency: razorpayOrder.currency,
     });
 
   } catch (error: any) {

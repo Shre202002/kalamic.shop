@@ -61,11 +61,10 @@ function SuccessPageContent() {
       try {
         console.log('[SUCCESS] Verifying:', orderId);
 
-        // Wait 2 seconds for webhook to potentially settle
+        // Give the webhook a moment to complete before server-side reconciliation.
         await new Promise(r => setTimeout(r, 2000));
 
-        // Call verify endpoint
-        const res = await fetch('/api/cashfree/verify', {
+        const res = await fetch('/api/razorpay/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ orderId })
