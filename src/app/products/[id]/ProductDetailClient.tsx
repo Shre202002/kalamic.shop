@@ -18,6 +18,7 @@ import { SpecificationsSection } from '@/components/product/SpecificationsSectio
 import { WhatsInTheBox } from '@/components/product/WhatsInTheBox';
 import { ReviewsSection } from '@/components/product/ReviewsSection';
 import { RelatedProducts } from '@/components/product/RelatedProducts';
+import { ProductSeoContent } from '@/components/product/ProductSeoContent';
 
 interface ProductDetailClientProps {
   initialProduct: any;
@@ -145,6 +146,8 @@ export default function ProductDetailClient({
 
           {/* FULL-WIDTH LOWER SECTIONS */}
           <div className="space-y-32">
+            <ProductSeoContent product={product} />
+
             {/* Related Products */}
             <RelatedProducts products={relatedProducts} />
 

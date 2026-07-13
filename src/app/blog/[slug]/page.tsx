@@ -62,12 +62,39 @@ export default async function BlogPostPage({ params }: Props) {
     .lean();
 
   const suggested = await getSuggestedBlogs(post.slug, post.tags || []);
+  const postUrl = `https://www.kalamic.shop/blog/${post.slug}`;
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.excerpt,
+    image: post.coverImage?.url ? [post.coverImage.url] : undefined,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt || post.publishedAt,
+    author: {
+      '@type': 'Organization',
+      name: post.author?.name || 'Kalamic Artisan Studio',
+      url: 'https://www.kalamic.shop/about',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Kalamic',
+      url: 'https://www.kalamic.shop',
+    },
+    mainEntityOfPage: postUrl,
+  };
 
   return (
-    <BlogPostClient 
-      post={JSON.parse(JSON.stringify(post))} 
-      initialComments={JSON.parse(JSON.stringify(comments))}
-      suggested={JSON.parse(JSON.stringify(suggested))}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <BlogPostClient
+        post={JSON.parse(JSON.stringify(post))}
+        initialComments={JSON.parse(JSON.stringify(comments))}
+        suggested={JSON.parse(JSON.stringify(suggested))}
+      />
+    </>
   );
 }

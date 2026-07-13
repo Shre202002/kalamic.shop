@@ -70,10 +70,9 @@ export function LocalBusinessJsonLd() {
     "priceRange": "₹₹",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "130/262 D2 Bagahi, Kidwai Nagar",
+      "streetAddress": "Kidwai Nagar",
       "addressLocality": "Kanpur",
       "addressRegion": "Uttar Pradesh",
-      "postalCode": "208011",
       "addressCountry": "IN"
     },
     "geo": {
