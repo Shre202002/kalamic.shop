@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Google Merchant Center Product Feed
 // Generates a valid XML feed (RSS 2.0 + Google Shopping namespace)
-// URL to paste in Merchant Center: https://kalamic.shop/api/feed/google
+// URL to paste in Merchant Center: https://www.kalamic.shop/api/feed/google
 // Auto-updates every 24 hours when Merchant Center fetches it
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -29,7 +29,7 @@ export async function GET() {
           .map((img: any) => img.url)
           .filter(Boolean);
 
-        const productUrl = `https://kalamic.shop/products/${p.slug || p._id}`;
+        const productUrl = `https://www.kalamic.shop/products/${p.slug || p._id}`;
 
         // Clean description — strip HTML tags and limit to 5000 chars
         const description = (p.description || p.short_description || '')
@@ -63,21 +63,16 @@ export async function GET() {
       <g:link>${productUrl}</g:link>
       <g:image_link>${primaryImage}</g:image_link>
       ${additionalImages}
-      <g:price>${p.price}.00 INR</g:price>
+      <g:price>${p.compare_at_price || p.price}.00 INR</g:price>
       ${p.compare_at_price ? `<g:sale_price>${p.price}.00 INR</g:sale_price>` : ''}
       ${p.compare_at_price ? `<g:sale_price_effective_date>2025-01-01T00:00:00+05:30/2030-12-31T23:59:59+05:30</g:sale_price_effective_date>` : ''}
       <g:availability>in_stock</g:availability>
       <g:condition>new</g:condition>
       <g:brand>Kalamic</g:brand>
       <g:mpn>${p.sku || p.slug || p._id}</g:mpn>
-      <g:identifier_exists>no</g:identifier_exists>
+      <g:identifier_exists>yes</g:identifier_exists>
       <g:google_product_category>588</g:google_product_category>
       <g:product_type>Home &amp; Garden &gt; Decor &gt; Artwork</g:product_type>
-      <g:shipping>
-        <g:country>IN</g:country>
-        <g:service>Standard</g:service>
-        <g:price>0.00 INR</g:price>
-      </g:shipping>
       <g:shipping_weight>${p.shipping?.weight_kg || '1'} kg</g:shipping_weight>
       <g:custom_label_0>${p.category_id || 'home-decor'}</g:custom_label_0>
       <g:custom_label_1>handmade</g:custom_label_1>
@@ -90,7 +85,7 @@ export async function GET() {
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
     <title>Kalamic — Handcrafted Ceramic Home Decor</title>
-    <link>https://kalamic.shop</link>
+    <link>https://www.kalamic.shop</link>
     <description>Handcrafted ceramic wall art, mirrors and home decor made by artisans in Kanpur, India.</description>
     ${items}
   </channel>

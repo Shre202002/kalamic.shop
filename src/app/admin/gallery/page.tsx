@@ -384,7 +384,7 @@ export default function GalleryStudio() {
                   />
                 </Box>
                 <CardContent sx={{ flexGrow: 1, py: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, noWrap: true, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</Typography>
+                  <Typography variant="subtitle2" noWrap sx={{ fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>{item.category}</Typography>
                   <Stack direction="row" spacing={1}>
                     <Chip label={item.isActive ? "Active" : "Inactive"} size="small" variant="outlined" color={item.isActive ? "success" : "default"} sx={{ height: 20, fontSize: '0.6rem', fontWeight: 700 }} />

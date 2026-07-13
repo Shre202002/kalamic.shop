@@ -94,7 +94,7 @@ const BlogPostSchema: Schema = new Schema({
 });
 
 // Middleware to generate slug and readTime
-BlogPostSchema.pre('save', function(next) {
+BlogPostSchema.pre('save', function(this: IBlogPost, next) {
   if (this.isModified('title')) {
     this.slug = this.title
       .toLowerCase()

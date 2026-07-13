@@ -6,7 +6,7 @@ import { Metadata } from 'next';
  * Prioritizes keywords "Handcrafted Ceramic Artistry" for better search rankings.
  */
 export const metadata: Metadata = {
-  metadataBase: new URL('https://kalamic.shop'),
+  metadataBase: new URL('https://www.kalamic.shop'),
   title: {
     default: "Handcrafted Ceramic Home Decor | Kalamic — Made in Kanpur, India",
     template: '%s | Kalamic',
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Handcrafted Ceramic Home Decor | Kalamic — Made in Kanpur, India",
     description: 'Bespoke ceramic treasures for modern homes, rooted in Indian heritage.',
-    url: 'https://kalamic.shop',
+    url: 'https://www.kalamic.shop',
     siteName: 'Kalamic',
     images: [
       {
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     description: 'Earthy, intentional, and unique ceramic pieces for your space.',
   },
   alternates: {
-    canonical: 'https://kalamic.shop',
+    canonical: 'https://www.kalamic.shop',
   },
   verification: {
     google: "QigR6xvzIwr05ex0jqejL0EbHZsR3l7LophSQkCHbvQ",
@@ -63,9 +63,9 @@ export function LocalBusinessJsonLd() {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "name": "Kalamic",
-    "image": "https://kalamic.shop/logo.png",
-    "@id": "https://kalamic.shop",
-    "url": "https://kalamic.shop",
+    "image": "https://www.kalamic.shop/logo.png",
+    "@id": "https://www.kalamic.shop/#business",
+    "url": "https://www.kalamic.shop",
     "telephone": "+917376761679",
     "priceRange": "₹₹",
     "address": {

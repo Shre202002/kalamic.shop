@@ -14,7 +14,7 @@ const PERMANENT_SUPER_ADMIN = 'sriyanshgupta24@gmail.com';
 export async function getProfile(firebaseId: string) {
   try {
     await dbConnect();
-    const user = await User.findOne({ firebaseId }).lean();
+    const user: any = await User.findOne({ firebaseId }).lean();
     
     if (user && user.email === PERMANENT_SUPER_ADMIN && user.role !== 'super_admin') {
       await User.updateOne({ _id: user._id }, { role: 'super_admin' });

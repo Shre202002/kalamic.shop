@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     // 6. Notify Collector via Email
     if (order.userEmail && ['Placed', 'Confirmed', 'Dispatched', 'Delivered'].includes(newStatus)) {
       try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://kalamic.shop';
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kalamic.shop';
         await sendEmail({
           to: order.userEmail,
           subject: `Status Update: Order ${order.orderNumber} is now ${newStatus}`,

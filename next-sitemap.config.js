@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
-  siteUrl: 'https://kalamic.shop',
+  siteUrl: 'https://www.kalamic.shop',
   generateRobotsTxt: true,
   changefreq: 'weekly',
   priority: 0.7,

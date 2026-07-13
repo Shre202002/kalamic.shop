@@ -9,7 +9,7 @@ Disallow: /api/
 Disallow: /wishlist
 
 # Host
-Host: https://kalamic.shop
+Host: https://www.kalamic.shop
 
 # Sitemaps
-Sitemap: https://kalamic.shop/sitemap.xml
+Sitemap: https://www.kalamic.shop/sitemap.xml

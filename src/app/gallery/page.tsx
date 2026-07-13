@@ -22,11 +22,11 @@ export async function generateMetadata(): Promise<Metadata> {
       'mor stambh ceramic images',
       'handcrafted ceramic wall art pictures',
     ],
-    alternates: { canonical: 'https://kalamic.shop/gallery' },
+    alternates: { canonical: 'https://www.kalamic.shop/gallery' },
     openGraph: {
       title: 'Kalamic Gallery — Handcrafted Ceramic Art',
       description: 'Visual archive of handcrafted Indian ceramic art.',
-      url: 'https://kalamic.shop/gallery',
+      url: 'https://www.kalamic.shop/gallery',
       siteName: 'Kalamic',
       type: 'website',
       images: items
@@ -45,8 +45,8 @@ export default async function GalleryPage() {
     '@context': 'https://schema.org',
     '@type': 'ImageGallery',
     name: 'Kalamic Ceramic Art Gallery',
-    description: 'A visual archive of handcrafted ceramic art from our Lucknow studio.',
-    url: 'https://kalamic.shop/gallery',
+    description: 'A visual archive of handcrafted ceramic art from our Kanpur studio.',
+    url: 'https://www.kalamic.shop/gallery',
     image: items
       .filter(i => i.mediaType === 'image')
       .map(i => ({

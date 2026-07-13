@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Suspense } from 'react';
+import { trackEvent } from '@/lib/analytics';
 
 type PaymentState = 'checking' | 'success' | 'failed' | 'pending';
 
@@ -89,6 +90,19 @@ function SuccessPageContent() {
            data.orderStatus === 'Cancelled');
 
         if (isPaid) {
+          const transactionId = data.ecommerce?.transactionId || data.orderNumber || orderId;
+          const storageKey = `kalamic:ga4-purchase:${transactionId}`;
+          if (data.ecommerce && !window.localStorage.getItem(storageKey)) {
+            const tracked = trackEvent('purchase', {
+              transaction_id: transactionId,
+              value: data.ecommerce.value,
+              tax: data.ecommerce.tax,
+              shipping: data.ecommerce.shipping,
+              currency: data.ecommerce.currency || 'INR',
+              items: data.ecommerce.items,
+            });
+            if (tracked) window.localStorage.setItem(storageKey, '1');
+          }
           await clearCart();
           setState('success');
           setOrderNumber(data.orderNumber || orderId);
