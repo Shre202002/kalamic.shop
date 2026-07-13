@@ -67,6 +67,17 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      // Keep Firebase's OAuth helper on the Kalamic domain. This is required
+      // before NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN can safely be set to
+      // www.kalamic.shop.
+      {
+        source: '/__/auth/:path*',
+        destination: 'https://studio-6917027295-9c66e.firebaseapp.com/__/auth/:path*',
+      },
+    ];
+  },
   compress: true,
   poweredByHeader: false,
 };
