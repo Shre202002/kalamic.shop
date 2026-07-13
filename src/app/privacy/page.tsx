@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const REGISTERED_ADDRESS = "130/262 D2 Bagahi, Kidwai Nagar, Kanpur, Uttar Pradesh, 208011, India";
+const BUSINESS_LOCATION = "Kidwai Nagar, Kanpur, Uttar Pradesh, India";
 const SUPPORT_EMAIL = "kalamicshop@gmail.com";
 const SUPPORT_PHONE = "+91 73767 61679";
 
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
             <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tight uppercase">Privacy Policy</h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-medium">
               Effective Date: July 12, 2026 <br />
-              Last Updated: July 12, 2026
+              Last Updated: July 13, 2026
             </p>
           </div>
 
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
               </div>
               <div className="prose prose-stone max-w-none text-muted-foreground leading-relaxed font-medium">
                 <p>Kalamic respects your privacy and is committed to handling personal data transparently, securely and responsibly.</p>
-                <p>This website is operated by <strong>Kalamic</strong>, based in {REGISTERED_ADDRESS}. For any privacy-related inquiries or grievances, please reach us at {SUPPORT_EMAIL}.</p>
+                <p>This website is operated by <strong>Kalamic</strong>, based in {BUSINESS_LOCATION}. For any privacy-related inquiries or grievances, please reach us at {SUPPORT_EMAIL}.</p>
               </div>
             </section>
 

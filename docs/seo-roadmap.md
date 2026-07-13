@@ -24,6 +24,10 @@ Baseline source: Google Search Console export for the last three months, downloa
 
 ## Phase 2: improve pages already ranking
 
+Implementation started 13 July 2026. The initial on-page release adds direct-answer copy,
+internal product links, visible buying FAQs and matching structured data. Original product
+photography and Google Business Profile verification remain operational follow-ups.
+
 1. Mor Stambh guide
    - Primary cluster: `stambh`, `stambh meaning`, `stambh meaning in English`, `what is stambh`, `mor stambh`.
    - Add a 40-60 word direct definition immediately below the H1.

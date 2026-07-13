@@ -34,6 +34,7 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
   const [replyTo, setReplyTo] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const isMorStambhGuide = post.slug === 'what-is-mor-stambh-history-meaning-why-it-belongs-in-your-home';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -114,6 +115,14 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
               <h1 className="text-3xl sm:text-5xl md:text-7xl font-display font-bold text-white tracking-tight leading-tight max-w-4xl">
                 {post.title}
               </h1>
+              {isMorStambhGuide && (
+                <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/90 md:text-base">
+                  A <strong>stambh</strong> (pronounced <em>stum-bh</em>) means a pillar or column in English.
+                  A <strong>Mor Stambh</strong> is a peacock-decorated pillar used in Indian temples, entrances,
+                  pooja rooms and ceremonial décor, combining the structural symbolism of a pillar with the
+                  peacock’s associations with beauty, dignity and cultural heritage.
+                </p>
+              )}
               <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6 text-white/80 text-[10px] md:text-xs font-black mt-4 md:mt-6 uppercase tracking-widest">
                 <span className="flex items-center gap-2"><User size={14} className="text-primary" /> {post.author?.name}</span>
                 <span className="flex items-center gap-2"><Clock size={14} className="text-primary" /> {post.readTime} MIN READ</span>
@@ -204,6 +213,35 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
                   className="blog-content max-w-none"
                   dangerouslySetInnerHTML={{ __html: post.content }}
                 />
+
+                {isMorStambhGuide && (
+                  <section className="blog-content mt-12 rounded-[2rem] border border-primary/15 bg-primary/[0.03] p-6 md:p-10">
+                    <h2>Stambh pronunciation and English translation</h2>
+                    <p>
+                      <strong>Stambh</strong> is written as <strong>स्तंभ</strong> in Hindi and is commonly
+                      pronounced “stum-bh.” Its closest English translations are <strong>pillar</strong>,
+                      <strong> column</strong> or <strong>support</strong>. In cultural and religious contexts,
+                      the word can also describe a commemorative or symbolic pillar.
+                    </p>
+
+                    <h2>How to choose a Mor Stambh for your space</h2>
+                    <ul>
+                      <li><strong>Measure first:</strong> check the available floor area, height and walking clearance.</li>
+                      <li><strong>Choose a pair for symmetry:</strong> paired pillars suit entrances, mandirs and stage backdrops.</li>
+                      <li><strong>Check the material and weight:</strong> heavier handcrafted pieces need a level, stable surface.</li>
+                      <li><strong>Review the finish:</strong> antique brown and gold finishes complement traditional Indian interiors.</li>
+                      <li><strong>Plan safe delivery:</strong> confirm protective packaging for raised motifs and fragile detailing.</li>
+                    </ul>
+
+                    <p>
+                      Explore Kalamic’s{' '}
+                      <Link href="/products/handcrafted-peacock-mor-stambh-decorative-pillar-set">
+                        handcrafted Peacock Mor Stambh set of two
+                      </Link>{' '}
+                      for symmetrical pooja-room, entrance and festive décor placement.
+                    </p>
+                  </section>
+                )}
               </>
 
               {/* Comments System */}

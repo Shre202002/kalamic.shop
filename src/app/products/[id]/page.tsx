@@ -7,6 +7,7 @@ import { getProductReviews, checkUserReviewEligibility } from '@/lib/actions/rev
 import ProductDetailClient from './ProductDetailClient';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/firebase-admin';
+import { getProductSeoFaqs } from '@/components/product/ProductSeoContent';
 
 /**
  * @fileOverview Product Detail Server Component (Next.js 15).
@@ -136,6 +137,21 @@ export default async function ProductPage({ params }: Props) {
       { '@type': 'ListItem', position: 3, name: product.name, item: productUrl },
     ],
   };
+  const productFaqs = getProductSeoFaqs(product.slug);
+  const faqJsonLd = productFaqs.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: productFaqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: faq.answer,
+          },
+        })),
+      }
+    : null;
 
   // Check review eligibility if user is logged in
   let isEligible = false;
@@ -163,6 +179,12 @@ export default async function ProductPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
       <ProductDetailClient
         initialProduct={JSON.parse(JSON.stringify(product))}
         initialReviews={JSON.parse(JSON.stringify(reviews))}
