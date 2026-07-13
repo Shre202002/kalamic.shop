@@ -5,3 +5,12 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+# Expose Firebase Authentication through Kalamic's verified custom domain so
+# Google Sign-In shows www.kalamic.shop instead of the firebaseapp.com host.
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: www.kalamic.shop
+    availability:
+      - BUILD
+      - RUNTIME
