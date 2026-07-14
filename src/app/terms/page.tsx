@@ -29,7 +29,7 @@ const sections = [
   },
   {
     title: '4. Prices, orders and payments',
-    text: 'Prices are shown in the currency displayed at checkout and may change before an order is confirmed. Shipping charges, taxes, customs duties or other applicable charges are shown or communicated where relevant. An order is accepted only after payment verification and our confirmation. We may cancel or contact you about an order affected by incorrect pricing, suspected fraud, stock unavailability or an evident technical error. Payments are processed by authorised third-party payment providers such as Cashfree; Kalamic does not store full card details, CVVs or UPI PINs.',
+    text: 'Prices are shown in the currency displayed at checkout and may change before an order is confirmed. Shipping charges, taxes, customs duties or other applicable charges are shown or communicated where relevant. An order is accepted only after payment verification and our confirmation. We may cancel or contact you about an order affected by incorrect pricing, suspected fraud, stock unavailability or an evident technical error. Payments are processed by authorised third-party payment providers such as Razorpay; Kalamic does not store full card details, CVVs or UPI PINs.',
   },
   {
     title: '5. Delivery, international orders and risk',

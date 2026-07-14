@@ -3,14 +3,15 @@ import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import OrderedItem from '@/lib/models/OrderedItem';
 import PromoCode from '@/lib/models/PromoCode';
-import { createCashfreeOrder } from '@/lib/actions/cashfree';
-import { syncOrderToFirestore } from '@/lib/firebase-admin';
+import { createRazorpayOrder, getRazorpayKeyId } from '@/lib/actions/razorpay';
+import { syncOrderToFirestore, verifySession } from '@/lib/firebase-admin';
 import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 
 /**
  * @fileOverview Secure Order Creation API.
- * Orchestrates MongoDB record creation, Promo validation, and Cashfree session generation.
+ * Orchestrates authenticated order creation, server-side price validation, and Razorpay order generation.
  */
 
 export async function POST(req: NextRequest) {
@@ -21,13 +22,8 @@ export async function POST(req: NextRequest) {
       userId, 
       items, 
       shippingDetails, 
-      customerName, 
-      customerPhone, 
       customerEmail,
-      // Promo Fields
       promoCode,
-      promoDiscount,
-      promoDiscountType,
       totalAmount: clientTotal
     } = await req.json();
 
@@ -35,15 +31,62 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Missing required order details' }, { status: 400 });
     }
 
+    const sessionToken = req.cookies.get('__session')?.value;
+    const sessionUser = sessionToken ? await verifySession(sessionToken) : null;
+    if (!sessionUser) {
+      return NextResponse.json({ message: 'Please sign in again to continue' }, { status: 401 });
+    }
+    if (sessionUser.uid !== userId) {
+      return NextResponse.json({ message: 'Order identity does not match the signed-in user' }, { status: 403 });
+    }
+
+    if (!shippingDetails?.fullName || !shippingDetails?.phone || !shippingDetails?.address
+      || !shippingDetails?.city || !shippingDetails?.state || !shippingDetails?.zip) {
+      return NextResponse.json({ message: 'Complete shipping details are required' }, { status: 400 });
+    }
+
+    const normalizedEmail = String(customerEmail || sessionUser.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return NextResponse.json({ message: 'A valid customer email is required' }, { status: 400 });
+    }
+
     let subtotal = 0;
     const validatedItems = [];
+    const seenProductIds = new Set<string>();
     let requiresHandling = false;
     let requiresPremiumProtection = false;
 
     // 1. Validate Inventory, Pricing and Logistics Flags from Source of Truth (DB)
     for (const item of items) {
-      const product = await KalamicProduct.findById(item.productId).select('price name images requiresHandling requiresPremiumProtection');
-      if (!product) throw new Error(`Product ${item.productId} is no longer available.`);
+      const productId = String(item.productId || '');
+      if (!mongoose.isValidObjectId(productId)
+        || seenProductIds.has(productId)
+        || !Number.isInteger(item.quantity)
+        || item.quantity < 1
+        || item.quantity > 20) {
+        return NextResponse.json({ message: 'Invalid or duplicate cart item' }, { status: 400 });
+      }
+      seenProductIds.add(productId);
+
+      const product = await KalamicProduct.findOne({
+        _id: productId,
+        is_active: true,
+        is_deleted: { $ne: true },
+      }).select('price name images stock track_inventory requiresHandling requiresPremiumProtection');
+
+      if (!product) {
+        return NextResponse.json(
+          { message: 'One of the products in your cart is no longer available.' },
+          { status: 409 }
+        );
+      }
+
+      if (product.track_inventory && product.stock < item.quantity) {
+        return NextResponse.json(
+          { message: `${product.name} has only ${Math.max(0, product.stock)} item(s) available.` },
+          { status: 409 }
+        );
+      }
       
       subtotal += product.price * item.quantity;
       
@@ -67,24 +110,60 @@ export async function POST(req: NextRequest) {
     });
     const totalCharges = calculatedCharges.shipping + calculatedCharges.handling + calculatedCharges.premium;
     
-    // 3. Final Total Verification (Server-side)
-    const promoDiscountAmount = Number(promoDiscount) || 0;
-    const baseTotal = subtotal + totalCharges;
-    const finalTotal = Math.max(0, baseTotal - promoDiscountAmount);
-    
-    // Tolerance check for minor rounding differences
-    if (Math.abs(finalTotal - clientTotal) > 1) {
-      console.warn(`[TOTAL_MISMATCH] Client: ${clientTotal}, Server: ${finalTotal}`);
+    // 3. Validate the promo again from the database. Never trust client-supplied discount values.
+    let validatedPromoCode: string | null = null;
+    let validatedPromoType: 'flat' | 'percent' | null = null;
+    let promoDiscountAmount = 0;
+
+    if (promoCode) {
+      const cleanCode = String(promoCode).trim().toUpperCase();
+      const promo = await PromoCode.findOne({ code: cleanCode });
+      const promoUsable = promo
+        && promo.isActive
+        && (!promo.expiresAt || new Date(promo.expiresAt) >= new Date())
+        && (promo.maxUses <= 0 || promo.usedCount < promo.maxUses)
+        && subtotal >= promo.minOrderValue;
+
+      if (!promoUsable) {
+        return NextResponse.json({ message: 'The selected promo code is no longer valid' }, { status: 400 });
+      }
+
+      promoDiscountAmount = promo.discountType === 'percent'
+        ? Math.floor((subtotal * promo.discountValue) / 100)
+        : promo.discountValue;
+      promoDiscountAmount = Math.min(subtotal, promoDiscountAmount);
+      validatedPromoCode = promo.code;
+      validatedPromoType = promo.discountType;
     }
 
-    const orderNumber = `KAL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    // 4. Calculate the authoritative amount on the server.
+    const baseTotal = subtotal + totalCharges;
+    const finalTotal = Math.max(0, baseTotal - promoDiscountAmount);
 
-    // 4. Create MongoDB Master Record
+    if (!Number.isFinite(finalTotal) || finalTotal < 1) {
+      return NextResponse.json(
+        { message: 'The payable order amount must be at least INR 1.' },
+        { status: 400 }
+      );
+    }
+    
+    // Reject stale or manipulated checkout totals instead of silently charging a different amount.
+    if (!Number.isFinite(clientTotal) || Math.abs(finalTotal - clientTotal) > 1) {
+      console.warn(`[TOTAL_MISMATCH] Client: ${clientTotal}, Server: ${finalTotal}`);
+      return NextResponse.json(
+        { message: 'Your order total changed. Refresh checkout and try again.' },
+        { status: 409 }
+      );
+    }
+
+    const orderNumber = `KAL-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
+
+    // 5. Create MongoDB master record.
     const newOrder = await OrderedItem.create({
       userId,
-      userName: customerName,
-      userPhone: customerPhone,
-      userEmail: customerEmail || '',
+      userName: shippingDetails.fullName,
+      userPhone: shippingDetails.phone,
+      userEmail: normalizedEmail,
       orderNumber,
       subtotal,
       charges: {
@@ -93,9 +172,9 @@ export async function POST(req: NextRequest) {
         premium: calculatedCharges.premium
       },
       // Promo data
-      promoCode: promoCode || null,
+      promoCode: validatedPromoCode,
       promoDiscount: promoDiscountAmount,
-      promoDiscountType: promoDiscountType || null,
+      promoDiscountType: validatedPromoType,
       
       totalAmount: finalTotal,
       items: validatedItems,
@@ -110,49 +189,38 @@ export async function POST(req: NextRequest) {
       },
       orderStatus: 'Initiated',
       paymentMethod: 'online',
-      paymentGateway: 'cashfree',
+      paymentGateway: 'razorpay',
       paymentStatus: 'pending',
       paymentVerified: false,
-      gatewayOrderId: orderNumber, 
+      gatewayOrderId: null,
       expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
     });
 
-    // 5. Update Promo Usage if applicable
-    if (promoCode) {
-      try {
-        await PromoCode.findOneAndUpdate(
-          { code: promoCode.toString().toUpperCase() },
-          { $inc: { usedCount: 1 } }
-        );
-      } catch (e) {
-        console.error('[PROMO_UPDATE_ERROR] Failed to increment usedCount:', e);
-      }
+    // 6. Create a real Razorpay order. There is intentionally no mock-payment fallback.
+    let razorpayOrder;
+    try {
+      razorpayOrder = await createRazorpayOrder({
+        receipt: orderNumber,
+        amountInPaise: Math.round(finalTotal * 100),
+        userId,
+      });
+      newOrder.gatewayOrderId = razorpayOrder.id;
+      await newOrder.save();
+      await syncOrderToFirestore(newOrder);
+    } catch (gatewayError) {
+      await OrderedItem.updateOne(
+        { _id: newOrder._id },
+        { $set: { paymentStatus: 'failed', orderStatus: 'Canceled', updatedAt: new Date() } }
+      );
+      throw gatewayError;
     }
 
-    // 6. Initial Sync to Firestore
-    await syncOrderToFirestore(newOrder);
-
-    // 7. Generate Cashfree Session
-    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://www.kalamic.shop';
-    const returnUrl = `${origin}/checkout/success?order_id={order_id}`;
-
-    const cashfreeResult = await createCashfreeOrder({
-      orderId: orderNumber,
-      orderAmount: finalTotal,
-      orderCurrency: 'INR',
-      customerDetails: {
-        customerId: userId,
-        customerPhone: customerPhone.replace(/\D/g, '').slice(-10),
-        customerEmail: customerEmail || 'collector@kalamic.shop',
-        customerName: customerName,
-      },
-      returnUrl
-    });
-
     return NextResponse.json({
-      paymentSessionId: cashfreeResult.paymentSessionId,
+      keyId: getRazorpayKeyId(),
+      razorpayOrderId: razorpayOrder.id,
       orderId: orderNumber,
-      isMock: cashfreeResult.isMock
+      amount: Number(razorpayOrder.amount),
+      currency: razorpayOrder.currency,
     });
 
   } catch (error: any) {

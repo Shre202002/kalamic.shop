@@ -131,7 +131,7 @@ const OrderedItemSchema: Schema = new Schema({
   },
 
   paymentMethod: { type: String, required: true, default: 'online' },
-  paymentGateway: { type: String, required: true, default: 'cashfree' },
+  paymentGateway: { type: String, required: true, default: 'razorpay' },
   paymentStatus: { 
     type: String, 
     enum: ["pending", "paid", "failed", "refunded"],

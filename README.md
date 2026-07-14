@@ -1,56 +1,57 @@
 # Kalamic | Handcrafted Ceramic Artistry
 
-NexGenShop (Kalamic) is a premium e-commerce platform for handcrafted ceramics, built with Next.js, Firebase, and MongoDB.
+Kalamic is an ecommerce platform for handcrafted ceramics, built with Next.js, Firebase, and MongoDB.
 
-## 🛠 Authentication Setup (Firebase)
+## Authentication setup (Firebase)
 
-To ensure **Phone Authentication** works correctly, follow these steps in your [Firebase Console](https://console.firebase.google.com/):
+Enable the required sign-in providers in Firebase Authentication and add these authorized domains:
 
-### 1. Enable Phone Provider
-- Go to **Authentication** > **Sign-in method**.
-- Click **Add new provider** and select **Phone**.
-- Enable it and save.
-
-### 2. Configure Authorized Domains
-Add the following domains under **Authentication** > **Settings** > **Authorized domains**:
 - `localhost`
+- `www.kalamic.shop`
+- `kalamic.shop`
 - `studio-6917027295-9c66e.firebaseapp.com`
-- `studio-6917027295-9c66e.web.app`
 
-### 3. Google Cloud Console (Redirect URIs)
-If you are managing the OAuth Client ID in the [Google Cloud Console](https://console.cloud.google.com/), add this to your **Authorized redirect URIs**:
-- `https://studio-6917027295-9c66e.firebaseapp.com/__/auth/handler`
+The production Google OAuth redirect handler is:
 
----
-
-## 💳 Payment Gateway (Cashfree)
-
-To enable real payments, add these variables to your `.env` file:
-```env
-CASHFREE_APP_ID=your_app_id
-CASHFREE_SECRET_KEY=your_secret_key
-CASHFREE_ENV=sandbox # or 'production'
+```text
+https://www.kalamic.shop/__/auth/handler
 ```
-*Note: If these are missing, the app will run in **Mock Mode** for safe testing.*
 
----
+## Payment gateway (Razorpay)
 
-## 🚀 Getting Started
+Use test keys locally and live keys only after Razorpay activates the account. Add these server-side variables to `.env.local` or the Vercel project environment:
 
-### Development
+```env
+RAZORPAY_KEY_ID=rzp_test_or_live_key_id
+RAZORPAY_KEY_SECRET=server_only_key_secret
+RAZORPAY_WEBHOOK_SECRET=a_unique_webhook_secret
+```
+
+Configure this webhook in the Razorpay Dashboard:
+
+```text
+https://www.kalamic.shop/api/razorpay/webhook
+```
+
+Enable at least `payment.captured`, `payment.failed`, and `order.paid`. The application fails closed when credentials are missing and never simulates successful payment.
+
+## Getting started
+
 ```bash
 npm run dev
 ```
 
-### AI Tools
-To start Genkit for SEO content generation:
+For the production checks:
+
 ```bash
-npm run genkit:dev
+npm run typecheck
+npm run build
 ```
 
-## 📂 Project Structure
-- `src/app`: Next.js App Router pages.
-- `src/components`: Reusable UI components (ShadCN).
+## Project structure
+
+- `src/app`: Next.js App Router pages and route handlers.
+- `src/components`: Reusable interface components.
 - `src/firebase`: Client-side Firebase configuration and hooks.
-- `src/lib/actions`: Server-side logic for MongoDB operations and payment handling.
-- `src/lib/models`: Mongoose schemas for MongoDB.
+- `src/lib/actions`: Server-side provider integrations.
+- `src/lib/models`: Mongoose schemas.

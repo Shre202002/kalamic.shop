@@ -87,7 +87,7 @@ export default function PrivacyPage() {
                   <h3 className="text-lg font-black uppercase">Payment Safety</h3>
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">
-                  Payments are processed via <strong>Cashfree</strong>. Kalamic does not store complete card numbers, CVVs, or UPI PINs.
+                  Payments are processed via <strong>Razorpay</strong>. Kalamic does not store complete card numbers, CVVs, or UPI PINs.
                 </p>
                 <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 text-[10px] uppercase font-bold text-primary tracking-wider">
                   ⚠️ Never share your banking passwords or OTPs with us.

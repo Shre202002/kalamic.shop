@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
-import KalamicProduct from '@/lib/models/KalamicProduct';
-import { getCashfreeOrderStatus } from '@/lib/actions/cashfree';
-import { syncOrderToFirestore } from '@/lib/firebase-admin';
+import { getCapturedPaymentForOrder } from '@/lib/actions/razorpay';
+import { finalizePaidOrder } from '@/lib/payments/order-payment';
+import { verifySession } from '@/lib/firebase-admin';
 
 /**
  * @fileOverview Direct Status Reconciliation API.
- * Ensures local database matches payment gateway state.
+ * Reconciles a signed-in customer's local order with Razorpay.
  */
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -32,53 +32,40 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
     }
 
+    const sessionToken = req.cookies.get('__session')?.value;
+    const sessionUser = sessionToken ? await verifySession(sessionToken) : null;
+    if (!sessionUser || sessionUser.uid !== order.userId) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
     // If already verified, return early
     if (order.paymentVerified) {
       return NextResponse.json({ orderStatus: order.orderStatus, paymentStatus: 'paid', paymentVerified: true });
     }
 
-    // 2. Fetch fresh status from Cashfree
+    // 2. Fetch a captured payment directly from Razorpay.
     try {
-      const cfOrder = await getCashfreeOrderStatus(order.orderNumber);
+      if (order.paymentGateway === 'razorpay' && order.gatewayOrderId) {
+        const payment = await getCapturedPaymentForOrder(order.gatewayOrderId);
+        const paymentMatches = payment
+          && payment.currency === 'INR'
+          && Number(payment.amount) === Math.round(order.totalAmount * 100);
 
-      if (cfOrder.order_status === 'PAID') {
-        const updatedOrder = await OrderedItem.findOneAndUpdate(
-          { 
-            $or: [{ orderNumber: order.orderNumber }, { gatewayOrderId: order.orderNumber }], 
-            paymentVerified: { $ne: true } 
-          },
-          { 
-            $set: {
-              paymentStatus: 'paid',
-              paymentVerified: true,
-              paymentId: cfOrder.cf_order_id,
-              paymentTimestamp: new Date(),
-              transactionId: cfOrder.cf_order_id,
-              orderStatus: 'Confirmed'
-            }
-          },
-          { new: true }
-        );
-
-        if (updatedOrder) {
-          await syncOrderToFirestore(updatedOrder);
-          
-          // Analytics Update
-          for (const item of updatedOrder.items) {
-            await KalamicProduct.findByIdAndUpdate(item.productId, {
-              $inc: { 'analytics.total_orders': item.quantity }
-            });
-          }
+        if (paymentMatches) {
+          const updatedOrder = await finalizePaidOrder({
+            order,
+            paymentId: payment.id,
+            paidAt: payment.created_at ? new Date(payment.created_at * 1000) : new Date(),
+          });
+          return NextResponse.json({
+            orderStatus: updatedOrder.orderStatus,
+            paymentStatus: 'paid',
+            paymentVerified: true,
+          });
         }
-
-        return NextResponse.json({ 
-          orderStatus: updatedOrder?.orderStatus || order.orderStatus, 
-          paymentStatus: 'paid', 
-          paymentVerified: true 
-        });
       }
-    } catch (cfError) {
-      console.warn(`[RECONCILE_STATUS] Gateway check failed for ${order.orderNumber}:`, cfError);
+    } catch (gatewayError) {
+      console.warn(`[RECONCILE_STATUS] Razorpay check failed for ${order.orderNumber}:`, gatewayError);
     }
 
     return NextResponse.json({ 
