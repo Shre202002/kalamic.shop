@@ -16,7 +16,7 @@
 
 The latest branch update additionally implements a Mongo-backed distributed limiter for OTP, checkout, phone checks, and uploads, plus baseline CSP and browser security headers. These controls still need staging validation and production configuration review.
 
-Abandoned initiated orders now have a protected cleanup endpoint scheduled every 15 minutes, and a repeatable `npm run security:smoke` script is included for deployment verification.
+Abandoned initiated orders now have a protected cleanup endpoint scheduled once daily at 03:00 UTC (compatible with Vercel Hobby), and a repeatable `npm run security:smoke` script is included for deployment verification. A more frequent schedule requires Vercel Pro.
 
 ## Priority legend
 
