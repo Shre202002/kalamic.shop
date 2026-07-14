@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ImageKit from 'imagekit';
+import { requireAdmin } from '@/lib/server-auth';
 
 /**
  * @fileOverview Secure and resilient visual asset upload API.
@@ -26,6 +27,7 @@ const getImageKit = () => {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin(['super_admin', 'admin']);
     let formData: FormData;
     try {
       formData = await request.formData();

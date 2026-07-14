@@ -5,6 +5,7 @@ import User from '@/lib/models/User';
 import OrderedItem from '@/lib/models/OrderedItem';
 import WishlistItem from '@/lib/models/WishlistItem';
 import { revalidatePath } from 'next/cache';
+import { requireUserId } from '@/lib/server-auth';
 
 const PERMANENT_SUPER_ADMIN = 'sriyanshgupta24@gmail.com';
 
@@ -13,6 +14,7 @@ const PERMANENT_SUPER_ADMIN = 'sriyanshgupta24@gmail.com';
  */
 export async function getProfile(firebaseId: string) {
   try {
+    await requireUserId(firebaseId);
     await dbConnect();
     const user: any = await User.findOne({ firebaseId }).lean();
     
@@ -42,10 +44,9 @@ export async function getOrCreateProfile(firebaseId: string, email?: string | nu
     if (cleanEmail) {
       const existingUser = await User.findOne({ email: cleanEmail });
       if (existingUser) {
-        // If the firebaseId has changed (e.g., transitioning from temp ID to real ID), update it
+        // Never silently rebind an existing account to a caller-provided identity.
         if (existingUser.firebaseId !== firebaseId) {
-          existingUser.firebaseId = firebaseId;
-          await existingUser.save();
+          throw new Error('This email is already linked to another account.');
         }
         return JSON.parse(JSON.stringify(existingUser));
       }
@@ -84,6 +85,7 @@ export async function getOrCreateProfile(firebaseId: string, email?: string | nu
  */
 export async function verifyUserEmail(firebaseId: string, email: string) {
   try {
+    await requireUserId(firebaseId);
     await dbConnect();
     const user = await User.findOneAndUpdate(
       { firebaseId },
@@ -103,6 +105,7 @@ export async function verifyUserEmail(firebaseId: string, email: string) {
  */
 export async function updateProfile(firebaseId: string, data: any) {
   try {
+    await requireUserId(firebaseId);
     await dbConnect();
     const { role, firebaseId: _, emailVerified, ...updateData } = data;
     
@@ -125,6 +128,7 @@ export async function updateProfile(firebaseId: string, data: any) {
  */
 export async function getUserOrders(userId: string) {
   try {
+    await requireUserId(userId);
     await dbConnect();
     const orders = await OrderedItem.find({ 
       userId,
@@ -144,6 +148,7 @@ export async function getUserOrders(userId: string) {
 
 export async function getWishlistItems(userId: string) {
   try {
+    await requireUserId(userId);
     await dbConnect();
     const items = await WishlistItem.find({ userId }).lean();
     return JSON.parse(JSON.stringify(items));

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
+import { getAuthenticatedSession } from '@/lib/server-auth';
 
 /**
  * @fileOverview API to reconcile auth profile data with MongoDB.
@@ -9,17 +10,25 @@ import User from '@/lib/models/User';
 
 export async function POST(req: NextRequest) {
   try {
-    const { 
-      firebaseId, email, name, firstName, lastName, photoURL, 
-      phone, phoneVerified, emailVerified 
+    const {
+      email, name, firstName, lastName, photoURL, phone
     } = await req.json();
-    
-    if (!firebaseId) {
-      return NextResponse.json({ message: 'Firebase ID required' }, { status: 400 });
+
+    const session = await getAuthenticatedSession();
+    if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    const firebaseId = session.uid;
+    const normalizedEmail = email?.trim().toLowerCase();
+    if (normalizedEmail && session.email && normalizedEmail !== session.email.toLowerCase()) {
+      return NextResponse.json({ message: 'Email does not match authenticated account' }, { status: 403 });
     }
 
     await dbConnect();
     
+    const existingByEmail: any = normalizedEmail ? await User.findOne({ email: normalizedEmail }).lean() : null;
+    if (existingByEmail && existingByEmail.firebaseId !== firebaseId) {
+      return NextResponse.json({ message: 'Email is already linked to another account' }, { status: 409 });
+    }
+
     const fullName = name || (firstName && lastName ? `${firstName} ${lastName}` : '');
     const [derivedFirst, ...lastNameParts] = fullName.split(' ');
     const derivedLast = lastNameParts.join(' ');
@@ -36,11 +45,11 @@ export async function POST(req: NextRequest) {
           firebaseId,
           firstName: firstName || derivedFirst || 'Collector',
           lastName: lastName || derivedLast || '',
-          ...(email && { email: email.toLowerCase() }),
+          ...(normalizedEmail && { email: normalizedEmail }),
           ...(photoURL && { photoURL }),
           ...(phone && { phone }),
-          ...(typeof phoneVerified === 'boolean' && { phoneVerified }),
-          ...(typeof emailVerified === 'boolean' && { emailVerified }),
+          emailVerified: session.email_verified === true,
+          phoneVerified: Boolean(session.phone_number),
           lastLogin: new Date()
         },
         $setOnInsert: {

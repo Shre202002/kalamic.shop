@@ -10,17 +10,13 @@ import WishlistItem from '@/lib/models/WishlistItem';
 import AdminNotification from '@/lib/models/AdminNotification';
 import { revalidatePath } from 'next/cache';
 import dayjs from 'dayjs';
+import { requireAdmin } from '@/lib/server-auth';
 
 /**
  * CORE PERMISSION ENGINE
  */
 async function validateRole(adminId: string, allowedRoles: string[]) {
-  await dbConnect();
-  const user = await User.findOne({ firebaseId: adminId });
-  if (user?.email === 'sriyanshgupta24@gmail.com') return user;
-  if (!user || !allowedRoles.includes(user.role)) {
-    throw new Error(`Unauthorized: Role '${user?.role || 'user'}' lacks permission.`);
-  }
+  const { user } = await requireAdmin(allowedRoles);
   return user;
 }
 
@@ -39,6 +35,7 @@ async function logAction(admin: any, action: string, type: string, entityId: str
 // --- CATEGORY ACTIONS ---
 
 export async function getCategories() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   try {
     const categories = await Category.find({}).sort({ name: 1 }).lean();
@@ -86,6 +83,7 @@ export async function deleteCategory(adminId: string, categoryId: string) {
 // --- PRODUCT ACTIONS ---
 
 export async function getAdminProducts() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   try {
     const products = await KalamicProduct.find({ is_deleted: { $ne: true } }).sort({ visibility_priority: -1, createdAt: -1 }).lean();
@@ -94,12 +92,14 @@ export async function getAdminProducts() {
 }
 
 export async function getAllOrders() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   const orders = await OrderedItem.find({}).sort({ createdAt: -1 }).lean();
   return JSON.parse(JSON.stringify(orders));
 }
 
 export async function getAdminDashboardStats() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   try {
     const [revenueData, orderCount, activeUsers, pendingOrders, totalUsers, wishlistActivity] = await Promise.all([
@@ -134,29 +134,34 @@ export async function getAdminDashboardStats() {
 }
 
 export async function getAdmins() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   const admins = await User.find({ role: { $in: ['super_admin', 'admin', 'support'] } }).lean();
   return JSON.parse(JSON.stringify(admins));
 }
 
 export async function getAdminLogs() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   const logs = await AdminLog.find({}).sort({ timestamp: -1 }).limit(100).lean();
   return JSON.parse(JSON.stringify(logs));
 }
 
 export async function getAdminNotifications() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   const notifications = await AdminNotification.find({}).sort({ createdAt: -1 }).limit(20).lean();
   return JSON.parse(JSON.stringify(notifications));
 }
 
 export async function markNotificationsAsRead() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   await AdminNotification.updateMany({ isRead: false }, { $set: { isRead: true } });
 }
 
 export async function getAllUsers() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   return JSON.parse(JSON.stringify(await User.find({}).sort({ createdAt: -1 }).lean()));
 }
@@ -170,6 +175,7 @@ export async function toggleUserStatus(adminId: string, targetUserId: string, ne
 }
 
 export async function getDashboardChartData() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   
   const last7Days = [];
@@ -220,6 +226,7 @@ export async function getDashboardChartData() {
 }
 
 export async function getProductPerformanceData() {
+  await validateRole('', ['super_admin', 'admin']);
   await dbConnect();
   try {
     const products = await KalamicProduct.find({ is_deleted: { $ne: true } })

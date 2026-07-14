@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import GalleryItem from '@/lib/models/GalleryItem';
 import User from '@/lib/models/User';
+import { getAuthenticatedSession } from '@/lib/server-auth';
 
-async function validateAdmin(userId: string) {
+async function validateAdmin(_userId?: string) {
+  const session = await getAuthenticatedSession();
+  if (!session) return null;
   await dbConnect();
-  const user = await User.findOne({ firebaseId: userId });
+  const user = await User.findOne({ firebaseId: session.uid });
   return user && ['super_admin', 'admin'].includes(user.role);
 }
 

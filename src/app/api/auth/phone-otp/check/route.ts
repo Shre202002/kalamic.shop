@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
+import { consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview Pre-check API to verify if a phone number is registered.
@@ -15,6 +16,10 @@ export async function POST(req: NextRequest) {
         { message: 'Phone required' },
         { status: 400 }
       );
+    }
+
+    if (!await consumeRateLimit(`otp:phone-check:${requestIp(req)}`, 20, 10 * 60 * 1000)) {
+      return NextResponse.json({ message: 'Too many requests. Please try again later.' }, { status: 429 });
     }
     
     await dbConnect();

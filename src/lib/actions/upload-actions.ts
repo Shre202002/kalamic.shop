@@ -5,14 +5,26 @@
  */
 
 import ImageKit from 'imagekit';
+import { requireAdmin } from '@/lib/server-auth';
+import { consumeRateLimit } from '@/lib/security/rate-limit';
 
 /**
  * Uploads a file buffer to ImageKit and returns the optimized CDN URL.
  * @param formData The multipart form data containing the 'file' entry and an optional 'folder'.
  */
 export async function uploadToImageKit(formData: FormData) {
+  const { session } = await requireAdmin(['super_admin', 'admin']);
+  if (!await consumeRateLimit(`upload:${session.uid}`, 30, 10 * 60 * 1000)) {
+    throw new Error('Upload rate limit exceeded. Please try again later.');
+  }
+
   const file = formData.get('file') as File;
-  const folder = (formData.get('folder') as string) || '/kalamic/products';
+  const requestedFolder = (formData.get('folder') as string) || '/kalamic/products';
+  const allowedFolders = new Set(['/kalamic/products', '/kalamic/blogs']);
+  if (!allowedFolders.has(requestedFolder)) {
+    throw new Error('Invalid upload folder.');
+  }
+  const folder = requestedFolder;
   const seoName = formData.get('seoName') as string | null; // ← ADD THIS
 
 

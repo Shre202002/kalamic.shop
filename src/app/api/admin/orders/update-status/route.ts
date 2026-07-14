@@ -4,6 +4,7 @@ import OrderedItem, { OrderStatus } from '@/lib/models/OrderedItem';
 import User from '@/lib/models/User';
 import { syncOrderToFirestore } from '@/lib/firebase-admin';
 import { sendEmail } from '@/lib/email';
+import { requireAdmin } from '@/lib/server-auth';
 
 /**
  * @fileOverview Secure admin API for updating order status.
@@ -26,13 +27,10 @@ export async function POST(req: NextRequest) {
   await dbConnect();
 
   try {
-    const { adminId, orderId, newStatus } = await req.json();
+    const { orderId, newStatus } = await req.json();
 
     // 1. Verify Admin
-    const admin = await User.findOne({ firebaseId: adminId });
-    if (!admin || !['super_admin', 'admin'].includes(admin.role)) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
-    }
+    const { user: admin } = await requireAdmin(['super_admin', 'admin']);
 
     // 2. Fetch Order
     const order = await OrderedItem.findById(orderId);

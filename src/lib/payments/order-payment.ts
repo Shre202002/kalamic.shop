@@ -67,7 +67,17 @@ export async function finalizePaidOrder(input: {
       link: '/admin/orders',
     }),
     updatedOrder.promoCode
-      ? PromoCode.updateOne({ code: updatedOrder.promoCode }, { $inc: { usedCount: 1 } })
+      ? PromoCode.updateOne(
+          {
+            code: updatedOrder.promoCode,
+            isActive: true,
+            $or: [{ maxUses: { $lte: 0 } }, { $expr: { $lt: ['$usedCount', '$maxUses'] } }],
+          },
+          { $inc: { usedCount: 1 } }
+        ).then((result) => {
+          if (result.matchedCount !== 1) throw new Error('Promo usage limit was reached during payment finalization');
+          return result;
+        })
       : Promise.resolve(),
     ...updatedOrder.items.map((item: any) => KalamicProduct.findByIdAndUpdate(
       item.productId,
@@ -90,7 +100,7 @@ export async function finalizePaidOrder(input: {
 export async function markOrderPaymentFailed(order: any) {
   if (order.paymentVerified) return order;
 
-  return OrderedItem.findOneAndUpdate(
+  const updated = await OrderedItem.findOneAndUpdate(
     { _id: order._id, paymentVerified: { $ne: true } },
     {
       $set: {
@@ -101,4 +111,18 @@ export async function markOrderPaymentFailed(order: any) {
     },
     { new: true }
   );
+
+  if (updated?.inventoryReserved && !updated.inventoryReleased) {
+    const claimed = await OrderedItem.findOneAndUpdate(
+      { _id: updated._id, inventoryReserved: true, inventoryReleased: false },
+      { $set: { inventoryReleased: true } },
+      { new: true }
+    );
+    if (claimed) {
+      await Promise.all(claimed.items.map((item: any) => KalamicProduct.updateOne(
+        { _id: item.productId }, { $inc: { stock: item.quantity } }
+      )));
+    }
+  }
+  return updated;
 }

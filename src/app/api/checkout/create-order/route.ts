@@ -8,6 +8,7 @@ import { syncOrderToFirestore, verifySession } from '@/lib/firebase-admin';
 import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
+import { consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview Secure Order Creation API.
@@ -26,6 +27,11 @@ export async function POST(req: NextRequest) {
       promoCode,
       totalAmount: clientTotal
     } = await req.json();
+
+    const idempotencyKey = req.headers.get('Idempotency-Key')?.trim();
+    if (!idempotencyKey || !/^[A-Za-z0-9._:-]{16,128}$/.test(idempotencyKey)) {
+      return NextResponse.json({ message: 'A valid Idempotency-Key is required' }, { status: 400 });
+    }
 
     if (!userId || !items?.length) {
       return NextResponse.json({ message: 'Missing required order details' }, { status: 400 });
@@ -146,6 +152,20 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (!await consumeRateLimit(`checkout:${sessionUser.uid}:${requestIp(req)}`, 10, 10 * 60 * 1000)) {
+      return NextResponse.json({ message: 'Too many checkout attempts. Please try again later.' }, { status: 429 });
+    }
+
+    const existingOrder: any = await OrderedItem.findOne({ userId, checkoutIdempotencyKey: idempotencyKey }).lean();
+    if (existingOrder?.gatewayOrderId && existingOrder.paymentStatus === 'pending') {
+      return NextResponse.json({
+        keyId: getRazorpayKeyId(),
+        razorpayOrderId: existingOrder.gatewayOrderId,
+        orderId: existingOrder.orderNumber,
+        amount: Math.round(existingOrder.totalAmount * 100),
+        currency: 'INR',
+      });
+    }
     
     // Reject stale or manipulated checkout totals instead of silently charging a different amount.
     if (!Number.isFinite(clientTotal) || Math.abs(finalTotal - clientTotal) > 1) {
@@ -158,13 +178,38 @@ export async function POST(req: NextRequest) {
 
     const orderNumber = `KAL-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
 
+    const reservedInventory: Array<{ productId: string; quantity: number }> = [];
+    try {
+      for (const item of validatedItems) {
+        const sourceProduct: any = await KalamicProduct.findById(item.productId).select('track_inventory name');
+        if (!sourceProduct?.track_inventory) continue;
+        const reserved = await KalamicProduct.findOneAndUpdate(
+          { _id: item.productId, is_active: true, is_deleted: { $ne: true }, stock: { $gte: item.quantity } },
+          { $inc: { stock: -item.quantity } },
+          { new: true }
+        );
+        if (!reserved) throw new Error(`${item.name} is no longer available in the requested quantity.`);
+        reservedInventory.push({ productId: item.productId, quantity: item.quantity });
+      }
+    } catch (reservationError) {
+      await Promise.all(reservedInventory.map((item) => KalamicProduct.updateOne(
+        { _id: item.productId }, { $inc: { stock: item.quantity } }
+      )));
+      return NextResponse.json({ message: (reservationError as Error).message }, { status: 409 });
+    }
+
     // 5. Create MongoDB master record.
-    const newOrder = await OrderedItem.create({
+    let newOrder: any;
+    try {
+      newOrder = await OrderedItem.create({
       userId,
       userName: shippingDetails.fullName,
       userPhone: shippingDetails.phone,
       userEmail: normalizedEmail,
       orderNumber,
+      checkoutIdempotencyKey: idempotencyKey,
+      inventoryReserved: reservedInventory.length > 0,
+      inventoryReleased: false,
       subtotal,
       charges: {
         shipping: calculatedCharges.shipping,
@@ -193,8 +238,14 @@ export async function POST(req: NextRequest) {
       paymentStatus: 'pending',
       paymentVerified: false,
       gatewayOrderId: null,
-      expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
-    });
+        expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+    } catch (orderError) {
+      await Promise.all(reservedInventory.map((item) => KalamicProduct.updateOne(
+        { _id: item.productId }, { $inc: { stock: item.quantity } }
+      )));
+      throw orderError;
+    }
 
     // 6. Create a real Razorpay order. There is intentionally no mock-payment fallback.
     let razorpayOrder;
@@ -208,10 +259,14 @@ export async function POST(req: NextRequest) {
       await newOrder.save();
       await syncOrderToFirestore(newOrder);
     } catch (gatewayError) {
+      await Promise.all(reservedInventory.map((item) => KalamicProduct.updateOne(
+        { _id: item.productId }, { $inc: { stock: item.quantity } }
+      )));
       await OrderedItem.updateOne(
         { _id: newOrder._id },
         { $set: { paymentStatus: 'failed', orderStatus: 'Canceled', updatedAt: new Date() } }
       );
+      await OrderedItem.updateOne({ _id: newOrder._id }, { $set: { inventoryReleased: true } });
       throw gatewayError;
     }
 

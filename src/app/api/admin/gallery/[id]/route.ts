@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import GalleryItem from '@/lib/models/GalleryItem';
 import User from '@/lib/models/User';
 import ImageKit from 'imagekit';
+import { getAuthenticatedSession } from '@/lib/server-auth';
 
 const getImageKit = () => {
   const publicKey = process.env.IMAGEKIT_PUBLIC_KEY || process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
@@ -16,9 +17,11 @@ const getImageKit = () => {
   return new ImageKit({ publicKey, privateKey, urlEndpoint });
 };
 
-async function validateAdmin(userId: string) {
+async function validateAdmin(_userId?: string) {
+  const session = await getAuthenticatedSession();
+  if (!session) return null;
   await dbConnect();
-  const user = await User.findOne({ firebaseId: userId });
+  const user = await User.findOne({ firebaseId: session.uid });
   return user && ['super_admin', 'admin'].includes(user.role);
 }
 

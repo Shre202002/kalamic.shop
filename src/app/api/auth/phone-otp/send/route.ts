@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
+import { consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview Server-side check for phone OTP eligibility.
@@ -11,6 +12,10 @@ import User from '@/lib/models/User';
 export async function POST(req: NextRequest) {
   try {
     const { phone, checkExists = true } = await req.json();
+
+    if (!await consumeRateLimit(`otp:phone-send:${requestIp(req)}`, 5, 10 * 60 * 1000)) {
+      return NextResponse.json({ message: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
 
     if (checkExists) {
       await dbConnect();

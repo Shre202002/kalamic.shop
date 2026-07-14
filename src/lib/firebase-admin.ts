@@ -38,7 +38,7 @@ export const adminAuth = admin.apps.length ? admin.auth() : null;
 export async function verifySession(token: string) {
   if (!adminAuth) return null;
   try {
-    return await adminAuth.verifyIdToken(token);
+    return await adminAuth.verifyIdToken(token, true);
   } catch (e) {
     console.error('[ADMIN_AUTH] Token verification failed');
     return null;

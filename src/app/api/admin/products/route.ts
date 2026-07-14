@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import User from '@/lib/models/User';
 import AdminLog from '@/lib/models/AdminLog';
+import { requireAdmin } from '@/lib/server-auth';
 
 /**
  * @fileOverview Secure creation of new artisan pieces.
@@ -15,13 +16,10 @@ export async function POST(req: NextRequest) {
   
   try {
     const body = await req.json();
-    const { adminId, ...productData } = body;
+    const { ...productData } = body;
 
     // 1. Verify Admin
-    const user = await User.findOne({ firebaseId: adminId });
-    if (!user || !['super_admin', 'admin'].includes(user.role)) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
-    }
+    const { session, user } = await requireAdmin(['super_admin', 'admin']);
 
     console.log('[API_SAVE_DEBUG] Incoming shipping data:', JSON.stringify(productData.shipping));
 
@@ -37,7 +35,7 @@ export async function POST(req: NextRequest) {
     // 3. Construct clean product object with explicit shape handling
     const product = await KalamicProduct.create({
       ...productData,
-      created_by_admin: adminId,
+      created_by_admin: session.uid,
       shipping: {
         weight_kg: productData.shipping?.weight_kg || 0,
         shape: productData.shipping?.shape || 'rectangular',
@@ -51,7 +49,7 @@ export async function POST(req: NextRequest) {
     });
 
     await AdminLog.create({
-      adminId,
+      adminId: session.uid,
       adminName: `${user.firstName || 'Admin'} ${user.lastName || ''}`,
       role: user.role,
       action: 'CREATE_PRODUCT',

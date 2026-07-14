@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import PromoCode from '@/lib/models/PromoCode';
 import User from '@/lib/models/User';
+import { getAuthenticatedSession } from '@/lib/server-auth';
 
-async function validateAdmin(adminId: string) {
+async function validateAdmin(_adminId?: string) {
+  const session = await getAuthenticatedSession();
+  if (!session) return null;
   await dbConnect();
-  const user = await User.findOne({ firebaseId: adminId });
+  const user = await User.findOne({ firebaseId: session.uid });
   return user && ['super_admin', 'admin'].includes(user.role);
 }
 
