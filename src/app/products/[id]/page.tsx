@@ -41,6 +41,10 @@ const productSeoOverrides: Record<string, { title: string; description: string }
   },
 };
 
+function withoutDuplicateBrand(title: string) {
+  return title.replace(/\s*[|–—-]\s*Kalamic(?:\s+Shop)?\s*$/i, '').trim();
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const product = await getProductById(id);
@@ -48,14 +52,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const productPath = `/products/${product.slug || product._id}`;
   const seoOverride = productSeoOverrides[product.slug];
+  const title = withoutDuplicateBrand(seoOverride?.title || product.seo?.meta_title || product.name);
+  const description = seoOverride?.description || product.seo?.meta_description || product.short_description;
+  const socialImage = product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || '';
 
   return {
-    title: seoOverride?.title || product.seo?.meta_title || product.name,
-    description: seoOverride?.description || product.seo?.meta_description || product.short_description,
+    title,
+    description,
     openGraph: {
-      title: product.name,
-      description: product.short_description,
-      images: [{ url: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || '' }],
+      title,
+      description,
+      images: socialImage ? [{ url: socialImage, alt: product.name }] : [],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: socialImage ? [socialImage] : [],
     },
     alternates: {
       canonical: productPath,
@@ -93,7 +107,7 @@ export default async function ProductPage({ params }: Props) {
     description: product.short_description || product.description,
     image: product.images?.map((image: any) => image.url).filter(Boolean),
     sku: product.sku || String(product._id),
-    mpn: product.sku || product.slug || String(product._id),
+    ...(product.sku ? { mpn: product.sku } : {}),
     brand: {
       '@type': 'Brand',
       name: 'Kalamic',
@@ -112,6 +126,10 @@ export default async function ProductPage({ params }: Props) {
       seller: {
         '@type': 'Organization',
         name: 'Kalamic',
+      },
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        merchantReturnLink: 'https://www.kalamic.shop/returns',
       },
     },
     ...(reviews.length > 0

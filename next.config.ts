@@ -78,6 +78,15 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/sitemap',
+        destination: '/sitemap.xml',
+        permanent: true,
+      },
+    ];
+  },
   compress: true,
   poweredByHeader: false,
 };

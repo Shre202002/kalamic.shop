@@ -16,6 +16,10 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+function withoutDuplicateBrand(title: string) {
+  return title.replace(/\s*[|–—-]\s*Kalamic(?:\s+Shop)?\s*$/i, '').trim();
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   await dbConnect();
@@ -23,9 +27,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) return { title: 'Story Not Found | Kalamic' };
 
   const isMorStambhGuide = slug === 'what-is-mor-stambh-history-meaning-why-it-belongs-in-your-home';
-  const title = isMorStambhGuide
+  const title = withoutDuplicateBrand(isMorStambhGuide
     ? 'Stambh Meaning in English: What Is a Mor Stambh?'
-    : post.seo?.metaTitle || post.title;
+    : post.seo?.metaTitle || post.title);
   const description = isMorStambhGuide
     ? 'Learn the meaning of Stambh in English, the history and symbolism of Mor Stambh, and how peacock pillars are used in Indian home and temple decor.'
     : post.seo?.metaDescription || post.excerpt;
@@ -35,10 +39,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     keywords: post.seo?.metaKeywords?.join(', '),
     openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      images: [{ url: post.coverImage?.url || '' }],
+      title,
+      description,
+      images: post.coverImage?.url ? [{ url: post.coverImage.url, alt: post.coverImage.alt || post.title }] : [],
       type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: post.coverImage?.url ? [post.coverImage.url] : [],
     },
     alternates: { canonical: `/blog/${slug}` },
   };

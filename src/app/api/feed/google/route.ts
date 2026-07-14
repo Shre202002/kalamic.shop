@@ -12,6 +12,15 @@ import { getProducts } from '@/lib/actions/products';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+function escapeXml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 export async function GET() {
   try {
     const products = await getProducts();
@@ -32,49 +41,41 @@ export async function GET() {
         const productUrl = `https://www.kalamic.shop/products/${p.slug || p._id}`;
 
         // Clean description — strip HTML tags and limit to 5000 chars
-        const description = (p.description || p.short_description || '')
-          .replace(/<[^>]*>/g, '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .substring(0, 5000);
+        const description = escapeXml(
+          (p.description || p.short_description || '')
+            .replace(/<[^>]*>/g, '')
+            .substring(0, 5000)
+        );
 
         // Clean title — limit to 150 chars
-        const title = (p.name || '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .substring(0, 150);
+        const title = escapeXml((p.name || '').substring(0, 150));
 
         // Additional images (index 2–10)
         const additionalImages = allImages
           .slice(1)
           .map(
             (url: string) =>
-              `<g:additional_image_link>${url}</g:additional_image_link>`
+              `<g:additional_image_link>${escapeXml(url)}</g:additional_image_link>`
           )
           .join('\n        ');
 
         return `
     <item>
-      <g:id>${p._id}</g:id>
+      <g:id>${escapeXml(p._id)}</g:id>
       <g:title>${title}</g:title>
       <g:description>${description}</g:description>
-      <g:link>${productUrl}</g:link>
-      <g:image_link>${primaryImage}</g:image_link>
+      <g:link>${escapeXml(productUrl)}</g:link>
+      <g:image_link>${escapeXml(primaryImage)}</g:image_link>
       ${additionalImages}
-      <g:price>${p.compare_at_price || p.price}.00 INR</g:price>
-      ${p.compare_at_price ? `<g:sale_price>${p.price}.00 INR</g:sale_price>` : ''}
-      ${p.compare_at_price ? `<g:sale_price_effective_date>2025-01-01T00:00:00+05:30/2030-12-31T23:59:59+05:30</g:sale_price_effective_date>` : ''}
+      <g:price>${Number(p.compare_at_price || p.price).toFixed(2)} INR</g:price>
+      ${p.compare_at_price ? `<g:sale_price>${Number(p.price).toFixed(2)} INR</g:sale_price>` : ''}
       <g:availability>in_stock</g:availability>
       <g:condition>new</g:condition>
       <g:brand>Kalamic</g:brand>
-      <g:mpn>${p.sku || p.slug || p._id}</g:mpn>
-      <g:identifier_exists>yes</g:identifier_exists>
-      <g:google_product_category>588</g:google_product_category>
+      ${p.sku ? `<g:mpn>${escapeXml(p.sku)}</g:mpn>` : ''}
+      <g:identifier_exists>${p.sku ? 'yes' : 'no'}</g:identifier_exists>
       <g:product_type>Home &amp; Garden &gt; Decor &gt; Artwork</g:product_type>
-      <g:shipping_weight>${p.shipping?.weight_kg || '1'} kg</g:shipping_weight>
-      <g:custom_label_0>${p.category_id || 'home-decor'}</g:custom_label_0>
+      <g:shipping_weight>${Number(p.shipping?.weight_kg || 1).toFixed(2)} kg</g:shipping_weight>
       <g:custom_label_1>handmade</g:custom_label_1>
       <g:custom_label_2>ceramic</g:custom_label_2>
     </item>`;

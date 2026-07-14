@@ -95,7 +95,18 @@ export function LocalBusinessJsonLd() {
     },
     "sameAs": [
       "https://www.instagram.com/kala_mic_04/"
-    ]
+    ],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+917376761679",
+      "contactType": "customer service",
+      "areaServed": ["IN"],
+      "availableLanguage": ["English", "Hindi"]
+    },
+    "hasMerchantReturnPolicy": {
+      "@type": "MerchantReturnPolicy",
+      "merchantReturnLink": "https://www.kalamic.shop/returns"
+    }
   };
 
   return (

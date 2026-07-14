@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const videoCount = items.filter(i => i.mediaType === 'video').length;
 
   return {
-    title: 'Gallery | Kalamic — Handcrafted Ceramic Art',
+    title: 'Handcrafted Ceramic Art Gallery',
     description: `Browse ${imageCount} handcrafted ceramic art pieces and ${videoCount} studio reels from Kalamic. Traditional Indian ceramic décor — Mor Stambh, photo frames, wall art and more.`,
     keywords: [
       'ceramic art gallery India',

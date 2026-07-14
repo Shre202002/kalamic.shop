@@ -36,11 +36,11 @@ const FAQS = [
       },
       {
         q: "How long does delivery take?",
-        a: "Most ready-to-ship items arrive within 5-7 business days. Custom orders take 14-21 days as they involve fresh molding, drying, and firing cycles."
+        a: "Standard India delivery is estimated at 6-11 business days for ready-to-ship items. Customized products and international orders may take longer; Kalamic confirms the expected timeline before production or dispatch."
       },
       {
         q: "What if my item arrives broken?",
-        a: "While rare, if an item is damaged in transit, we offer a full replacement or refund. Simply provide a photo of the damaged piece within 24 hours of delivery."
+        a: "Contact Kalamic preferably within 48 hours of delivery and share clear photos of the item and outer packaging. After the claim is reviewed and approved, the primary remedy is replacement under our published Return and Replacement Policy; general cash refunds are not offered."
       }
     ]
   },
@@ -61,8 +61,19 @@ const FAQS = [
 ];
 
 export default function FAQPage() {
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQS.flatMap((section) => section.questions).map((faq) => ({
+      '@type': 'Question',
+      name: faq.q,
+      acceptedAnswer: { '@type': 'Answer', text: faq.a },
+    })),
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <Navbar />
       <main className="flex-1 pt-24 pb-12 md:pt-32 md:pb-24">
         <div className="container mx-auto px-4 max-w-4xl">
@@ -107,7 +118,7 @@ export default function FAQPage() {
             <p className="text-white/80 font-medium text-lg max-w-lg mx-auto">Our artisans are happy to help. Connect with us via WhatsApp or Email.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Button asChild variant="outline" className="h-14 rounded-2xl border-white text-white bg-transparent hover:bg-white hover:text-primary font-black px-10">
-                <a href="mailto:contact@kalamic.shop">Email Our Studio</a>
+                <a href="mailto:kalamicshop@gmail.com">Email Our Studio</a>
               </Button>
               <Button asChild className="h-14 rounded-2xl bg-[#1E1E1E] text-white hover:bg-black font-black px-10 border-none shadow-xl">
                 <a href="https://wa.me/917376761679" target="_blank">Chat on WhatsApp</a>

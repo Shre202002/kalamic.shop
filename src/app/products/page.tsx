@@ -15,23 +15,23 @@ export const revalidate = 3600;
 
 const categoryMeta: Record<string, { title: string; description: string }> = {
   'wall-art': {
-    title: 'Handcrafted Ceramic Wall Art | Kalamic',
+    title: 'Handcrafted Ceramic Wall Art',
     description: 'Shop handcrafted ceramic mandala wall art, decorative mirrors and wall decor by Kanpur artisans. Free delivery in Kanpur.'
   },
   'spiritual': {
-    title: 'Spiritual Ceramic Decor | Kalamic',
+    title: 'Spiritual Ceramic Decor',
     description: 'Handcrafted ceramic spiritual decor for pooja rooms and mandirs. Ganesha, peacock and traditional Indian motifs.'
   },
   'photo-frames': {
-    title: 'Ceramic Photo Frames | Kalamic',
+    title: 'Ceramic Photo Frames',
     description: 'Handmade ceramic photo frames with floral and ethnic designs. Perfect gifts for home decor and special occasions.'
   },
   'gifting': {
-    title: 'Ceramic Gift Sets | Kalamic',
+    title: 'Ceramic Gift Sets',
     description: 'Curated handcrafted ceramic gift sets for festivals, weddings and housewarming. Made by artisans in Kanpur.'
   },
   'home-decor': {
-    title: 'Ceramic Home Decor | Kalamic',
+    title: 'Ceramic Home Decor',
     description: 'Handcrafted ceramic home decor pieces for living rooms, offices and spiritual spaces. Authentic Indian artistry.'
   },
 };

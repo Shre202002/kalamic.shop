@@ -58,9 +58,10 @@ export function Footer() {
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white mb-8">Company</h3>
             <ul className="space-y-4 text-sm text-[#b0a090] font-medium">
               <li><Link href="/about" className="hover:text-primary transition-colors">Our Studio Story</Link></li>
+              <li><Link href="/ceramic-gift-shop-kanpur" className="hover:text-primary transition-colors">Ceramic Gifts in Kanpur</Link></li>
               <li><Link href="/privacy" className="hover:text-primary transition-colors">Digital Security</Link></li>
               <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
-              <li><Link href="/sitemap" className="hover:text-primary transition-colors">Navigation Map</Link></li>
+              <li><Link href="/sitemap.xml" className="hover:text-primary transition-colors">XML Sitemap</Link></li>
             </ul>
           </div>
         </div>
