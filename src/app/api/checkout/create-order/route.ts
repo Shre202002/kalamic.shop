@@ -7,6 +7,7 @@ import { createRazorpayOrder, getRazorpayKeyId } from '@/lib/actions/razorpay';
 import { syncOrderToFirestore, verifySession } from '@/lib/firebase-admin';
 import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 
 /**
  * @fileOverview Secure Order Creation API.
@@ -51,16 +52,41 @@ export async function POST(req: NextRequest) {
 
     let subtotal = 0;
     const validatedItems = [];
+    const seenProductIds = new Set<string>();
     let requiresHandling = false;
     let requiresPremiumProtection = false;
 
     // 1. Validate Inventory, Pricing and Logistics Flags from Source of Truth (DB)
     for (const item of items) {
-      if (!item.productId || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 20) {
-        return NextResponse.json({ message: 'Invalid product quantity' }, { status: 400 });
+      const productId = String(item.productId || '');
+      if (!mongoose.isValidObjectId(productId)
+        || seenProductIds.has(productId)
+        || !Number.isInteger(item.quantity)
+        || item.quantity < 1
+        || item.quantity > 20) {
+        return NextResponse.json({ message: 'Invalid or duplicate cart item' }, { status: 400 });
       }
-      const product = await KalamicProduct.findById(item.productId).select('price name images requiresHandling requiresPremiumProtection');
-      if (!product) throw new Error(`Product ${item.productId} is no longer available.`);
+      seenProductIds.add(productId);
+
+      const product = await KalamicProduct.findOne({
+        _id: productId,
+        is_active: true,
+        is_deleted: { $ne: true },
+      }).select('price name images stock track_inventory requiresHandling requiresPremiumProtection');
+
+      if (!product) {
+        return NextResponse.json(
+          { message: 'One of the products in your cart is no longer available.' },
+          { status: 409 }
+        );
+      }
+
+      if (product.track_inventory && product.stock < item.quantity) {
+        return NextResponse.json(
+          { message: `${product.name} has only ${Math.max(0, product.stock)} item(s) available.` },
+          { status: 409 }
+        );
+      }
       
       subtotal += product.price * item.quantity;
       
@@ -113,6 +139,13 @@ export async function POST(req: NextRequest) {
     // 4. Calculate the authoritative amount on the server.
     const baseTotal = subtotal + totalCharges;
     const finalTotal = Math.max(0, baseTotal - promoDiscountAmount);
+
+    if (!Number.isFinite(finalTotal) || finalTotal < 1) {
+      return NextResponse.json(
+        { message: 'The payable order amount must be at least INR 1.' },
+        { status: 400 }
+      );
+    }
     
     // Reject stale or manipulated checkout totals instead of silently charging a different amount.
     if (!Number.isFinite(clientTotal) || Math.abs(finalTotal - clientTotal) > 1) {

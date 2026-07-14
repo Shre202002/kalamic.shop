@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
       }
 
       const signatureValid = verifyRazorpayPaymentSignature({
-        razorpayOrderId,
+        // Razorpay requires the server-stored order id for signature verification.
+        razorpayOrderId: order.gatewayOrderId,
         razorpayPaymentId,
         razorpaySignature,
       });

@@ -55,7 +55,9 @@ export async function finalizePaidOrder(input: {
     return OrderedItem.findById(input.order._id);
   }
 
-  await Promise.all([
+  // The payment state is the source of truth. Ancillary sync/notification tasks
+  // must not turn a captured payment into a failed webhook response.
+  const sideEffects = await Promise.allSettled([
     syncOrderToFirestore(updatedOrder),
     clearCartAfterOrder(updatedOrder.userId, updatedOrder.items),
     AdminNotification.create({
@@ -72,6 +74,15 @@ export async function finalizePaidOrder(input: {
       { $inc: { 'analytics.total_orders': item.quantity } }
     )),
   ]);
+
+  sideEffects.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(
+        `[ORDER_PAYMENT_SIDE_EFFECT_FAILED] ${updatedOrder.orderNumber} task ${index}:`,
+        result.reason
+      );
+    }
+  });
 
   return updatedOrder;
 }
