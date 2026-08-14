@@ -108,6 +108,8 @@ const INITIAL_PRODUCT = {
   }
 };
 
+const NEW_PRODUCT_DRAFT_KEY = 'kalamic-admin-new-product-draft-v1';
+
 export default function ProductsManagement() {
   const { user } = useUser();
   const [products, setProducts] = useState([]);
@@ -143,6 +145,21 @@ export default function ProductsManagement() {
     setMounted(true);
     load();
   }, []);
+
+  // Keep an unsaved new-product draft for this browser tab. sessionStorage
+  // survives dialog close/navigation within the tab but is cleared on refresh.
+  useEffect(() => {
+    if (!dialogOpen || !editingProduct || editingProduct._id) return;
+    try {
+      sessionStorage.setItem(NEW_PRODUCT_DRAFT_KEY, JSON.stringify({
+        product: editingProduct,
+        shippingShape,
+        activeTab,
+      }));
+    } catch (error) {
+      console.warn('[PRODUCT_DRAFT_SAVE_FAILED]', error);
+    }
+  }, [dialogOpen, editingProduct, shippingShape, activeTab]);
 
   const handleOpenDialog = (product?: any) => {
     if (product) {
@@ -187,10 +204,38 @@ export default function ProductsManagement() {
         }
       });
     } else {
-      setShippingShape('rectangular');
-      setEditingProduct({ ...INITIAL_PRODUCT, slug: `piece-${Date.now()}` });
+      let restoredDraft: any = null;
+      try {
+        const saved = sessionStorage.getItem(NEW_PRODUCT_DRAFT_KEY);
+        if (saved) restoredDraft = JSON.parse(saved);
+      } catch (error) {
+        console.warn('[PRODUCT_DRAFT_RESTORE_FAILED]', error);
+      }
+
+      if (restoredDraft?.product) {
+        const savedProduct = restoredDraft.product;
+        setShippingShape(restoredDraft.shippingShape || savedProduct.shipping?.shape || 'rectangular');
+        setEditingProduct({
+          ...INITIAL_PRODUCT,
+          ...savedProduct,
+          shipping: {
+            ...INITIAL_PRODUCT.shipping,
+            ...savedProduct.shipping,
+            package_dimensions_cm: {
+              ...INITIAL_PRODUCT.shipping.package_dimensions_cm,
+              ...savedProduct.shipping?.package_dimensions_cm,
+            },
+          },
+          seo: { ...INITIAL_PRODUCT.seo, ...savedProduct.seo },
+        });
+        if (typeof restoredDraft.activeTab === 'number') setActiveTab(restoredDraft.activeTab);
+        toast({ title: 'Draft Restored', description: 'Your unsaved product details are back.' });
+      } else {
+        setShippingShape('rectangular');
+        setEditingProduct({ ...INITIAL_PRODUCT, slug: `piece-${Date.now()}` });
+      }
     }
-    setActiveTab(0);
+    if (product) setActiveTab(0);
     setDialogOpen(true);
   };
 
@@ -277,6 +322,9 @@ export default function ProductsManagement() {
       if (!res.ok) throw new Error(result.message || 'Save operation failed');
 
       toast({ title: "Product Saved", description: "Artisan piece updated in catalog." });
+      if (!editingProduct._id) {
+        try { sessionStorage.removeItem(NEW_PRODUCT_DRAFT_KEY); } catch { /* storage unavailable */ }
+      }
       setDialogOpen(false);
       load();
     } catch (error: any) {
@@ -888,7 +936,9 @@ export default function ProductsManagement() {
           </DialogContent>
 
           <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.5) }}>
-            <Button onClick={() => setDialogOpen(false)} color="inherit" sx={{ fontWeight: 700 }}>Discard</Button>
+            <Button onClick={() => setDialogOpen(false)} color="inherit" sx={{ fontWeight: 700 }}>
+              Close &amp; Keep Draft
+            </Button>
             <Button
               variant="contained"
               startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <Save />}
