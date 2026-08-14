@@ -21,6 +21,7 @@ import { RelatedProducts } from '@/components/product/RelatedProducts';
 import { ProductSeoContent } from '@/components/product/ProductSeoContent';
 import { ProductComparisonTable } from '@/components/product/ProductComparisonTable';
 import { uploadCustomerProductImage } from '@/lib/actions/upload-actions';
+import { FileUploadCard, UploadedFile } from '@/components/ui/file-upload-card';
 
 interface ProductDetailClientProps {
   initialProduct: any;
@@ -41,7 +42,28 @@ export default function ProductDetailClient({
   const firestore = useFirestore();
   const [customerImage, setCustomerImage] = useState<any>(null);
   const [uploadingCustomerImage, setUploadingCustomerImage] = useState(false);
+  const [uploadFiles, setUploadFiles] = useState<UploadedFile[]>([]);
   const draftId = `product-${product._id}`;
+
+  const handleCustomerFiles = async (files: File[]) => {
+    const file = files[0];
+    if (!file) return;
+    if (!user) { router.push('/auth/login'); return; }
+    const id = `${file.name}-${Date.now()}`;
+    setUploadFiles([{ id, file, progress: 15, status: 'uploading' }]);
+    setUploadingCustomerImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await uploadCustomerProductImage(formData, product._id, draftId);
+      setCustomerImage(result);
+      setUploadFiles([{ id, file, progress: 100, status: 'completed' }]);
+      toast({ title: 'Photo uploaded', description: 'Your photo is attached to this product.' });
+    } catch (error: any) {
+      setUploadFiles([{ id, file, progress: 100, status: 'error' }]);
+      toast({ variant: 'destructive', title: 'Upload failed', description: error.message });
+    } finally { setUploadingCustomerImage(false); }
+  };
   
   useEffect(() => {
     incrementProductViews(product._id);
@@ -129,11 +151,11 @@ export default function ProductDetailClient({
                 onAddToCart={handleAddToCart} 
                 onBuyNow={handleBuyNow} 
               />
-              {product.requiresCustomerImage && <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+              {product.requiresCustomerImage && <FileUploadCard files={uploadFiles} disabled={uploadingCustomerImage} onFilesChange={handleCustomerFiles} onFileRemove={() => { setUploadFiles([]); setCustomerImage(null); }} /> /*
                 <div><p className="text-sm font-bold">Upload your photo</p><p className="text-xs text-muted-foreground">{product.customerImageInstructions || `JPG, PNG, or WebP up to 5MB${product.customerImageWidth && product.customerImageHeight ? `; recommended ${product.customerImageWidth} × ${product.customerImageHeight}px${product.customerImagePreset && product.customerImagePreset !== 'custom' ? ` (${product.customerImagePreset} print size)` : ''}` : ''}${product.customerImageMinWidth ? `; minimum ${product.customerImageMinWidth} × ${product.customerImageMinHeight}px` : ''}.`}</p></div>
                 <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingCustomerImage} onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; if (!user) { router.push('/auth/login'); return; } setUploadingCustomerImage(true); try { const fd = new FormData(); fd.append('file', file); const result = await uploadCustomerProductImage(fd, product._id, draftId); setCustomerImage(result); toast({ title: 'Photo uploaded', description: 'Your photo is attached to this product.' }); } catch (err: any) { toast({ variant: 'destructive', title: 'Upload failed', description: err.message }); } finally { setUploadingCustomerImage(false); e.currentTarget.value = ''; } }} className="block w-full text-xs" />
                 {customerImage && <p className="text-xs text-green-700 font-semibold">✓ {customerImage.originalName} ({customerImage.width} × {customerImage.height})</p>}
-              </div>}
+              */}
 
               {/* ii. Cross-sell Banner */}
               <div className="p-8 rounded-[2.5rem] bg-accent/10 border border-accent/20 space-y-4 relative overflow-hidden group">
