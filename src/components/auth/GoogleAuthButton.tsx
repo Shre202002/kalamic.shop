@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import { 
   GoogleAuthProvider, 
+  getRedirectResult,
   signInWithPopup, 
+  signInWithRedirect,
   getAdditionalUserInfo 
 } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
@@ -21,56 +23,81 @@ export function GoogleAuthButton({ label }: GoogleAuthButtonProps) {
   const router = useRouter();
   const { toast } = useToast();
 
+  const finishSignIn = useCallback(async (result: any) => {
+    if (!result) return;
+
+    const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
+    const idToken = await result.user.getIdToken(true);
+    const sessionRes = await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (!sessionRes.ok) throw new Error('Session creation failed');
+
+    await fetch('/api/auth/sync-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firebaseId: result.user.uid,
+        email: result.user.email,
+        name: result.user.displayName,
+        firstName: result.user.displayName?.split(' ')[0] || '',
+        lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
+        photoURL: result.user.photoURL,
+        emailVerified: true,
+        phone: '',
+        phoneVerified: false
+      }),
+    });
+
+    toast({ title: 'Welcome to Kalamic', description: 'Identity verified successfully.' });
+    router.push(isNewUser ? '/auth/complete-profile' : '/products');
+  }, [router, toast]);
+
+  useEffect(() => {
+    let active = true;
+    getRedirectResult(auth)
+      .then((result) => {
+        if (active && result) return finishSignIn(result);
+        return undefined;
+      })
+      .catch((err: any) => {
+        console.error('[GOOGLE REDIRECT ERROR]:', err);
+        toast({
+          variant: 'destructive',
+          title: 'Authentication Error',
+          description: 'Google sign-in could not be completed. Please try again.'
+        });
+      });
+    return () => { active = false; };
+  }, [auth, finishSignIn, toast]);
+
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      
       const result = await signInWithPopup(auth, provider);
-      
-      if (!result) return;
-
-      const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
-      const idToken = await result.user.getIdToken(true);
-      
-      // 1. Create server-side session
-      const sessionRes = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (!sessionRes.ok) throw new Error('Session creation failed');
-
-      // 2. Sync user profile to MongoDB (Handles linking by email automatically)
-      await fetch('/api/auth/sync-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firebaseId: result.user.uid,
-          email: result.user.email,
-          name: result.user.displayName,
-          firstName: result.user.displayName?.split(' ')[0] || '',
-          lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
-          photoURL: result.user.photoURL,
-          emailVerified: true,
-          phone: '',
-          phoneVerified: false
-        }),
-      });
-
-      // 3. Navigate based on user status
-      toast({ title: 'Welcome to Kalamic', description: 'Identity verified successfully.' });
-      router.push(isNewUser ? '/auth/complete-profile' : '/products');
+      await finishSignIn(result);
       
     } catch (err: any) {
       console.error('[GOOGLE SIGN-IN ERROR]:', err);
       
       // Handle common Firebase errors
-      const errorMsg = err.code === 'auth/popup-closed-by-user' 
-        ? 'Sign-in window was closed.' 
-        : 'Google sign-in failed. Please try again.';
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/popup-blocked') {
+        // Browser privacy settings and mobile browsers frequently close OAuth popups.
+        // Redirect uses the same Firebase provider without relying on a popup window.
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectError) {
+          console.error('[GOOGLE REDIRECT FALLBACK ERROR]:', redirectError);
+        }
+      }
+
+      const errorMsg = 'Google sign-in failed. Please try again.';
 
       toast({
         variant: 'destructive',
@@ -84,6 +111,7 @@ export function GoogleAuthButton({ label }: GoogleAuthButtonProps) {
 
   return (
     <button 
+      type="button"
       onClick={handleGoogleSignIn} 
       disabled={isLoading} 
       className="w-full h-14 rounded-2xl border-2 border-border bg-white flex items-center justify-center gap-3 font-bold hover:bg-primary/5 transition-all shadow-sm text-sm"
