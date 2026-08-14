@@ -120,7 +120,7 @@ const NEW_PRODUCT_DRAFT_KEY = 'kalamic-admin-new-product-draft-v1';
 
 export default function ProductsManagement() {
   const { user } = useUser();
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -404,6 +404,16 @@ export default function ProductsManagement() {
     }
 
     baseCols.push(
+      {
+        field: 'requiresCustomerImage',
+        headerName: 'Customer photo',
+        width: 135,
+        renderCell: (params) => (
+          <Tooltip title={params.value ? 'Required before checkout' : 'Optional'}>
+            <Switch checked={params.value === true} size="small" onChange={(event) => toggleCustomerImageRequirement(params.row, event.target.checked)} inputProps={{ 'aria-label': `Require customer photo for ${params.row.name}` }} />
+          </Tooltip>
+        )
+      },
       { field: 'is_active', headerName: 'Live', width: 70, renderCell: (params) => <Switch checked={!!params.value} size="small" onChange={() => toggleProductVisibility(user!.uid, params.row._id, !params.value).then(load)} /> },
       {
         field: 'actions',
@@ -426,6 +436,22 @@ export default function ProductsManagement() {
     const next = [...editingProduct.specifications];
     next[idx][field] = val;
     setEditingProduct({ ...editingProduct, specifications: next });
+  };
+
+  const toggleCustomerImageRequirement = async (product: any, enabled: boolean) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/admin/products/${product._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: user.uid, requiresCustomerImage: enabled })
+      });
+      if (!res.ok) throw new Error((await res.json()).message || 'Could not update product setting');
+      setProducts((prev: any[]) => prev.map((item) => item._id === product._id ? { ...item, requiresCustomerImage: enabled } : item));
+      toast({ title: enabled ? 'Customer photo enabled' : 'Customer photo disabled', description: `${product.name} was updated.` });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Update failed', description: error.message });
+    }
   };
 
   if (!mounted) return null;
