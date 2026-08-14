@@ -182,7 +182,10 @@ export async function uploadCustomerProductImage(formData: FormData, productId: 
   const session = await getAuthenticatedSession();
   if (!session) throw new Error('Please sign in before uploading an image.');
   if (!/^[A-Za-z0-9_-]{8,100}$/.test(draftId) || !/^[a-f\d]{24}$/i.test(productId)) throw new Error('Invalid upload request.');
-  if (!await consumeRateLimit(`customer-image:${session.uid}`, 8, 60 * 60 * 1000)) throw new Error('Upload rate limit exceeded.');
+  // Allow repeated attempts in Preview/development QA, while keeping the
+  // stricter production limit in place.
+  const customerImageUploadLimit = process.env.VERCEL_ENV === 'preview' || process.env.NODE_ENV !== 'production' ? 30 : 8;
+  if (!await consumeRateLimit(`customer-image:${session.uid}`, customerImageUploadLimit, 60 * 60 * 1000)) throw new Error('Upload rate limit exceeded.');
   await dbConnect();
   const product: any = await KalamicProduct.findOne({ _id: productId, is_active: true, is_deleted: { $ne: true } })
     .select('name requiresCustomerImage customerImageWidth customerImageHeight customerImageMinWidth customerImageMinHeight').lean();
