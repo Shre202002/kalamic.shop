@@ -87,7 +87,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      if (product.track_inventory && product.stock < item.quantity) {
+      // Older product documents may not have track_inventory populated.
+      // Treat missing values as inventory-tracked; only an explicit false opts out.
+      const tracksInventory = product.track_inventory !== false;
+      if (tracksInventory && product.stock < item.quantity) {
         return NextResponse.json(
           { message: `${product.name} has only ${Math.max(0, product.stock)} item(s) available.` },
           { status: 409 }
@@ -182,7 +185,7 @@ export async function POST(req: NextRequest) {
     try {
       for (const item of validatedItems) {
         const sourceProduct: any = await KalamicProduct.findById(item.productId).select('track_inventory name');
-        if (!sourceProduct?.track_inventory) continue;
+        if (sourceProduct?.track_inventory === false) continue;
         const reserved = await KalamicProduct.findOneAndUpdate(
           { _id: item.productId, is_active: true, is_deleted: { $ne: true }, stock: { $gte: item.quantity } },
           { $inc: { stock: -item.quantity } },

@@ -80,6 +80,7 @@ const INITIAL_PRODUCT = {
   price: 0,
   compare_at_price: undefined,
   stock: 0,
+  track_inventory: true,
   sku: '',
   is_active: true,
   is_featured: false,
