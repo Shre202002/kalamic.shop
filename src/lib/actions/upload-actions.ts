@@ -206,12 +206,13 @@ export async function uploadCustomerProductImage(formData: FormData, productId: 
   const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
   if (!publicKey || !privateKey || !urlEndpoint) throw new Error('Server media configuration is missing.');
   const assetId = crypto.randomUUID();
-  const folder = `/Product_Order/_pending/${session.uid}/${draftId}`;
+  const folder = `/kalamic/Customer_Uploaded_Image/_pending/${session.uid}/${draftId}`;
   const fileName = `${safeName(file.name.replace(/\.[^.]+$/, ''), 'customer-image')}-${assetId}.webp`;
   const imagekit = new ImageKit({ publicKey, privateKey, urlEndpoint });
   const old = await CustomerUpload.findOne({ userId: session.uid, productId, draftId, status: 'pending' });
   if (old) { try { await imagekit.deleteFile(old.fileId); } catch {} await CustomerUpload.updateOne({ _id: old._id }, { $set: { status: 'deleted' } }); }
   const uploaded: any = await imagekit.upload({ file: normalized, fileName, folder, useUniqueFileName: false, isPrivateFile: true, tags: ['kalamic', 'customer-order-image'] });
+  if (!uploaded?.fileId || !uploaded?.filePath) throw new Error('Image storage did not return a valid file reference. Please try again.');
   await CustomerUpload.create({ assetId, userId: session.uid, productId, draftId, fileId: uploaded.fileId, filePath: uploaded.filePath, extension: 'webp', originalName: file.name.slice(0, 180), width, height, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) });
   return { success: true as const, assetId, mediaType: 'image' as const, width, height, originalName: file.name.slice(0, 180), uploadedAt: new Date().toISOString() };
  } catch (error: any) {
