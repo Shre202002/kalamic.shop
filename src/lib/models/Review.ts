@@ -17,6 +17,7 @@ export interface IReview extends Document {
   review_images: Array<{
     url: string;
     alt: string;
+    mediaType?: 'image' | 'video';
   }>;
   is_verified_purchase: boolean;
   likes_count: number;
@@ -36,7 +37,8 @@ const ReviewSchema: Schema = new Schema({
   review_images: {
     type: [{
       url: { type: String, required: true },
-      alt: { type: String, default: "" }
+      alt: { type: String, default: "", maxlength: 160 },
+      mediaType: { type: String, enum: ['image', 'video'], default: 'image' }
     }],
     _id: false
   },

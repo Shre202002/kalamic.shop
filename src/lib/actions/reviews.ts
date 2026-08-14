@@ -50,7 +50,7 @@ export async function submitReview(data: {
   userAvatar?: string;
   rating: number;
   reviewText: string;
-  images?: Array<{ url: string; alt: string }>;
+  images?: Array<{ url: string; alt: string; mediaType?: 'image' | 'video' }>;
 }) {
   const session = await getAuthenticatedSession();
   if (!session || session.uid !== data.userId) throw new Error('Unauthorized');
@@ -70,7 +70,7 @@ export async function submitReview(data: {
   if (!eligible) throw new Error('Only verified owners can submit a review.');
 
   const images = Array.isArray(data.images) ? data.images.slice(0, 4) : [];
-  if (images.some((image) => typeof image?.url !== 'string' || !/^https:\/\//i.test(image.url) || image.url.length > 2048 || !image.url.includes('imagekit.io'))) {
+  if (images.some((image) => typeof image?.url !== 'string' || !/^https:\/\//i.test(image.url) || image.url.length > 2048 || !image.url.includes('imagekit.io') || (image.mediaType && !['image', 'video'].includes(image.mediaType)))) {
     throw new Error('Review media must be secure ImageKit URLs.');
   }
 
