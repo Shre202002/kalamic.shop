@@ -146,8 +146,8 @@ export default function ProductsManagement() {
     load();
   }, []);
 
-  // Keep an unsaved new-product draft for this browser tab. sessionStorage
-  // survives dialog close/navigation within the tab but is cleared on refresh.
+  // Keep an unsaved new-product draft for this browser tab. It survives the
+  // dialog closing and reopening, but is cleared on a full page refresh.
   useEffect(() => {
     if (!dialogOpen || !editingProduct || editingProduct._id) return;
     try {
@@ -160,6 +160,14 @@ export default function ProductsManagement() {
       console.warn('[PRODUCT_DRAFT_SAVE_FAILED]', error);
     }
   }, [dialogOpen, editingProduct, shippingShape, activeTab]);
+
+  useEffect(() => {
+    const clearDraftOnRefresh = () => {
+      try { sessionStorage.removeItem(NEW_PRODUCT_DRAFT_KEY); } catch { /* storage unavailable */ }
+    };
+    window.addEventListener('beforeunload', clearDraftOnRefresh);
+    return () => window.removeEventListener('beforeunload', clearDraftOnRefresh);
+  }, []);
 
   const handleOpenDialog = (product?: any) => {
     if (product) {
