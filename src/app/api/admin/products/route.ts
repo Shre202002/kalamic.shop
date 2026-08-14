@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     // 3. Construct clean product object with explicit shape handling
     const product = await KalamicProduct.create({
       ...productData,
+      track_inventory: productData.track_inventory !== false,
       created_by_admin: session.uid,
       shipping: {
         weight_kg: productData.shipping?.weight_kg || 0,

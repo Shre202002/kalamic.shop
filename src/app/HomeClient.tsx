@@ -12,7 +12,6 @@ import {
   Hammer, 
   Package, 
   Sparkles, 
-  Star,
   CheckCircle2,
   ArrowRight,
   ChevronRight,
@@ -31,6 +30,7 @@ import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { TestimonialsColumn, type Testimonial } from '@/components/ui/testimonials-columns';
 import dayjs from 'dayjs';
 
 const BLOG_PLACEHOLDER = "https://picsum.photos/seed/kalamic-blog/1200/675";
@@ -100,7 +100,7 @@ const categories = [
   { key: 'home-decor', label: 'Home Decor', icon: HomeIcon, href: '/products?category=home-decor', desc: 'For Every Space' },
 ];
 
-const testimonials = [
+const testimonials: Testimonial[] = [
   { name: "Priya Sharma", location: "Delhi", rating: 5, text: "The mandala wall art is absolutely stunning. The craftsmanship is unlike anything I've seen online. Arrived perfectly packaged.", product: "Ganesha Mandala Wall Art" },
   { name: "Rahul Verma", location: "Mumbai", rating: 5, text: "Bought as a Diwali gift. My mother loved it. The ceramic quality and the packaging both exceeded expectations.", product: "Peacock Mor Stambh" },
   { name: "Anita Joshi", location: "Bangalore", rating: 5, text: "Ordered a custom size and the team was incredibly helpful. The piece arrived exactly as described. Will buy again!", product: "Custom Photo Frame" }
@@ -396,16 +396,16 @@ export default function HomeClient({
           </div></section>
 
           {/* TESTIMONIALS */}
-          <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="py-24">
-            <motion.div variants={fadeUp} className="mb-16"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Collector Stories</span><h2 className="font-display font-black text-4xl sm:text-5xl tracking-tight text-foreground mt-2">Loved by the Community</h2></motion.div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-              {testimonials.map((t, i) => (
-                <motion.div key={i} variants={fadeUp} whileHover={{ y: -12 }} className="p-10 rounded-[3rem] bg-white border border-border shadow-sm hover:shadow-2xl hover:border-primary/20 transition-all duration-500 space-y-8 relative">
-                  <div className="flex gap-1 text-primary">{[...Array(t.rating)].map((_, j) => <Star key={j} className="h-5 w-5 fill-current" />)}</div>
-                  <p className="text-lg text-muted-foreground font-medium leading-relaxed italic">"{t.text}"</p>
-                  <div className="pt-6 border-t border-primary/5 flex items-center justify-between"><div><p className="font-black text-base text-foreground tracking-tight">{t.name}</p><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{t.location}</p></div><Badge variant="outline" className="text-[8px] font-black border-primary/10 text-primary py-1 px-3 rounded-full">{t.product}</Badge></div>
-                </motion.div>
-              ))}
+          <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="relative py-24">
+            <motion.div variants={fadeUp} className="mx-auto max-w-2xl text-center">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Collector Stories</span>
+              <h2 className="mt-3 font-display text-4xl font-black tracking-tight text-foreground sm:text-5xl">Loved by the Community</h2>
+              <p className="mt-5 text-sm font-medium leading-7 text-muted-foreground sm:text-base">Real words from collectors who brought Kalamic craftsmanship into their homes.</p>
+            </motion.div>
+            <div className="relative mx-auto mt-12 flex max-h-[620px] max-w-6xl justify-center gap-5 overflow-hidden px-1 [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)] md:max-h-[740px] md:gap-6">
+              <TestimonialsColumn testimonials={testimonials} duration={22} />
+              <TestimonialsColumn testimonials={testimonials.slice().reverse()} duration={27} className="hidden md:block" />
+              <TestimonialsColumn testimonials={[testimonials[1], testimonials[2], testimonials[0]]} duration={24} className="hidden lg:block" />
             </div>
           </motion.section>
         </div>

@@ -40,6 +40,7 @@ export async function PATCH(
     // 2. Prepare atomic update object
     const finalUpdate: any = { 
       ...updateData,
+      track_inventory: updateData.track_inventory !== false,
       updated_by_admin: session.uid
     };
 

@@ -80,6 +80,7 @@ const INITIAL_PRODUCT = {
   price: 0,
   compare_at_price: undefined,
   stock: 0,
+  track_inventory: true,
   sku: '',
   is_active: true,
   is_featured: false,
@@ -94,6 +95,12 @@ const INITIAL_PRODUCT = {
   },
   requiresHandling: true,
   requiresPremiumProtection: true,
+  requiresCustomerImage: false,
+  customerImageWidth: 0,
+  customerImageHeight: 0,
+  customerImageMinWidth: 0,
+  customerImageMinHeight: 0,
+  customerImageInstructions: '',
   seo: {
     meta_title: '',
     meta_description: '',
@@ -107,6 +114,8 @@ const INITIAL_PRODUCT = {
     review_count: 0
   }
 };
+
+const NEW_PRODUCT_DRAFT_KEY = 'kalamic-admin-new-product-draft-v1';
 
 export default function ProductsManagement() {
   const { user } = useUser();
@@ -142,6 +151,29 @@ export default function ProductsManagement() {
   useEffect(() => {
     setMounted(true);
     load();
+  }, []);
+
+  // Keep an unsaved new-product draft for this browser tab. It survives the
+  // dialog closing and reopening, but is cleared on a full page refresh.
+  useEffect(() => {
+    if (!dialogOpen || !editingProduct || editingProduct._id) return;
+    try {
+      sessionStorage.setItem(NEW_PRODUCT_DRAFT_KEY, JSON.stringify({
+        product: editingProduct,
+        shippingShape,
+        activeTab,
+      }));
+    } catch (error) {
+      console.warn('[PRODUCT_DRAFT_SAVE_FAILED]', error);
+    }
+  }, [dialogOpen, editingProduct, shippingShape, activeTab]);
+
+  useEffect(() => {
+    const clearDraftOnRefresh = () => {
+      try { sessionStorage.removeItem(NEW_PRODUCT_DRAFT_KEY); } catch { /* storage unavailable */ }
+    };
+    window.addEventListener('beforeunload', clearDraftOnRefresh);
+    return () => window.removeEventListener('beforeunload', clearDraftOnRefresh);
   }, []);
 
   const handleOpenDialog = (product?: any) => {
@@ -180,6 +212,12 @@ export default function ProductsManagement() {
         },
         requiresHandling: product.requiresHandling ?? true,
         requiresPremiumProtection: product.requiresPremiumProtection ?? true,
+        requiresCustomerImage: product.requiresCustomerImage ?? false,
+        customerImageWidth: product.customerImageWidth ?? 0,
+        customerImageHeight: product.customerImageHeight ?? 0,
+        customerImageMinWidth: product.customerImageMinWidth ?? 0,
+        customerImageMinHeight: product.customerImageMinHeight ?? 0,
+        customerImageInstructions: product.customerImageInstructions ?? '',
         seo: {
           ...INITIAL_PRODUCT.seo,
           ...product.seo,
@@ -187,10 +225,38 @@ export default function ProductsManagement() {
         }
       });
     } else {
-      setShippingShape('rectangular');
-      setEditingProduct({ ...INITIAL_PRODUCT, slug: `piece-${Date.now()}` });
+      let restoredDraft: any = null;
+      try {
+        const saved = sessionStorage.getItem(NEW_PRODUCT_DRAFT_KEY);
+        if (saved) restoredDraft = JSON.parse(saved);
+      } catch (error) {
+        console.warn('[PRODUCT_DRAFT_RESTORE_FAILED]', error);
+      }
+
+      if (restoredDraft?.product) {
+        const savedProduct = restoredDraft.product;
+        setShippingShape(restoredDraft.shippingShape || savedProduct.shipping?.shape || 'rectangular');
+        setEditingProduct({
+          ...INITIAL_PRODUCT,
+          ...savedProduct,
+          shipping: {
+            ...INITIAL_PRODUCT.shipping,
+            ...savedProduct.shipping,
+            package_dimensions_cm: {
+              ...INITIAL_PRODUCT.shipping.package_dimensions_cm,
+              ...savedProduct.shipping?.package_dimensions_cm,
+            },
+          },
+          seo: { ...INITIAL_PRODUCT.seo, ...savedProduct.seo },
+        });
+        if (typeof restoredDraft.activeTab === 'number') setActiveTab(restoredDraft.activeTab);
+        toast({ title: 'Draft Restored', description: 'Your unsaved product details are back.' });
+      } else {
+        setShippingShape('rectangular');
+        setEditingProduct({ ...INITIAL_PRODUCT, slug: `piece-${Date.now()}` });
+      }
     }
-    setActiveTab(0);
+    if (product) setActiveTab(0);
     setDialogOpen(true);
   };
 
@@ -277,6 +343,9 @@ export default function ProductsManagement() {
       if (!res.ok) throw new Error(result.message || 'Save operation failed');
 
       toast({ title: "Product Saved", description: "Artisan piece updated in catalog." });
+      if (!editingProduct._id) {
+        try { sessionStorage.removeItem(NEW_PRODUCT_DRAFT_KEY); } catch { /* storage unavailable */ }
+      }
       setDialogOpen(false);
       load();
     } catch (error: any) {
@@ -498,6 +567,19 @@ export default function ProductsManagement() {
                     <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
                       <FormControlLabel control={<Switch checked={!!editingProduct.is_active} onChange={(e) => setEditingProduct({ ...editingProduct, is_active: e.target.checked })} />} label="Active" />
                       <FormControlLabel control={<Switch checked={!!editingProduct.is_featured} onChange={(e) => setEditingProduct({ ...editingProduct, is_featured: e.target.checked })} />} label="Featured" />
+                    </Paper>
+                    <Paper variant="outlined" sx={{ p: 2, mt: 2, borderRadius: 3 }}>
+                      <FormControlLabel control={<Switch checked={!!editingProduct.requiresCustomerImage} onChange={(e) => setEditingProduct({ ...editingProduct, requiresCustomerImage: e.target.checked })} />} label="Require customer photo" />
+                      {editingProduct.requiresCustomerImage && <>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>Customers must upload a JPG, PNG, or WebP before checkout.</Typography>
+                        <Grid container spacing={1}>
+                          <Grid item xs={6}><TextField size="small" type="number" label="Target width" value={editingProduct.customerImageWidth || ''} onChange={(e) => setEditingProduct({ ...editingProduct, customerImageWidth: Number(e.target.value) || 0 })} /></Grid>
+                          <Grid item xs={6}><TextField size="small" type="number" label="Target height" value={editingProduct.customerImageHeight || ''} onChange={(e) => setEditingProduct({ ...editingProduct, customerImageHeight: Number(e.target.value) || 0 })} /></Grid>
+                          <Grid item xs={6}><TextField size="small" type="number" label="Minimum width" value={editingProduct.customerImageMinWidth || ''} onChange={(e) => setEditingProduct({ ...editingProduct, customerImageMinWidth: Number(e.target.value) || 0 })} /></Grid>
+                          <Grid item xs={6}><TextField size="small" type="number" label="Minimum height" value={editingProduct.customerImageMinHeight || ''} onChange={(e) => setEditingProduct({ ...editingProduct, customerImageMinHeight: Number(e.target.value) || 0 })} /></Grid>
+                          <Grid item xs={12}><TextField fullWidth size="small" multiline rows={2} label="Upload instructions" value={editingProduct.customerImageInstructions || ''} onChange={(e) => setEditingProduct({ ...editingProduct, customerImageInstructions: e.target.value.slice(0, 500) })} /></Grid>
+                        </Grid>
+                      </>}
                     </Paper>
                   </Grid>
                 </Grid>
@@ -888,7 +970,9 @@ export default function ProductsManagement() {
           </DialogContent>
 
           <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.5) }}>
-            <Button onClick={() => setDialogOpen(false)} color="inherit" sx={{ fontWeight: 700 }}>Discard</Button>
+            <Button onClick={() => setDialogOpen(false)} color="inherit" sx={{ fontWeight: 700 }}>
+              Close &amp; Keep Draft
+            </Button>
             <Button
               variant="contained"
               startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <Save />}

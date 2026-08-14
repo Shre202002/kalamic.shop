@@ -28,7 +28,8 @@ export default function CartPage() {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [cartFlags, setCartFlags] = useState({
     requiresHandling: true,
-    requiresPremiumProtection: true
+    requiresPremiumProtection: true,
+    requiresCustomerImage: false
   });
 
   const cartQuery = useMemoFirebase(() => {
@@ -69,7 +70,8 @@ export default function CartPage() {
       if (hasFlags) {
         setCartFlags({
           requiresHandling: cartItems.some(item => item.requiresHandling !== false),
-          requiresPremiumProtection: cartItems.some(item => item.requiresPremiumProtection !== false)
+          requiresPremiumProtection: cartItems.some(item => item.requiresPremiumProtection !== false),
+          requiresCustomerImage: cartItems.some(item => item.requiresCustomerImage === true && !item.customerImage)
         });
         return;
       }
@@ -77,6 +79,7 @@ export default function CartPage() {
       // Fallback: Fetch from DB for old cart items
       let handlingNeeded = false;
       let premiumNeeded = false;
+      let imageNeeded = false;
       
       for (const item of cartItems) {
         const productId = item.productVariantId || item.id;
@@ -86,6 +89,7 @@ export default function CartPage() {
             const data = await res.json();
             if (data.requiresHandling !== false) handlingNeeded = true;
             if (data.requiresPremiumProtection !== false) premiumNeeded = true;
+            if (data.requiresCustomerImage === true && !item.customerImage) imageNeeded = true;
           } else {
             handlingNeeded = true;
             premiumNeeded = true;
@@ -99,6 +103,7 @@ export default function CartPage() {
       setCartFlags({
         requiresHandling: handlingNeeded,
         requiresPremiumProtection: premiumNeeded
+        ,requiresCustomerImage: imageNeeded
       });
     };
     
@@ -133,6 +138,7 @@ export default function CartPage() {
 
   const handleCheckoutRedirect = () => {
     if (!cartItems?.length) return;
+    if (cartFlags.requiresCustomerImage) { toast({ variant: 'destructive', title: 'Photo required', description: 'This product requires a photo-frame image before you can place the order.' }); return; }
     trackEvent('begin_checkout', {
       currency: 'INR',
       value: subtotal,

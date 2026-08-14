@@ -49,6 +49,12 @@ export interface IKalamicProduct extends Document {
   };
   requiresHandling: boolean;
   requiresPremiumProtection: boolean;
+  requiresCustomerImage: boolean;
+  customerImageWidth?: number;
+  customerImageHeight?: number;
+  customerImageMinWidth?: number;
+  customerImageMinHeight?: number;
+  customerImageInstructions?: string;
   analytics: {
     total_views: number;
     total_orders: number;
@@ -136,6 +142,12 @@ const KalamicProductSchema: Schema = new Schema({
     type: Boolean, 
     default: true 
   },
+  requiresCustomerImage: { type: Boolean, default: false },
+  customerImageWidth: { type: Number, default: 0, min: 0, max: 8000 },
+  customerImageHeight: { type: Number, default: 0, min: 0, max: 8000 },
+  customerImageMinWidth: { type: Number, default: 0, min: 0, max: 8000 },
+  customerImageMinHeight: { type: Number, default: 0, min: 0, max: 8000 },
+  customerImageInstructions: { type: String, default: '', maxlength: 500 },
   analytics: {
     total_views: { type: Number, default: 0 },
     total_orders: { type: Number, default: 0 },

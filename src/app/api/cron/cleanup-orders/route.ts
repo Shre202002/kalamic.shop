@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
 import KalamicProduct from '@/lib/models/KalamicProduct';
+import CustomerUpload from '@/lib/models/CustomerUpload';
+import ImageKit from 'imagekit';
 
 export const runtime = 'nodejs';
 
@@ -47,7 +49,17 @@ export async function GET(request: NextRequest) {
       releasedOrders++;
     }
 
-    return NextResponse.json({ success: true, scanned: candidates.length, releasedOrders });
+    const staleAssets: any[] = await CustomerUpload.find({ status: 'pending', expiresAt: { $lt: new Date() } }).select('_id fileId').limit(200).lean();
+    const publicKey = process.env.IMAGEKIT_PUBLIC_KEY || process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
+    const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+    const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
+    if (publicKey && privateKey && urlEndpoint) {
+      const imagekit = new ImageKit({ publicKey, privateKey, urlEndpoint });
+      for (const asset of staleAssets) { try { await imagekit.deleteFile(asset.fileId); } catch {} }
+    }
+    if (staleAssets.length) await CustomerUpload.updateMany({ _id: { $in: staleAssets.map((asset) => asset._id) } }, { $set: { status: 'deleted' } });
+
+    return NextResponse.json({ success: true, scanned: candidates.length, releasedOrders, deletedCustomerAssets: staleAssets.length });
   } catch (error: any) {
     console.error('[ORDER_CLEANUP_ERROR]', error.message);
     return NextResponse.json({ message: 'Cleanup failed' }, { status: 500 });
