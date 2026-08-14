@@ -55,6 +55,7 @@ export interface IKalamicProduct extends Document {
   customerImageMinWidth?: number;
   customerImageMinHeight?: number;
   customerImageInstructions?: string;
+  customerImagePreset?: string;
   analytics: {
     total_views: number;
     total_orders: number;
@@ -148,6 +149,7 @@ const KalamicProductSchema: Schema = new Schema({
   customerImageMinWidth: { type: Number, default: 0, min: 0, max: 8000 },
   customerImageMinHeight: { type: Number, default: 0, min: 0, max: 8000 },
   customerImageInstructions: { type: String, default: '', maxlength: 500 },
+  customerImagePreset: { type: String, default: 'custom', enum: ['4x6', '5x7', '8x10', 'square', 'custom'] },
   analytics: {
     total_views: { type: Number, default: 0 },
     total_orders: { type: Number, default: 0 },
