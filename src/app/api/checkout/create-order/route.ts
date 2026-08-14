@@ -266,7 +266,7 @@ export async function POST(req: NextRequest) {
         const clean = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'item';
         for (const asset of customerAssets) {
           const item = validatedItems.find((entry: any) => entry.customerImage?.assetId === asset.assetId) as any;
-          const destinationPath = `/Product_Order/${clean(item?.name || 'product')}/${clean(shippingDetails.fullName)}-${orderNumber}.webp`;
+          const destinationPath = `/kalamic/Customer_Uploaded_Image/${clean(item?.name || 'product')}/${clean(shippingDetails.fullName)}-${orderNumber}.webp`;
           await imagekit.moveFile({ sourceFilePath: asset.filePath, destinationPath });
           if (item?.customerImage) item.customerImage.filePath = destinationPath;
         }
