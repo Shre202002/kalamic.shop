@@ -152,7 +152,20 @@ export default function BlogStudio() {
   const handleOpenEditor = (blog?: any) => {
     const draft = localStorage.getItem('blog_draft_autosave');
     if (blog) {
-      setFormData({ ...blog });
+      const seo = blog.seo || {};
+      setFormData({
+        ...blog,
+        excerpt: blog.excerpt || '',
+        tags: Array.isArray(blog.tags) ? blog.tags : [],
+        seo: {
+          metaTitle: seo.metaTitle || seo.meta_title || '',
+          metaDescription: seo.metaDescription || seo.meta_description || '',
+          metaKeywords: Array.isArray(seo.metaKeywords) ? seo.metaKeywords : (Array.isArray(seo.meta_keywords) ? seo.meta_keywords : []),
+          canonicalUrl: seo.canonicalUrl || seo.canonical_url || '',
+          ogImage: seo.ogImage || seo.og_image || '',
+        },
+        coverImage: blog.coverImage || { url: '', alt: blog.title || '' },
+      });
       setSlugManuallyEdited(true);
     } else {
       setFormData({
@@ -599,6 +612,12 @@ export default function BlogStudio() {
                 <Paper sx={{ p: 4, borderRadius: 4 }}>
                   <Typography variant="h6" fontWeight={900}>SEO Performance ({seoScore}%)</Typography>
                   <LinearProgress variant="determinate" value={seoScore} sx={{ height: 10, borderRadius: 5, my: 2 }} color={seoScore < 50 ? 'error' : 'success'} />
+                  <Stack spacing={2.5} sx={{ mb: 4 }}>
+                    <TextField fullWidth label="Meta title (50–60 characters)" value={formData.seo?.metaTitle || ''} onChange={(e) => setFormData({ ...formData, seo: { ...formData.seo, metaTitle: e.target.value.slice(0, 70) } })} helperText={`${formData.seo?.metaTitle?.length || 0}/60 characters`} />
+                    <TextField fullWidth multiline minRows={3} label="Meta description (120–160 characters)" value={formData.seo?.metaDescription || ''} onChange={(e) => setFormData({ ...formData, seo: { ...formData.seo, metaDescription: e.target.value.slice(0, 180) } })} helperText={`${formData.seo?.metaDescription?.length || 0}/160 characters`} />
+                    <TextField fullWidth label="SEO keywords (comma separated)" value={(formData.seo?.metaKeywords || []).join(', ')} onChange={(e) => setFormData({ ...formData, seo: { ...formData.seo, metaKeywords: e.target.value.split(',').map((keyword: string) => keyword.trim()).filter(Boolean).slice(0, 20) } })} helperText="Add at least 3 specific search phrases." />
+                    <TextField fullWidth label="Canonical URL (optional)" value={formData.seo?.canonicalUrl || ''} onChange={(e) => setFormData({ ...formData, seo: { ...formData.seo, canonicalUrl: e.target.value.trim() } })} />
+                  </Stack>
                   <List>
                     {seoChecks.map((c, i) => (
                       <ListItem key={i}>
