@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
+import { getAuthenticatedSession } from '@/lib/server-auth';
 
 /**
  * @fileOverview API to fetch pending payment orders for a user within last 24 hours.
@@ -10,11 +11,9 @@ export async function GET(req: NextRequest) {
   await dbConnect();
 
   try {
-    const userId = req.nextUrl.searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ message: 'Missing userId' }, { status: 400 });
-    }
+    const session = await getAuthenticatedSession();
+    if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    const userId = session.uid;
 
     // Look for orders from the last 24 hours that aren't verified yet
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);

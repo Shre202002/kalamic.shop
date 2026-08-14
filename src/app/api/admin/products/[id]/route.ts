@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import User from '@/lib/models/User';
 import AdminLog from '@/lib/models/AdminLog';
+import { requireAdmin } from '@/lib/server-auth';
+import { sanitizeMongoUpdate } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview Secure update of existing artisan pieces.
@@ -19,12 +21,9 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { adminId, ...updateData } = body;
+    const updateData = sanitizeMongoUpdate(body);
 
-    const user = await User.findOne({ firebaseId: adminId });
-    if (!user || !['super_admin', 'admin'].includes(user.role)) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
-    }
+    const { session, user } = await requireAdmin(['super_admin', 'admin']);
 
     console.log('[API_SAVE_DEBUG] Updating piece:', id);
     console.log('[API_SAVE_DEBUG] Received shipping:', JSON.stringify(updateData.shipping));
@@ -40,8 +39,8 @@ export async function PATCH(
 
     // 2. Prepare atomic update object
     const finalUpdate: any = { 
-      ...updateData, 
-      updated_by_admin: adminId 
+      ...updateData,
+      updated_by_admin: session.uid
     };
 
     // 3. Ensure nested shipping fields are explicitly included, including cylinder support
@@ -69,7 +68,7 @@ export async function PATCH(
     }
 
     await AdminLog.create({
-      adminId,
+      adminId: session.uid,
       adminName: `${user.firstName || 'Admin'} ${user.lastName || ''}`,
       role: user.role,
       action: 'UPDATE_PRODUCT',

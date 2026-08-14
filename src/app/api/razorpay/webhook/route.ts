@@ -3,9 +3,11 @@ import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { verifyRazorpayWebhookSignature } from '@/lib/actions/razorpay';
 import { finalizePaidOrder, markOrderPaymentFailed } from '@/lib/payments/order-payment';
+import { consumeApiRateLimit } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await consumeApiRateLimit(req, 'razorpay-webhook', 120))) return NextResponse.json({ message: 'Too many webhook requests' }, { status: 429 });
     const rawBody = await req.text();
     const signature = req.headers.get('x-razorpay-signature');
 

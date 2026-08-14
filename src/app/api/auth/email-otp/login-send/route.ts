@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendOtp } from '@/lib/actions/otp-actions';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
+import { consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview API to trigger email OTP for LOGIN.
@@ -14,6 +15,9 @@ export async function POST(req: NextRequest) {
     if (!email) return NextResponse.json({ message: 'Email required' }, { status: 400 });
 
     const cleanEmail = email.trim().toLowerCase();
+    if (!await consumeRateLimit(`otp:login-send:${cleanEmail}:${requestIp(req)}`, 3, 10 * 60 * 1000)) {
+      return NextResponse.json({ message: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
 
     await dbConnect();
     const userExists = await User.findOne({ email: cleanEmail }).lean();

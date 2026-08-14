@@ -1,21 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import GalleryItem from '@/lib/models/GalleryItem';
-import User from '@/lib/models/User';
-
-async function validateAdmin(userId: string) {
-  await dbConnect();
-  const user = await User.findOne({ firebaseId: userId });
-  return user && ['super_admin', 'admin'].includes(user.role);
-}
+import { requireAdmin } from '@/lib/server-auth';
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const adminId = searchParams.get('adminId');
-
-  if (!adminId || !(await validateAdmin(adminId))) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
-  }
+  const { session } = await requireAdmin(['super_admin', 'admin']);
 
   await dbConnect();
   const items = await GalleryItem.find({ mediaType: 'image' })
@@ -28,11 +17,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { url, alt, adminId, fileId, name } = await req.json();
-
-    if (!adminId || !(await validateAdmin(adminId))) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
-    }
+    const { url, alt, adminId: _ignoredAdminId, fileId, name } = await req.json();
+    const { session } = await requireAdmin(['super_admin', 'admin']);
 
     await dbConnect();
 
@@ -49,7 +35,7 @@ export async function POST(req: NextRequest) {
       fileId,
       mediaType: 'image',
       format: 'webp',
-      uploadedBy: adminId
+      uploadedBy: session.uid
     });
 
     return NextResponse.json(newItem, { status: 201 });

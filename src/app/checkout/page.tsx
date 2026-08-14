@@ -71,6 +71,7 @@ interface ChargesPreview {
 }
 
 function CheckoutContent() {
+  const idempotencyKeyRef = useRef<string | null>(null);
   const { user, loading: isAuthLoading } = useProtectedRoute();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -483,7 +484,10 @@ function CheckoutContent() {
 
       const response = await fetch('/api/checkout/create-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKeyRef.current || (idempotencyKeyRef.current = crypto.randomUUID()),
+        },
         body: JSON.stringify(payload)
       });
 

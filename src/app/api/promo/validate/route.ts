@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import PromoCode from '@/lib/models/PromoCode';
+import { consumeApiRateLimit } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview Public API for validating discount codes.
@@ -9,9 +10,10 @@ import PromoCode from '@/lib/models/PromoCode';
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await consumeApiRateLimit(req, 'promo-validate', 30))) return NextResponse.json({ success: false, message: 'Too many requests' }, { status: 429 });
     const { code, subtotal } = await req.json();
 
-    if (!code || typeof subtotal !== 'number') {
+    if (typeof code !== 'string' || code.length > 64 || !/^[A-Z0-9_-]+$/i.test(code.trim()) || typeof subtotal !== 'number' || !Number.isFinite(subtotal) || subtotal < 0 || subtotal > 10_000_000) {
       return NextResponse.json({ success: false, message: "Invalid request payload" }, { status: 400 });
     }
 

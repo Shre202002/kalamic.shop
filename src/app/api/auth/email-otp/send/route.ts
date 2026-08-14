@@ -2,27 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendOtp } from '@/lib/actions/otp-actions';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
+import { consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview API to trigger email OTP with basic rate limiting.
  * Restricted to registered users only.
  */
-
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(key: string, limit: number, windowMs: number): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(key);
-  
-  if (!entry || entry.resetAt < now) {
-    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-  
-  if (entry.count >= limit) return false;
-  entry.count++;
-  return true;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    const allowed = checkRateLimit(`email-otp:${cleanEmail}`, 3, 10 * 60 * 1000);
+    const allowed = await consumeRateLimit(`otp:send:${cleanEmail}:${requestIp(req)}`, 3, 10 * 60 * 1000);
     if (!allowed) {
       return NextResponse.json({ 
         message: 'Too many requests. Please wait 10 minutes.' 

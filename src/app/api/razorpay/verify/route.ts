@@ -8,6 +8,7 @@ import {
 } from '@/lib/actions/razorpay';
 import { finalizePaidOrder, paymentResponse } from '@/lib/payments/order-payment';
 import { verifySession } from '@/lib/firebase-admin';
+import { consumeApiRateLimit } from '@/lib/security/rate-limit';
 
 function paymentMatchesOrder(payment: any, order: any) {
   return payment
@@ -19,6 +20,7 @@ function paymentMatchesOrder(payment: any, order: any) {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await consumeApiRateLimit(req, 'razorpay-verify', 20, 10 * 60 * 1000))) return NextResponse.json({ message: 'Too many verification attempts' }, { status: 429 });
     const {
       orderId,
       razorpay_order_id: razorpayOrderId,

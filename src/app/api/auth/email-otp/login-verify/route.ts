@@ -3,6 +3,7 @@ import { verifyOtp } from '@/lib/actions/otp-actions';
 import { adminAuth, createCustomToken } from '@/lib/firebase-admin';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
+import { consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview API to verify email OTP and return a Firebase custom token for login.
@@ -20,6 +21,9 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+    if (!await consumeRateLimit(`otp:login-verify:${cleanEmail}:${requestIp(req)}`, 10, 10 * 60 * 1000)) {
+      return NextResponse.json({ message: 'Too many attempts. Please try again later.' }, { status: 429 });
+    }
 
     // 1. Verify OTP
     const verifyResult = await verifyOtp(cleanEmail, otp);

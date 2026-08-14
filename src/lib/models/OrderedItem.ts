@@ -24,6 +24,9 @@ export interface IOrderedItem extends Document {
   userPhone: string;
   userEmail?: string;
   orderNumber: string;
+  checkoutIdempotencyKey?: string | null;
+  inventoryReserved?: boolean;
+  inventoryReleased?: boolean;
   subtotal: number;
   charges: {
     shipping: number;
@@ -75,6 +78,9 @@ const OrderedItemSchema: Schema = new Schema({
   userEmail: { type: String },
   
   orderNumber: { type: String, required: true, unique: true, index: true },
+  checkoutIdempotencyKey: { type: String, default: null, index: true, sparse: true },
+  inventoryReserved: { type: Boolean, default: false },
+  inventoryReleased: { type: Boolean, default: false },
   
   subtotal: { type: Number, required: true },
   charges: {
@@ -150,5 +156,7 @@ const OrderedItemSchema: Schema = new Schema({
   collection: 'Ordered_Items',
   strict: true 
 });
+
+OrderedItemSchema.index({ userId: 1, checkoutIdempotencyKey: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.OrderedItem || mongoose.model<IOrderedItem>('OrderedItem', OrderedItemSchema);

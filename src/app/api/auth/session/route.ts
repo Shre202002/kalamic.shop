@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     
     // Verify the ID token
     console.log('[SESSION] Verifying token...');
-    const decoded = await adminAuth.verifyIdToken(idToken);
+    const decoded = await adminAuth.verifyIdToken(idToken, true);
     console.log('[SESSION] Token verified for:', decoded.email);
     
     // Get or create MongoDB profile

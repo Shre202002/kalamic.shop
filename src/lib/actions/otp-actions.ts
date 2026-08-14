@@ -4,6 +4,7 @@
 import dbConnect from '@/lib/db';
 import Otp from '@/lib/models/Otp';
 import { sendEmail } from '@/lib/email';
+import crypto from 'crypto';
 
 /**
  * Generates and stores a 6-digit OTP for the given identifier (email or phone).
@@ -12,10 +13,10 @@ import { sendEmail } from '@/lib/email';
 async function generateAndStoreOtp(identifier: string) {
   await dbConnect();
   const cleanIdentifier = identifier.trim().toLowerCase();
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = crypto.randomInt(100000, 1000000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
-  console.log(`[DB] Storing OTP for ${cleanIdentifier}: ${code}`);
+  console.log(`[DB] Storing OTP for ${cleanIdentifier}`);
 
   try {
     // Atomic update or insert
@@ -105,7 +106,7 @@ export async function verifyOtp(identifier: string, code: string) {
   const cleanIdentifier = identifier.trim().toLowerCase();
   const cleanCode = code.trim();
 
-  console.log(`[AUTH] Verifying OTP for: ${cleanIdentifier} with code: ${cleanCode}`);
+  console.log(`[AUTH] Verifying OTP for: ${cleanIdentifier}`);
 
   try {
     const otpRecord = await Otp.findOne({ email: cleanIdentifier }).sort({ createdAt: -1 });
@@ -121,8 +122,13 @@ export async function verifyOtp(identifier: string, code: string) {
       return { success: false, message: "Code has expired." };
     }
 
+    if (otpRecord.attempts >= 5) {
+      await Otp.deleteOne({ _id: otpRecord._id });
+      return { success: false, message: "Too many incorrect attempts. Request a new code." };
+    }
+
     if (otpRecord.code !== cleanCode) {
-      console.error(`[AUTH] Incorrect code for: ${cleanIdentifier}. Expected: ${otpRecord.code}, Got: ${cleanCode}`);
+      console.error(`[AUTH] Incorrect OTP for: ${cleanIdentifier}`);
       await Otp.updateOne({ _id: otpRecord._id }, { $inc: { attempts: 1 } });
       return { success: false, message: "Incorrect code." };
     }

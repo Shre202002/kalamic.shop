@@ -4,25 +4,12 @@ import { getOrCreateProfile } from '@/lib/actions/user-actions';
 import { adminAuth, createCustomToken } from '@/lib/firebase-admin';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
+import { consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview API to verify email OTP and return a Firebase custom token.
  * Restricted to registered users only.
  */
-
-const verifyLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(key: string, limit: number, windowMs: number): boolean {
-  const now = Date.now();
-  const entry = verifyLimitMap.get(key);
-  if (!entry || entry.resetAt < now) {
-    verifyLimitMap.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-  if (entry.count >= limit) return false;
-  entry.count++;
-  return true;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    const allowed = checkRateLimit(`verify:${cleanEmail}`, 5, 5 * 60 * 1000);
+    const allowed = await consumeRateLimit(`otp:verify:${cleanEmail}:${requestIp(req)}`, 10, 10 * 60 * 1000);
     if (!allowed) {
       return NextResponse.json(
         { message: 'Too many attempts. Wait 5 minutes.' }, 

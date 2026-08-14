@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrderedItem from '@/lib/models/OrderedItem';
+import { getAuthenticatedSession } from '@/lib/server-auth';
 
 /**
  * @fileOverview Secure Acquisition Fetch API.
@@ -13,6 +14,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const resolvedParams = await params;
     const { id } = resolvedParams;
+
+    const session = await getAuthenticatedSession();
+    if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
     if (!id) {
       return NextResponse.json({ message: 'Missing record identifier' }, { status: 400 });
@@ -28,6 +32,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     
     if (!order) {
       return NextResponse.json({ message: 'Acquisition record not found' }, { status: 404 });
+    }
+
+    if (order.userId !== session.uid) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
     // Check for full payment verification
