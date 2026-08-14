@@ -266,9 +266,16 @@ export async function POST(req: NextRequest) {
         const clean = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'item';
         for (const asset of customerAssets) {
           const item = validatedItems.find((entry: any) => entry.customerImage?.assetId === asset.assetId) as any;
-          const destinationPath = `/kalamic/Customer_Uploaded_Image/${clean(item?.name || 'product')}/${clean(shippingDetails.fullName)}-${orderNumber}.webp`;
-          await imagekit.moveFile({ sourceFilePath: asset.filePath, destinationPath });
-          if (item?.customerImage) item.customerImage.filePath = destinationPath;
+          // ImageKit's moveFile destinationPath must be a folder, not a full
+          // filename. Move first, then rename inside that folder.
+          const destinationFolder = `/kalamic/Customer_Uploaded_Image/${clean(item?.name || 'product')}/`;
+          await imagekit.moveFile({ sourceFilePath: asset.filePath, destinationPath: destinationFolder });
+          const sourceFileName = asset.filePath.split('/').filter(Boolean).pop();
+          if (!sourceFileName) throw new Error('Customer image reference is invalid.');
+          const movedFilePath = `${destinationFolder}${sourceFileName}`;
+          const finalFileName = `${clean(shippingDetails.fullName)}-${orderNumber}.webp`;
+          await imagekit.renameFile({ filePath: movedFilePath, newFileName: finalFileName, purgeCache: true });
+          if (item?.customerImage) item.customerImage.filePath = `${destinationFolder}${finalFileName}`;
         }
         await OrderedItem.updateOne({ _id: newOrder._id }, { $set: { items: validatedItems } });
         await CustomerUpload.updateMany({ assetId: { $in: customerAssets.map((a) => a.assetId) }, userId: sessionUser.uid }, { $set: { status: 'attached', orderId: newOrder._id.toString(), expiresAt: new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000) } });
