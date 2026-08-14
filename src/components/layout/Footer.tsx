@@ -37,6 +37,7 @@ export function Footer() {
             <ul className="space-y-4 text-sm text-[#b0a090] font-medium">
               <li><Link href="/products" className="hover:text-primary transition-colors">Artisan Gallery</Link></li>
               <li><Link href="/blog" className="hover:text-primary transition-colors">Blog & Stories</Link></li>
+              <li><Link href="/guides" className="hover:text-primary transition-colors">Decor Guides</Link></li>
               <li><Link href="/products?category=wall-art" className="hover:text-primary transition-colors">Wall Artistry</Link></li>
               <li><Link href="/wishlist" className="hover:text-primary transition-colors">Private Favorites</Link></li>
             </ul>

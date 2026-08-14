@@ -1,0 +1,13 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { Metadata } from 'next';
+import { getSeoGuide, SEO_GUIDES } from '@/data/seo-guides';
+
+export async function generateStaticParams() { return SEO_GUIDES.map(({ slug }) => ({ slug })); }
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> { const guide = getSeoGuide((await params).slug); return guide ? { title: `${guide.title} | Kalamic`, description: guide.description, alternates: { canonical: `/guides/${guide.slug}` }, openGraph: { title: guide.title, description: guide.description, type: 'article' } } : {}; }
+
+export default async function GuidePage({ params }: { params: Promise<{ slug: string }> }) {
+  const guide = getSeoGuide((await params).slug); if (!guide) notFound();
+  const faq = guide.sections.map((section) => ({ '@type': 'Question', name: section.heading, acceptedAnswer: { '@type': 'Answer', text: section.body } }));
+  return <main className="min-h-screen bg-[#FDFAF6] px-6 py-24"><article className="mx-auto max-w-3xl"><Link href="/guides" className="text-xs font-black uppercase tracking-widest text-primary">← All guides</Link><p className="mt-10 text-xs font-black uppercase tracking-[.25em] text-primary">{guide.category}</p><h1 className="mt-4 text-4xl font-bold leading-tight md:text-6xl">{guide.title}</h1><p className="mt-6 text-lg leading-8 text-muted-foreground">{guide.intro}</p><div className="mt-12 space-y-10">{guide.sections.map((section) => <section key={section.heading}><h2 className="text-2xl font-bold">{section.heading}</h2><p className="mt-3 leading-8 text-foreground/80">{section.body}</p></section>)}</div>{guide.products && <section className="mt-14 rounded-3xl bg-primary/5 p-7"><h2 className="text-xl font-bold">Explore related Kalamic pieces</h2><div className="mt-4 flex flex-wrap gap-3">{guide.products.map((product) => <Link key={product.href} href={product.href} className="rounded-full border border-primary/20 bg-white px-4 py-2 text-sm font-bold text-primary">{product.label}</Link>)}</div></section>}<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'Article', headline: guide.title, description: guide.description, author: { '@type': 'Organization', name: 'Kalamic' }, publisher: { '@type': 'Organization', name: 'Kalamic', url: 'https://www.kalamic.shop' }, mainEntityOfPage: `https://www.kalamic.shop/guides/${guide.slug}` }) }} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq }) }} /></article></main>;
+}
