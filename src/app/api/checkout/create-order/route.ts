@@ -267,15 +267,14 @@ export async function POST(req: NextRequest) {
         for (const asset of customerAssets) {
           const item = validatedItems.find((entry: any) => entry.customerImage?.assetId === asset.assetId) as any;
           // ImageKit's moveFile destinationPath must be a folder, not a full
-          // filename. Move first, then rename inside that folder.
+          // filename. Keep the generated unique filename after moving; a
+          // rename would create a file version, which is disabled on the
+          // current ImageKit plan.
           const destinationFolder = `/kalamic/Customer_Uploaded_Image/${clean(item?.name || 'product')}/`;
           await imagekit.moveFile({ sourceFilePath: asset.filePath, destinationPath: destinationFolder });
           const sourceFileName = asset.filePath.split('/').filter(Boolean).pop();
           if (!sourceFileName) throw new Error('Customer image reference is invalid.');
-          const movedFilePath = `${destinationFolder}${sourceFileName}`;
-          const finalFileName = `${clean(shippingDetails.fullName)}-${orderNumber}.webp`;
-          await imagekit.renameFile({ filePath: movedFilePath, newFileName: finalFileName, purgeCache: true });
-          if (item?.customerImage) item.customerImage.filePath = `${destinationFolder}${finalFileName}`;
+          if (item?.customerImage) item.customerImage.filePath = `${destinationFolder}${sourceFileName}`;
         }
         await OrderedItem.updateOne({ _id: newOrder._id }, { $set: { items: validatedItems } });
         await CustomerUpload.updateMany({ assetId: { $in: customerAssets.map((a) => a.assetId) }, userId: sessionUser.uid }, { $set: { status: 'attached', orderId: newOrder._id.toString(), expiresAt: new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000) } });
