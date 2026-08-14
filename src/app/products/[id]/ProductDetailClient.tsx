@@ -19,6 +19,7 @@ import { WhatsInTheBox } from '@/components/product/WhatsInTheBox';
 import { ReviewsSection } from '@/components/product/ReviewsSection';
 import { RelatedProducts } from '@/components/product/RelatedProducts';
 import { ProductSeoContent } from '@/components/product/ProductSeoContent';
+import { ProductComparisonTable } from '@/components/product/ProductComparisonTable';
 
 interface ProductDetailClientProps {
   initialProduct: any;
@@ -147,6 +148,9 @@ export default function ProductDetailClient({
           {/* FULL-WIDTH LOWER SECTIONS */}
           <div className="space-y-32">
             <ProductSeoContent product={product} />
+
+            {/* Product comparison */}
+            <ProductComparisonTable product={product} />
 
             {/* Related Products */}
             <RelatedProducts products={relatedProducts} />
