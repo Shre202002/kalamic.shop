@@ -122,7 +122,9 @@ export async function POST(req: NextRequest) {
         price: product.price,
         quantity: item.quantity,
         imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url,
-        ...(customerImage ? { customerImage } : {})
+        containImage: Boolean(customerImage),
+        customerImage: customerImage || null,
+        customerImageDetails: customerImage ? [{ ...customerImage }] : []
       });
     }
 
@@ -274,7 +276,9 @@ export async function POST(req: NextRequest) {
           await imagekit.moveFile({ sourceFilePath: asset.filePath, destinationPath: destinationFolder });
           const sourceFileName = asset.filePath.split('/').filter(Boolean).pop();
           if (!sourceFileName) throw new Error('Customer image reference is invalid.');
-          if (item?.customerImage) item.customerImage.filePath = `${destinationFolder}${sourceFileName}`;
+          const finalFilePath = `${destinationFolder}${sourceFileName}`;
+          if (item?.customerImage) item.customerImage.filePath = finalFilePath;
+          if (item?.customerImageDetails?.[0]) item.customerImageDetails[0].filePath = finalFilePath;
         }
         await OrderedItem.updateOne({ _id: newOrder._id }, { $set: { items: validatedItems } });
         await CustomerUpload.updateMany({ assetId: { $in: customerAssets.map((a) => a.assetId) }, userId: sessionUser.uid }, { $set: { status: 'attached', orderId: newOrder._id.toString(), expiresAt: new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000) } });

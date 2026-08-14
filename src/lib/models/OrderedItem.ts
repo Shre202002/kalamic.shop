@@ -46,6 +46,7 @@ export interface IOrderedItem extends Document {
     price: number;
     quantity: number;
     imageUrl?: string;
+    containImage: boolean;
     customerImage?: {
       assetId: string;
       mediaType: 'image';
@@ -56,6 +57,16 @@ export interface IOrderedItem extends Document {
       originalName: string;
       uploadedAt: Date;
     };
+    customerImageDetails: Array<{
+      assetId: string;
+      mediaType: 'image';
+      fileId: string;
+      filePath: string;
+      width: number;
+      height: number;
+      originalName: string;
+      uploadedAt: Date;
+    }>;
   }>;
   shippingAddress: {
     fullName: string;
@@ -125,11 +136,21 @@ const OrderedItemSchema: Schema = new Schema({
       price: { type: Number, required: true },
       quantity: { type: Number, required: true },
       imageUrl: String,
+      containImage: { type: Boolean, default: false },
       customerImage: {
-        assetId: { type: String, required: true }, mediaType: { type: String, enum: ['image'], required: true },
-        fileId: { type: String, required: true }, filePath: { type: String, required: true },
-        width: { type: Number, required: true }, height: { type: Number, required: true },
-        originalName: { type: String, required: true }, uploadedAt: { type: Date, required: true }
+        assetId: { type: String, default: null }, mediaType: { type: String, enum: ['image', null], default: null },
+        fileId: { type: String, default: null }, filePath: { type: String, default: null },
+        width: { type: Number, default: null }, height: { type: Number, default: null },
+        originalName: { type: String, default: null }, uploadedAt: { type: Date, default: null }
+      },
+      customerImageDetails: {
+        type: [{
+          assetId: { type: String, required: true }, mediaType: { type: String, enum: ['image'], required: true },
+          fileId: { type: String, required: true }, filePath: { type: String, required: true },
+          width: { type: Number, required: true }, height: { type: Number, required: true },
+          originalName: { type: String, required: true }, uploadedAt: { type: Date, required: true }
+        }],
+        default: []
       }
     }],
     _id: false
