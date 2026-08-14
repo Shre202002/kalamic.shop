@@ -56,6 +56,7 @@ export default function ProductDetailClient({
       const formData = new FormData();
       formData.append('file', file);
       const result = await uploadCustomerProductImage(formData, product._id, draftId);
+      if (!result.success) throw new Error(result.message);
       setCustomerImage(result);
       setUploadFiles([{ id, file, progress: 100, status: 'completed' }]);
       toast({ title: 'Photo uploaded', description: 'Your photo is attached to this product.' });
