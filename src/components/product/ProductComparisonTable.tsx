@@ -25,7 +25,30 @@ export function ProductComparisonTable({ product }: { product: any }) {
         </p>
       </div>
 
-      <div className="mt-8 overflow-x-auto rounded-2xl border border-border">
+      <div className="mt-8 md:hidden">
+        <div className="space-y-3">
+          {rows.map((row) => (
+            <article key={row.key} className="rounded-2xl border border-border bg-[#FDFAF6] p-4">
+              <h3 className="text-sm font-black text-foreground">{row.key}</h3>
+              <div className="mt-3 grid gap-3">
+                <div className="rounded-xl bg-white p-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Kalamic</p>
+                  <p className="mt-1 inline-flex items-start gap-2 text-sm font-semibold leading-6 text-foreground">
+                    <Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-primary" />
+                    {row.value}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border/70 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Common alternative</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{row.commonValue}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8 hidden overflow-x-auto rounded-2xl border border-border md:block">
         <table className="w-full min-w-[640px] text-left text-sm">
           <caption className="sr-only">Comparison of {product.name} with common alternatives</caption>
           <thead className="bg-[#20150d] text-white">
