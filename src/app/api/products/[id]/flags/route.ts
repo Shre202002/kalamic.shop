@@ -17,7 +17,7 @@ export async function GET(
     const { id } = await params;
     const product = await KalamicProduct
       .findById(id)
-      .select('requiresHandling requiresPremiumProtection')
+      .select('requiresHandling requiresPremiumProtection requiresCustomerImage customerImageWidth customerImageHeight customerImageMinWidth customerImageMinHeight customerImageInstructions')
       .lean();
     
     if (!product) {
@@ -30,6 +30,12 @@ export async function GET(
     return NextResponse.json({
       requiresHandling: (product as any).requiresHandling ?? true,
       requiresPremiumProtection: (product as any).requiresPremiumProtection ?? true
+      ,requiresCustomerImage: (product as any).requiresCustomerImage === true,
+      customerImageWidth: (product as any).customerImageWidth || 0,
+      customerImageHeight: (product as any).customerImageHeight || 0,
+      customerImageMinWidth: (product as any).customerImageMinWidth || 0,
+      customerImageMinHeight: (product as any).customerImageMinHeight || 0,
+      customerImageInstructions: (product as any).customerImageInstructions || ''
     });
   } catch (error) {
     console.error('[FLAGS_API_ERROR]', error);

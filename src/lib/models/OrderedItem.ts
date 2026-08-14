@@ -46,6 +46,16 @@ export interface IOrderedItem extends Document {
     price: number;
     quantity: number;
     imageUrl?: string;
+    customerImage?: {
+      assetId: string;
+      mediaType: 'image';
+      fileId: string;
+      filePath: string;
+      width: number;
+      height: number;
+      originalName: string;
+      uploadedAt: Date;
+    };
   }>;
   shippingAddress: {
     fullName: string;
@@ -114,7 +124,13 @@ const OrderedItemSchema: Schema = new Schema({
       name: { type: String, required: true },
       price: { type: Number, required: true },
       quantity: { type: Number, required: true },
-      imageUrl: String
+      imageUrl: String,
+      customerImage: {
+        assetId: { type: String, required: true }, mediaType: { type: String, enum: ['image'], required: true },
+        fileId: { type: String, required: true }, filePath: { type: String, required: true },
+        width: { type: Number, required: true }, height: { type: Number, required: true },
+        originalName: { type: String, required: true }, uploadedAt: { type: Date, required: true }
+      }
     }],
     _id: false
   },

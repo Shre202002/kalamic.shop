@@ -8,6 +8,8 @@ import { syncOrderToFirestore, verifySession } from '@/lib/firebase-admin';
 import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
+import CustomerUpload from '@/lib/models/CustomerUpload';
+import ImageKit from 'imagekit';
 import { consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 /**
@@ -58,6 +60,7 @@ export async function POST(req: NextRequest) {
 
     let subtotal = 0;
     const validatedItems = [];
+    const customerAssets: any[] = [];
     const seenProductIds = new Set<string>();
     let requiresHandling = false;
     let requiresPremiumProtection = false;
@@ -78,7 +81,7 @@ export async function POST(req: NextRequest) {
         _id: productId,
         is_active: true,
         is_deleted: { $ne: true },
-      }).select('price name images stock track_inventory requiresHandling requiresPremiumProtection');
+      }).select('price name images stock track_inventory requiresHandling requiresPremiumProtection requiresCustomerImage customerImageWidth customerImageHeight customerImageMinWidth customerImageMinHeight');
 
       if (!product) {
         return NextResponse.json(
@@ -103,12 +106,23 @@ export async function POST(req: NextRequest) {
       if (product.requiresHandling !== false) requiresHandling = true;
       if (product.requiresPremiumProtection !== false) requiresPremiumProtection = true;
 
+      let customerImage: any = undefined;
+      if ((product as any).requiresCustomerImage === true) {
+        const assetId = String(item.customerImage?.assetId || '');
+        const asset: any = await CustomerUpload.findOne({ assetId, userId: sessionUser.uid, productId, status: 'pending', expiresAt: { $gt: new Date() } }).lean();
+        if (!asset) return NextResponse.json({ message: 'This product requires a photo-frame image before you can place the order.' }, { status: 400 });
+        if (asset.width < ((product as any).customerImageMinWidth || 0) || asset.height < ((product as any).customerImageMinHeight || 0)) return NextResponse.json({ message: 'The uploaded image no longer meets this product’s requirements.' }, { status: 400 });
+        customerImage = { assetId: asset.assetId, mediaType: 'image', fileId: asset.fileId, filePath: asset.filePath, width: asset.width, height: asset.height, originalName: asset.originalName, uploadedAt: asset.createdAt || new Date() };
+        customerAssets.push(asset);
+      }
+
       validatedItems.push({
         productId: product._id.toString(),
         name: product.name,
         price: product.price,
         quantity: item.quantity,
-        imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url
+        imageUrl: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url,
+        ...(customerImage ? { customerImage } : {})
       });
     }
 
@@ -243,6 +257,22 @@ export async function POST(req: NextRequest) {
       gatewayOrderId: null,
         expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       });
+      if (customerAssets.length) {
+        const publicKey = process.env.IMAGEKIT_PUBLIC_KEY || process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
+        const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+        const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
+        if (!publicKey || !privateKey || !urlEndpoint) throw new Error('Server media configuration is missing.');
+        const imagekit = new ImageKit({ publicKey, privateKey, urlEndpoint });
+        const clean = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'item';
+        for (const asset of customerAssets) {
+          const item = validatedItems.find((entry: any) => entry.customerImage?.assetId === asset.assetId) as any;
+          const destinationPath = `/Product_Order/${clean(item?.name || 'product')}/${clean(shippingDetails.fullName)}-${orderNumber}.webp`;
+          await imagekit.moveFile({ sourceFilePath: asset.filePath, destinationPath });
+          if (item?.customerImage) item.customerImage.filePath = destinationPath;
+        }
+        await OrderedItem.updateOne({ _id: newOrder._id }, { $set: { items: validatedItems } });
+        await CustomerUpload.updateMany({ assetId: { $in: customerAssets.map((a) => a.assetId) }, userId: sessionUser.uid }, { $set: { status: 'attached', orderId: newOrder._id.toString(), expiresAt: new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000) } });
+      }
     } catch (orderError) {
       await Promise.all(reservedInventory.map((item) => KalamicProduct.updateOne(
         { _id: item.productId }, { $inc: { stock: item.quantity } }

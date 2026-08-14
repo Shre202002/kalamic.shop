@@ -20,6 +20,7 @@ import { ReviewsSection } from '@/components/product/ReviewsSection';
 import { RelatedProducts } from '@/components/product/RelatedProducts';
 import { ProductSeoContent } from '@/components/product/ProductSeoContent';
 import { ProductComparisonTable } from '@/components/product/ProductComparisonTable';
+import { uploadCustomerProductImage } from '@/lib/actions/upload-actions';
 
 interface ProductDetailClientProps {
   initialProduct: any;
@@ -38,6 +39,9 @@ export default function ProductDetailClient({
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const [customerImage, setCustomerImage] = useState<any>(null);
+  const [uploadingCustomerImage, setUploadingCustomerImage] = useState(false);
+  const draftId = `product-${product._id}`;
   
   useEffect(() => {
     incrementProductViews(product._id);
@@ -53,6 +57,10 @@ export default function ProductDetailClient({
       router.push('/auth/login');
       return;
     }
+    if (product.requiresCustomerImage && !customerImage) {
+      toast({ variant: 'destructive', title: 'Photo required', description: 'This product requires a photo-frame image before you can add it to your bag.' });
+      return;
+    }
     const cartItemRef = doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', product._id);
     await setDoc(cartItemRef, {
       id: product._id,
@@ -63,6 +71,7 @@ export default function ProductDetailClient({
       quantity: 1,
       requiresHandling: product.requiresHandling ?? true,
       requiresPremiumProtection: product.requiresPremiumProtection ?? true,
+      ...(customerImage ? { customerImage } : {}),
       updatedAt: serverTimestamp(),
     }, { merge: true });
     
@@ -120,6 +129,11 @@ export default function ProductDetailClient({
                 onAddToCart={handleAddToCart} 
                 onBuyNow={handleBuyNow} 
               />
+              {product.requiresCustomerImage && <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <div><p className="text-sm font-bold">Upload your photo</p><p className="text-xs text-muted-foreground">{product.customerImageInstructions || `JPG, PNG, or WebP up to 5MB${product.customerImageMinWidth ? `; minimum ${product.customerImageMinWidth} × ${product.customerImageMinHeight}px` : ''}.`}</p></div>
+                <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingCustomerImage} onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; if (!user) { router.push('/auth/login'); return; } setUploadingCustomerImage(true); try { const fd = new FormData(); fd.append('file', file); const result = await uploadCustomerProductImage(fd, product._id, draftId); setCustomerImage(result); toast({ title: 'Photo uploaded', description: 'Your photo is attached to this product.' }); } catch (err: any) { toast({ variant: 'destructive', title: 'Upload failed', description: err.message }); } finally { setUploadingCustomerImage(false); e.currentTarget.value = ''; } }} className="block w-full text-xs" />
+                {customerImage && <p className="text-xs text-green-700 font-semibold">✓ {customerImage.originalName} ({customerImage.width} × {customerImage.height})</p>}
+              </div>}
 
               {/* ii. Cross-sell Banner */}
               <div className="p-8 rounded-[2.5rem] bg-accent/10 border border-accent/20 space-y-4 relative overflow-hidden group">

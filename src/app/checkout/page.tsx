@@ -467,7 +467,7 @@ function CheckoutContent() {
       customerName: formData.fullName,
       customerPhone: formData.phone,
       customerEmail: formData.email,
-      items: cartItems.map(i => ({ productId: i.productVariantId || i.id, quantity: i.quantity })),
+      items: cartItems.map(i => ({ productId: i.productVariantId || i.id, quantity: i.quantity, customerImage: i.customerImage || undefined })),
       shippingDetails: formData,
       promoCode: promoStatus === 'success' ? promoCode.trim().toUpperCase() : null,
       promoDiscount: promoStatus === 'success' ? promoDiscount : 0,

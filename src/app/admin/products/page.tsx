@@ -95,6 +95,12 @@ const INITIAL_PRODUCT = {
   },
   requiresHandling: true,
   requiresPremiumProtection: true,
+  requiresCustomerImage: false,
+  customerImageWidth: 0,
+  customerImageHeight: 0,
+  customerImageMinWidth: 0,
+  customerImageMinHeight: 0,
+  customerImageInstructions: '',
   seo: {
     meta_title: '',
     meta_description: '',
@@ -206,6 +212,12 @@ export default function ProductsManagement() {
         },
         requiresHandling: product.requiresHandling ?? true,
         requiresPremiumProtection: product.requiresPremiumProtection ?? true,
+        requiresCustomerImage: product.requiresCustomerImage ?? false,
+        customerImageWidth: product.customerImageWidth ?? 0,
+        customerImageHeight: product.customerImageHeight ?? 0,
+        customerImageMinWidth: product.customerImageMinWidth ?? 0,
+        customerImageMinHeight: product.customerImageMinHeight ?? 0,
+        customerImageInstructions: product.customerImageInstructions ?? '',
         seo: {
           ...INITIAL_PRODUCT.seo,
           ...product.seo,
@@ -555,6 +567,19 @@ export default function ProductsManagement() {
                     <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
                       <FormControlLabel control={<Switch checked={!!editingProduct.is_active} onChange={(e) => setEditingProduct({ ...editingProduct, is_active: e.target.checked })} />} label="Active" />
                       <FormControlLabel control={<Switch checked={!!editingProduct.is_featured} onChange={(e) => setEditingProduct({ ...editingProduct, is_featured: e.target.checked })} />} label="Featured" />
+                    </Paper>
+                    <Paper variant="outlined" sx={{ p: 2, mt: 2, borderRadius: 3 }}>
+                      <FormControlLabel control={<Switch checked={!!editingProduct.requiresCustomerImage} onChange={(e) => setEditingProduct({ ...editingProduct, requiresCustomerImage: e.target.checked })} />} label="Require customer photo" />
+                      {editingProduct.requiresCustomerImage && <>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>Customers must upload a JPG, PNG, or WebP before checkout.</Typography>
+                        <Grid container spacing={1}>
+                          <Grid item xs={6}><TextField size="small" type="number" label="Target width" value={editingProduct.customerImageWidth || ''} onChange={(e) => setEditingProduct({ ...editingProduct, customerImageWidth: Number(e.target.value) || 0 })} /></Grid>
+                          <Grid item xs={6}><TextField size="small" type="number" label="Target height" value={editingProduct.customerImageHeight || ''} onChange={(e) => setEditingProduct({ ...editingProduct, customerImageHeight: Number(e.target.value) || 0 })} /></Grid>
+                          <Grid item xs={6}><TextField size="small" type="number" label="Minimum width" value={editingProduct.customerImageMinWidth || ''} onChange={(e) => setEditingProduct({ ...editingProduct, customerImageMinWidth: Number(e.target.value) || 0 })} /></Grid>
+                          <Grid item xs={6}><TextField size="small" type="number" label="Minimum height" value={editingProduct.customerImageMinHeight || ''} onChange={(e) => setEditingProduct({ ...editingProduct, customerImageMinHeight: Number(e.target.value) || 0 })} /></Grid>
+                          <Grid item xs={12}><TextField fullWidth size="small" multiline rows={2} label="Upload instructions" value={editingProduct.customerImageInstructions || ''} onChange={(e) => setEditingProduct({ ...editingProduct, customerImageInstructions: e.target.value.slice(0, 500) })} /></Grid>
+                        </Grid>
+                      </>}
                     </Paper>
                   </Grid>
                 </Grid>

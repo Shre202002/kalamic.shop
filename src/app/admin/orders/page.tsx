@@ -43,7 +43,7 @@ import {
   Phone as PhoneIcon,
   Home as HomeIcon,
   Flag as FlagIcon,
-  LocalShipping
+  LocalShipping, Download
 } from '@mui/icons-material';
 import { getAllOrders } from '@/lib/actions/admin-actions';
 import dayjs from 'dayjs';
@@ -272,8 +272,9 @@ export default function OrdersManagement() {
                           </ListItemAvatar>
                           <ListItemText
                             primary={<Typography variant="body2" sx={{ fontWeight: 800 }}>{item.name}</Typography>}
-                            secondary={<Typography variant="caption" fontWeight={600}>{item.quantity} × ₹{item.price.toLocaleString()}</Typography>}
+                            secondary={<Box><Typography variant="caption" fontWeight={600}>{item.quantity} × ₹{item.price.toLocaleString()}</Typography>{item.customerImage && <Chip size="small" label="Customer image" color="info" sx={{ ml: 1, height: 18, fontSize: 10 }} />}</Box>}
                           />
+                          {item.customerImage && <Button size="small" startIcon={<Download />} onClick={async () => { const res = await fetch(`/api/admin/orders/${selectedOrder._id}/customer-image?assetId=${encodeURIComponent(item.customerImage.assetId)}`); const data = await res.json(); if (res.ok) window.open(data.url, '_blank', 'noopener,noreferrer'); else toast({ variant: 'destructive', title: 'Download failed', description: data.message }); }}>Download</Button>}
                           <Typography variant="body2" sx={{ fontWeight: 900 }}>
                             ₹{(item.price * item.quantity).toLocaleString()}
                           </Typography>
