@@ -11,9 +11,16 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. ADMIN API PROTECTION
+  const noStore = (response: NextResponse) => {
+    response.headers.set('Cache-Control', 'private, no-store, no-cache, max-age=0, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Vary', 'Cookie');
+    return response;
+  };
+
   if (pathname.startsWith('/api/admin')) {
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return noStore(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
     }
     // Deep verification of admin role would happen here using admin SDK
     // For this prototype, we rely on the session presence and subsequent API-level checks
@@ -23,7 +30,7 @@ export async function middleware(request: NextRequest) {
   const protectedApiRoutes = ['/api/checkout', '/api/orders'];
   if (protectedApiRoutes.some(r => pathname.startsWith(r))) {
     if (!session) {
-      return NextResponse.json({ error: 'Please sign in to continue' }, { status: 401 });
+      return noStore(NextResponse.json({ error: 'Please sign in to continue' }, { status: 401 }));
     }
   }
 
@@ -46,10 +53,12 @@ export async function middleware(request: NextRequest) {
   if (isProtectedPage && !session) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('from', pathname);
-    return NextResponse.redirect(loginUrl);
+    return noStore(NextResponse.redirect(loginUrl));
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (pathname.startsWith('/admin') || isProtectedPage) return noStore(response);
+  return response;
 }
 
 export const config = {

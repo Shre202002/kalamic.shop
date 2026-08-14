@@ -34,6 +34,8 @@ import {
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { getAdminNotifications, markNotificationsAsRead } from '@/lib/actions/admin-actions';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase';
 
 const DRAWER_WIDTH = 240;
 
@@ -71,6 +73,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const router = useRouter();
+  const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.replace('/auth/login?from=%2Fadmin%2Fdashboard');
+    }
+  }, [isUserLoading, user, router]);
+
+  // Prevent a browser back-navigation from displaying a cached admin shell
+  // after logout while Firebase restores the current auth state.
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && !user) window.location.replace('/auth/login?from=%2Fadmin%2Fdashboard');
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, [user]);
 
   const loadNotifications = async () => {
     try {
@@ -109,6 +129,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   const unreadCount = Array.isArray(notifications) ? notifications.filter(n => !n.isRead).length : 0;
+
+  if (isUserLoading || !user) return null;
 
   return (
     <ThemeProvider theme={adminTheme}>

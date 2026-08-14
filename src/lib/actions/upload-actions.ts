@@ -178,6 +178,7 @@ function safeName(value: string, fallback: string) {
 
 /** Validates, sanitizes, and stores a private customer image for a configurable product. */
 export async function uploadCustomerProductImage(formData: FormData, productId: string, draftId: string) {
+ try {
   const session = await getAuthenticatedSession();
   if (!session) throw new Error('Please sign in before uploading an image.');
   if (!/^[A-Za-z0-9_-]{8,100}$/.test(draftId) || !/^[a-f\d]{24}$/i.test(productId)) throw new Error('Invalid upload request.');
@@ -197,7 +198,7 @@ export async function uploadCustomerProductImage(formData: FormData, productId: 
   if (width < (product.customerImageMinWidth || 0) || height < (product.customerImageMinHeight || 0)) throw new Error(`Image must be at least ${product.customerImageMinWidth || 0} × ${product.customerImageMinHeight || 0} pixels.`);
   if (product.customerImageWidth && product.customerImageHeight) {
     const expected = product.customerImageWidth / product.customerImageHeight;
-    if (Math.abs(width / height - expected) / expected > 0.05) throw new Error(`Please upload an image close to the required ${product.customerImageWidth} × ${product.customerImageHeight} ratio.`);
+    if (Math.abs(width / height - expected) / expected > 0.10) throw new Error(`Please upload an image close to the required ${product.customerImageWidth} × ${product.customerImageHeight} ratio.`);
   }
   const normalized = await sharp(bytes, { limitInputPixels: 64_000_000 }).rotate().webp({ quality: 88 }).toBuffer();
   const publicKey = process.env.IMAGEKIT_PUBLIC_KEY || process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
@@ -212,7 +213,12 @@ export async function uploadCustomerProductImage(formData: FormData, productId: 
   if (old) { try { await imagekit.deleteFile(old.fileId); } catch {} await CustomerUpload.updateOne({ _id: old._id }, { $set: { status: 'deleted' } }); }
   const uploaded: any = await imagekit.upload({ file: normalized, fileName, folder, useUniqueFileName: false, isPrivateFile: true, tags: ['kalamic', 'customer-order-image'] });
   await CustomerUpload.create({ assetId, userId: session.uid, productId, draftId, fileId: uploaded.fileId, filePath: uploaded.filePath, extension: 'webp', originalName: file.name.slice(0, 180), width, height, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) });
-  return { success: true, assetId, mediaType: 'image' as const, width, height, originalName: file.name.slice(0, 180), uploadedAt: new Date().toISOString() };
+  return { success: true as const, assetId, mediaType: 'image' as const, width, height, originalName: file.name.slice(0, 180), uploadedAt: new Date().toISOString() };
+ } catch (error: any) {
+  const message = error instanceof Error ? error.message : 'Image upload failed. Please try another image.';
+  console.error('[CUSTOMER_IMAGE_UPLOAD_ERROR]', message);
+  return { success: false as const, message };
+ }
 }
 
 export async function removeCustomerProductImage(assetId: string) {
