@@ -71,14 +71,28 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       async (firebaseUser) => {
         if (firebaseUser) {
-          // Set session cookie for Middleware access
-          const idToken = await firebaseUser.getIdToken();
-          // Set cookie for 5 days to match API logic
-          document.cookie = `__session=${idToken}; path=/; max-age=432000; SameSite=Strict`;
-          setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+          try {
+            // Keep the server HttpOnly session in sync with Firebase. The
+            // browser must never be the authority for admin/API sessions.
+            const idToken = await firebaseUser.getIdToken();
+            const response = await fetch('/api/auth/session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ idToken }),
+              cache: 'no-store',
+            });
+            if (!response.ok) throw new Error('Session synchronization failed');
+            setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+          } catch (error: any) {
+            await auth.signOut().catch(() => undefined);
+            await fetch('/api/auth/session', { method: 'DELETE', credentials: 'include', cache: 'no-store' }).catch(() => undefined);
+            setUserAuthState({ user: null, isUserLoading: false, userError: error });
+          }
         } else {
-          // Clear session cookie on logout
+          // Clear both the Firebase client session and the server HttpOnly cookie.
           document.cookie = '__session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          await fetch('/api/auth/session', { method: 'DELETE', credentials: 'include', cache: 'no-store' }).catch(() => undefined);
           setUserAuthState({ user: null, isUserLoading: false, userError: null });
         }
       },
