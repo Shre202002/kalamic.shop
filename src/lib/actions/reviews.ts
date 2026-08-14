@@ -5,6 +5,8 @@ import Review from '@/lib/models/Review';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { revalidatePath } from 'next/cache';
+import { getAuthenticatedSession } from '@/lib/server-auth';
+import { consumeRateLimit } from '@/lib/security/rate-limit';
 
 /**
  * Checks if a user has actually purchased the product and it has been delivered.
@@ -50,6 +52,28 @@ export async function submitReview(data: {
   reviewText: string;
   images?: Array<{ url: string; alt: string }>;
 }) {
+  const session = await getAuthenticatedSession();
+  if (!session || session.uid !== data.userId) throw new Error('Unauthorized');
+  if (!await consumeRateLimit(`review-submit:${session.uid}:${data.productId}`, 3, 60 * 60 * 1000)) {
+    throw new Error('Review submission rate limit exceeded.');
+  }
+  if (typeof data.productId !== 'string' || data.productId.length > 100 || !Number.isInteger(data.rating) || data.rating < 1 || data.rating > 5) {
+    throw new Error('Invalid review details.');
+  }
+  if (typeof data.reviewText !== 'string' || data.reviewText.trim().length < 3 || data.reviewText.length > 3000) {
+    throw new Error('Review text must be between 3 and 3000 characters.');
+  }
+  if (typeof data.userName !== 'string' || data.userName.trim().length < 2 || data.userName.length > 100) {
+    throw new Error('Invalid reviewer name.');
+  }
+  const eligible = await checkUserReviewEligibility(session.uid, data.productId);
+  if (!eligible) throw new Error('Only verified owners can submit a review.');
+
+  const images = Array.isArray(data.images) ? data.images.slice(0, 4) : [];
+  if (images.some((image) => typeof image?.url !== 'string' || !/^https:\/\//i.test(image.url) || image.url.length > 2048 || !image.url.includes('imagekit.io'))) {
+    throw new Error('Review media must be secure ImageKit URLs.');
+  }
+
   await dbConnect();
   
   try {
@@ -61,7 +85,7 @@ export async function submitReview(data: {
           user_avatar: data.userAvatar,
           rating: data.rating,
           comment: data.reviewText,
-          review_images: data.images || [],
+          review_images: images,
           status: 'approved',
           updatedAt: new Date()
         },
