@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import PromoCode from '@/lib/models/PromoCode';
 import User from '@/lib/models/User';
 import { getAuthenticatedSession } from '@/lib/server-auth';
+import { sanitizeMongoUpdate } from '@/lib/security/rate-limit';
 
 async function validateAdmin(_adminId?: string) {
   const session = await getAuthenticatedSession();
@@ -19,9 +20,10 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { adminId, ...updateData } = body;
+    const { adminId: _ignoredAdminId, ...rawUpdateData } = body;
+    const updateData = sanitizeMongoUpdate(rawUpdateData);
 
-    if (!adminId || !(await validateAdmin(adminId))) {
+    if (!(await validateAdmin())) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
     }
 
@@ -49,7 +51,7 @@ export async function DELETE(
     const { searchParams } = new URL(req.url);
     const adminId = searchParams.get('adminId');
 
-    if (!adminId || !(await validateAdmin(adminId))) {
+    if (!(await validateAdmin())) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
     }
 

@@ -5,6 +5,7 @@ import KalamicProduct from '@/lib/models/KalamicProduct';
 import User from '@/lib/models/User';
 import AdminLog from '@/lib/models/AdminLog';
 import { requireAdmin } from '@/lib/server-auth';
+import { sanitizeMongoUpdate } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview Secure update of existing artisan pieces.
@@ -20,7 +21,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { ...updateData } = body;
+    const updateData = sanitizeMongoUpdate(body);
 
     const { session, user } = await requireAdmin(['super_admin', 'admin']);
 

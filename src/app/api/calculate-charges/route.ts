@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
+import { consumeApiRateLimit } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview Pure API for real-time charge calculation on the checkout page.
@@ -8,6 +9,7 @@ import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await consumeApiRateLimit(req, 'calculate-charges', 60))) return NextResponse.json({ message: 'Too many requests' }, { status: 429 });
     const { 
       subtotal, 
       city,
@@ -15,7 +17,7 @@ export async function POST(req: NextRequest) {
       requiresPremiumProtection = true
     } = await req.json();
 
-    if (typeof subtotal !== 'number' || subtotal < 0) {
+    if (typeof subtotal !== 'number' || !Number.isFinite(subtotal) || subtotal < 0 || subtotal > 10_000_000 || typeof requiresHandling !== 'boolean' || typeof requiresPremiumProtection !== 'boolean') {
       return NextResponse.json({ message: "Invalid subtotal" }, { status: 400 });
     }
 

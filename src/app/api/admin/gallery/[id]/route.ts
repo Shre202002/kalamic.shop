@@ -4,6 +4,7 @@ import GalleryItem from '@/lib/models/GalleryItem';
 import User from '@/lib/models/User';
 import ImageKit from 'imagekit';
 import { getAuthenticatedSession } from '@/lib/server-auth';
+import { sanitizeMongoUpdate } from '@/lib/security/rate-limit';
 
 const getImageKit = () => {
   const publicKey = process.env.IMAGEKIT_PUBLIC_KEY || process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
@@ -32,9 +33,10 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { adminId, ...updateData } = body;
+    const { adminId: _ignoredAdminId, ...rawUpdateData } = body;
+    const updateData = sanitizeMongoUpdate(rawUpdateData);
 
-    const isAdmin = await validateAdmin(adminId);
+    const isAdmin = await validateAdmin();
     if (!isAdmin) return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
 
     await dbConnect();
@@ -57,9 +59,7 @@ export async function DELETE(
     const { searchParams } = new URL(req.url);
     const adminId = searchParams.get('adminId');
 
-    if (!adminId) return NextResponse.json({ message: 'Admin ID required' }, { status: 400 });
-
-    const isAdmin = await validateAdmin(adminId);
+    const isAdmin = await validateAdmin();
     if (!isAdmin) return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
 
     await dbConnect();

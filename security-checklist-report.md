@@ -1,6 +1,6 @@
 # Kalamic.shop Security Checklist Report
 
-**Date:** 14 July 2026
+**Date:** 14 August 2026
 **Repository:** `kalamic.shop`
 **Remediation branch:** `codex/security-hardening`
 **Status:** Remediated batch verified; full security sign-off still pending
@@ -17,6 +17,8 @@ The current branch also adds a Mongo-backed distributed limiter for OTP, checkou
 
 The latest batch also adds a protected scheduled cleanup route for abandoned inventory reservations, a Vercel cron schedule, and a `security:smoke` test script for unauthenticated boundaries and response headers.
 
+The current hardening pass adds distributed API limiting to comments, contact, newsletter, charge calculation, promo validation, payment verification, and Razorpay webhooks. It also removes request-body Firebase tokens from comments, escapes contact-form content before email rendering, bounds numeric/string inputs, and strips Mongo operator/path keys from admin updates.
+
 ## Checklist
 
 | Area | Status | Evidence / notes |
@@ -30,8 +32,8 @@ The latest batch also adds a protected scheduled cleanup route for abandoned inv
 | Admin authorization | Fixed in branch | Admin actions and admin APIs no longer trust caller-supplied admin IDs. |
 | Upload authorization | Fixed in branch | ImageKit uploads require an authorized admin and use an allow-listed folder. |
 | OTP randomness and logging | Fixed in branch | Cryptographic randomness is used and OTP values are no longer logged. |
-| OTP attempt ceiling | Partially fixed | Five-attempt ceiling is enforced; distributed per-IP/account throttling is still required. |
-| Checkout duplicate-order abuse | Partially fixed | Idempotency keys are required and reused orders are returned; distributed rate limiting is still required. |
+| OTP attempt ceiling | Fixed in branch | Five-attempt ceiling and distributed per-IP/account throttling are enforced. |
+| Checkout duplicate-order abuse | Fixed in branch | Idempotency keys and distributed checkout rate limiting are enforced; concurrency still needs staging verification. |
 | Inventory race | Partially fixed | Atomic stock reservation and failure release were added; abandoned reservation expiry remains. |
 | Promotion race | Partially fixed | Usage increment is conditional and atomic; end-to-end concurrent validation is still required. |
 | Payment failure inventory recovery | Fixed in branch | Failed payment paths release reservations once. |
@@ -48,11 +50,10 @@ The latest batch also adds a protected scheduled cleanup route for abandoned inv
 
 ## Remaining risks before production sign-off
 
-1. Add distributed rate limiting/WAF rules for OTP, checkout, profile sync, and upload endpoints.
-2. Add expiry/cleanup for abandoned pending orders and inventory reservations.
-3. Run authenticated staging tests for ownership, admin-role, replay, duplicate, and race conditions.
-4. Complete the deferred 168-row source review.
-5. Rotate any credentials that may have appeared in local environment files and confirm only server-side secrets are deployed.
+1. Configure and verify Vercel WAF/rate-limit rules and Preview-scoped environment variables.
+2. Run authenticated staging tests for ownership, admin-role, replay, duplicate, and race conditions.
+3. Complete the deferred 168-row source review.
+4. Rotate any credentials that may have appeared in local environment files and confirm only server-side secrets are deployed.
 
 ## Detailed evidence
 

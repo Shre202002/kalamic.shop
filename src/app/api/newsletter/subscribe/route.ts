@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { consumeApiRateLimit } from '@/lib/security/rate-limit';
 
 /**
  * @fileOverview API Route for newsletter subscriptions.
@@ -7,9 +8,10 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(req: NextRequest) {
   try {
+    if (!(await consumeApiRateLimit(req, 'newsletter', 5, 10 * 60 * 1000))) return NextResponse.json({ message: 'Too many requests' }, { status: 429 });
     const { email } = await req.json();
 
-    if (!email || !email.includes('@')) {
+    if (typeof email !== 'string' || email.length > 254 || !/^\S+@\S+\.\S+$/.test(email)) {
       return NextResponse.json(
         { message: 'A valid artisan email is required.' },
         { status: 400 }
@@ -18,8 +20,6 @@ export async function POST(req: NextRequest) {
 
     // Simulate database delay
     await new Promise((resolve) => setTimeout(resolve, 800));
-
-    console.log(`[NEWSLETTER] New subscriber registered: ${email}`);
 
     return NextResponse.json({ 
       success: true, 

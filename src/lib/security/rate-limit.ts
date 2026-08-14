@@ -15,6 +15,17 @@ export function requestIp(request: Request) {
     || 'unknown';
 }
 
+/** Apply a conservative distributed limit to an API operation. */
+export async function consumeApiRateLimit(request: Request, scope: string, limit = 60, windowMs = 60_000) {
+  const ip = requestIp(request);
+  return consumeRateLimit(`api:${scope}:${ip}`, limit, windowMs);
+}
+
+/** Remove Mongo operator/path keys from client-controlled update objects. */
+export function sanitizeMongoUpdate<T extends Record<string, unknown>>(input: T): Partial<T> {
+  return Object.fromEntries(Object.entries(input).filter(([key]) => !key.startsWith('$') && !key.includes('.'))) as Partial<T>;
+}
+
 /** Distributed Mongo-backed fixed-window limiter. Fail closed if the limiter cannot be reached. */
 export async function consumeRateLimit(key: string, limit: number, windowMs: number) {
   try {

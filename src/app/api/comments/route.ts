@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Comment from '@/lib/models/Comment';
-import { adminAuth } from '@/lib/firebase-admin';
+import { verifySession } from '@/lib/firebase-admin';
+import { consumeApiRateLimit, consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 const PROFANITY_LIST = ['spam', 'badword', 'abuse']; // Simple filter
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const rateLimitMap = new Map<string, number>();
-
 export async function GET(req: NextRequest) {
+  if (!(await consumeApiRateLimit(req, 'comments-read', 120))) return NextResponse.json({ message: 'Too many requests' }, { status: 429 });
   const { searchParams } = new URL(req.url);
   const blogId = searchParams.get('blogId');
   
-  if (!blogId) return NextResponse.json({ message: 'Blog ID required' }, { status: 400 });
+  if (!blogId || blogId.length > 100) return NextResponse.json({ message: 'Blog ID required' }, { status: 400 });
 
   await dbConnect();
   const comments = await Comment.find({ blogId, status: 'active' })
@@ -23,23 +22,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { blogId, content, parentId, idToken } = await req.json();
+    if (!(await consumeApiRateLimit(req, 'comments-write', 10, 60 * 60 * 1000))) return NextResponse.json({ message: 'Too many comment attempts' }, { status: 429 });
+    const { blogId, content, parentId } = await req.json();
 
-    if (!idToken) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    
-    // Verify Firebase User
-    const decodedToken = await adminAuth?.verifyIdToken(idToken);
+    const sessionToken = req.cookies.get('__session')?.value;
+    const decodedToken = sessionToken ? await verifySession(sessionToken) : null;
     if (!decodedToken) return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+    if (typeof blogId !== 'string' || blogId.length > 100 || typeof content !== 'string' || content.length > 5000) return NextResponse.json({ message: 'Invalid comment payload' }, { status: 400 });
+    if (parentId !== undefined && parentId !== null && (typeof parentId !== 'string' || parentId.length > 100)) return NextResponse.json({ message: 'Invalid parent comment' }, { status: 400 });
+    if (!(await consumeRateLimit(`comment-user:${decodedToken.uid}:${requestIp(req)}`, 5, 60 * 60 * 1000))) return NextResponse.json({ message: 'Too many comment attempts' }, { status: 429 });
 
     const userId = decodedToken.uid;
     const userName = decodedToken.name || decodedToken.email?.split('@')[0] || 'Collector';
-
-    // Rate Limiting
-    const now = Date.now();
-    const lastComment = rateLimitMap.get(userId) || 0;
-    if (now - lastComment < RATE_LIMIT_WINDOW) {
-      return NextResponse.json({ message: 'Slow down! Max 1 comment per minute.' }, { status: 429 });
-    }
 
     // Basic Spam & Profanity Filter
     let cleanContent = content.replace(/<[^>]*>/g, '').trim(); // Strip HTML
@@ -65,13 +59,11 @@ export async function POST(req: NextRequest) {
       status: 'active'
     });
 
-    rateLimitMap.set(userId, now);
-
     return NextResponse.json(newComment, { status: 201 });
   } catch (error: any) {
     if (error.code === 11000) {
       return NextResponse.json({ message: 'You have already posted this exact comment.' }, { status: 409 });
     }
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Unable to post comment' }, { status: 500 });
   }
 }
