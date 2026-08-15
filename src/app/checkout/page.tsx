@@ -81,6 +81,7 @@ function CheckoutContent() {
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [razorpayLoadError, setRazorpayLoadError] = useState<string | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [chargesPreview, setChargesPreview] = useState<ChargesPreview | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -123,6 +124,41 @@ function CheckoutContent() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // The checkout script can finish loading after a client-side navigation.
+  // Keep state in sync with the global SDK instead of relying only on the
+  // initial Next.js Script onLoad callback.
+  useEffect(() => {
+    const syncRazorpayState = () => {
+      if (typeof window !== 'undefined' && window.Razorpay) {
+        setRazorpayLoaded(true);
+        setRazorpayLoadError(null);
+      }
+    };
+    syncRazorpayState();
+    const interval = window.setInterval(syncRazorpayState, 250);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const waitForRazorpay = () => new Promise<boolean>((resolve) => {
+    if (typeof window !== 'undefined' && window.Razorpay) {
+      setRazorpayLoaded(true);
+      resolve(true);
+      return;
+    }
+    const startedAt = Date.now();
+    const interval = window.setInterval(() => {
+      if (window.Razorpay) {
+        window.clearInterval(interval);
+        setRazorpayLoaded(true);
+        setRazorpayLoadError(null);
+        resolve(true);
+      } else if (Date.now() - startedAt >= 10000) {
+        window.clearInterval(interval);
+        resolve(false);
+      }
+    }, 100);
+  });
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -478,8 +514,9 @@ function CheckoutContent() {
     };
 
     try {
-      if (!razorpayLoaded || !window.Razorpay) {
-        throw new Error('Secure payment checkout is still loading. Please try again.');
+      const paymentReady = razorpayLoaded || await waitForRazorpay();
+      if (!paymentReady || !window.Razorpay) {
+        throw new Error(razorpayLoadError || 'Razorpay checkout could not load. Please disable ad blockers and refresh the page.');
       }
 
       const response = await fetch('/api/checkout/create-order', {
@@ -565,7 +602,9 @@ function CheckoutContent() {
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
         strategy="afterInteractive"
-        onLoad={() => setRazorpayLoaded(true)}
+        onLoad={() => { setRazorpayLoaded(true); setRazorpayLoadError(null); }}
+        onReady={() => { setRazorpayLoaded(true); setRazorpayLoadError(null); }}
+        onError={() => { setRazorpayLoaded(false); setRazorpayLoadError('Razorpay checkout was blocked or could not be loaded. Please disable ad blockers and refresh the page.'); }}
       />
       <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 12, md: 16 } }}>
         <MuiBox sx={{ mb: 6 }}>
