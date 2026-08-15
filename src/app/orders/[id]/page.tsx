@@ -192,6 +192,32 @@ export default function OrderDetailPage() {
     return dayjs(date).format('DD MMM YYYY');
   };
 
+  const downloadInvoice = () => {
+    if (!order?.orderNumber) return;
+    const escapeHtml = (value: unknown) => String(value ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    const money = (value: number) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
+    const subtotal = Number(order.subtotal || 0);
+    const shipping = Number(order.charges?.shipping || 0);
+    const handling = Number(order.charges?.handling || 0);
+    const premium = Number(order.charges?.premium || 0);
+    const discount = Number(order.promoDiscount || 0);
+    const calculatedTotal = subtotal + shipping + handling + premium - discount;
+    const paidAmount = Number(order.totalAmount ?? calculatedTotal);
+    const orderUrl = `${window.location.origin}/orders/${encodeURIComponent(order.orderNumber)}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(orderUrl)}`;
+    const customerName = order.shippingAddress?.fullName || order.userName || 'Customer';
+    const invoiceItems = (order.items || []).map((item: any) => `<tr><td>${escapeHtml(item.name)}</td><td>${item.quantity}</td><td>${money(item.price)}</td><td>${money(item.price * item.quantity)}</td></tr>`).join('');
+    const invoiceWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!invoiceWindow) {
+      toast({ variant: 'destructive', title: 'Invoice blocked', description: 'Please allow pop-ups to download your invoice.' });
+      return;
+    }
+    invoiceWindow.document.write(`<!doctype html><html><head><title>Kalamic Invoice ${escapeHtml(order.orderNumber)}</title><style>@page{size:A4;margin:16mm}*{box-sizing:border-box}body{margin:0;color:#271E1B;background:#FAF4EB;font-family:Arial,sans-serif;font-size:13px}.sheet{max-width:820px;margin:0 auto;background:#fff;padding:42px;border-top:10px solid #EA781E}.brand{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;border-bottom:2px solid #F4D8A4;padding-bottom:24px}.logo{font-family:Georgia,serif;font-size:32px;font-weight:700;color:#EA781E}.muted{color:#765F50}.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;margin:24px 0}.title{font-family:Georgia,serif;color:#4D6FAE;font-size:25px;margin:30px 0 16px}.items{width:100%;border-collapse:collapse;margin-top:18px}.items th{background:#4D6FAE;color:#fff;text-align:left;padding:11px}.items td{padding:11px;border-bottom:1px solid #E8EDF5}.items th:not(:first-child),.items td:not(:first-child){text-align:right}.totals{margin:22px 0 0 auto;max-width:330px}.total-row{display:flex;justify-content:space-between;padding:7px 0}.grand{border-top:3px double #4D6FAE;color:#4D6FAE;font-size:20px;font-weight:800;margin-top:8px;padding-top:12px}.footer{display:flex;justify-content:space-between;gap:30px;margin-top:38px;padding-top:22px;border-top:1px dashed #C7B49D}.qr{text-align:center}.qr img{width:130px;height:130px}.small{font-size:11px}@media print{body{background:#fff}.sheet{padding:0;border-top:0}}</style></head><body><main class="sheet"><header class="brand"><div><div class="logo">Kalamic</div><div class="muted">Handcrafted ceramic decor from Kanpur, India</div><div class="muted small">Kidwai Nagar, Kanpur · +91 73767 61679 · kalamicshop@gmail.com</div></div><div style="text-align:right"><strong>INVOICE</strong><br><span class="muted">${escapeHtml(order.orderNumber)}</span><br><span class="muted">${escapeHtml(formatDate(order.createdAt))}</span></div></header><section class="meta"><div><strong>Bill to</strong><br>${escapeHtml(customerName)}<br>${escapeHtml(order.shippingAddress?.addressLine1)}<br>${escapeHtml(order.shippingAddress?.city)}, ${escapeHtml(order.shippingAddress?.state)} - ${escapeHtml(order.shippingAddress?.pincode)}<br>${escapeHtml(order.shippingAddress?.phone)}</div><div><strong>Payment</strong><br>Gateway: ${escapeHtml(order.paymentGateway || 'Razorpay').toUpperCase()}<br>Status: <strong>${escapeHtml(order.paymentStatus || 'pending').toUpperCase()}</strong><br>Payment ID: ${escapeHtml(order.paymentId || 'Pending')}</div></section><h1 class="title">Invoice ${escapeHtml(order.orderNumber)}</h1><table class="items"><thead><tr><th>Description</th><th>Quantity</th><th>Unit Price</th><th>Amount</th></tr></thead><tbody>${invoiceItems}</tbody></table><section class="totals"><div class="total-row"><span>Subtotal</span><strong>${money(subtotal)}</strong></div><div class="total-row"><span>Shipping</span><strong>${money(shipping)}</strong></div><div class="total-row"><span>Artisan Handling</span><strong>${money(handling)}</strong></div><div class="total-row"><span>Premium Protection</span><strong>${money(premium)}</strong></div>${discount > 0 ? `<div class="total-row"><span>Promo Discount</span><strong>-${money(discount)}</strong></div>` : ''}<div class="total-row grand"><span>PAID TOTAL</span><strong>${money(paidAmount)}</strong></div></section><footer class="footer"><div><strong>Order link</strong><br><span class="small">${escapeHtml(orderUrl)}</span><br><br><span class="muted small">Thank you for supporting handmade Indian craft.</span></div><div class="qr"><img src="${qrUrl}" alt="QR code for order ${escapeHtml(order.orderNumber)}"><div class="small">Scan to view order</div></div></footer></main><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250));</script></body></html>`);
+    invoiceWindow.document.close();
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: warmCream, overflowX: 'hidden' }}>
       <Navbar />
@@ -408,6 +434,10 @@ export default function OrderDetailPage() {
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Artisan Handling</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta }}>₹{order?.charges?.handling?.toLocaleString()}</Typography>
                     </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Premium Protection</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 900, color: darkTerracotta }}>₹{order?.charges?.premium?.toLocaleString()}</Typography>
+                    </Box>
 
                     {order?.promoCode && (
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -427,6 +457,17 @@ export default function OrderDetailPage() {
                   </Stack>
                   
                   <Stack spacing={2}>
+                    {isPaid && (
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        startIcon={<CreditCard size={18} />}
+                        onClick={downloadInvoice}
+                        sx={{ height: 56, borderRadius: '1.5rem', fontWeight: 900, bgcolor: primarySaffron, '&:hover': { bgcolor: '#D66A18' }, textTransform: 'none', fontSize: '1rem' }}
+                      >
+                        Download Invoice
+                      </Button>
+                    )}
                     <Button 
                       fullWidth 
                       variant="contained" 
