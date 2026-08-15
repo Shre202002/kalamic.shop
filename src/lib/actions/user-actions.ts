@@ -111,6 +111,10 @@ export async function updateProfile(firebaseId: string, data: any) {
     const { role, firebaseId: _, emailVerified, deliveryLocation, ...updateData } = data;
     const normalizedLocation = normalizeDeliveryLocation(deliveryLocation);
     if (!normalizedLocation) throw new Error('A valid delivery pin is required before saving your address.');
+    if (updateData.phone != null) {
+      updateData.phone = String(updateData.phone).trim().slice(0, 20);
+      if (!/^[0-9+()\-\s]{7,20}$/.test(updateData.phone)) throw new Error('Enter a valid contact phone number.');
+    }
     updateData.deliveryLocation = { ...normalizedLocation, updatedAt: new Date() };
     
     const user = await User.findOneAndUpdate(
