@@ -235,6 +235,22 @@ export default function BlogStudio() {
       return;
     }
 
+    if (formData.status === 'published') {
+      const seo = formData.seo || {};
+      const missing: string[] = [];
+      if (!formData.coverImage?.url) missing.push('cover image');
+      if (!seo.metaTitle || seo.metaTitle.length < 50 || seo.metaTitle.length > 60) missing.push('50–60 character meta title');
+      if (!seo.metaDescription || seo.metaDescription.length < 120 || seo.metaDescription.length > 160) missing.push('120–160 character meta description');
+      if (!Array.isArray(seo.metaKeywords) || seo.metaKeywords.length < 3) missing.push('at least 3 SEO keywords');
+      if (!Array.isArray(formData.tags) || formData.tags.length < 3) missing.push('at least 3 tags');
+      if (wordCount <= 300) missing.push('more than 300 words');
+      if (missing.length) {
+        toast({ variant: 'destructive', title: 'Complete SEO before publishing', description: `Please add: ${missing.join(', ')}.` });
+        setActiveTab(1);
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       // Sanitization Pass
@@ -273,7 +289,8 @@ export default function BlogStudio() {
         })
       });
 
-      if (!res.ok) throw new Error('Failed to save blog');
+      const responseData = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(responseData.message || 'Failed to save blog');
 
       localStorage.removeItem('blog_draft_autosave');
       toast({ title: isUpdate ? 'Post Refined' : 'Post Created' });
@@ -634,6 +651,13 @@ export default function BlogStudio() {
               {activeTab === 2 && (
                 <Paper sx={{ p: 4, borderRadius: 4 }}>
                   <Stack spacing={4}>
+                    <FormControl fullWidth>
+                      <InputLabel>Publication status</InputLabel>
+                      <Select label="Publication status" value={formData.status || 'draft'} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                        <MenuItem value="draft">Draft — keep private</MenuItem>
+                        <MenuItem value="published">Published — visible on the blog</MenuItem>
+                      </Select>
+                    </FormControl>
                     <FormControl fullWidth>
                       <InputLabel>Category</InputLabel>
                       <Select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
