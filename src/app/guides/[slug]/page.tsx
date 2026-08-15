@@ -4,7 +4,7 @@ import { Metadata } from 'next';
 import { getSeoGuide, SEO_GUIDES } from '@/data/seo-guides';
 
 export async function generateStaticParams() { return SEO_GUIDES.map(({ slug }) => ({ slug })); }
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> { const guide = getSeoGuide((await params).slug); return guide ? { title: `${guide.title} | Kalamic`, description: guide.description, alternates: { canonical: `/guides/${guide.slug}` }, openGraph: { title: guide.title, description: guide.description, type: 'article' } } : {}; }
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> { const guide = getSeoGuide((await params).slug); return guide ? { title: `${guide.title} | Kalamic`, description: guide.description, keywords: [guide.category, 'Indian home decor guide', 'handcrafted ceramic decor'], alternates: { canonical: `https://www.kalamic.shop/guides/${guide.slug}` }, robots: { index: true, follow: true }, openGraph: { title: guide.title, description: guide.description, url: `https://www.kalamic.shop/guides/${guide.slug}`, type: 'article' } } : { robots: { index: false, follow: false } }; }
 
 export default async function GuidePage({ params }: { params: Promise<{ slug: string }> }) {
   const guide = getSeoGuide((await params).slug); if (!guide) notFound();
