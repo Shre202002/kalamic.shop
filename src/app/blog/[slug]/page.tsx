@@ -111,6 +111,21 @@ export default async function BlogPostPage({ params }: Props) {
       { '@type': 'ListItem', position: 3, name: post.title, item: postUrl },
     ],
   };
+  const linkedProductsJsonLd = Array.isArray(post.linkedProducts) && post.linkedProducts.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: `Products featured in ${post.title}`,
+        itemListElement: post.linkedProducts
+          .filter((product: any) => product.productSlug || product.productId)
+          .map((product: any, index: number) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name: product.productName,
+            url: `https://www.kalamic.shop/products/${product.productSlug || product.productId}`,
+          })),
+      }
+    : null;
 
   return (
     <>
@@ -122,6 +137,12 @@ export default async function BlogPostPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      {linkedProductsJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(linkedProductsJsonLd) }}
+        />
+      )}
       <BlogPostClient
         post={JSON.parse(JSON.stringify(post))}
         initialComments={JSON.parse(JSON.stringify(comments))}

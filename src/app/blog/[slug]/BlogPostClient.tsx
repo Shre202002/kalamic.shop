@@ -242,6 +242,31 @@ export default function BlogPostClient({ post, initialComments, suggested }: any
                     </p>
                   </section>
                 )}
+
+                {Array.isArray(post.linkedProducts) && post.linkedProducts.length > 0 && (
+                  <section className="mt-12 rounded-[2rem] border border-primary/15 bg-white p-6 shadow-sm md:p-8">
+                    <div className="mb-6 flex items-end justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">From the Kalamic studio</p>
+                        <h2 className="mt-2 font-display text-2xl font-bold md:text-3xl">Shop pieces from this story</h2>
+                      </div>
+                      <Link href="/products" className="hidden text-xs font-black uppercase tracking-widest text-primary sm:block">View all</Link>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {post.linkedProducts.map((product: any) => (
+                        <Link key={product.productSlug || product.productId} href={`/products/${product.productSlug || product.productId}`} className="group flex gap-4 rounded-2xl border border-primary/10 p-3 transition hover:-translate-y-0.5 hover:border-primary/30">
+                          <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
+                            <Image src={product.productImage || BLOG_PLACEHOLDER} alt={product.productName || 'Kalamic product'} fill className="object-cover transition duration-500 group-hover:scale-105" sizes="80px" />
+                          </div>
+                          <div className="min-w-0 self-center">
+                            <h3 className="line-clamp-2 text-sm font-bold leading-5 group-hover:text-primary">{product.productName}</h3>
+                            {typeof product.productPrice === 'number' && <p className="mt-1 text-xs font-semibold text-muted-foreground">₹{product.productPrice.toLocaleString('en-IN')}</p>}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </>
 
               {/* Comments System */}
