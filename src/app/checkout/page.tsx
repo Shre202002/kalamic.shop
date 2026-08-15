@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { useNavigation } from '@/hooks/useNavigation';
-import { collection } from 'firebase/firestore';
+import { collection, deleteField, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getProfile } from '@/lib/actions/user-actions';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -47,6 +47,8 @@ import { toAnalyticsItem, trackEvent } from '@/lib/analytics';
 import { useSearchParams } from 'next/navigation';
 import { State, City } from 'country-state-city';
 import { cn } from '@/lib/utils';
+import { uploadCustomerProductImage, removeCustomerProductImage, getCustomerProductImagePreview } from '@/lib/actions/upload-actions';
+import { FileUploadCard, UploadedFile } from '@/components/ui/file-upload-card';
 
 declare global {
   interface Window {
@@ -93,6 +95,10 @@ function CheckoutContent() {
   const [dbRequiresHandling, setDbRequiresHandling] = useState(true);
   const [dbRequiresPremium, setDbRequiresPremium] = useState(true);
   const [flagsLoaded, setFlagsLoaded] = useState(false);
+  const [productFlags, setProductFlags] = useState<Record<string, any>>({});
+  const [uploadFiles, setUploadFiles] = useState<Record<string, UploadedFile[]>>({});
+  const [uploadingProduct, setUploadingProduct] = useState<string | null>(null);
+  const [customerImagePreviews, setCustomerImagePreviews] = useState<Record<string, string>>({});
 
   // Promo Code States
   const [promoCode, setPromoCode] = useState('');
@@ -186,17 +192,23 @@ function CheckoutContent() {
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
 
   const fetchProductFlags = async (items: any[]) => {
+    const flagsByProductId: Record<string, any> = {};
     const results = await Promise.all(
       items.map(async (item) => {
         const productId = item.productVariantId || item.id;
         try {
           const res = await fetch(`/api/products/${productId}/flags`);
-          return res.ok ? await res.json() : { requiresHandling: true, requiresPremiumProtection: true };
+          const flags = res.ok ? await res.json() : { requiresHandling: true, requiresPremiumProtection: true, requiresCustomerImage: false };
+          flagsByProductId[productId] = flags;
+          return flags;
         } catch {
-          return { requiresHandling: true, requiresPremiumProtection: true };
+          const flags = { requiresHandling: true, requiresPremiumProtection: true, requiresCustomerImage: false };
+          flagsByProductId[productId] = flags;
+          return flags;
         }
       })
     );
+    setProductFlags(flagsByProductId);
     
     return {
       requiresHandling: results.some(r => r.requiresHandling !== false),
@@ -240,19 +252,7 @@ function CheckoutContent() {
     if (!mounted || !cartItems?.length || subtotal === 0) return;
     
     const initialize = async () => {
-      const hasFlags = cartItems.every(
-        item => item.requiresHandling !== undefined && item.requiresPremiumProtection !== undefined
-      );
-      
-      let finalFlags;
-      if (hasFlags) {
-        finalFlags = {
-          requiresHandling: cartItems.some(item => item.requiresHandling !== false),
-          requiresPremiumProtection: cartItems.some(item => item.requiresPremiumProtection !== false)
-        };
-      } else {
-        finalFlags = await fetchProductFlags(cartItems);
-      }
+      const finalFlags = await fetchProductFlags(cartItems);
 
       setDbRequiresHandling(finalFlags.requiresHandling);
       setDbRequiresPremium(finalFlags.requiresPremiumProtection);
@@ -280,6 +280,59 @@ function CheckoutContent() {
   const requiresPremiumProtection = cartItems?.every(item => item.requiresPremiumProtection !== undefined)
     ? (cartItems?.some(item => item.requiresPremiumProtection !== false) ?? true)
     : dbRequiresPremium;
+
+  const productIdForItem = (item: any) => item.productVariantId || item.id;
+  const itemRequiresCustomerImage = (item: any) => Boolean(productFlags[productIdForItem(item)]?.requiresCustomerImage || item.requiresCustomerImage);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadPreviews = async () => {
+      const entries = (cartItems || []).filter((item: any) => item.customerImage?.assetId);
+      const resolved = await Promise.all(entries.map(async (item: any) => {
+        const result = await getCustomerProductImagePreview(item.customerImage.assetId);
+        return result.success ? [productIdForItem(item), result.previewUrl] as const : null;
+      }));
+      if (!cancelled) setCustomerImagePreviews(Object.fromEntries(resolved.filter(Boolean) as Array<readonly [string, string]>));
+    };
+    if (cartItems?.length) loadPreviews();
+    return () => { cancelled = true; };
+  }, [cartItems]);
+
+  const handleCheckoutImageFiles = async (item: any, files: File[]) => {
+    const file = files[0];
+    if (!file || !user || !firestore) return;
+    const productId = productIdForItem(item);
+    const uploadId = `${productId}-${Date.now()}`;
+    setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 20, status: 'uploading' }] }));
+    setUploadingProduct(productId);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await uploadCustomerProductImage(formData, productId, `product-${productId}`);
+      if (!result.success) throw new Error(result.message);
+      await updateDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id), {
+        customerImage: { assetId: result.assetId, mediaType: result.mediaType, width: result.width, height: result.height, originalName: result.originalName, uploadedAt: result.uploadedAt },
+        updatedAt: serverTimestamp(),
+      });
+      setCustomerImagePreviews(prev => ({ ...prev, [productId]: result.previewUrl }));
+      setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 100, status: 'completed' }] }));
+      toast({ title: 'Image uploaded', description: 'Your image is attached to this order.' });
+    } catch (error: any) {
+      setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 100, status: 'error' }] }));
+      toast({ variant: 'destructive', title: 'Upload failed', description: error.message || 'Image upload failed.' });
+    } finally {
+      setUploadingProduct(null);
+    }
+  };
+
+  const handleRemoveCheckoutImage = async (item: any) => {
+    if (!user || !firestore) return;
+    const productId = productIdForItem(item);
+    if (item.customerImage?.assetId) await removeCustomerProductImage(item.customerImage.assetId);
+    await updateDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id), { customerImage: deleteField(), updatedAt: serverTimestamp() });
+    setUploadFiles(prev => ({ ...prev, [productId]: [] }));
+    setCustomerImagePreviews(prev => { const next = { ...prev }; delete next[productId]; return next; });
+  };
 
   useEffect(() => {
     async function loadUserData() {
@@ -486,6 +539,16 @@ function CheckoutContent() {
 
     if (!policyAccepted) {
       toast({ variant: "destructive", title: "Policy Agreement Required", description: "You must agree to our Privacy Policy and Refund & Return Policy to proceed." });
+      return;
+    }
+
+    const missingCustomerImage = cartItems.find((item: any) => itemRequiresCustomerImage(item) && !item.customerImage?.assetId);
+    if (missingCustomerImage) {
+      toast({
+        variant: 'destructive',
+        title: 'Photo required',
+        description: 'This product requires a photo-frame image before you can place your order.',
+      });
       return;
     }
 
@@ -721,15 +784,32 @@ function CheckoutContent() {
               <Typography variant="h4" sx={{ fontWeight: 900, mb: 4, color: '#271E1B' }}>Summary</Typography>
               <Stack spacing={3} sx={{ mb: 4 }}>
                 {cartItems?.map((item) => (
-                  <MuiBox key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
-                    <MuiBox sx={{ position: 'relative', width: 56, height: 56, borderRadius: '1rem', overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-                      <Image src={item.imageUrl || `https://picsum.photos/seed/${item.id}/100/100`} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                  <MuiBox key={item.id}>
+                    <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                      <MuiBox sx={{ position: 'relative', width: 56, height: 56, borderRadius: '1rem', overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                        <Image src={item.imageUrl || `https://picsum.photos/seed/${item.id}/100/100`} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                      </MuiBox>
+                      <MuiBox sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography noWrap sx={{ fontWeight: 800, fontSize: '0.875rem' }}>{item.name}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Qty: {item.quantity}</Typography>
+                      </MuiBox>
+                      <Typography sx={{ fontWeight: 900, fontSize: '0.875rem' }}>₹{(item.priceAtAddToCart * item.quantity).toLocaleString()}</Typography>
                     </MuiBox>
-                    <MuiBox sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography noWrap sx={{ fontWeight: 800, fontSize: '0.875rem' }}>{item.name}</Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Qty: {item.quantity}</Typography>
-                    </MuiBox>
-                    <Typography sx={{ fontWeight: 900, fontSize: '0.875rem' }}>₹{(item.priceAtAddToCart * item.quantity).toLocaleString()}</Typography>
+                    {itemRequiresCustomerImage(item) && (
+                      <MuiBox sx={{ mt: 2, ml: { xs: 0, sm: 8 } }}>
+                        <Typography variant="caption" sx={{ display: 'block', mb: 1, color: 'text.secondary', fontWeight: 700 }}>
+                          Upload the image for this product before payment.
+                        </Typography>
+                        <FileUploadCard
+                          files={uploadFiles[productIdForItem(item)] || []}
+                          previewUrl={customerImagePreviews[productIdForItem(item)]}
+                          previewAlt={`${item.name} customer image`}
+                          disabled={uploadingProduct === productIdForItem(item)}
+                          onFilesChange={(files) => handleCheckoutImageFiles(item, files)}
+                          onFileRemove={() => handleRemoveCheckoutImage(item)}
+                        />
+                      </MuiBox>
+                    )}
                   </MuiBox>
                 ))}
               </Stack>

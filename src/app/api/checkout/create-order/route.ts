@@ -9,7 +9,6 @@ import { calculateOrderCharges } from '@/lib/utils/calculateShipping';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import CustomerUpload from '@/lib/models/CustomerUpload';
-import ImageKit from 'imagekit';
 import { consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 /**
@@ -260,26 +259,11 @@ export async function POST(req: NextRequest) {
         expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       });
       if (customerAssets.length) {
-        const publicKey = process.env.IMAGEKIT_PUBLIC_KEY || process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
-        const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-        const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
-        if (!publicKey || !privateKey || !urlEndpoint) throw new Error('Server media configuration is missing.');
-        const imagekit = new ImageKit({ publicKey, privateKey, urlEndpoint });
-        const clean = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'item';
-        for (const asset of customerAssets) {
-          const item = validatedItems.find((entry: any) => entry.customerImage?.assetId === asset.assetId) as any;
-          // ImageKit's moveFile destinationPath must be a folder, not a full
-          // filename. Keep the generated unique filename after moving; a
-          // rename would create a file version, which is disabled on the
-          // current ImageKit plan.
-          const destinationFolder = `/kalamic/Customer_Uploaded_Image/${clean(item?.name || 'product')}/`;
-          await imagekit.moveFile({ sourceFilePath: asset.filePath, destinationPath: destinationFolder });
-          const sourceFileName = asset.filePath.split('/').filter(Boolean).pop();
-          if (!sourceFileName) throw new Error('Customer image reference is invalid.');
-          const finalFilePath = `${destinationFolder}${sourceFileName}`;
-          if (item?.customerImage) item.customerImage.filePath = finalFilePath;
-          if (item?.customerImageDetails?.[0]) item.customerImageDetails[0].filePath = finalFilePath;
-        }
+        // Keep the private ImageKit asset at its existing path. Moving or
+        // renaming it during checkout can consume an ImageKit file version;
+        // this account has versions disabled (limit 0), so media finalization
+        // must never block Razorpay order creation. The stored private path is
+        // sufficient for the protected admin signed-URL endpoint.
         await OrderedItem.updateOne({ _id: newOrder._id }, { $set: { items: validatedItems } });
         await CustomerUpload.updateMany({ assetId: { $in: customerAssets.map((a) => a.assetId) }, userId: sessionUser.uid }, { $set: { status: 'attached', orderId: newOrder._id.toString(), expiresAt: new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000) } });
       }

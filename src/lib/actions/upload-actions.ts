@@ -217,12 +217,28 @@ export async function uploadCustomerProductImage(formData: FormData, productId: 
   const uploaded: any = await imagekit.upload({ file: normalized, fileName, folder, useUniqueFileName: false, isPrivateFile: true, tags: ['kalamic', 'customer-order-image'] });
   if (!uploaded?.fileId || !uploaded?.filePath) throw new Error('Image storage did not return a valid file reference. Please try again.');
   await CustomerUpload.create({ assetId, userId: session.uid, productId, draftId, fileId: uploaded.fileId, filePath: uploaded.filePath, extension: 'webp', originalName: file.name.slice(0, 180), width, height, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) });
-  return { success: true as const, assetId, mediaType: 'image' as const, width, height, originalName: file.name.slice(0, 180), uploadedAt: new Date().toISOString() };
+  const previewUrl = imagekit.url({ path: uploaded.filePath, signed: true, expireSeconds: 600 });
+  return { success: true as const, assetId, mediaType: 'image' as const, width, height, originalName: file.name.slice(0, 180), uploadedAt: new Date().toISOString(), previewUrl };
  } catch (error: any) {
   const message = error instanceof Error ? error.message : 'Image upload failed. Please try another image.';
   console.error('[CUSTOMER_IMAGE_UPLOAD_ERROR]', message);
   return { success: false as const, message };
  }
+}
+
+/** Returns a short-lived preview URL for an authenticated user's pending upload. */
+export async function getCustomerProductImagePreview(assetId: string) {
+  const session = await getAuthenticatedSession();
+  if (!session || !/^[0-9a-f-]{36}$/i.test(assetId)) return { success: false as const, message: 'Unauthorized' };
+  await dbConnect();
+  const asset: any = await CustomerUpload.findOne({ assetId, userId: session.uid, status: 'pending', expiresAt: { $gt: new Date() } }).lean();
+  if (!asset) return { success: false as const, message: 'Image upload expired. Please upload it again.' };
+  const publicKey = process.env.IMAGEKIT_PUBLIC_KEY || process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
+  const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+  const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
+  if (!publicKey || !privateKey || !urlEndpoint) return { success: false as const, message: 'Server media configuration is missing.' };
+  const previewUrl = new ImageKit({ publicKey, privateKey, urlEndpoint }).url({ path: asset.filePath, signed: true, expireSeconds: 600 });
+  return { success: true as const, previewUrl };
 }
 
 export async function removeCustomerProductImage(assetId: string) {
