@@ -46,13 +46,19 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   
   const title = meta?.title || 'Handcrafted Ceramic Collection | Kalamic';
   const description = meta?.description || 'Shop our curated collection of handcrafted ceramic wall art, spiritual decor, and photo frames. Made by master artisans in Kanpur, India.';
+  const keywords = categoryMeta[category || '']
+    ? [categoryMeta[category || ''].title.replace(' | Kalamic', ''), 'handcrafted ceramics India', 'Kalamic shop']
+    : ['handcrafted ceramic decor', 'ceramic home decor India', 'Kanpur artisan products', 'Kalamic shop'];
 
   return {
     title,
     description,
+    keywords,
+    robots: { index: true, follow: true },
     openGraph: {
       title,
       description,
+      url: category ? `https://www.kalamic.shop/products?category=${category}` : 'https://www.kalamic.shop/products',
       type: 'website',
     },
     alternates: {
