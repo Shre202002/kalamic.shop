@@ -18,11 +18,13 @@ interface FileUploadCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>,
   onFileRemove: (id: string) => void;
   onClose?: () => void;
   disabled?: boolean;
+  previewUrl?: string | null;
+  previewAlt?: string;
 }
 
 const formatFileSize = (bytes: number) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 
-export const FileUploadCard = React.forwardRef<HTMLDivElement, FileUploadCardProps>(function FileUploadCard({ className, files = [], onFilesChange, onFileRemove, onClose, disabled }, ref) {
+export const FileUploadCard = React.forwardRef<HTMLDivElement, FileUploadCardProps>(function FileUploadCard({ className, files = [], onFilesChange, onFileRemove, onClose, disabled, previewUrl, previewAlt = 'Uploaded image' }, ref) {
   const [isDragging, setIsDragging] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const acceptFiles = (incoming: File[]) => onFilesChange(incoming.filter((file) => ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)).slice(0, 1));
@@ -41,6 +43,7 @@ export const FileUploadCard = React.forwardRef<HTMLDivElement, FileUploadCardPro
         <span className="mt-4 inline-flex rounded-lg border px-3 py-2 text-xs font-bold">Browse image</span>
       </div>
     </div>
+    {previewUrl && <div className="border-t p-4 sm:p-5"><img src={previewUrl} alt={previewAlt} className="max-h-56 w-full rounded-xl object-contain bg-muted/30" /><button type="button" onClick={(event) => { event.stopPropagation(); onFileRemove('preview'); }} className="mt-3 rounded-lg border px-3 py-2 text-xs font-bold text-muted-foreground hover:bg-muted">Remove uploaded image</button></div>}
     {files.length > 0 && <div className="border-t p-5 sm:p-6"><AnimatePresence>{files.map((entry) => <motion.div key={entry.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">IMG</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{entry.file.name}</p><p className="text-xs text-muted-foreground">{formatFileSize(entry.file.size)} · <span className={entry.status === 'completed' ? 'text-green-600' : entry.status === 'error' ? 'text-destructive' : 'text-primary'}>{entry.status === 'completed' ? 'Uploaded' : entry.status === 'error' ? 'Upload failed' : 'Uploading…'}</span></p>{entry.status === 'uploading' && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${entry.progress}%` }} /></div>}</div>{entry.status === 'completed' && <CheckCircle2 className="h-5 w-5 text-green-600" />}<button type="button" aria-label="Remove image" onClick={() => onFileRemove(entry.id)} className="rounded-full p-2 text-muted-foreground hover:bg-muted"><Trash2 className="h-4 w-4" /></button></motion.div>)}</AnimatePresence></div>}
   </motion.div>;
 });
