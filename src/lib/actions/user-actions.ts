@@ -6,6 +6,7 @@ import OrderedItem from '@/lib/models/OrderedItem';
 import WishlistItem from '@/lib/models/WishlistItem';
 import { revalidatePath } from 'next/cache';
 import { requireUserId } from '@/lib/server-auth';
+import { normalizeDeliveryLocation } from '@/lib/types/location';
 
 const PERMANENT_SUPER_ADMIN = 'sriyanshgupta24@gmail.com';
 
@@ -107,7 +108,10 @@ export async function updateProfile(firebaseId: string, data: any) {
   try {
     await requireUserId(firebaseId);
     await dbConnect();
-    const { role, firebaseId: _, emailVerified, ...updateData } = data;
+    const { role, firebaseId: _, emailVerified, deliveryLocation, ...updateData } = data;
+    const normalizedLocation = normalizeDeliveryLocation(deliveryLocation);
+    if (!normalizedLocation) throw new Error('A valid delivery pin is required before saving your address.');
+    updateData.deliveryLocation = { ...normalizedLocation, updatedAt: new Date() };
     
     const user = await User.findOneAndUpdate(
       { firebaseId },

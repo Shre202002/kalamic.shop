@@ -77,6 +77,12 @@ export interface IOrderedItem extends Document {
     state: string;
     pincode: string;
     nearestLandmark?: string | null;
+    deliveryLocation?: {
+      latitude: number;
+      longitude: number;
+      accuracy?: number | null;
+      source: 'geocoded' | 'gps' | 'manual';
+    } | null;
   };
   orderStatus: OrderStatus;
   paymentMethod: string;
@@ -165,6 +171,12 @@ const OrderedItemSchema: Schema = new Schema({
     state: { type: String, required: true },
     pincode: { type: String, required: true },
     nearestLandmark: { type: String, default: null },
+    deliveryLocation: {
+      latitude: { type: Number, min: -90, max: 90 },
+      longitude: { type: Number, min: -180, max: 180 },
+      accuracy: { type: Number, min: 0, default: null },
+      source: { type: String, enum: ['geocoded', 'gps', 'manual'] },
+    },
   },
 
   orderStatus: { 

@@ -10,6 +10,7 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import CustomerUpload from '@/lib/models/CustomerUpload';
 import { consumeRateLimit, requestIp } from '@/lib/security/rate-limit';
+import { normalizeDeliveryLocation } from '@/lib/types/location';
 
 /**
  * @fileOverview Secure Order Creation API.
@@ -50,6 +51,10 @@ export async function POST(req: NextRequest) {
     if (!shippingDetails?.fullName || !shippingDetails?.phone || !shippingDetails?.address
       || !shippingDetails?.city || !shippingDetails?.state || !shippingDetails?.zip) {
       return NextResponse.json({ message: 'Complete shipping details are required' }, { status: 400 });
+    }
+    const deliveryLocation = shippingDetails.deliveryLocation == null ? null : normalizeDeliveryLocation(shippingDetails.deliveryLocation);
+    if (shippingDetails.deliveryLocation != null && !deliveryLocation) {
+      return NextResponse.json({ message: 'The delivery pin is invalid. Please select it again on your profile.' }, { status: 400 });
     }
 
     const normalizedEmail = String(customerEmail || sessionUser.email || '').trim().toLowerCase();
@@ -249,6 +254,12 @@ export async function POST(req: NextRequest) {
         state: shippingDetails.state,
         pincode: shippingDetails.zip,
         nearestLandmark: shippingDetails.landmark || null,
+        deliveryLocation: deliveryLocation ? {
+          latitude: deliveryLocation.latitude,
+          longitude: deliveryLocation.longitude,
+          accuracy: deliveryLocation.accuracy ?? null,
+          source: deliveryLocation.source,
+        } : undefined,
       },
       orderStatus: 'Initiated',
       paymentMethod: 'online',

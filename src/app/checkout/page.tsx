@@ -47,6 +47,7 @@ import { toAnalyticsItem, trackEvent } from '@/lib/analytics';
 import { useSearchParams } from 'next/navigation';
 import { State, City } from 'country-state-city';
 import { cn } from '@/lib/utils';
+import { DeliveryLocation } from '@/lib/types/location';
 
 declare global {
   interface Window {
@@ -119,7 +120,8 @@ function CheckoutContent() {
     zip: '',
     phone: '',
     landmark: '',
-    paymentMethod: 'card'
+    paymentMethod: 'card',
+    deliveryLocation: null as DeliveryLocation | null,
   });
 
   useEffect(() => {
@@ -292,6 +294,7 @@ function CheckoutContent() {
         state: userProfile.state || '',
         zip: userProfile.pincode || '',
         landmark: userProfile.landmark || '',
+        deliveryLocation: userProfile.deliveryLocation || null,
       }));
 
       if (userProfile.state) {
