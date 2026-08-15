@@ -37,6 +37,12 @@ const getCoverImage = (url?: string) => {
   return url;
 };
 
+const normalizeTags = (values: unknown[]) => Array.from(new Set(
+  values.flatMap((value) => String(value || '').split(','))
+    .map((value) => value.trim().replace(/\s+/g, ' '))
+    .filter(Boolean)
+)).slice(0, 20);
+
 export default function BlogStudio() {
   const theme = useTheme();
   const { user } = useUser();
@@ -242,7 +248,7 @@ export default function BlogStudio() {
       if (!seo.metaTitle || seo.metaTitle.length < 50 || seo.metaTitle.length > 60) missing.push('50–60 character meta title');
       if (!seo.metaDescription || seo.metaDescription.length < 120 || seo.metaDescription.length > 160) missing.push('120–160 character meta description');
       if (!Array.isArray(seo.metaKeywords) || seo.metaKeywords.length < 3) missing.push('at least 3 SEO keywords');
-      if (!Array.isArray(formData.tags) || formData.tags.length < 3) missing.push('at least 3 tags');
+      if (normalizeTags(formData.tags || []).length < 3) missing.push('at least 3 tags');
       if (wordCount <= 300) missing.push('more than 300 words');
       if (missing.length) {
         toast({ variant: 'destructive', title: 'Complete SEO before publishing', description: `Please add: ${missing.join(', ')}.` });
@@ -283,6 +289,7 @@ export default function BlogStudio() {
         body: JSON.stringify({ 
           ...formData, 
           content: cleanContent,
+          tags: normalizeTags(formData.tags || []),
           slug: finalSlug,
           adminId: user.uid,
           scheduledAt: formData.scheduledAt || null
@@ -398,7 +405,7 @@ export default function BlogStudio() {
       { label: 'Meta description (120-160)', pass: formData.seo?.metaDescription?.length >= 120 && formData.seo?.metaDescription?.length <= 160, tip: `${formData.seo?.metaDescription?.length || 0} chars` },
       { label: 'Min 3 keywords', pass: (formData.seo?.metaKeywords?.length || 0) >= 3, tip: `${formData.seo?.metaKeywords?.length || 0} keywords` },
       { label: 'Cover image set', pass: !!formData.coverImage?.url, tip: 'Upload/Choose image' },
-      { label: 'Min 3 tags', pass: (formData.tags?.length || 0) >= 3, tip: `${formData.tags?.length || 0} tags` },
+      { label: 'Min 3 tags', pass: normalizeTags(formData.tags || []).length >= 3, tip: `${normalizeTags(formData.tags || []).length} tags` },
       { label: 'Content > 300 words', pass: wordCount > 300, tip: `${wordCount} words` },
       { label: 'URL-friendly slug', pass: /^[a-z0-9-]+$/.test(formData.slug || ''), tip: 'Slug format correct' },
       { label: 'Summary > 120 chars', pass: (formData.excerpt?.length || 0) >= 120, tip: 'Check excerpt length' },
@@ -633,6 +640,7 @@ export default function BlogStudio() {
                     <TextField fullWidth label="Meta title (50–60 characters)" value={formData.seo?.metaTitle || ''} onChange={(e) => setFormData({ ...formData, seo: { ...formData.seo, metaTitle: e.target.value.slice(0, 70) } })} helperText={`${formData.seo?.metaTitle?.length || 0}/60 characters`} />
                     <TextField fullWidth multiline minRows={3} label="Meta description (120–160 characters)" value={formData.seo?.metaDescription || ''} onChange={(e) => setFormData({ ...formData, seo: { ...formData.seo, metaDescription: e.target.value.slice(0, 180) } })} helperText={`${formData.seo?.metaDescription?.length || 0}/160 characters`} />
                     <TextField fullWidth label="SEO keywords (comma separated)" value={(formData.seo?.metaKeywords || []).join(', ')} onChange={(e) => setFormData({ ...formData, seo: { ...formData.seo, metaKeywords: e.target.value.split(',').map((keyword: string) => keyword.trim()).filter(Boolean).slice(0, 20) } })} helperText="Add at least 3 specific search phrases." />
+                    <TextField fullWidth label="SEO tags (comma separated)" value={normalizeTags(formData.tags || []).join(', ')} onChange={(e) => setFormData({ ...formData, tags: normalizeTags([e.target.value]) })} helperText={`${normalizeTags(formData.tags || []).length}/3 minimum tags. Use specific topics such as wall mirrors, living room decor, and mirror placement.`} />
                     <TextField fullWidth label="Canonical URL (optional)" value={formData.seo?.canonicalUrl || ''} onChange={(e) => setFormData({ ...formData, seo: { ...formData.seo, canonicalUrl: e.target.value.trim() } })} />
                   </Stack>
                   <List>
@@ -671,7 +679,7 @@ export default function BlogStudio() {
                           <Chip key={i} label={t} onDelete={() => setFormData({ ...formData, tags: formData.tags.filter((_: any, idx: number) => idx !== i) })} />
                         ))}
                       </Box>
-                      <TextField size="small" placeholder="Add tag..." onKeyDown={(e: any) => { if (e.key === 'Enter') { setFormData({ ...formData, tags: [...formData.tags, e.target.value] }); e.target.value = ''; } }} />
+                      <TextField size="small" placeholder="Add tags separated by commas..." onKeyDown={(e: any) => { if (e.key === 'Enter') { e.preventDefault(); setFormData({ ...formData, tags: normalizeTags([...formData.tags, e.target.value]) }); e.target.value = ''; } }} />
                     </Box>
                   </Stack>
                 </Paper>
