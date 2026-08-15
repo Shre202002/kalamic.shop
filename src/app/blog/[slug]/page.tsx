@@ -24,10 +24,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const isMorStambhGuide = slug === 'what-is-mor-stambh-history-meaning-why-it-belongs-in-your-home';
   const title = isMorStambhGuide
-    ? 'What Is Stambh? Meaning in English & Mor Stambh Guide'
+    ? 'Stambh Meaning in English & Mor Stambh Guide'
     : post.seo?.metaTitle || post.title;
   const description = isMorStambhGuide
-    ? 'Learn the meaning of Stambh in English, the history and symbolism of Mor Stambh, and how peacock pillars are used in Indian home and temple decor.'
+    ? 'What does stambh mean in English? Learn Mor Stambh history, symbolism and ways to style peacock pillars in Indian homes, temples and entrances.'
     : post.seo?.metaDescription || post.excerpt;
   const canonical = post.seo?.canonicalUrl || `https://www.kalamic.shop/blog/${slug}`;
   const socialImage = post.seo?.ogImage || post.coverImage?.url;

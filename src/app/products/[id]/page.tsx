@@ -48,14 +48,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const productPath = `/products/${product.slug || product._id}`;
   const seoOverride = productSeoOverrides[product.slug];
+  const seoTitle = seoOverride?.title || product.seo?.meta_title || product.name;
+  const seoDescription = seoOverride?.description || product.seo?.meta_description || product.short_description;
+  const productImage = product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url;
 
   return {
-    title: seoOverride?.title || product.seo?.meta_title || product.name,
-    description: seoOverride?.description || product.seo?.meta_description || product.short_description,
+    title: seoTitle,
+    description: seoDescription,
+    keywords: product.seo?.meta_keywords?.length ? product.seo.meta_keywords.join(', ') : product.tags?.join(', '),
+    robots: { index: true, follow: true },
     openGraph: {
-      title: product.name,
-      description: product.short_description,
-      images: [{ url: product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url || '' }],
+      title: seoTitle,
+      description: seoDescription,
+      ...(productImage ? { images: [{ url: productImage, alt: product.name }] } : {}),
+      url: `https://www.kalamic.shop${productPath}`,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: seoTitle,
+      description: seoDescription,
+      ...(productImage ? { images: [productImage] } : {}),
     },
     alternates: {
       canonical: productPath,
