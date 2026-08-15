@@ -1,4 +1,8 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+// Vercel CLI writes pulled variables to .env.local. Node does not load that
+// file automatically, so load it explicitly before reading MONGODB_URI.
+dotenv.config({ path: '.env.local' });
+dotenv.config();
 import mongoose from 'mongoose';
 
 const uri = process.env.MONGODB_URI;
