@@ -5,20 +5,27 @@ module.exports = {
   changefreq: 'weekly',
   priority: 0.7,
   sitemapSize: 5000,
+  // Keep private, transactional and utility routes out of Google's index.
+  // Include both the route root and descendants because glob matching does
+  // not consistently treat `/checkout/*` as matching `/checkout` itself.
   exclude: [
-    '/auth/*',
-    '/checkout/*',
-    '/account/*',
-    '/admin/*',
-    '/api/*',
-    '/wishlist',
+    '/robots.txt',
+    '/auth', '/auth/*',
+    '/checkout', '/checkout/*',
+    '/account', '/account/*',
+    '/admin', '/admin/*',
+    '/api', '/api/*',
+    '/cart', '/cart/*',
+    '/orders', '/orders/*',
+    '/profile', '/profile/*',
+    '/wishlist', '/wishlist/*',
   ],
   robotsTxtOptions: {
     policies: [
       {
         userAgent: '*',
         allow: ['/api/feed/'],
-        disallow: ['/auth/', '/checkout/', '/account/', '/admin/', '/api/', '/wishlist'],
+        disallow: ['/auth/', '/checkout/', '/account/', '/admin/', '/api/', '/cart/', '/orders/', '/profile/', '/wishlist/'],
       },
     ],
   },
