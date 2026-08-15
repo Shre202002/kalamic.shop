@@ -195,7 +195,7 @@ export default function HomeClient({
                   <motion.div key={currentSlide} initial={{ opacity: 0, scale: 0.9, rotate: -5 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.95, rotate: 5 }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} className="relative w-full max-w-[450px] aspect-square">
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-[80px] opacity-40 animate-pulse" />
                     <div className="relative w-full h-full rounded-[3rem] overflow-hidden shadow-2xl bg-white border-8 border-white/50">
-                      <Image src={slide.image} alt={slide.title} fill className="object-contain p-4" priority sizes="(max-width: 1024px) 100vw, 400px" />
+                      <Image src={slide.image} alt={`${slide.title} ${slide.highlight} - Kalamic handcrafted ceramics`} fill className="object-contain p-4" priority sizes="(max-width: 768px) 92vw, 400px" quality={75} />
                     </div>
                   </motion.div>
                 </AnimatePresence>
@@ -238,7 +238,7 @@ export default function HomeClient({
             <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-12">
               {initialProducts.map((product, index) => (
                 <motion.div key={product._id} variants={fadeUp}>
-                  <ProductCard id={product._id} slug={product.slug} name={product.name} description={product.short_description} price={product.price} originalPrice={product.compare_at_price} image={product.images?.[0]} rating={product.analytics?.average_rating || 4.8} priority={index < 4} />
+                  <ProductCard id={product._id} slug={product.slug} name={product.name} description={product.short_description} price={product.price} originalPrice={product.compare_at_price} image={product.images?.[0]} rating={product.analytics?.average_rating || 4.8} priority={index === 0} />
                 </motion.div>
               ))}
             </motion.div>
@@ -307,7 +307,7 @@ export default function HomeClient({
                   <motion.div variants={fadeUp} className="lg:col-span-7 group">
                     <Link href={`/blog/${mainPost.slug}`} className="block space-y-6">
                       <div className="relative aspect-video rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl">
-                        <Image src={getCoverImage(mainPost.coverImage?.url)} alt={mainPost.title} fill className="object-cover transition-transform duration-1000 group-hover:scale-110" priority sizes="(max-width: 1024px) 100vw, 800px" />
+                        <Image src={getCoverImage(mainPost.coverImage?.url)} alt={mainPost.title} fill className="object-cover transition-transform duration-1000 group-hover:scale-110" loading="lazy" sizes="(max-width: 1024px) 100vw, 800px" />
                         <div className="absolute top-6 left-6">
                           <Badge className="bg-primary text-white text-[10px] font-black uppercase tracking-widest border-none px-4 py-1.5 shadow-lg">{mainPost.category}</Badge>
                         </div>
