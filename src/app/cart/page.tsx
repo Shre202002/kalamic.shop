@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useNavigation } from '@/hooks/useNavigation';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, updateDoc, deleteField } from 'firebase/firestore';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getProfile } from '@/lib/actions/user-actions';
 import { calculateOrderCharges, isEligibleForFreeDelivery, FREE_DELIVERY_THRESHOLD } from '@/lib/utils/calculateShipping';
@@ -17,6 +17,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { toAnalyticsItem, trackEvent } from '@/lib/analytics';
+import { uploadCustomerProductImage, removeCustomerProductImage, getCustomerProductImagePreview } from '@/lib/actions/upload-actions';
+import { FileUploadCard, UploadedFile } from '@/components/ui/file-upload-card';
 
 export default function CartPage() {
   const { user, isUserLoading } = useUser();
@@ -31,6 +33,10 @@ export default function CartPage() {
     requiresPremiumProtection: true,
     requiresCustomerImage: false
   });
+  const [productFlags, setProductFlags] = useState<Record<string, any>>({});
+  const [uploadFiles, setUploadFiles] = useState<Record<string, UploadedFile[]>>({});
+  const [uploadingProduct, setUploadingProduct] = useState<string | null>(null);
+  const [customerImagePreviews, setCustomerImagePreviews] = useState<Record<string, string>>({});
 
   const cartQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -61,22 +67,7 @@ export default function CartPage() {
   useEffect(() => {
     const fetchFlags = async () => {
       if (!cartItems?.length) return;
-      
-      // Check if flags already exist in cart items (New Flow)
-      const hasFlags = cartItems.every(
-        item => item.requiresHandling !== undefined && item.requiresPremiumProtection !== undefined
-      );
-      
-      if (hasFlags) {
-        setCartFlags({
-          requiresHandling: cartItems.some(item => item.requiresHandling !== false),
-          requiresPremiumProtection: cartItems.some(item => item.requiresPremiumProtection !== false),
-          requiresCustomerImage: cartItems.some(item => item.requiresCustomerImage === true && !item.customerImage)
-        });
-        return;
-      }
-      
-      // Fallback: Fetch from DB for old cart items
+      const flagsByProductId: Record<string, any> = {};
       let handlingNeeded = false;
       let premiumNeeded = false;
       let imageNeeded = false;
@@ -87,19 +78,22 @@ export default function CartPage() {
           const res = await fetch(`/api/products/${productId}/flags`);
           if (res.ok) {
             const data = await res.json();
+            flagsByProductId[productId] = data;
             if (data.requiresHandling !== false) handlingNeeded = true;
             if (data.requiresPremiumProtection !== false) premiumNeeded = true;
-            if (data.requiresCustomerImage === true && !item.customerImage) imageNeeded = true;
+            if (data.requiresCustomerImage === true && !item.customerImage?.assetId) imageNeeded = true;
           } else {
             handlingNeeded = true;
             premiumNeeded = true;
+            flagsByProductId[productId] = { requiresCustomerImage: false };
           }
         } catch {
           handlingNeeded = true;
           premiumNeeded = true;
+          flagsByProductId[productId] = { requiresCustomerImage: false };
         }
       }
-      
+      setProductFlags(flagsByProductId);
       setCartFlags({
         requiresHandling: handlingNeeded,
         requiresPremiumProtection: premiumNeeded
@@ -109,6 +103,59 @@ export default function CartPage() {
     
     fetchFlags();
   }, [cartItems]);
+
+  const productIdForItem = (item: any) => item.productVariantId || item.id;
+  const itemRequiresCustomerImage = (item: any) => Boolean(productFlags[productIdForItem(item)]?.requiresCustomerImage || item.requiresCustomerImage);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadPreviews = async () => {
+      const entries = (cartItems || []).filter((item: any) => item.customerImage?.assetId);
+      const resolved = await Promise.all(entries.map(async (item: any) => {
+        const result = await getCustomerProductImagePreview(item.customerImage.assetId);
+        return result.success ? [productIdForItem(item), result.previewUrl] as const : null;
+      }));
+      if (!cancelled) setCustomerImagePreviews(Object.fromEntries(resolved.filter(Boolean) as Array<readonly [string, string]>));
+    };
+    if (cartItems?.length) loadPreviews();
+    return () => { cancelled = true; };
+  }, [cartItems]);
+
+  const handleCartImageFiles = async (item: any, files: File[]) => {
+    const file = files[0];
+    if (!file || !user || !firestore) return;
+    const productId = productIdForItem(item);
+    const uploadId = `${productId}-${Date.now()}`;
+    setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 20, status: 'uploading' }] }));
+    setUploadingProduct(productId);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await uploadCustomerProductImage(formData, productId, `product-${productId}`);
+      if (!result.success) throw new Error(result.message);
+      await updateDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id), {
+        customerImage: { assetId: result.assetId, mediaType: result.mediaType, width: result.width, height: result.height, originalName: result.originalName, uploadedAt: result.uploadedAt },
+        updatedAt: serverTimestamp(),
+      });
+      setCustomerImagePreviews(prev => ({ ...prev, [productId]: result.previewUrl }));
+      setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 100, status: 'completed' }] }));
+      toast({ title: 'Image uploaded', description: 'Your image is attached to this product.' });
+    } catch (error: any) {
+      setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 100, status: 'error' }] }));
+      toast({ variant: 'destructive', title: 'Upload failed', description: error.message || 'Image upload failed.' });
+    } finally {
+      setUploadingProduct(null);
+    }
+  };
+
+  const handleRemoveCartImage = async (item: any) => {
+    if (!user || !firestore) return;
+    const productId = productIdForItem(item);
+    if (item.customerImage?.assetId) await removeCustomerProductImage(item.customerImage.assetId);
+    await updateDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id), { customerImage: deleteField(), updatedAt: serverTimestamp() });
+    setUploadFiles(prev => ({ ...prev, [productId]: [] }));
+    setCustomerImagePreviews(prev => { const next = { ...prev }; delete next[productId]; return next; });
+  };
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
   
@@ -215,6 +262,20 @@ export default function CartPage() {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-foreground text-sm md:text-base line-clamp-1">{item.name || 'Ceramic Piece'}</h3>
                         <p className="text-xs text-accent font-bold mt-0.5">₹{item.priceAtAddToCart.toFixed(2)}</p>
+
+                        {itemRequiresCustomerImage(item) && (
+                          <div className="mt-4">
+                            <p className="mb-2 text-xs font-semibold text-muted-foreground">Upload the image for this product before payment.</p>
+                            <FileUploadCard
+                              files={uploadFiles[productIdForItem(item)] || []}
+                              previewUrl={customerImagePreviews[productIdForItem(item)]}
+                              previewAlt={`${item.name} customer image`}
+                              disabled={uploadingProduct === productIdForItem(item)}
+                              onFilesChange={(files) => handleCartImageFiles(item, files)}
+                              onFileRemove={() => handleRemoveCartImage(item)}
+                            />
+                          </div>
+                        )}
                         
                         <div className="flex items-center justify-between mt-3 md:mt-4">
                           <div className="flex items-center border rounded-xl bg-muted/30 p-1">
