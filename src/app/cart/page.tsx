@@ -248,52 +248,58 @@ export default function CartPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
               <div className="lg:col-span-2 space-y-4">
                 {cartItems.map((item) => (
-                  <Card key={item.id} className="overflow-hidden border-none shadow-sm bg-white hover:shadow-md transition-all rounded-2xl">
-                    <CardContent className="p-4 md:p-5 flex items-center gap-4">
-                      <div className="relative h-16 w-16 md:h-24 md:w-24 rounded-xl md:rounded-2xl overflow-hidden flex-shrink-0 bg-muted shadow-inner">
-                        <Image 
-                          src={item.imageUrl || `https://picsum.photos/seed/${item.productVariantId}/200/200`} 
-                          alt={item.name} 
-                          fill 
-                          className="object-cover"
-                          sizes="(max-width: 768px) 64px, 96px"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-foreground text-sm md:text-base line-clamp-1">{item.name || 'Ceramic Piece'}</h3>
-                        <p className="text-xs text-accent font-bold mt-0.5">₹{item.priceAtAddToCart.toFixed(2)}</p>
-
-                        {itemRequiresCustomerImage(item) && (
-                          <div className="mt-4">
-                            <p className="mb-2 text-xs font-semibold text-muted-foreground">Upload the image for this product before payment.</p>
-                            <FileUploadCard
-                              files={uploadFiles[productIdForItem(item)] || []}
-                              previewUrl={customerImagePreviews[productIdForItem(item)]}
-                              previewAlt={`${item.name} customer image`}
-                              disabled={uploadingProduct === productIdForItem(item)}
-                              onFilesChange={(files) => handleCartImageFiles(item, files)}
-                              onFileRemove={() => handleRemoveCartImage(item)}
-                            />
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center justify-between mt-3 md:mt-4">
-                          <div className="flex items-center border rounded-xl bg-muted/30 p-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}>
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}>
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/5 rounded-xl" onClick={() => handleRemoveItem(item.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                  <Card key={item.id} className="overflow-hidden border-none bg-white shadow-sm transition-all hover:shadow-md rounded-2xl">
+                    <CardContent className="p-4 md:p-5">
+                      <div className="flex w-full items-start gap-3 sm:gap-4">
+                        <div className="relative h-20 w-20 md:h-24 md:w-24 rounded-xl md:rounded-2xl overflow-hidden flex-shrink-0 bg-muted shadow-inner">
+                          <Image
+                            src={item.imageUrl || `https://picsum.photos/seed/${item.productVariantId}/200/200`}
+                            alt={item.name}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 80px, 96px"
+                          />
                         </div>
-                      </div>
-                      <div className="text-right hidden sm:block">
-                        <p className="font-bold text-foreground text-base">₹{(item.priceAtAddToCart * item.quantity).toFixed(2)}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-foreground text-sm md:text-base leading-5 line-clamp-2">{item.name || 'Ceramic Piece'}</h3>
+                              <p className="text-xs text-accent font-bold mt-1">₹{item.priceAtAddToCart.toFixed(2)} each</p>
+                            </div>
+                            <p className="font-bold text-foreground text-sm whitespace-nowrap">₹{(item.priceAtAddToCart * item.quantity).toFixed(2)}</p>
+                          </div>
+
+                          {itemRequiresCustomerImage(item) && (
+                            <div className="mt-4 rounded-2xl border border-primary/10 bg-primary/[0.03] p-3 sm:p-4">
+                              <p className="mb-1 text-xs font-bold text-foreground">Personalize this piece</p>
+                              <p className="mb-3 text-[11px] leading-4 text-muted-foreground">Upload one JPG, PNG, or WebP image before checkout.</p>
+                              <FileUploadCard
+                                className="shadow-none"
+                                files={uploadFiles[productIdForItem(item)] || []}
+                                previewUrl={customerImagePreviews[productIdForItem(item)]}
+                                previewAlt={`${item.name} customer image`}
+                                disabled={uploadingProduct === productIdForItem(item)}
+                                onFilesChange={(files) => handleCartImageFiles(item, files)}
+                                onFileRemove={() => handleRemoveCartImage(item)}
+                              />
+                            </div>
+                          )}
+                        
+                          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center border rounded-xl bg-muted/30 p-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" aria-label={`Decrease ${item.name} quantity`} onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}>
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" aria-label={`Increase ${item.name} quantity`} onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}>
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <Button variant="ghost" className="h-8 rounded-xl px-2 text-xs text-destructive hover:bg-destructive/5" onClick={() => handleRemoveItem(item.id)}>
+                              <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Remove
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

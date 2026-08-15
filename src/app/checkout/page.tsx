@@ -614,9 +614,9 @@ function CheckoutContent() {
         onReady={() => { setRazorpayLoaded(true); setRazorpayLoadError(null); }}
         onError={() => { setRazorpayLoaded(false); setRazorpayLoadError('Razorpay checkout was blocked or could not be loaded. Please disable ad blockers and refresh the page.'); }}
       />
-      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 12, md: 16 } }}>
-        <MuiBox sx={{ mb: 6 }}>
-          <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: 2 }}>
+      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 10, sm: 12, md: 16 }, px: { xs: 2, sm: 3 } }}>
+        <MuiBox sx={{ mb: { xs: 4, md: 6 } }}>
+          <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: { xs: 1, md: 2 } }}>
             <MuiLink component={Link} href="/cart" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5 }}>
               Back to Bag
             </MuiLink>
@@ -633,10 +633,10 @@ function CheckoutContent() {
           </MuiBox>
         </MuiBox>
 
-        <Grid container spacing={4} alignItems="flex-start">
+        <Grid container spacing={{ xs: 2.5, md: 4 }} alignItems="flex-start">
           <Grid item xs={12} lg={7}>
-            <Stack spacing={4}>
-              <Paper elevation={0} sx={{ borderRadius: '2.5rem', p: { xs: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
+            <Stack spacing={{ xs: 2.5, md: 4 }}>
+              <Paper elevation={0} sx={{ borderRadius: { xs: '1.5rem', md: '2.5rem' }, p: { xs: 2.5, sm: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
                 <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
                   <Avatar sx={{ bgcolor: muiAlpha('#EA781E', 0.1), color: '#EA781E', width: 48, height: 48, borderRadius: '1rem' }}>
                     <MapPin size={24} />
@@ -700,7 +700,7 @@ function CheckoutContent() {
                 </Grid>
               </Paper>
 
-              <Paper elevation={0} sx={{ borderRadius: '2.5rem', p: { xs: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
+              <Paper elevation={0} sx={{ borderRadius: { xs: '1.5rem', md: '2.5rem' }, p: { xs: 2.5, sm: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
                 <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
                   <Avatar sx={{ bgcolor: muiAlpha('#EA781E', 0.1), color: '#EA781E', width: 48, height: 48, borderRadius: '1rem' }}>
                     <CreditCard size={24} />
@@ -725,8 +725,8 @@ function CheckoutContent() {
           </Grid>
 
           <Grid item xs={12} lg={5}>
-            <Paper elevation={10} sx={{ borderRadius: '3rem', p: { xs: 4, md: 6 }, position: 'sticky', top: '100px', bgcolor: 'white' }}>
-              <Typography variant="h4" sx={{ fontWeight: 900, mb: 4, color: '#271E1B' }}>Summary</Typography>
+            <Paper elevation={10} sx={{ borderRadius: { xs: '1.5rem', md: '3rem' }, p: { xs: 2.5, sm: 4, md: 6 }, position: { xs: 'static', lg: 'sticky' }, top: '100px', bgcolor: 'white' }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, mb: { xs: 2.5, md: 4 }, color: '#271E1B', fontSize: { xs: '1.75rem', md: '2.125rem' } }}>Summary</Typography>
               <Stack spacing={3} sx={{ mb: 4 }}>
                 {cartItems?.map((item) => (
                   <MuiBox key={item.id}>
@@ -766,7 +766,7 @@ function CheckoutContent() {
                     }}
                   />
                 ) : (
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
                     <TextField 
                       fullWidth 
                       size="small" 
@@ -782,7 +782,7 @@ function CheckoutContent() {
                       variant="outlined" 
                       onClick={handleApplyPromo}
                       disabled={!promoCode.trim() || promoStatus === 'loading'}
-                      sx={{ borderRadius: 2, fontWeight: 800, px: 3 }}
+                      sx={{ borderRadius: 2, fontWeight: 800, px: { xs: 1.5, sm: 3 }, minWidth: { xs: 78, sm: 100 } }}
                     >
                       {promoStatus === 'loading' ? <CircularProgress size={16} /> : 'Apply'}
                     </Button>
@@ -883,8 +883,8 @@ function CheckoutContent() {
                 onClick={handlePlaceOrder} 
                 sx={{ 
                   borderRadius: '1.5rem', 
-                  height: '5rem', 
-                  fontSize: '1.25rem', 
+                  height: { xs: '3.75rem', sm: '4.25rem', md: '5rem' },
+                  fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
                   fontWeight: 900, 
                   bgcolor: '#EA781E', 
                   '&:hover': { bgcolor: '#D66A18' }, 
