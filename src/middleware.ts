@@ -10,6 +10,15 @@ export async function middleware(request: NextRequest) {
   const session = request.cookies.get('__session')?.value;
   const { pathname } = request.nextUrl;
 
+  // Consolidate public search signals on the www host. Do not redirect API
+  // requests because changing the host on a POST can interfere with payment
+  // and webhook clients that expect the original endpoint.
+  if (request.nextUrl.hostname === 'kalamic.shop' && !pathname.startsWith('/api/')) {
+    const canonicalUrl = request.nextUrl.clone();
+    canonicalUrl.hostname = 'www.kalamic.shop';
+    return NextResponse.redirect(canonicalUrl, 308);
+  }
+
   // 1. ADMIN API PROTECTION
   const noStore = (response: NextResponse) => {
     response.headers.set('Cache-Control', 'private, no-store, no-cache, max-age=0, must-revalidate');
@@ -63,6 +72,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/((?!_next/static|_next/image|favicon.ico).*)',
     '/api/admin/:path*',
     '/api/checkout/:path*',
     '/api/orders/:path*',
