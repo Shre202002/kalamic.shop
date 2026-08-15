@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "security:smoke": "node scripts/security-smoke.mjs"
+    "security:smoke": "node scripts/security-smoke.mjs",
+    "seed:seo-blogs": "node scripts/seed-seo-blogs.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

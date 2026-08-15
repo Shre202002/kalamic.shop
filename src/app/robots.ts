@@ -6,7 +6,17 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: ['/api/feed/'],
-        disallow: ['/api/', '/admin/', '/profile/', '/cart/', '/checkout/'],
+        disallow: [
+          '/api/',
+          '/admin/',
+          '/auth/',
+          '/account/',
+          '/profile/',
+          '/cart/',
+          '/checkout/',
+          '/orders/',
+          '/wishlist/',
+        ],
       },
     ],
     host: 'https://www.kalamic.shop',
