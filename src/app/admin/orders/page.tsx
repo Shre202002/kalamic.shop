@@ -49,6 +49,10 @@ import { getAllOrders } from '@/lib/actions/admin-actions';
 import dayjs from 'dayjs';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
+import dynamic from 'next/dynamic';
+import { DeliveryLocation } from '@/lib/types/location';
+
+const DeliveryMap = dynamic(() => import('@/components/location/DeliveryMap'), { ssr: false });
 
 const STATUS_OPTIONS = ["Initiated", "Placed", "Confirmed", "Preparing", "Developing", "Completed", "Dispatched", "Delivered", "Canceled"];
 
@@ -358,6 +362,21 @@ export default function OrdersManagement() {
                         )}
                       </Box>
                     </Stack>
+                  </Paper>
+
+                  <Typography variant="overline" sx={{ fontWeight: 900, mb: 2, display: 'block', letterSpacing: 1.5 }}>Delivery pin</Typography>
+                  <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 4, mb: 4, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+                    {selectedOrder.shippingAddress?.deliveryLocation ? (() => {
+                      const pin = selectedOrder.shippingAddress.deliveryLocation as DeliveryLocation;
+                      const directions = `https://www.openstreetmap.org/directions?to=${encodeURIComponent(`${pin.latitude},${pin.longitude}`)}`;
+                      return <>
+                        <DeliveryMap location={pin} />
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ pt: 1 }}>
+                          <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 800 }}>{pin.latitude.toFixed(6)}, {pin.longitude.toFixed(6)} · {pin.source}</Typography>
+                          <Button size="small" href={directions} target="_blank" rel="noreferrer" startIcon={<LocationOn />}>Directions</Button>
+                        </Stack>
+                      </>;
+                    })() : <Typography variant="caption" color="text.secondary">No precise pin saved for this order.</Typography>}
                   </Paper>
 
                   {/* Payment Details Section */}

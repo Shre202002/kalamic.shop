@@ -12,6 +12,13 @@ export interface IUser extends Document {
   city: string;
   pincode: string;
   landmark: string;
+  deliveryLocation?: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number | null;
+    source: 'geocoded' | 'gps' | 'manual';
+    updatedAt?: Date;
+  } | null;
   emailVerified: boolean;
   phoneVerified: boolean;
   role: 'super_admin' | 'admin' | 'support' | 'buyer' | 'user';
@@ -34,6 +41,13 @@ const UserSchema: Schema = new Schema({
   city: { type: String, required: false },      
   pincode: { type: String, required: false },   
   landmark: { type: String, required: false },  
+  deliveryLocation: {
+    latitude: { type: Number, min: -90, max: 90 },
+    longitude: { type: Number, min: -180, max: 180 },
+    accuracy: { type: Number, min: 0, default: null },
+    source: { type: String, enum: ['geocoded', 'gps', 'manual'] },
+    updatedAt: { type: Date, default: null },
+  },
   emailVerified: { type: Boolean, default: false },
   phoneVerified: { type: Boolean, default: false },
   role: { 

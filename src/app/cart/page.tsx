@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useNavigation } from '@/hooks/useNavigation';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, updateDoc, deleteField } from 'firebase/firestore';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getProfile } from '@/lib/actions/user-actions';
 import { calculateOrderCharges, isEligibleForFreeDelivery, FREE_DELIVERY_THRESHOLD } from '@/lib/utils/calculateShipping';
@@ -17,6 +17,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { toAnalyticsItem, trackEvent } from '@/lib/analytics';
+import { uploadCustomerProductImage, removeCustomerProductImage, getCustomerProductImagePreview } from '@/lib/actions/upload-actions';
+import { FileUploadCard, UploadedFile } from '@/components/ui/file-upload-card';
 
 export default function CartPage() {
   const { user, isUserLoading } = useUser();
@@ -31,6 +33,10 @@ export default function CartPage() {
     requiresPremiumProtection: true,
     requiresCustomerImage: false
   });
+  const [productFlags, setProductFlags] = useState<Record<string, any>>({});
+  const [uploadFiles, setUploadFiles] = useState<Record<string, UploadedFile[]>>({});
+  const [uploadingProduct, setUploadingProduct] = useState<string | null>(null);
+  const [customerImagePreviews, setCustomerImagePreviews] = useState<Record<string, string>>({});
 
   const cartQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -61,22 +67,7 @@ export default function CartPage() {
   useEffect(() => {
     const fetchFlags = async () => {
       if (!cartItems?.length) return;
-      
-      // Check if flags already exist in cart items (New Flow)
-      const hasFlags = cartItems.every(
-        item => item.requiresHandling !== undefined && item.requiresPremiumProtection !== undefined
-      );
-      
-      if (hasFlags) {
-        setCartFlags({
-          requiresHandling: cartItems.some(item => item.requiresHandling !== false),
-          requiresPremiumProtection: cartItems.some(item => item.requiresPremiumProtection !== false),
-          requiresCustomerImage: cartItems.some(item => item.requiresCustomerImage === true && !item.customerImage)
-        });
-        return;
-      }
-      
-      // Fallback: Fetch from DB for old cart items
+      const flagsByProductId: Record<string, any> = {};
       let handlingNeeded = false;
       let premiumNeeded = false;
       let imageNeeded = false;
@@ -87,19 +78,22 @@ export default function CartPage() {
           const res = await fetch(`/api/products/${productId}/flags`);
           if (res.ok) {
             const data = await res.json();
+            flagsByProductId[productId] = data;
             if (data.requiresHandling !== false) handlingNeeded = true;
             if (data.requiresPremiumProtection !== false) premiumNeeded = true;
-            if (data.requiresCustomerImage === true && !item.customerImage) imageNeeded = true;
+            if (data.requiresCustomerImage === true && !item.customerImage?.assetId) imageNeeded = true;
           } else {
             handlingNeeded = true;
             premiumNeeded = true;
+            flagsByProductId[productId] = { requiresCustomerImage: false };
           }
         } catch {
           handlingNeeded = true;
           premiumNeeded = true;
+          flagsByProductId[productId] = { requiresCustomerImage: false };
         }
       }
-      
+      setProductFlags(flagsByProductId);
       setCartFlags({
         requiresHandling: handlingNeeded,
         requiresPremiumProtection: premiumNeeded
@@ -109,6 +103,59 @@ export default function CartPage() {
     
     fetchFlags();
   }, [cartItems]);
+
+  const productIdForItem = (item: any) => item.productVariantId || item.id;
+  const itemRequiresCustomerImage = (item: any) => Boolean(productFlags[productIdForItem(item)]?.requiresCustomerImage || item.requiresCustomerImage);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadPreviews = async () => {
+      const entries = (cartItems || []).filter((item: any) => item.customerImage?.assetId);
+      const resolved = await Promise.all(entries.map(async (item: any) => {
+        const result = await getCustomerProductImagePreview(item.customerImage.assetId);
+        return result.success ? [productIdForItem(item), result.previewUrl] as const : null;
+      }));
+      if (!cancelled) setCustomerImagePreviews(Object.fromEntries(resolved.filter(Boolean) as Array<readonly [string, string]>));
+    };
+    if (cartItems?.length) loadPreviews();
+    return () => { cancelled = true; };
+  }, [cartItems]);
+
+  const handleCartImageFiles = async (item: any, files: File[]) => {
+    const file = files[0];
+    if (!file || !user || !firestore) return;
+    const productId = productIdForItem(item);
+    const uploadId = `${productId}-${Date.now()}`;
+    setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 20, status: 'uploading' }] }));
+    setUploadingProduct(productId);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await uploadCustomerProductImage(formData, productId, `product-${productId}`);
+      if (!result.success) throw new Error(result.message);
+      await updateDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id), {
+        customerImage: { assetId: result.assetId, mediaType: result.mediaType, width: result.width, height: result.height, originalName: result.originalName, uploadedAt: result.uploadedAt },
+        updatedAt: serverTimestamp(),
+      });
+      setCustomerImagePreviews(prev => ({ ...prev, [productId]: result.previewUrl }));
+      setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 100, status: 'completed' }] }));
+      toast({ title: 'Image uploaded', description: 'Your image is attached to this product.' });
+    } catch (error: any) {
+      setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 100, status: 'error' }] }));
+      toast({ variant: 'destructive', title: 'Upload failed', description: error.message || 'Image upload failed.' });
+    } finally {
+      setUploadingProduct(null);
+    }
+  };
+
+  const handleRemoveCartImage = async (item: any) => {
+    if (!user || !firestore) return;
+    const productId = productIdForItem(item);
+    if (item.customerImage?.assetId) await removeCustomerProductImage(item.customerImage.assetId);
+    await updateDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id), { customerImage: deleteField(), updatedAt: serverTimestamp() });
+    setUploadFiles(prev => ({ ...prev, [productId]: [] }));
+    setCustomerImagePreviews(prev => { const next = { ...prev }; delete next[productId]; return next; });
+  };
 
   const subtotal = cartItems?.reduce((acc, item) => acc + (item.priceAtAddToCart * item.quantity), 0) || 0;
   
@@ -201,38 +248,58 @@ export default function CartPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
               <div className="lg:col-span-2 space-y-4">
                 {cartItems.map((item) => (
-                  <Card key={item.id} className="overflow-hidden border-none shadow-sm bg-white hover:shadow-md transition-all rounded-2xl">
-                    <CardContent className="p-4 md:p-5 flex items-center gap-4">
-                      <div className="relative h-16 w-16 md:h-24 md:w-24 rounded-xl md:rounded-2xl overflow-hidden flex-shrink-0 bg-muted shadow-inner">
-                        <Image 
-                          src={item.imageUrl || `https://picsum.photos/seed/${item.productVariantId}/200/200`} 
-                          alt={item.name} 
-                          fill 
-                          className="object-cover"
-                          sizes="(max-width: 768px) 64px, 96px"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-foreground text-sm md:text-base line-clamp-1">{item.name || 'Ceramic Piece'}</h3>
-                        <p className="text-xs text-accent font-bold mt-0.5">₹{item.priceAtAddToCart.toFixed(2)}</p>
+                  <Card key={item.id} className="overflow-hidden border-none bg-white shadow-sm transition-all hover:shadow-md rounded-2xl">
+                    <CardContent className="p-4 md:p-5">
+                      <div className="flex w-full items-start gap-3 sm:gap-4">
+                        <div className="relative h-20 w-20 md:h-24 md:w-24 rounded-xl md:rounded-2xl overflow-hidden flex-shrink-0 bg-muted shadow-inner">
+                          <Image
+                            src={item.imageUrl || `https://picsum.photos/seed/${item.productVariantId}/200/200`}
+                            alt={item.name}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 80px, 96px"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-foreground text-sm md:text-base leading-5 line-clamp-2">{item.name || 'Ceramic Piece'}</h3>
+                              <p className="text-xs text-accent font-bold mt-1">₹{item.priceAtAddToCart.toFixed(2)} each</p>
+                            </div>
+                            <p className="font-bold text-foreground text-sm whitespace-nowrap">₹{(item.priceAtAddToCart * item.quantity).toFixed(2)}</p>
+                          </div>
+
+                          {itemRequiresCustomerImage(item) && (
+                            <div className="mt-4 rounded-2xl border border-primary/10 bg-primary/[0.03] p-3 sm:p-4">
+                              <p className="mb-1 text-xs font-bold text-foreground">Personalize this piece</p>
+                              <p className="mb-3 text-[11px] leading-4 text-muted-foreground">Upload one JPG, PNG, or WebP image before checkout.</p>
+                              <FileUploadCard
+                                className="shadow-none"
+                                files={uploadFiles[productIdForItem(item)] || []}
+                                previewUrl={customerImagePreviews[productIdForItem(item)]}
+                                previewAlt={`${item.name} customer image`}
+                                disabled={uploadingProduct === productIdForItem(item)}
+                                onFilesChange={(files) => handleCartImageFiles(item, files)}
+                                onFileRemove={() => handleRemoveCartImage(item)}
+                              />
+                            </div>
+                          )}
                         
-                        <div className="flex items-center justify-between mt-3 md:mt-4">
-                          <div className="flex items-center border rounded-xl bg-muted/30 p-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}>
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}>
-                              <Plus className="h-3 w-3" />
+                          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center border rounded-xl bg-muted/30 p-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" aria-label={`Decrease ${item.name} quantity`} onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}>
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" aria-label={`Increase ${item.name} quantity`} onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}>
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <Button variant="ghost" className="h-8 rounded-xl px-2 text-xs text-destructive hover:bg-destructive/5" onClick={() => handleRemoveItem(item.id)}>
+                              <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Remove
                             </Button>
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/5 rounded-xl" onClick={() => handleRemoveItem(item.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
                         </div>
-                      </div>
-                      <div className="text-right hidden sm:block">
-                        <p className="font-bold text-foreground text-base">₹{(item.priceAtAddToCart * item.quantity).toFixed(2)}</p>
                       </div>
                     </CardContent>
                   </Card>

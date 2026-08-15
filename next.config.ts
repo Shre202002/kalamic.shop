@@ -77,7 +77,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), payment=(self "https://checkout.razorpay.com")',
+            value: 'camera=(), microphone=(), geolocation=(self), payment=(self "https://checkout.razorpay.com")',
           },
           {
             key: 'Strict-Transport-Security',

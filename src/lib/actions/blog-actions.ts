@@ -11,6 +11,8 @@ export async function getPublishedBlogs(options?: {
   tag?: string;
   featured?: boolean;
   excludeSlug?: string;
+  search?: string;
+  sort?: 'popular' | 'newest';
 }) {
   return unstable_cache(
     async () => {
@@ -34,8 +36,17 @@ export async function getPublishedBlogs(options?: {
           query.slug = { $ne: options.excludeSlug };
         }
 
+        if (options?.search?.trim()) {
+          const escaped = options.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          query.$or = [
+            { title: { $regex: escaped, $options: 'i' } },
+            { excerpt: { $regex: escaped, $options: 'i' } },
+            { tags: { $regex: escaped, $options: 'i' } },
+          ];
+        }
+
         const blogs = await BlogPost.find(query)
-          .sort({ publishedAt: -1 })
+          .sort(options?.sort === 'popular' ? { views: -1, publishedAt: -1 } : { publishedAt: -1, createdAt: -1 })
           .limit(options?.limit || 100)
           .lean();
           

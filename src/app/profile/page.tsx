@@ -40,6 +40,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+import { DeliveryLocation } from '@/lib/types/location';
+
+const LocationPicker = dynamic(() => import('@/components/location/LocationPicker'), { ssr: false, loading: () => <div className="h-[280px] rounded-2xl bg-muted animate-pulse" /> });
 
 export default function ProfilePage() {
   const { user, loading: isUserLoading } = useProtectedRoute();
@@ -60,6 +64,7 @@ export default function ProfilePage() {
   const [citiesList, setCitiesList] = useState<any[]>([]);
   const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [pincodeError, setPincodeError] = useState('');
+  const [deliveryLocation, setDeliveryLocation] = useState<DeliveryLocation | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -89,6 +94,10 @@ export default function ProfilePage() {
 
         if (profileData) {
           setProfile(profileData);
+          setDeliveryLocation(profileData.deliveryLocation ? {
+            ...profileData.deliveryLocation,
+            updatedAt: profileData.deliveryLocation.updatedAt || undefined,
+          } : null);
           setFormData({
             firstName: profileData.firstName || '',
             lastName: profileData.lastName || '',
@@ -178,6 +187,7 @@ export default function ProfilePage() {
   const handleStateChange = (stateName: string) => {
     const stateObj = statesList.find(s => s.name === stateName);
     if (stateObj) {
+      setDeliveryLocation(null);
       setFormData(prev => ({ ...prev, state: stateName, city: '' }));
       setCitiesList(City.getCitiesOfState('IN', stateObj.isoCode));
     }
@@ -226,6 +236,7 @@ export default function ProfilePage() {
     try {
       const updated = await updateProfile(user.uid, {
         ...formData,
+        deliveryLocation,
         email: user.email || ''
       } as any);
       setProfile(updated);
@@ -243,7 +254,7 @@ export default function ProfilePage() {
     router.refresh();
   };
 
-  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.address && formData.city && formData.state && formData.pincode);
+  const isProfileComplete = !!(formData.firstName && formData.lastName && formData.phone && formData.address && formData.city && formData.state && formData.pincode && deliveryLocation);
   const isEmailVerified = profile?.emailVerified;
   const isFullyVerified = isProfileComplete && isEmailVerified;
 
@@ -337,13 +348,16 @@ export default function ProfilePage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Contact Phone *</Label>
                           <div className="relative">
                             <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
                             <Input
-                              disabled
+                              required
+                              type="tel"
+                              inputMode="tel"
+                              autoComplete="tel"
                               value={formData.phone}
-                              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                              onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9+()\-\s]/g, '').slice(0, 20) })}
                               placeholder="+91 XXXXX XXXXX"
                               className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium"
                             />
@@ -386,7 +400,7 @@ export default function ProfilePage() {
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">Street Address *</Label>
                           <div className="relative">
                             <Home className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
-                            <Input required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="House No, Street Name" className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
+                            <Input required value={formData.address} onChange={(e) => { setDeliveryLocation(null); setFormData({...formData, address: e.target.value}); }} placeholder="House No, Street Name" className="pl-14 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium" />
                           </div>
                         </div>
                         <div className="space-y-2.5">
@@ -404,7 +418,7 @@ export default function ProfilePage() {
                             <Input 
                               required 
                               value={formData.pincode} 
-                              onChange={(e) => handlePincodeChange(e.target.value)} 
+                              onChange={(e) => { setDeliveryLocation(null); void handlePincodeChange(e.target.value); }}
                               placeholder="302001" 
                               className={cn(
                                 "pl-6 rounded-2xl h-14 border-border focus-visible:ring-primary bg-background text-lg font-medium",
@@ -440,7 +454,7 @@ export default function ProfilePage() {
                           <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">City *</Label>
                           <Select 
                             value={formData.city} 
-                            onValueChange={(val) => setFormData(prev => ({ ...prev, city: val }))}
+                            onValueChange={(val) => { setDeliveryLocation(null); setFormData(prev => ({ ...prev, city: val })); }}
                             disabled={!formData.state || citiesList.length === 0}
                           >
                             <SelectTrigger className="h-14 rounded-2xl border-border bg-background text-lg font-medium px-6 focus:ring-primary">
@@ -455,6 +469,13 @@ export default function ProfilePage() {
                             </SelectContent>
                           </Select>
                         </div>
+                      </div>
+                      <div className="space-y-3 rounded-2xl border border-border bg-primary/[0.02] p-5">
+                        <div>
+                          <h4 className="font-black text-primary">Precise delivery location *</h4>
+                          <p className="text-xs text-muted-foreground">Save a pin to help delivery partners find you accurately. Your coordinates are stored with your profile and order.</p>
+                        </div>
+                        <LocationPicker address={formData.address} city={formData.city} state={formData.state} pincode={formData.pincode} value={deliveryLocation} onChange={setDeliveryLocation} />
                       </div>
                     </div>
 

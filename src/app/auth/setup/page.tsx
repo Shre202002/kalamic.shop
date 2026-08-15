@@ -132,7 +132,8 @@ export default function SetupPage() {
           firstName: formData.firstName,
           lastName: formData.lastName,
           phone: verifiedPhone,
-          phoneVerified: true,
+          // Phone verification is temporarily disabled; keep the number for contact and delivery only.
+          // phoneVerified: true,
           emailVerified: true,
         }),
       });

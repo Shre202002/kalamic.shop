@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
           ...(photoURL && { photoURL }),
           ...(phone && { phone }),
           emailVerified: session.email_verified === true,
-          phoneVerified: Boolean(session.phone_number),
+          // Phone verification is temporarily disabled for the editable contact phone flow.
+          // phoneVerified: Boolean(session.phone_number),
           lastLogin: new Date()
         },
         $setOnInsert: {

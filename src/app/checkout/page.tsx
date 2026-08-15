@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import { useNavigation } from '@/hooks/useNavigation';
-import { collection, deleteField, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { getProfile } from '@/lib/actions/user-actions';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -47,8 +47,7 @@ import { toAnalyticsItem, trackEvent } from '@/lib/analytics';
 import { useSearchParams } from 'next/navigation';
 import { State, City } from 'country-state-city';
 import { cn } from '@/lib/utils';
-import { uploadCustomerProductImage, removeCustomerProductImage, getCustomerProductImagePreview } from '@/lib/actions/upload-actions';
-import { FileUploadCard, UploadedFile } from '@/components/ui/file-upload-card';
+import { DeliveryLocation } from '@/lib/types/location';
 
 declare global {
   interface Window {
@@ -96,9 +95,6 @@ function CheckoutContent() {
   const [dbRequiresPremium, setDbRequiresPremium] = useState(true);
   const [flagsLoaded, setFlagsLoaded] = useState(false);
   const [productFlags, setProductFlags] = useState<Record<string, any>>({});
-  const [uploadFiles, setUploadFiles] = useState<Record<string, UploadedFile[]>>({});
-  const [uploadingProduct, setUploadingProduct] = useState<string | null>(null);
-  const [customerImagePreviews, setCustomerImagePreviews] = useState<Record<string, string>>({});
 
   // Promo Code States
   const [promoCode, setPromoCode] = useState('');
@@ -124,7 +120,8 @@ function CheckoutContent() {
     zip: '',
     phone: '',
     landmark: '',
-    paymentMethod: 'card'
+    paymentMethod: 'card',
+    deliveryLocation: null as DeliveryLocation | null,
   });
 
   useEffect(() => {
@@ -285,56 +282,6 @@ function CheckoutContent() {
   const itemRequiresCustomerImage = (item: any) => Boolean(productFlags[productIdForItem(item)]?.requiresCustomerImage || item.requiresCustomerImage);
 
   useEffect(() => {
-    let cancelled = false;
-    const loadPreviews = async () => {
-      const entries = (cartItems || []).filter((item: any) => item.customerImage?.assetId);
-      const resolved = await Promise.all(entries.map(async (item: any) => {
-        const result = await getCustomerProductImagePreview(item.customerImage.assetId);
-        return result.success ? [productIdForItem(item), result.previewUrl] as const : null;
-      }));
-      if (!cancelled) setCustomerImagePreviews(Object.fromEntries(resolved.filter(Boolean) as Array<readonly [string, string]>));
-    };
-    if (cartItems?.length) loadPreviews();
-    return () => { cancelled = true; };
-  }, [cartItems]);
-
-  const handleCheckoutImageFiles = async (item: any, files: File[]) => {
-    const file = files[0];
-    if (!file || !user || !firestore) return;
-    const productId = productIdForItem(item);
-    const uploadId = `${productId}-${Date.now()}`;
-    setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 20, status: 'uploading' }] }));
-    setUploadingProduct(productId);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const result = await uploadCustomerProductImage(formData, productId, `product-${productId}`);
-      if (!result.success) throw new Error(result.message);
-      await updateDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id), {
-        customerImage: { assetId: result.assetId, mediaType: result.mediaType, width: result.width, height: result.height, originalName: result.originalName, uploadedAt: result.uploadedAt },
-        updatedAt: serverTimestamp(),
-      });
-      setCustomerImagePreviews(prev => ({ ...prev, [productId]: result.previewUrl }));
-      setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 100, status: 'completed' }] }));
-      toast({ title: 'Image uploaded', description: 'Your image is attached to this order.' });
-    } catch (error: any) {
-      setUploadFiles(prev => ({ ...prev, [productId]: [{ id: uploadId, file, progress: 100, status: 'error' }] }));
-      toast({ variant: 'destructive', title: 'Upload failed', description: error.message || 'Image upload failed.' });
-    } finally {
-      setUploadingProduct(null);
-    }
-  };
-
-  const handleRemoveCheckoutImage = async (item: any) => {
-    if (!user || !firestore) return;
-    const productId = productIdForItem(item);
-    if (item.customerImage?.assetId) await removeCustomerProductImage(item.customerImage.assetId);
-    await updateDoc(doc(firestore, 'users', user.uid, 'cart', 'cart', 'items', item.id), { customerImage: deleteField(), updatedAt: serverTimestamp() });
-    setUploadFiles(prev => ({ ...prev, [productId]: [] }));
-    setCustomerImagePreviews(prev => { const next = { ...prev }; delete next[productId]; return next; });
-  };
-
-  useEffect(() => {
     async function loadUserData() {
       if (!user || !mounted || !userProfile) return;
       setFormData(prev => ({
@@ -347,6 +294,7 @@ function CheckoutContent() {
         state: userProfile.state || '',
         zip: userProfile.pincode || '',
         landmark: userProfile.landmark || '',
+        deliveryLocation: userProfile.deliveryLocation || null,
       }));
 
       if (userProfile.state) {
@@ -669,9 +617,9 @@ function CheckoutContent() {
         onReady={() => { setRazorpayLoaded(true); setRazorpayLoadError(null); }}
         onError={() => { setRazorpayLoaded(false); setRazorpayLoadError('Razorpay checkout was blocked or could not be loaded. Please disable ad blockers and refresh the page.'); }}
       />
-      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 12, md: 16 } }}>
-        <MuiBox sx={{ mb: 6 }}>
-          <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: 2 }}>
+      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 10, sm: 12, md: 16 }, px: { xs: 2, sm: 3 } }}>
+        <MuiBox sx={{ mb: { xs: 4, md: 6 } }}>
+          <Breadcrumbs separator={<ChevronLeft size={14} />} sx={{ mb: { xs: 1, md: 2 } }}>
             <MuiLink component={Link} href="/cart" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1.5 }}>
               Back to Bag
             </MuiLink>
@@ -688,10 +636,10 @@ function CheckoutContent() {
           </MuiBox>
         </MuiBox>
 
-        <Grid container spacing={4} alignItems="flex-start">
+        <Grid container spacing={{ xs: 2.5, md: 4 }} alignItems="flex-start">
           <Grid item xs={12} lg={7}>
-            <Stack spacing={4}>
-              <Paper elevation={0} sx={{ borderRadius: '2.5rem', p: { xs: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
+            <Stack spacing={{ xs: 2.5, md: 4 }}>
+              <Paper elevation={0} sx={{ borderRadius: { xs: '1.5rem', md: '2.5rem' }, p: { xs: 2.5, sm: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
                 <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
                   <Avatar sx={{ bgcolor: muiAlpha('#EA781E', 0.1), color: '#EA781E', width: 48, height: 48, borderRadius: '1rem' }}>
                     <MapPin size={24} />
@@ -755,7 +703,7 @@ function CheckoutContent() {
                 </Grid>
               </Paper>
 
-              <Paper elevation={0} sx={{ borderRadius: '2.5rem', p: { xs: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
+              <Paper elevation={0} sx={{ borderRadius: { xs: '1.5rem', md: '2.5rem' }, p: { xs: 2.5, sm: 4, md: 6 }, border: '1px solid', borderColor: 'divider' }}>
                 <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
                   <Avatar sx={{ bgcolor: muiAlpha('#EA781E', 0.1), color: '#EA781E', width: 48, height: 48, borderRadius: '1rem' }}>
                     <CreditCard size={24} />
@@ -780,8 +728,8 @@ function CheckoutContent() {
           </Grid>
 
           <Grid item xs={12} lg={5}>
-            <Paper elevation={10} sx={{ borderRadius: '3rem', p: { xs: 4, md: 6 }, position: 'sticky', top: '100px', bgcolor: 'white' }}>
-              <Typography variant="h4" sx={{ fontWeight: 900, mb: 4, color: '#271E1B' }}>Summary</Typography>
+            <Paper elevation={10} sx={{ borderRadius: { xs: '1.5rem', md: '3rem' }, p: { xs: 2.5, sm: 4, md: 6 }, position: { xs: 'static', lg: 'sticky' }, top: '100px', bgcolor: 'white' }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, mb: { xs: 2.5, md: 4 }, color: '#271E1B', fontSize: { xs: '1.75rem', md: '2.125rem' } }}>Summary</Typography>
               <Stack spacing={3} sx={{ mb: 4 }}>
                 {cartItems?.map((item) => (
                   <MuiBox key={item.id}>
@@ -795,21 +743,6 @@ function CheckoutContent() {
                       </MuiBox>
                       <Typography sx={{ fontWeight: 900, fontSize: '0.875rem' }}>₹{(item.priceAtAddToCart * item.quantity).toLocaleString()}</Typography>
                     </MuiBox>
-                    {itemRequiresCustomerImage(item) && (
-                      <MuiBox sx={{ mt: 2, ml: { xs: 0, sm: 8 } }}>
-                        <Typography variant="caption" sx={{ display: 'block', mb: 1, color: 'text.secondary', fontWeight: 700 }}>
-                          Upload the image for this product before payment.
-                        </Typography>
-                        <FileUploadCard
-                          files={uploadFiles[productIdForItem(item)] || []}
-                          previewUrl={customerImagePreviews[productIdForItem(item)]}
-                          previewAlt={`${item.name} customer image`}
-                          disabled={uploadingProduct === productIdForItem(item)}
-                          onFilesChange={(files) => handleCheckoutImageFiles(item, files)}
-                          onFileRemove={() => handleRemoveCheckoutImage(item)}
-                        />
-                      </MuiBox>
-                    )}
                   </MuiBox>
                 ))}
               </Stack>
@@ -836,7 +769,7 @@ function CheckoutContent() {
                     }}
                   />
                 ) : (
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
                     <TextField 
                       fullWidth 
                       size="small" 
@@ -852,7 +785,7 @@ function CheckoutContent() {
                       variant="outlined" 
                       onClick={handleApplyPromo}
                       disabled={!promoCode.trim() || promoStatus === 'loading'}
-                      sx={{ borderRadius: 2, fontWeight: 800, px: 3 }}
+                      sx={{ borderRadius: 2, fontWeight: 800, px: { xs: 1.5, sm: 3 }, minWidth: { xs: 78, sm: 100 } }}
                     >
                       {promoStatus === 'loading' ? <CircularProgress size={16} /> : 'Apply'}
                     </Button>
@@ -953,8 +886,8 @@ function CheckoutContent() {
                 onClick={handlePlaceOrder} 
                 sx={{ 
                   borderRadius: '1.5rem', 
-                  height: '5rem', 
-                  fontSize: '1.25rem', 
+                  height: { xs: '3.75rem', sm: '4.25rem', md: '5rem' },
+                  fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
                   fontWeight: 900, 
                   bgcolor: '#EA781E', 
                   '&:hover': { bgcolor: '#D66A18' }, 
