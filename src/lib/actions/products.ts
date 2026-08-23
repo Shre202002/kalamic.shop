@@ -79,7 +79,8 @@ export async function getCategoryCounts() {
           is_deleted: { $ne: true },
           $or: [
             { tags: { $in: keywords } },
-            { name: { $regex: keywords.join('|'), $options: 'i' } }
+            { name: { $regex: keywords.join('|'), $options: 'i' } },
+            { 'specifications.value': { $regex: keywords.join('|'), $options: 'i' } }
           ]
         });
         counts[slug] = count;

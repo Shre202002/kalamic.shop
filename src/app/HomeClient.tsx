@@ -115,6 +115,9 @@ export default function HomeClient({
   categoryCounts?: Record<string, number>,
   featuredBlogs?: any[]
 }) {
+  const visibleCategories = [...categories]
+    .sort((a, b) => (categoryCounts[b.key] || 0) - (categoryCounts[a.key] || 0))
+    .slice(0, 5);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [email, setEmail] = useState('');
   const [subStatus, setSubStatus] = useState<'idle' | 'loading' | 'done'>('idle');
@@ -248,7 +251,7 @@ export default function HomeClient({
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="py-24 border-t border-primary/5">
             <motion.div variants={fadeUp} className="mb-12"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Browse by Style</span><h2 className="font-display font-black text-4xl sm:text-5xl tracking-tight text-foreground mt-2">Find Your Perfect Piece</h2></motion.div>
             <div className="flex gap-6 overflow-x-auto pb-8 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-              {categories.map((cat, i) => {
+              {visibleCategories.map((cat, i) => {
                 const Icon = cat.icon;
                 return (
                   <motion.a key={i} href={cat.href} variants={fadeUp} whileHover={{ y: -8, scale: 1.02 }} whileTap={{ scale: 0.97 }} className="min-w-[220px] p-8 rounded-[2.5rem] bg-white border border-border shadow-sm flex-shrink-0 flex flex-col gap-4 hover:border-primary/30 hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden">
