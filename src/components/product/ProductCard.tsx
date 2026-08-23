@@ -14,6 +14,7 @@ import { doc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { trackProductAction, untrackWishlistAction } from '@/lib/actions/products';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toAnalyticsItem, trackEvent } from '@/lib/analytics';
 
 interface ProductCardProps {
   id: string;
@@ -76,6 +77,15 @@ export function ProductCard({
 
     await trackProductAction(id, 'cart_add_count');
     toast({ title: "Bag Updated", description: `${name} has been added to your collection.` });
+  };
+
+  const handleProductOpen = () => {
+    trackEvent('select_item', {
+      currency: 'INR',
+      value: Number(price),
+      items: [toAnalyticsItem({ _id: id, slug, name, price, images: [{ url: displayImage }] })],
+    });
+    router.push(`/products/${slug || id}`);
   };
 
   const handleBuyNow = async (e: React.MouseEvent) => {
@@ -159,7 +169,7 @@ export function ProductCard({
     >
       <Card 
         className="group border-none bg-white rounded-[2rem] overflow-hidden shadow-md hover:shadow-2xl hover:shadow-primary/10 transition-all duration-700 cursor-pointer h-full flex flex-col relative"
-        onClick={() => router.push(`/products/${slug || id}`)}
+        onClick={handleProductOpen}
       >
         <div className="relative aspect-square overflow-hidden bg-muted">
           <Image

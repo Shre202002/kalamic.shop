@@ -212,7 +212,7 @@ export default function HomeClient({
           {[
             { icon: <Truck className="h-6 w-6" />, title: 'Free Delivery', desc: 'On orders above ₹499' },
             { icon: <ShieldCheck className="h-6 w-6" />, title: 'Secure Gateway', desc: 'SSL-encrypted Checkout' },
-            { icon: <RotateCcw className="h-6 w-6" />, title: 'Artisan Warranty', desc: '7-day easy returns' },
+            { icon: <RotateCcw className="h-6 w-6" />, title: 'Damage Support', desc: 'Replacement for transit damage' },
             { icon: <Sparkles className="h-6 w-6" />, title: '100% Handmade', desc: 'By Kanpur Artisans' },
           ].map((item, i) => (
             <motion.div key={i} variants={fadeUp} className="flex flex-col items-center text-center gap-3 p-4 group">

@@ -108,11 +108,11 @@ export function PurchasePanel({ product, onAddToCart, onBuyNow, productUrl }: Pu
         <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span>In Stock · Ships in 2 days</span>
+            <span>{product.stock > 0 ? 'In Stock' : 'Currently unavailable'} · Dispatches in 1–2 days</span>
           </div>
           <div className="flex items-center gap-2">
             <Truck size={14} className="text-primary" />
-            <span>Free Pan-India Delivery</span>
+            <span>Free delivery on orders above ₹499</span>
           </div>
         </div>
         
@@ -124,7 +124,7 @@ export function PurchasePanel({ product, onAddToCart, onBuyNow, productUrl }: Pu
              </div>
              <div>
                 <p className="text-[9px] font-black uppercase tracking-widest text-foreground">First Time Buyer?</p>
-                <p className="text-[9px] text-muted-foreground font-medium">Authenticity guaranteed with every piece.</p>
+                <p className="text-[9px] text-muted-foreground font-medium">Need help choosing? Speak with our studio before ordering.</p>
              </div>
           </div>
           <a href="tel:+917376761679" className="text-[10px] font-black text-primary hover:underline flex items-center gap-1">
