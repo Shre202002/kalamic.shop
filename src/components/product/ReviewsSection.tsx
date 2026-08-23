@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import dayjs from 'dayjs';
+import { submitReview } from '@/lib/actions/reviews';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 interface ReviewsSectionProps {
   productId: string;
@@ -17,10 +20,44 @@ interface ReviewsSectionProps {
 
 export function ReviewsSection({ productId, reviews, user, isEligible }: ReviewsSectionProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!user?.uid) return;
+    if (reviewText.trim().length < 3) return;
+
+    setIsSubmitting(true);
+    try {
+      await submitReview({
+        productId,
+        userId: user.uid,
+        userName: user.displayName || user.email?.split('@')[0] || 'Kalamic Collector',
+        userAvatar: user.photoURL || undefined,
+        rating,
+        reviewText: reviewText.trim(),
+      });
+      setReviewText('');
+      setRating(5);
+      setShowReviewForm(false);
+      toast({ title: 'Review submitted', description: 'Thank you for sharing your Kalamic experience.' });
+      router.refresh();
+    } catch (error: any) {
+      console.error('[REVIEWS] Submit failed:', error);
+      toast({ variant: 'destructive', title: 'Review could not be submitted', description: error?.message || 'Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const averageRating = reviews.length > 0 
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
@@ -85,8 +122,8 @@ export function ReviewsSection({ productId, reviews, user, isEligible }: Reviews
                 <a href="/auth/login">Sign In to Review</a>
              </Button>
            ) : isEligible ? (
-             <Button className="h-14 px-10 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg">
-                Write a Story
+             <Button type="button" onClick={() => setShowReviewForm((open) => !open)} className="h-14 px-10 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg">
+                {showReviewForm ? 'Close Review' : 'Write a Story'}
              </Button>
            ) : (
              <div className="px-6 py-3 rounded-xl bg-white border border-border text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">
@@ -94,6 +131,39 @@ export function ReviewsSection({ productId, reviews, user, isEligible }: Reviews
              </div>
            )}
         </div>
+
+        {user && isEligible && showReviewForm && (
+          <form onSubmit={handleSubmit} className="rounded-[2rem] border border-primary/15 bg-white p-6 shadow-sm md:p-8">
+            <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Write your review</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Your review will appear after it is submitted.</p>
+              </div>
+              <div className="flex items-center gap-1" aria-label="Rating">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button key={value} type="button" onClick={() => setRating(value)} aria-label={`${value} star rating`} className="rounded p-1 text-amber-500">
+                    <Star size={22} className={cn(value <= rating && 'fill-current')} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <textarea
+              value={reviewText}
+              onChange={(event) => setReviewText(event.target.value)}
+              minLength={3}
+              maxLength={3000}
+              required
+              placeholder="Tell other collectors about your experience..."
+              className="mt-6 min-h-32 w-full rounded-2xl border border-border bg-muted/30 p-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+            <div className="mt-4 flex items-center justify-between gap-4">
+              <span className="text-xs text-muted-foreground">{reviewText.length}/3000</span>
+              <Button type="submit" disabled={isSubmitting || reviewText.trim().length < 3} className="rounded-xl px-6 font-bold">
+                {isSubmitting ? 'Submitting…' : 'Submit Review'}
+              </Button>
+            </div>
+          </form>
+        )}
 
         {/* Review List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
