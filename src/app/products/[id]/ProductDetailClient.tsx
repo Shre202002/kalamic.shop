@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { trackProductAction, incrementProductViews } from '@/lib/actions/products';
 import { useUser, useFirestore } from '@/firebase';
@@ -22,6 +22,7 @@ import { ProductSeoContent } from '@/components/product/ProductSeoContent';
 import { ProductComparisonTable } from '@/components/product/ProductComparisonTable';
 import { uploadCustomerProductImage } from '@/lib/actions/upload-actions';
 import { FileUploadCard, UploadedFile } from '@/components/ui/file-upload-card';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 
 interface ProductDetailClientProps {
   initialProduct: any;
@@ -184,6 +185,14 @@ export default function ProductDetailClient({
 
           {/* FULL-WIDTH LOWER SECTIONS */}
           <div className="space-y-32">
+            <section aria-labelledby="product-description-heading" className="rounded-[2.5rem] border border-border bg-white p-7 shadow-sm md:p-10">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">The piece</p>
+              <h2 id="product-description-heading" className="mt-2 text-3xl font-display font-bold text-foreground">Product description</h2>
+              <div className="mt-6 space-y-4 text-sm font-medium leading-7 text-muted-foreground">
+                {(product.description || product.short_description || '').split(/\n{2,}/).filter(Boolean).map((paragraph: string, index: number) => <p key={index}>{paragraph.trim()}</p>)}
+              </div>
+            </section>
+
             <ProductSeoContent product={product} />
 
             {/* Product comparison */}
@@ -213,9 +222,10 @@ export default function ProductDetailClient({
          <a 
           href={`https://wa.me/917376761679?text=I'm inquiring about the ${product.name}. Reference: ${product.sku || product.slug}`}
           target="_blank"
+          aria-label={`Chat with Kalamic about ${product.name}`}
           className="h-16 w-16 rounded-full bg-[#25D366] shadow-2xl flex items-center justify-center text-white hover:scale-110 hover:shadow-green-500/20 transition-all active:scale-95"
          >
-           <MessageCircle size={32} />
+           <WhatsAppIcon className="h-8 w-8" />
          </a>
       </div>
 

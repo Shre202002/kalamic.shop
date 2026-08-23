@@ -8,7 +8,6 @@ import {
   Zap, 
   ShieldCheck, 
   CheckCircle2, 
-  MessageCircle, 
   Flag,
   Info,
   Clock,
@@ -16,6 +15,7 @@ import {
   Phone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 
 interface PurchasePanelProps {
   product: any;
@@ -95,7 +95,7 @@ export function PurchasePanel({ product, onAddToCart, onBuyNow }: PurchasePanelP
           className="w-full h-14 rounded-2xl bg-[#25D366] hover:bg-[#128C7E] text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-green-500/10"
         >
           <a href={`https://wa.me/917376761679?text=I'm interested in the ${product.name}. Could you share more details?`} target="_blank">
-            <MessageCircle size={18} /> Chat with the Studio
+            <WhatsAppIcon className="h-[18px] w-[18px]" /> Chat with the Studio
           </a>
         </Button>
       </div>

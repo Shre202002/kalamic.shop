@@ -2,13 +2,18 @@
 
 import dbConnect from '@/lib/db';
 import GalleryItem, { IGalleryItem } from '@/lib/models/GalleryItem';
+import { requireAdmin } from '@/lib/server-auth';
 
 export async function getGalleryItems(filters?: {
   category?: string;
   mediaType?: 'all' | 'image' | 'video';
   isActive?: boolean;
   isFeatured?: boolean;
+  includeInactive?: boolean;
 }) {
+  if (filters?.includeInactive) {
+    await requireAdmin(['super_admin', 'admin', 'support']);
+  }
   await dbConnect();
   try {
     const query: any = {};
@@ -17,7 +22,9 @@ export async function getGalleryItems(filters?: {
     if (filters?.isActive !== undefined) query.isActive = filters.isActive;
     if (filters?.isFeatured !== undefined) query.isFeatured = filters.isFeatured;
 
-    const finalQuery = { isActive: true, ...query };
+    // Public callers remain restricted to active items. Admin Studio opts in
+    // to pending review media so it can moderate and activate it.
+    const finalQuery = filters?.includeInactive ? query : { isActive: true, ...query };
     const items = await GalleryItem.find(finalQuery).sort({ sortOrder: 1, createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(items)) as IGalleryItem[];
   } catch (error) {

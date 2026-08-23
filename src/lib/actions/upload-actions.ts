@@ -164,7 +164,13 @@ export async function uploadReviewMedia(formData: FormData, productId: string) {
       useUniqueFileName: true,
       tags: ['kalamic', 'review-media'],
     });
-    return { success: true, url: uploadResponse.url, mediaType: isVideo ? 'video' : 'image' };
+    return {
+      success: true,
+      url: uploadResponse.url,
+      fileId: uploadResponse.fileId,
+      mediaType: isVideo ? 'video' : 'image',
+      format: extension,
+    };
   } catch (error: any) {
     console.error('[REVIEW_MEDIA_UPLOAD_ERROR]', error instanceof Error ? error.message : 'unknown');
     throw new Error('Review media upload failed.');

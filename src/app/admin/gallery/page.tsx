@@ -90,7 +90,7 @@ export default function GalleryStudio() {
   const loadGalleryItems = async () => {
     setLoading(true);
     try {
-      const data = await getGalleryItems();
+      const data = await getGalleryItems({ includeInactive: true });
       setItems(data);
     } catch (e) {
       console.error(e);

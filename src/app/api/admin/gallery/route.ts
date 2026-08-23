@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   const { session } = await requireAdmin(['super_admin', 'admin']);
 
   await dbConnect();
-  const items = await GalleryItem.find({ mediaType: 'image' })
+  const items = await GalleryItem.find({})
     .sort({ createdAt: -1 })
     .limit(50)
     .lean();

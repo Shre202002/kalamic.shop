@@ -10,6 +10,17 @@ import dayjs from 'dayjs';
 import { submitReview } from '@/lib/actions/reviews';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { uploadReviewMedia } from '@/lib/actions/upload-actions';
+
+type ReviewMedia = {
+  id: string;
+  name: string;
+  previewUrl: string;
+  url: string;
+  fileId?: string;
+  format?: string;
+  mediaType: 'image' | 'video';
+};
 
 interface ReviewsSectionProps {
   productId: string;
@@ -24,6 +35,8 @@ export function ReviewsSection({ productId, reviews, user, isEligible }: Reviews
   const [rating, setRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewMedia, setReviewMedia] = useState<ReviewMedia[]>([]);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -45,7 +58,16 @@ export function ReviewsSection({ productId, reviews, user, isEligible }: Reviews
         userAvatar: user.photoURL || undefined,
         rating,
         reviewText: reviewText.trim(),
+        images: reviewMedia.map((media) => ({
+          url: media.url,
+          fileId: media.fileId,
+          format: media.format,
+          mediaType: media.mediaType,
+          alt: `${media.name} customer review`,
+        })),
       });
+      reviewMedia.forEach((media) => URL.revokeObjectURL(media.previewUrl));
+      setReviewMedia([]);
       setReviewText('');
       setRating(5);
       setShowReviewForm(false);
@@ -57,6 +79,59 @@ export function ReviewsSection({ productId, reviews, user, isEligible }: Reviews
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleMediaSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    event.currentTarget.value = '';
+    if (!files.length || !user?.uid) return;
+    if (reviewMedia.length + files.length > 4) {
+      toast({ variant: 'destructive', title: 'Maximum four files', description: 'Please remove a file before adding another.' });
+      return;
+    }
+
+    setIsUploadingMedia(true);
+    try {
+      for (const file of files) {
+        const isVideo = file.type.startsWith('video/');
+        const allowed = isVideo
+          ? ['video/mp4', 'video/quicktime', 'video/webm'].includes(file.type)
+          : ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+        const maxSize = isVideo ? 25 * 1024 * 1024 : 5 * 1024 * 1024;
+        if (!allowed || file.size <= 0 || file.size > maxSize) {
+          toast({ variant: 'destructive', title: 'Unsupported media', description: `${file.name} is not a supported format or is too large.` });
+          continue;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('fileName', file.name);
+        const uploaded = await uploadReviewMedia(formData, productId);
+        const previewUrl = URL.createObjectURL(file);
+        const mediaType: ReviewMedia['mediaType'] = uploaded.mediaType === 'video' ? 'video' : 'image';
+        setReviewMedia((current) => [...current, {
+          id: `${Date.now()}-${file.name}`,
+          name: file.name,
+          previewUrl,
+          url: uploaded.url,
+          fileId: uploaded.fileId,
+          format: uploaded.format,
+          mediaType,
+        }]);
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Media upload failed', description: error?.message || 'Please try again.' });
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
+  const removeReviewMedia = (mediaId: string) => {
+    setReviewMedia((current) => {
+      const media = current.find((item) => item.id === mediaId);
+      if (media) URL.revokeObjectURL(media.previewUrl);
+      return current.filter((item) => item.id !== mediaId);
+    });
   };
 
   const averageRating = reviews.length > 0 
@@ -156,6 +231,28 @@ export function ReviewsSection({ productId, reviews, user, isEligible }: Reviews
               placeholder="Tell other collectors about your experience..."
               className="mt-6 min-h-32 w-full rounded-2xl border border-border bg-muted/30 p-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
+            <div className="mt-5 rounded-2xl border border-dashed border-primary/25 bg-primary/[0.03] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold">Add photos or a video</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Up to 4 files · JPG, PNG, WebP (5 MB) · MP4, MOV, WebM (25 MB)</p>
+                </div>
+                <label className="inline-flex cursor-pointer rounded-xl border border-primary/20 bg-white px-4 py-2 text-xs font-bold text-primary hover:bg-primary/5">
+                  {isUploadingMedia ? 'Uploading…' : 'Choose media'}
+                  <input type="file" className="sr-only" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" disabled={isUploadingMedia || reviewMedia.length >= 4} onChange={handleMediaSelect} />
+                </label>
+              </div>
+              {reviewMedia.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {reviewMedia.map((media) => (
+                    <div key={media.id} className="relative overflow-hidden rounded-xl border border-border bg-white">
+                      {media.mediaType === 'video' ? <video src={media.previewUrl} muted controls className="h-24 w-full object-cover" /> : <img src={media.previewUrl} alt={media.name} className="h-24 w-full object-cover" />}
+                      <button type="button" onClick={() => removeReviewMedia(media.id)} className="absolute right-1 top-1 rounded-full bg-black/70 px-2 py-1 text-[10px] font-bold text-white" aria-label={`Remove ${media.name}`}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="mt-4 flex items-center justify-between gap-4">
               <span className="text-xs text-muted-foreground">{reviewText.length}/3000</span>
               <Button type="submit" disabled={isSubmitting || reviewText.trim().length < 3} className="rounded-xl px-6 font-bold">
@@ -199,6 +296,19 @@ export function ReviewsSection({ productId, reviews, user, isEligible }: Reviews
                 <p className="text-muted-foreground text-base leading-relaxed font-medium">
                   "{review.comment}"
                 </p>
+                {Array.isArray(review.review_images) && review.review_images.length > 0 && (
+                  <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {review.review_images.map((media: any, mediaIndex: number) => (
+                      <div key={`${media.fileId || media.url}-${mediaIndex}`} className="overflow-hidden rounded-xl border border-border bg-muted/20">
+                        {media.mediaType === 'video' ? (
+                          <video src={media.url} controls muted playsInline className="h-28 w-full object-cover" />
+                        ) : (
+                          <img src={media.url} alt={media.alt || `${review.user_name || 'Customer'} review media`} loading="lazy" className="h-28 w-full object-cover" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Card>
             ))
           )}

@@ -21,6 +21,8 @@ export interface IGalleryItem extends Document {
   isActive: boolean;
   sortOrder: number;
   uploadedBy: string;        
+  sourceReviewId?: string;
+  sourceReviewMediaId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +54,8 @@ const GalleryItemSchema: Schema = new Schema({
   isActive: { type: Boolean, default: true },
   sortOrder: { type: Number, default: 0 },
   uploadedBy: { type: String, required: true },
+  sourceReviewId: { type: String, index: true },
+  sourceReviewMediaId: { type: String, index: true },
 }, {
   timestamps: true,
   collection: 'Gallery_Items'

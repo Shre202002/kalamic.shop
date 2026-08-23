@@ -2,6 +2,7 @@
 
 import dbConnect from '@/lib/db';
 import Review from '@/lib/models/Review';
+import GalleryItem from '@/lib/models/GalleryItem';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import OrderedItem from '@/lib/models/OrderedItem';
 import { revalidatePath } from 'next/cache';
@@ -50,7 +51,7 @@ export async function submitReview(data: {
   userAvatar?: string;
   rating: number;
   reviewText: string;
-  images?: Array<{ url: string; alt: string; mediaType?: 'image' | 'video' }>;
+  images?: Array<{ url: string; alt: string; mediaType?: 'image' | 'video'; fileId?: string; format?: string }>;
 }) {
   const session = await getAuthenticatedSession();
   if (!session || session.uid !== data.userId) throw new Error('Unauthorized');
@@ -70,7 +71,7 @@ export async function submitReview(data: {
   if (!eligible) throw new Error('Only verified owners can submit a review.');
 
   const images = Array.isArray(data.images) ? data.images.slice(0, 4) : [];
-  if (images.some((image) => typeof image?.url !== 'string' || !/^https:\/\//i.test(image.url) || image.url.length > 2048 || !image.url.includes('imagekit.io') || (image.mediaType && !['image', 'video'].includes(image.mediaType)))) {
+  if (images.some((image) => typeof image?.url !== 'string' || !/^https:\/\//i.test(image.url) || image.url.length > 2048 || !image.url.includes('imagekit.io') || (image.mediaType && !['image', 'video'].includes(image.mediaType)) || (image.fileId && (typeof image.fileId !== 'string' || image.fileId.length > 300)))) {
     throw new Error('Review media must be secure ImageKit URLs.');
   }
 
@@ -102,6 +103,42 @@ export async function submitReview(data: {
         setDefaultsOnInsert: true 
       }
     );
+
+    const product = await KalamicProduct.findById(data.productId).select('name').lean();
+    const reviewId = result._id.toString();
+    const mediaKeys = images.map((image) => image.fileId || image.url);
+    await GalleryItem.updateMany(
+      { sourceReviewId: reviewId, ...(mediaKeys.length ? { sourceReviewMediaId: { $nin: mediaKeys } } : {}) },
+      { $set: { isActive: false } },
+    );
+    await Promise.all(images.map((image, index) => {
+      const mediaKey = image.fileId || image.url;
+      return GalleryItem.findOneAndUpdate(
+        { sourceReviewId: reviewId, sourceReviewMediaId: mediaKey },
+        {
+          $set: {
+            name: `${product?.name || 'Kalamic product'} review`,
+            description: 'Customer review media from a verified Kalamic order.',
+            mediaType: image.mediaType || 'image',
+            url: image.url,
+            fileId: image.fileId || image.url,
+            // Review uploads do not include a separate poster frame. Leave the
+            // thumbnail empty so Gallery uses its safe video placeholder rather
+            // than trying to render an MP4 URL as an image.
+            thumbnailUrl: undefined,
+            format: image.format || (image.mediaType === 'video' ? 'mp4' : 'image'),
+            category: 'Other',
+            altText: image.alt || `${product?.name || 'Kalamic product'} customer review`,
+            caption: `Customer review for ${product?.name || 'a Kalamic product'}`,
+            // Admin activation is the moderation gate for public Gallery display.
+            isActive: false,
+            uploadedBy: session.uid,
+          },
+          $setOnInsert: { sortOrder: 0, isFeatured: false },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+    }));
 
     // Atomic Aggregate Recalculation
     const stats = await Review.aggregate([
