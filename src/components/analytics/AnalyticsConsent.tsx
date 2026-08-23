@@ -64,28 +64,31 @@ export function AnalyticsConsent() {
           aria-label="Analytics cookie preferences"
           className="fixed inset-x-4 bottom-4 z-[100] mx-auto max-w-3xl rounded-2xl border border-white/10 bg-[#1a1208] p-5 text-white shadow-2xl md:flex md:items-center md:justify-between md:gap-6"
         >
-          <p className="text-sm leading-relaxed text-white/80">
-            Kalamic uses optional analytics cookies to understand visits and improve the shop. You can
-            reject them without affecting checkout. Read our{' '}
-            <Link href="/privacy" className="font-semibold text-primary underline">
-              Privacy Policy
-            </Link>
-            .
-          </p>
-          <div className="mt-4 flex shrink-0 gap-3 md:mt-0">
+          <div className="max-w-2xl">
+            <p className="text-sm font-bold text-white">Help us make Kalamic better for you</p>
+            <p className="mt-1 text-sm leading-relaxed text-white/80">
+              Allow optional analytics so we can see which creations are loved, improve mobile browsing,
+              and make the shop easier to use. Analytics is optional and never required to browse or checkout.{' '}
+              <Link href="/privacy" className="font-semibold text-primary underline">
+                Learn more in our Privacy Policy
+              </Link>
+              .
+            </p>
+          </div>
+          <div className="mt-4 flex shrink-0 flex-wrap gap-3 md:mt-0 md:justify-end">
             <button
               type="button"
               onClick={() => choose('rejected')}
               className="rounded-xl border border-white/30 px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-white/10"
             >
-              Reject
+              Keep browsing privately
             </button>
             <button
               type="button"
               onClick={() => choose('accepted')}
               className="rounded-xl bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-primary/90"
             >
-              Accept analytics
+              Allow analytics
             </button>
           </div>
         </aside>

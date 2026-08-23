@@ -14,6 +14,7 @@ import {
   LayoutGrid, Film, ArrowRight,
   Maximize2, Volume2, VolumeX,
   Loader2
+  , ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -450,14 +451,7 @@ export default function GalleryClient({ items }: { items: any[] }) {
                   />
                 ) : (
                   <div className="relative w-full h-full">
-                    <Image 
-                      src={lightboxItem.url} 
-                      alt={lightboxItem.altText} 
-                      fill 
-                      className="object-contain"
-                      sizes="95vw"
-                      priority
-                    />
+                    {lightboxItem.source === 'instagram' ? <img src={lightboxItem.url} alt={lightboxItem.altText} className="h-full w-full object-contain" /> : <Image src={lightboxItem.url} alt={lightboxItem.altText} fill className="object-contain" sizes="95vw" priority />}
                   </div>
                 )}
               </div>
@@ -489,6 +483,7 @@ export default function GalleryClient({ items }: { items: any[] }) {
                   <Button asChild variant="link" className="text-accent font-black uppercase text-[8px] md:text-[10px] tracking-widest p-0 h-auto">
                     <Link href="/products">Shop Artisan Creations</Link>
                   </Button>
+                  {lightboxItem.source === 'instagram' && lightboxItem.instagramPermalink && <Button asChild variant="link" className="text-primary font-black uppercase text-[8px] md:text-[10px] tracking-widest p-0 h-auto"><a href={lightboxItem.instagramPermalink} target="_blank" rel="noreferrer"><ExternalLink className="mr-1 h-3 w-3" /> View on Instagram</a></Button>}
                 </div>
               </motion.div>
             </div>

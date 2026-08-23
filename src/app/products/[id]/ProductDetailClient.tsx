@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { trackProductAction, incrementProductViews } from '@/lib/actions/products';
 import { useUser, useFirestore } from '@/firebase';
@@ -22,19 +22,25 @@ import { ProductSeoContent } from '@/components/product/ProductSeoContent';
 import { ProductComparisonTable } from '@/components/product/ProductComparisonTable';
 import { uploadCustomerProductImage } from '@/lib/actions/upload-actions';
 import { FileUploadCard, UploadedFile } from '@/components/ui/file-upload-card';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { InstagramReelsSection } from '@/components/product/InstagramReelsSection';
 
 interface ProductDetailClientProps {
   initialProduct: any;
   initialReviews: any[];
   relatedProducts: any[];
   isEligible: boolean;
+  reviewEligibilityReason: string;
+  instagramMedia: any[];
 }
 
 export default function ProductDetailClient({ 
   initialProduct: product, 
   initialReviews: reviews, 
   relatedProducts,
-  isEligible
+  isEligible,
+  reviewEligibilityReason
+  , instagramMedia
 }: ProductDetailClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -151,6 +157,7 @@ export default function ProductDetailClient({
                 product={product} 
                 onAddToCart={handleAddToCart} 
                 onBuyNow={handleBuyNow} 
+                productUrl={`https://www.kalamic.shop/products/${product.slug || product._id}`}
               />
               {product.requiresCustomerImage && <FileUploadCard files={uploadFiles} previewUrl={customerImage?.previewUrl} previewAlt={`${product.name} customer image`} disabled={uploadingCustomerImage} onFilesChange={handleCustomerFiles} onFileRemove={() => { setUploadFiles([]); setCustomerImage(null); }} /> /*
                 <div><p className="text-sm font-bold">Upload your photo</p><p className="text-xs text-muted-foreground">{product.customerImageInstructions || `JPG, PNG, or WebP up to 5MB${product.customerImageWidth && product.customerImageHeight ? `; recommended ${product.customerImageWidth} × ${product.customerImageHeight}px${product.customerImagePreset && product.customerImagePreset !== 'custom' ? ` (${product.customerImagePreset} print size)` : ''}` : ''}${product.customerImageMinWidth ? `; minimum ${product.customerImageMinWidth} × ${product.customerImageMinHeight}px` : ''}.`}</p></div>
@@ -184,6 +191,26 @@ export default function ProductDetailClient({
 
           {/* FULL-WIDTH LOWER SECTIONS */}
           <div className="space-y-32">
+            <section aria-labelledby="product-description-heading" className="rounded-[2.5rem] border border-border bg-white p-7 shadow-sm md:p-10">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">The piece</p>
+              <h2 id="product-description-heading" className="mt-2 text-3xl font-display font-bold text-foreground">Product description</h2>
+              <div className="mt-6 space-y-4 text-sm font-medium leading-7 text-muted-foreground">
+                {(product.description || product.short_description || '').split(/\n{2,}/).filter(Boolean).map((paragraph: string, index: number) => <p key={index}>{paragraph.trim()}</p>)}
+              </div>
+            </section>
+
+            <section aria-labelledby="product-shipping-heading" className="rounded-[2.5rem] border border-border bg-white p-7 shadow-sm md:p-10">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Delivery details</p>
+              <h2 id="product-shipping-heading" className="mt-2 text-3xl font-display font-bold text-foreground">Shipping and packaging</h2>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-2xl bg-muted/40 p-4"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Weight</p><p className="mt-2 text-sm font-bold">{product.shipping?.weight_kg ? `${product.shipping.weight_kg} kg` : 'Handcrafted item'}</p></div>
+                <div className="rounded-2xl bg-muted/40 p-4"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Package shape</p><p className="mt-2 text-sm font-bold capitalize">{product.shipping?.shape || 'Protective packaging'}</p></div>
+                <div className="rounded-2xl bg-muted/40 p-4"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Package size</p><p className="mt-2 text-sm font-bold">{product.shipping?.package_dimensions_cm ? [product.shipping.package_dimensions_cm.length, product.shipping.package_dimensions_cm.width, product.shipping.package_dimensions_cm.height].filter(Boolean).join(' × ') + ' cm' : 'Shown at checkout'}</p></div>
+                <div className="rounded-2xl bg-muted/40 p-4"><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Protection</p><p className="mt-2 text-sm font-bold">{product.requiresPremiumProtection ? 'Premium protection included' : 'Standard protection'}</p></div>
+              </div>
+              <p className="mt-5 text-sm leading-7 text-muted-foreground">Every creation is packed for safe delivery. Final shipping charges and estimated delivery time are calculated at checkout for your destination.</p>
+            </section>
+
             <ProductSeoContent product={product} />
 
             {/* Product comparison */}
@@ -192,12 +219,15 @@ export default function ProductDetailClient({
             {/* Related Products */}
             <RelatedProducts products={relatedProducts} />
 
+            <InstagramReelsSection items={instagramMedia} />
+
             {/* Customer Reviews */}
             <ReviewsSection 
               productId={product._id} 
               reviews={reviews} 
               user={user} 
               isEligible={isEligible} 
+              reviewEligibilityReason={reviewEligibilityReason}
             />
           </div>
         </div>
@@ -213,9 +243,10 @@ export default function ProductDetailClient({
          <a 
           href={`https://wa.me/917376761679?text=I'm inquiring about the ${product.name}. Reference: ${product.sku || product.slug}`}
           target="_blank"
+          aria-label={`Chat with Kalamic about ${product.name}`}
           className="h-16 w-16 rounded-full bg-[#25D366] shadow-2xl flex items-center justify-center text-white hover:scale-110 hover:shadow-green-500/20 transition-all active:scale-95"
          >
-           <MessageCircle size={32} />
+           <WhatsAppIcon className="h-8 w-8" />
          </a>
       </div>
 

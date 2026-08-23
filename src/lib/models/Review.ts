@@ -18,6 +18,7 @@ export interface IReview extends Document {
     url: string;
     alt: string;
     mediaType?: 'image' | 'video';
+    fileId?: string;
   }>;
   is_verified_purchase: boolean;
   likes_count: number;
@@ -38,7 +39,8 @@ const ReviewSchema: Schema = new Schema({
     type: [{
       url: { type: String, required: true },
       alt: { type: String, default: "", maxlength: 160 },
-      mediaType: { type: String, enum: ['image', 'video'], default: 'image' }
+      mediaType: { type: String, enum: ['image', 'video'], default: 'image' },
+      fileId: { type: String, maxlength: 300 }
     }],
     _id: false
   },
@@ -47,7 +49,7 @@ const ReviewSchema: Schema = new Schema({
   status: { 
     type: String, 
     enum: ['pending', 'approved', 'rejected'], 
-    default: "approved" 
+    default: "pending"
   },
 }, { 
   timestamps: true,

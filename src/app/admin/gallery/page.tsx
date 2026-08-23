@@ -44,7 +44,8 @@ import {
   Star as StarIcon,
   FilterList,
   Close as CloseIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  Instagram as InstagramIcon
 } from '@mui/icons-material';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -63,6 +64,8 @@ export default function GalleryStudio() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [mediaFilter, setMediaFilter] = useState('all');
+  const [instagramStatus, setInstagramStatus] = useState<any>(null);
+  const [instagramBusy, setInstagramBusy] = useState(false);
   
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadDialogType, setUploadDialogType] = useState<'image' | 'video'>('image');
@@ -90,7 +93,7 @@ export default function GalleryStudio() {
   const loadGalleryItems = async () => {
     setLoading(true);
     try {
-      const data = await getGalleryItems();
+      const data = await getGalleryItems({ includeInactive: true });
       setItems(data);
     } catch (e) {
       console.error(e);
@@ -101,7 +104,22 @@ export default function GalleryStudio() {
 
   useEffect(() => {
     loadGalleryItems();
+    fetch('/api/admin/instagram/status').then((res) => res.ok ? res.json() : null).then(setInstagramStatus).catch(() => setInstagramStatus(null));
   }, []);
+
+  const syncInstagram = async () => {
+    setInstagramBusy(true);
+    try {
+      const res = await fetch('/api/admin/instagram/sync', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Instagram sync failed.');
+      toast({ title: 'Instagram synced', description: `${data.imported || 0} media item(s) updated.` });
+      loadGalleryItems();
+      const status = await fetch('/api/admin/instagram/status');
+      if (status.ok) setInstagramStatus(await status.json());
+    } catch (error: any) { toast({ variant: 'destructive', title: 'Instagram sync failed', description: error.message }); }
+    finally { setInstagramBusy(false); }
+  };
 
   const handleFileSelect = (f: File) => {
     if (uploadDialogType === 'video') {
@@ -290,6 +308,13 @@ export default function GalleryStudio() {
         </Stack>
       </Stack>
 
+      <Paper sx={{ p: 2.5, mb: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'stretch', md: 'center' }} justifyContent="space-between" gap={2}>
+          <Box><Typography fontWeight={900} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><InstagramIcon color="primary" /> Instagram Reels</Typography><Typography variant="caption" color="text.secondary">{instagramStatus?.username ? `Connected as @${instagramStatus.username}` : 'Connect @kala_mic_04 to sync Reels.'}{instagramStatus?.lastSyncAt ? ` · Last sync ${new Date(instagramStatus.lastSyncAt).toLocaleString()}` : ''}</Typography>{instagramStatus?.lastError && <Typography variant="caption" color="error" display="block">{instagramStatus.lastError}</Typography>}</Box>
+          <Stack direction="row" spacing={1} flexWrap="wrap"><Button variant="outlined" onClick={() => window.location.href = '/api/admin/instagram/connect'}>{instagramStatus?.status === 'connected' ? 'Reconnect Instagram' : 'Connect Instagram'}</Button>{instagramStatus?.status === 'connected' && <Button variant="contained" onClick={syncInstagram} disabled={instagramBusy}>{instagramBusy ? 'Syncing…' : 'Sync Now'}</Button>}</Stack>
+        </Stack>
+      </Paper>
+
       <Grid container spacing={3} sx={{ mb: 5 }}>
         {[
           { label: 'Total Assets', value: stats.total, icon: <FilterList /> },
@@ -386,6 +411,7 @@ export default function GalleryStudio() {
                 <CardContent sx={{ flexGrow: 1, py: 2 }}>
                   <Typography variant="subtitle2" noWrap sx={{ fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>{item.category}</Typography>
+                  {item.source === 'instagram' && <Chip icon={<InstagramIcon />} label="Instagram · Pending review" size="small" sx={{ mb: 1, fontSize: '0.6rem' }} />}
                   <Stack direction="row" spacing={1}>
                     <Chip label={item.isActive ? "Active" : "Inactive"} size="small" variant="outlined" color={item.isActive ? "success" : "default"} sx={{ height: 20, fontSize: '0.6rem', fontWeight: 700 }} />
                   </Stack>
@@ -629,6 +655,8 @@ export default function GalleryStudio() {
                 </Select>
               </FormControl>
               <TextField fullWidth multiline rows={3} label="Description" value={editingItem.description} onChange={(e) => setEditingItem({...editingItem, description: e.target.value})} />
+              {editingItem.source === 'instagram' && <TextField fullWidth label="Product IDs (comma separated)" value={(editingItem.productIds || []).join(', ')} onChange={(e) => setEditingItem({...editingItem, productIds: e.target.value.split(',').map((id: string) => id.trim()).filter(Boolean)})} helperText="Assign this Instagram Reel to product IDs, then activate it." />}
+              {editingItem.source === 'instagram' && editingItem.instagramPermalink && <Button href={editingItem.instagramPermalink} target="_blank" rel="noreferrer" startIcon={<InstagramIcon />} variant="text">Open on Instagram</Button>}
               <Box sx={{ display: 'flex', gap: 4 }}>
                 <FormControlLabel control={<Switch checked={editingItem.isFeatured} onChange={(e) => setEditingItem({...editingItem, isFeatured: e.target.checked})} />} label="Featured" />
                 <FormControlLabel control={<Switch checked={editingItem.isActive} onChange={(e) => setEditingItem({...editingItem, isActive: e.target.checked})} />} label="Active" />

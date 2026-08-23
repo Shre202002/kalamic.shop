@@ -2,6 +2,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export type GalleryMediaType = 'image' | 'video';
+export type GallerySource = 'upload' | 'review' | 'instagram';
 
 export interface IGalleryItem extends Document {
   name: string;
@@ -21,6 +22,16 @@ export interface IGalleryItem extends Document {
   isActive: boolean;
   sortOrder: number;
   uploadedBy: string;        
+  source: GallerySource;
+  instagramMediaId?: string;
+  instagramPermalink?: string;
+  instagramUsername?: string;
+  instagramCaption?: string;
+  instagramTimestamp?: Date;
+  productIds?: string[];
+  syncStatus?: 'active' | 'unavailable' | 'error';
+  sourceReviewId?: string;
+  sourceReviewMediaId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +63,16 @@ const GalleryItemSchema: Schema = new Schema({
   isActive: { type: Boolean, default: true },
   sortOrder: { type: Number, default: 0 },
   uploadedBy: { type: String, required: true },
+  source: { type: String, enum: ['upload', 'review', 'instagram'], default: 'upload', index: true },
+  instagramMediaId: { type: String, index: true, sparse: true },
+  instagramPermalink: { type: String },
+  instagramUsername: { type: String },
+  instagramCaption: { type: String, maxlength: 2200 },
+  instagramTimestamp: { type: Date },
+  productIds: { type: [String], default: [] },
+  syncStatus: { type: String, enum: ['active', 'unavailable', 'error'], default: 'active' },
+  sourceReviewId: { type: String, index: true },
+  sourceReviewMediaId: { type: String, index: true },
 }, {
   timestamps: true,
   collection: 'Gallery_Items'
