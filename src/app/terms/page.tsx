@@ -73,7 +73,7 @@ export default function TermsPage() {
               <h2 className="text-2xl font-black uppercase tracking-tight">About these terms</h2>
             </div>
             <p className="font-medium leading-relaxed text-muted-foreground">
-              These Terms apply to Kalamic.shop, operated by Kalamic from Kidwai Nagar, Kanpur, Uttar Pradesh, India. They explain the rules for using our website and purchasing handcrafted ceramic and decorative products.
+              These Terms apply to Kalamic.shop, operated by Kalamic from 130/262 D2, Kidwai Nagar, Kanpur, Uttar Pradesh, India. They explain the rules for using our website and purchasing handcrafted ceramic and decorative products.
             </p>
           </section>
 

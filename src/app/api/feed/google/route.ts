@@ -12,12 +12,23 @@ import { getProducts } from '@/lib/actions/products';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const escapeXml = (value: unknown) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+const formatPrice = (value: unknown, currency: string) =>
+  `${Number(value || 0).toFixed(2)} ${currency || 'INR'}`;
+
 export async function GET() {
   try {
-    const products = await getProducts();
+    const products = await getProducts({ limit: 10000 });
 
     const items = products
-      .filter((p: any) => p.stock > 0 && p.price > 0)
+      .filter((p: any) => p.price > 0)
       .map((p: any) => {
         const primaryImage =
           p.images?.find((img: any) => img.is_primary)?.url ||
@@ -29,21 +40,15 @@ export async function GET() {
           .map((img: any) => img.url)
           .filter(Boolean);
 
-        const productUrl = `https://www.kalamic.shop/products/${p.slug || p._id}`;
+        const productUrl = `https://www.kalamic.shop/products/${encodeURIComponent(p.slug || p._id)}`;
 
         // Clean description — strip HTML tags and limit to 5000 chars
         const description = (p.description || p.short_description || '')
           .replace(/<[^>]*>/g, '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
           .substring(0, 5000);
 
         // Clean title — limit to 150 chars
         const title = (p.name || '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
           .substring(0, 150);
 
         // Additional images (index 2–10)
@@ -51,30 +56,29 @@ export async function GET() {
           .slice(1)
           .map(
             (url: string) =>
-              `<g:additional_image_link>${url}</g:additional_image_link>`
+              `<g:additional_image_link>${escapeXml(url)}</g:additional_image_link>`
           )
           .join('\n        ');
 
         return `
     <item>
-      <g:id>${p._id}</g:id>
-      <g:title>${title}</g:title>
-      <g:description>${description}</g:description>
-      <g:link>${productUrl}</g:link>
-      <g:image_link>${primaryImage}</g:image_link>
+      <g:id>${escapeXml(p.sku || p._id)}</g:id>
+      <g:title>${escapeXml(title)}</g:title>
+      <g:description>${escapeXml(description)}</g:description>
+      <g:link>${escapeXml(productUrl)}</g:link>
+      <g:image_link>${escapeXml(primaryImage)}</g:image_link>
       ${additionalImages}
-      <g:price>${p.compare_at_price || p.price}.00 INR</g:price>
-      ${p.compare_at_price ? `<g:sale_price>${p.price}.00 INR</g:sale_price>` : ''}
-      ${p.compare_at_price ? `<g:sale_price_effective_date>2025-01-01T00:00:00+05:30/2030-12-31T23:59:59+05:30</g:sale_price_effective_date>` : ''}
-      <g:availability>in_stock</g:availability>
+      <g:price>${formatPrice(p.compare_at_price || p.price, p.currency)}</g:price>
+      ${p.compare_at_price ? `<g:sale_price>${formatPrice(p.price, p.currency)}</g:sale_price>` : ''}
+      <g:availability>${p.stock > 0 ? 'in_stock' : 'out_of_stock'}</g:availability>
       <g:condition>new</g:condition>
       <g:brand>Kalamic</g:brand>
-      <g:mpn>${p.sku || p.slug || p._id}</g:mpn>
+      <g:mpn>${escapeXml(p.sku || p.slug || p._id)}</g:mpn>
       <g:identifier_exists>yes</g:identifier_exists>
       <g:google_product_category>588</g:google_product_category>
       <g:product_type>Home &amp; Garden &gt; Decor &gt; Artwork</g:product_type>
       <g:shipping_weight>${p.shipping?.weight_kg || '1'} kg</g:shipping_weight>
-      <g:custom_label_0>${p.category_id || 'home-decor'}</g:custom_label_0>
+      <g:custom_label_0>${escapeXml(p.category_id || 'home-decor')}</g:custom_label_0>
       <g:custom_label_1>handmade</g:custom_label_1>
       <g:custom_label_2>ceramic</g:custom_label_2>
     </item>`;

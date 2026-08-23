@@ -107,7 +107,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-1">Visit Our Studio</h3>
-                    <p className="text-xl font-bold text-primary leading-tight">Kanpur, Uttar Pradesh,<br />India</p>
+                    <p className="text-xl font-bold text-primary leading-tight">130/262 D2, Kidwai Nagar,<br />Kanpur, Uttar Pradesh, India</p>
                   </div>
                 </div>
               </div>

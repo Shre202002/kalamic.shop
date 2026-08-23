@@ -70,7 +70,7 @@ export function LocalBusinessJsonLd() {
     "priceRange": "₹₹",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "Kidwai Nagar",
+      "streetAddress": "130/262 D2, Kidwai Nagar",
       "addressLocality": "Kanpur",
       "addressRegion": "Uttar Pradesh",
       "addressCountry": "IN"

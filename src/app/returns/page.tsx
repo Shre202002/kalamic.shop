@@ -234,7 +234,7 @@ export default function ReturnsPage() {
                   </div>
                   <div className="p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
                     <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-2">Our Location</p>
-                    <p className="text-sm font-bold">Kidwai Nagar, Kanpur, UP, India</p>
+                    <p className="text-sm font-bold">130/262 D2, Kidwai Nagar,<br />Kanpur, UP, India</p>
                   </div>
                 </div>
 

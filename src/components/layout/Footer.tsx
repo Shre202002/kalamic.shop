@@ -4,6 +4,10 @@ import React from 'react';
 import Link from 'next/link';
 import { Instagram, Globe } from 'lucide-react';
 
+const BUSINESS_LOCATION = '130/262 D2, Kidwai Nagar, Kanpur, Uttar Pradesh, India';
+const SUPPORT_EMAIL = 'kalamicshop@gmail.com';
+const SUPPORT_PHONE = '+91 73767 61679';
+
 export function Footer() {
   return (
     <footer className="bg-[#1a1208] text-white pt-24 pb-12 border-t border-white/10">
@@ -28,6 +32,11 @@ export function Footer() {
               >
                 <Instagram className="h-5 w-5" />
               </Link>
+            </div>
+            <div className="space-y-2 text-sm text-[#b0a090]">
+              <p>{BUSINESS_LOCATION}</p>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="block hover:text-primary hover:underline">{SUPPORT_EMAIL}</a>
+              <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, '')}`} className="block hover:text-primary hover:underline">{SUPPORT_PHONE}</a>
             </div>
           </div>
 
