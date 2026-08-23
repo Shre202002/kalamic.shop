@@ -27,9 +27,10 @@ interface ReviewsSectionProps {
   reviews: any[];
   user: any;
   isEligible: boolean;
+  reviewEligibilityReason?: string;
 }
 
-export function ReviewsSection({ productId, reviews, user, isEligible }: ReviewsSectionProps) {
+export function ReviewsSection({ productId, reviews, user, isEligible, reviewEligibilityReason }: ReviewsSectionProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [rating, setRating] = useState(5);
@@ -202,7 +203,7 @@ export function ReviewsSection({ productId, reviews, user, isEligible }: Reviews
              </Button>
            ) : (
              <div className="px-6 py-3 rounded-xl bg-white border border-border text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">
-                Only Verified Owners can Review
+                {reviewEligibilityReason || 'Verify your email and add a phone number to review.'}
              </div>
            )}
         </div>

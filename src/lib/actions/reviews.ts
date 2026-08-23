@@ -4,9 +4,9 @@ import dbConnect from '@/lib/db';
 import Review from '@/lib/models/Review';
 import GalleryItem from '@/lib/models/GalleryItem';
 import KalamicProduct from '@/lib/models/KalamicProduct';
-import OrderedItem from '@/lib/models/OrderedItem';
+import User from '@/lib/models/User';
 import { revalidatePath } from 'next/cache';
-import { getAuthenticatedSession } from '@/lib/server-auth';
+import { getAuthenticatedSession, requireAdmin } from '@/lib/server-auth';
 import { consumeRateLimit } from '@/lib/security/rate-limit';
 
 /**
@@ -15,16 +15,27 @@ import { consumeRateLimit } from '@/lib/security/rate-limit';
 export async function checkUserReviewEligibility(userId: string, productId: string) {
   await dbConnect();
   try {
-    const order = await OrderedItem.findOne({
-      userId,
-      'items.productId': productId,
-      orderStatus: 'Delivered'
-    });
-    return !!order;
+    const user: any = await User.findOne({ firebaseId: userId, status: 'active' })
+      .select('emailVerified phone')
+      .lean();
+    return Boolean(user?.emailVerified && typeof user.phone === 'string' && /^[0-9+()\-\s]{7,20}$/.test(user.phone.trim()));
   } catch (error) {
     console.error("[REVIEWS] Eligibility Check Error:", error);
     return false;
   }
+}
+
+export async function getReviewEligibility(userId: string) {
+  await dbConnect();
+  const user: any = await User.findOne({ firebaseId: userId, status: 'active' })
+    .select('emailVerified phone')
+    .lean();
+  if (!user) return { eligible: false, reason: 'Create your Kalamic profile before writing a review.' };
+  if (!user.emailVerified) return { eligible: false, reason: 'Verify your email from your profile before writing a review.' };
+  if (typeof user.phone !== 'string' || !/^[0-9+()\-\s]{7,20}$/.test(user.phone.trim())) {
+    return { eligible: false, reason: 'Add a valid phone number to your profile before writing a review.' };
+  }
+  return { eligible: true, reason: '' };
 }
 
 /**
@@ -87,7 +98,7 @@ export async function submitReview(data: {
           rating: data.rating,
           comment: data.reviewText,
           review_images: images,
-          status: 'approved',
+          status: 'pending',
           updatedAt: new Date()
         },
         $setOnInsert: {
@@ -170,4 +181,40 @@ export async function submitReview(data: {
     console.error("[REVIEWS] SUBMISSION_FAILED:", error);
     throw new Error(error.message || "Failed to process your feedback.");
   }
+}
+
+export async function getAdminReviews(status: 'all' | 'pending' | 'approved' | 'rejected' = 'pending') {
+  const { user } = await requireAdmin(['super_admin', 'admin', 'support']);
+  await dbConnect();
+  const query = status === 'all' ? {} : { status };
+  const reviews = await Review.find(query).sort({ createdAt: -1 }).limit(200).lean();
+  const productIds = [...new Set(reviews.map((review: any) => review.product_id))];
+  const products = await KalamicProduct.find({ _id: { $in: productIds } }).select('name slug').lean();
+  const productMap = new Map(products.map((product: any) => [product._id.toString(), product]));
+  return JSON.parse(JSON.stringify(reviews.map((review: any) => ({
+    ...review,
+    product: productMap.get(String(review.product_id)) || null,
+    moderatorRole: user.role,
+  }))));
+}
+
+export async function moderateReview(adminId: string, reviewId: string, status: 'approved' | 'rejected') {
+  const { user } = await requireAdmin(['super_admin', 'admin', 'support']);
+  if (typeof adminId !== 'string' || adminId !== user.firebaseId) throw new Error('Unauthorized');
+  await dbConnect();
+  const review: any = await Review.findByIdAndUpdate(reviewId, { $set: { status } }, { new: true }).lean();
+  if (!review) throw new Error('Review not found.');
+  const stats = await Review.aggregate([
+    { $match: { product_id: review.product_id, status: 'approved' } },
+    { $group: { _id: '$product_id', avgRating: { $avg: '$rating' }, totalReviews: { $sum: 1 } } },
+  ]);
+  await KalamicProduct.findByIdAndUpdate(review.product_id, {
+    $set: {
+      'analytics.average_rating': stats[0] ? Number(stats[0].avgRating.toFixed(1)) : 0,
+      'analytics.review_count': stats[0]?.totalReviews || 0,
+    },
+  });
+  revalidatePath(`/products/${review.product_id}`);
+  revalidatePath('/admin/reviews');
+  return JSON.parse(JSON.stringify(review));
 }

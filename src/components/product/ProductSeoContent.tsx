@@ -9,7 +9,11 @@ const PHOTO_FRAME_SLUG = 'customized-ceramic-photo-frame';
 const PEACOCK_MIRROR_SLUG = 'handmade-ceramic-peacock-floral-wall-mirror';
 const OVAL_MIRROR_SLUG = 'handcrafted-antique-gold-floral-wall-mirror-23x18';
 
-export function getProductSeoFaqs(slug?: string): ProductFaq[] {
+export function getProductSeoFaqs(slug?: string, productFaqs?: ProductFaq[]): ProductFaq[] {
+  const normalizedProductFaqs = Array.isArray(productFaqs)
+    ? productFaqs.filter((faq) => faq && typeof faq.question === 'string' && faq.question.trim() && typeof faq.answer === 'string' && faq.answer.trim())
+    : [];
+  if (normalizedProductFaqs.length > 0) return normalizedProductFaqs;
   if (slug === PHOTO_FRAME_SLUG) {
     return [
       {
@@ -61,7 +65,20 @@ export function getProductSeoFaqs(slug?: string): ProductFaq[] {
     ];
   }
 
-  return [];
+  return [
+    {
+      question: 'What should I know before ordering this handcrafted product?',
+      answer: 'Review the product description, specifications, dimensions, care guidance and delivery information before ordering. Each Kalamic piece is handcrafted, so small variations are part of its character.',
+    },
+    {
+      question: 'How should I care for this Kalamic creation?',
+      answer: 'Use a soft, dry cloth for regular dusting and follow any product-specific care instructions. Avoid harsh chemicals, excess moisture and sudden impacts.',
+    },
+    {
+      question: 'How is my order packed and delivered?',
+      answer: 'Kalamic uses protective packaging designed for handcrafted décor. Delivery timing and charges are shown during checkout based on your destination.',
+    },
+  ];
 }
 
 function FaqList({ faqs }: { faqs: ProductFaq[] }) {
@@ -85,9 +102,7 @@ function FaqList({ faqs }: { faqs: ProductFaq[] }) {
 
 export function ProductSeoContent({ product }: { product: any }) {
   const slug = product.slug as string | undefined;
-  const faqs = getProductSeoFaqs(slug);
-
-  if (faqs.length === 0) return null;
+  const faqs = getProductSeoFaqs(slug, product.faqs);
 
   return (
     <div className="space-y-10">

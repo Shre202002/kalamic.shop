@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import { getProductById, getProducts } from '@/lib/actions/products';
-import { getProductReviews, checkUserReviewEligibility } from '@/lib/actions/reviews';
+import { getProductReviews, getReviewEligibility } from '@/lib/actions/reviews';
 import ProductDetailClient from './ProductDetailClient';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/firebase-admin';
@@ -150,7 +150,7 @@ export default async function ProductPage({ params }: Props) {
       { '@type': 'ListItem', position: 3, name: product.name, item: productUrl },
     ],
   };
-  const productFaqs = getProductSeoFaqs(product.slug);
+  const productFaqs = getProductSeoFaqs(product.slug, product.faqs);
   const faqJsonLd = productFaqs.length > 0
     ? {
         '@context': 'https://schema.org',
@@ -168,6 +168,7 @@ export default async function ProductPage({ params }: Props) {
 
   // Check review eligibility if user is logged in
   let isEligible = false;
+  let reviewEligibilityReason = 'Verify your email and add a phone number to your profile before writing a review.';
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('__session')?.value;
@@ -175,7 +176,9 @@ export default async function ProductPage({ params }: Props) {
     if (sessionCookie) {
       const decodedToken = await verifySession(sessionCookie);
       if (decodedToken) {
-        isEligible = await checkUserReviewEligibility(decodedToken.uid, product._id.toString());
+        const eligibility = await getReviewEligibility(decodedToken.uid);
+        isEligible = eligibility.eligible;
+        reviewEligibilityReason = eligibility.reason;
       }
     }
   } catch (error) {
@@ -203,6 +206,7 @@ export default async function ProductPage({ params }: Props) {
         initialReviews={JSON.parse(JSON.stringify(reviews))}
         relatedProducts={JSON.parse(JSON.stringify(filteredRelated))}
         isEligible={isEligible}
+        reviewEligibilityReason={reviewEligibilityReason}
       />
     </>
   );

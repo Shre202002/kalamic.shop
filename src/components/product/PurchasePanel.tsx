@@ -16,14 +16,16 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { ProductShareButton } from '@/components/product/ProductShareButton';
 
 interface PurchasePanelProps {
   product: any;
   onAddToCart: () => void;
   onBuyNow: () => void;
+  productUrl: string;
 }
 
-export function PurchasePanel({ product, onAddToCart, onBuyNow }: PurchasePanelProps) {
+export function PurchasePanel({ product, onAddToCart, onBuyNow, productUrl }: PurchasePanelProps) {
   return (
     <div className="space-y-8">
       {/* Category & Title */}
@@ -98,6 +100,7 @@ export function PurchasePanel({ product, onAddToCart, onBuyNow }: PurchasePanelP
             <WhatsAppIcon className="h-[18px] w-[18px]" /> Chat with the Studio
           </a>
         </Button>
+        <ProductShareButton productId={product._id} productName={product.name} productDescription={product.short_description || product.description} productUrl={productUrl} />
       </div>
 
       {/* Stock & Delivery Info */}

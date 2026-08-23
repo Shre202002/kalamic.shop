@@ -35,7 +35,8 @@ import {
   PhotoLibrary as PhotoLibraryIcon,
   ConfirmationNumber as PromoIcon,
   Category as CategoryIcon,
-  Book as BlogIcon
+  Book as BlogIcon,
+  RateReview as ReviewsIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -89,6 +90,7 @@ const MENU_ITEMS = [
   { text: 'Blog Studio', icon: <BlogIcon />, href: '/admin/blogs', roles: ['super_admin', 'admin'] },
   { text: 'Categories', icon: <CategoryIcon />, href: '/admin/categories', roles: ['super_admin', 'admin'] },
   { text: 'Gallery Studio', icon: <PhotoLibraryIcon />, href: '/admin/gallery', roles: ['super_admin', 'admin'] },
+  { text: 'Reviews', icon: <ReviewsIcon />, href: '/admin/reviews', roles: ['super_admin', 'admin', 'support'] },
   { text: 'Users', icon: <UsersIcon />, href: '/admin/users', roles: ['super_admin', 'admin'] },
   { text: 'Products', icon: <ProductsIcon />, href: '/admin/products', roles: ['super_admin', 'admin'] },
   { text: 'Analytics', icon: <AnalyticsIcon />, href: '/admin/analytics', roles: ['super_admin', 'admin'] },

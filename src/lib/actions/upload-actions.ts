@@ -8,7 +8,7 @@ import ImageKit from 'imagekit';
 import { getAuthenticatedSession, requireAdmin } from '@/lib/server-auth';
 import { consumeRateLimit } from '@/lib/security/rate-limit';
 import dbConnect from '@/lib/db';
-import OrderedItem from '@/lib/models/OrderedItem';
+import User from '@/lib/models/User';
 import KalamicProduct from '@/lib/models/KalamicProduct';
 import CustomerUpload from '@/lib/models/CustomerUpload';
 import sharp from 'sharp';
@@ -128,11 +128,13 @@ export async function uploadReviewMedia(formData: FormData, productId: string) {
   }
 
   await dbConnect();
-  const [product, deliveredOrder] = await Promise.all([
+  const [product, user]: [any, any] = await Promise.all([
     KalamicProduct.findById(productId).select('_id').lean(),
-    OrderedItem.findOne({ userId: session.uid, 'items.productId': productId, orderStatus: 'Delivered' }).select('_id').lean(),
+    User.findOne({ firebaseId: session.uid, status: 'active' }).select('emailVerified phone').lean(),
   ]);
-  if (!product || !deliveredOrder) throw new Error('Only verified owners can upload review media.');
+  if (!product || !user?.emailVerified || typeof user.phone !== 'string' || !/^[0-9+()\-\s]{7,20}$/.test(user.phone.trim())) {
+    throw new Error('Verify your email and add a valid phone number before uploading review media.');
+  }
 
   const file = formData.get('file');
   if (!(file instanceof File)) throw new Error('No media file provided.');
