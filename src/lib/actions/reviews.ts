@@ -144,6 +144,7 @@ export async function submitReview(data: {
             // Admin activation is the moderation gate for public Gallery display.
             isActive: false,
             uploadedBy: session.uid,
+            source: 'review',
           },
           $setOnInsert: { sortOrder: 0, isFeatured: false },
         },

@@ -8,6 +8,7 @@ import ProductDetailClient from './ProductDetailClient';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/firebase-admin';
 import { getProductSeoFaqs } from '@/components/product/ProductSeoContent';
+import { getProductInstagramMedia } from '@/lib/actions/gallery-actions';
 
 /**
  * @fileOverview Product Detail Server Component (Next.js 15).
@@ -87,9 +88,10 @@ export default async function ProductPage({ params }: Props) {
   }
 
   // Fetch reviews and related products in parallel
-  const [reviews, relatedProducts] = await Promise.all([
+  const [reviews, relatedProducts, instagramMedia] = await Promise.all([
     getProductReviews(product._id.toString()),
-    getProducts({ limit: 4 }) 
+    getProducts({ limit: 4 }),
+    getProductInstagramMedia(product._id.toString()),
   ]);
 
   // Filter out the current product from related items
@@ -205,6 +207,7 @@ export default async function ProductPage({ params }: Props) {
         initialProduct={JSON.parse(JSON.stringify(product))}
         initialReviews={JSON.parse(JSON.stringify(reviews))}
         relatedProducts={JSON.parse(JSON.stringify(filteredRelated))}
+        instagramMedia={JSON.parse(JSON.stringify(instagramMedia))}
         isEligible={isEligible}
         reviewEligibilityReason={reviewEligibilityReason}
       />

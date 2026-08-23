@@ -46,3 +46,16 @@ export async function getFeaturedGalleryItems() {
     return [];
   }
 }
+
+export async function getProductInstagramMedia(productId: string) {
+  await dbConnect();
+  if (typeof productId !== 'string' || !productId) return [];
+  try {
+    const items = await GalleryItem.find({ source: 'instagram', isActive: true, syncStatus: 'active', productIds: productId })
+      .sort({ instagramTimestamp: -1, createdAt: -1 }).limit(12).lean();
+    return JSON.parse(JSON.stringify(items)) as IGalleryItem[];
+  } catch (error) {
+    console.error('Error fetching product Instagram media:', error);
+    return [];
+  }
+}

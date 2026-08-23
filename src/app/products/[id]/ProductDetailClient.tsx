@@ -23,6 +23,7 @@ import { ProductComparisonTable } from '@/components/product/ProductComparisonTa
 import { uploadCustomerProductImage } from '@/lib/actions/upload-actions';
 import { FileUploadCard, UploadedFile } from '@/components/ui/file-upload-card';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { InstagramReelsSection } from '@/components/product/InstagramReelsSection';
 
 interface ProductDetailClientProps {
   initialProduct: any;
@@ -30,6 +31,7 @@ interface ProductDetailClientProps {
   relatedProducts: any[];
   isEligible: boolean;
   reviewEligibilityReason: string;
+  instagramMedia: any[];
 }
 
 export default function ProductDetailClient({ 
@@ -38,6 +40,7 @@ export default function ProductDetailClient({
   relatedProducts,
   isEligible,
   reviewEligibilityReason
+  , instagramMedia
 }: ProductDetailClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -215,6 +218,8 @@ export default function ProductDetailClient({
 
             {/* Related Products */}
             <RelatedProducts products={relatedProducts} />
+
+            <InstagramReelsSection items={instagramMedia} />
 
             {/* Customer Reviews */}
             <ReviewsSection 

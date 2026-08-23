@@ -23,7 +23,7 @@ async function validateAdmin(_userId?: string) {
   if (!session) return null;
   await dbConnect();
   const user = await User.findOne({ firebaseId: session.uid });
-  return user && ['super_admin', 'admin'].includes(user.role);
+  return user && ['super_admin', 'admin', 'support'].includes(user.role);
 }
 
 export async function PATCH(
