@@ -9,6 +9,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/firebase-admin';
 import { getProductSeoFaqs } from '@/components/product/ProductSeoContent';
 import { getProductInstagramMedia } from '@/lib/actions/gallery-actions';
+import { getProductSeo } from '@/lib/product-seo';
 
 /**
  * @fileOverview Product Detail Server Component (Next.js 15).
@@ -19,44 +20,19 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-const productSeoOverrides: Record<string, { title: string; description: string }> = {
-  'customized-ceramic-photo-frame': {
-    title: 'Customized Ceramic Photo Frame Online',
-    description:
-      'Order a handcrafted customized ceramic photo frame for 4x6 photos. Floral and owl detailing, secure delivery and a thoughtful personalized gift.',
-  },
-  'handmade-ceramic-peacock-floral-wall-mirror': {
-    title: 'Handmade Peacock Ceramic Wall Mirror',
-    description:
-      'Shop a handmade ceramic wall mirror with peacock and floral motifs in an antique gold finish. Statement decor for living rooms, bedrooms and gifting.',
-  },
-  'handcrafted-antique-gold-floral-wall-mirror-23x18': {
-    title: 'Antique Gold Oval Wall Mirror 23 x 18 Inches',
-    description:
-      'Buy a 23 x 18 inch handcrafted antique gold floral wall mirror. A decorative oval ceramic frame for entryways, bedrooms and elegant Indian interiors.',
-  },
-  'handcrafted-peacock-mor-stambh-decorative-pillar-set': {
-    title: 'Peacock Mor Stambh Set of 2 for Home Decor',
-    description:
-      'Shop a handcrafted pair of ceramic Peacock Mor Stambh pillars for home temples, entryways and festive decor, securely packed by Kalamic in Kanpur.',
-  },
-};
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const product = await getProductById(id);
   if (!product) return { title: 'Product Not Found | Kalamic' };
 
   const productPath = `/products/${product.slug || product._id}`;
-  const seoOverride = productSeoOverrides[product.slug];
-  const seoTitle = seoOverride?.title || product.seo?.meta_title || product.name;
-  const seoDescription = seoOverride?.description || product.seo?.meta_description || product.short_description;
+  const { title: seoTitle, description: seoDescription, keywords } = getProductSeo(product);
   const productImage = product.images?.find((img: any) => img.is_primary)?.url || product.images?.[0]?.url;
 
   return {
     title: seoTitle,
     description: seoDescription,
-    keywords: product.seo?.meta_keywords?.length ? product.seo.meta_keywords.join(', ') : product.tags?.join(', '),
+    keywords,
     robots: { index: true, follow: true },
     openGraph: {
       title: seoTitle,
@@ -100,12 +76,13 @@ export default async function ProductPage({ params }: Props) {
   );
 
   const productUrl = `https://www.kalamic.shop/products/${product.slug || product._id}`;
-  const productJsonLd = {
+  const { description: seoDescription } = getProductSeo(product);
+  const productJsonLd: Record<string, any> = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     '@id': `${productUrl}#product`,
     name: product.name,
-    description: product.short_description || product.description,
+    description: seoDescription,
     image: product.images?.map((image: any) => image.url).filter(Boolean),
     sku: product.sku || String(product._id),
     mpn: product.sku || product.slug || String(product._id),
@@ -114,6 +91,7 @@ export default async function ProductPage({ params }: Props) {
       name: 'Kalamic',
     },
     material: 'Handcrafted ceramic',
+    category: product.category_id?.name || product.tags?.[0] || 'Indian home decor',
     url: productUrl,
     offers: {
       '@type': 'Offer',
@@ -142,6 +120,16 @@ export default async function ProductPage({ params }: Props) {
         }
       : {}),
   };
+
+  if (reviews.length > 0) {
+    productJsonLd.review = reviews.slice(0, 5).map((review: any) => ({
+      '@type': 'Review',
+      author: { '@type': 'Person', name: review.user_name || 'Kalamic customer' },
+      datePublished: review.createdAt,
+      reviewBody: review.comment || review.review_text,
+      reviewRating: { '@type': 'Rating', ratingValue: Number(review.rating), bestRating: 5, worstRating: 1 },
+    }));
+  }
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
