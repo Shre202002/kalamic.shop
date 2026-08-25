@@ -56,6 +56,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <meta name="p:domain_verify" content="f0b2fb19d916a3e9c1dc8cb58ceea6f3" />
         <link rel="preconnect" href="https://ik.imagekit.io" />
         <link rel="dns-prefetch" href="https://ik.imagekit.io" />
         
