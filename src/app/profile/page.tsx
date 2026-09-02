@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
-import { DeliveryLocation } from '@/lib/types/location';
+import { DeliveryLocation, normalizeDeliveryLocation } from '@/lib/types/location';
 
 const LocationPicker = dynamic(() => import('@/components/location/LocationPicker'), { ssr: false, loading: () => <div className="h-[280px] rounded-2xl bg-muted animate-pulse" /> });
 
@@ -94,10 +94,8 @@ export default function ProfilePage() {
 
         if (profileData) {
           setProfile(profileData);
-          setDeliveryLocation(profileData.deliveryLocation ? {
-            ...profileData.deliveryLocation,
-            updatedAt: profileData.deliveryLocation.updatedAt || undefined,
-          } : null);
+          // Ignore legacy or partially-written location objects so the map never receives undefined coordinates.
+          setDeliveryLocation(normalizeDeliveryLocation(profileData.deliveryLocation));
           setFormData({
             firstName: profileData.firstName || '',
             lastName: profileData.lastName || '',

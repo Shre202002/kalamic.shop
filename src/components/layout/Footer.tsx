@@ -70,7 +70,7 @@ export function Footer() {
               <li><Link href="/about" className="hover:text-primary transition-colors">Our Studio Story</Link></li>
               <li><Link href="/privacy" className="hover:text-primary transition-colors">Digital Security</Link></li>
               <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
-              <li><Link href="/sitemap" className="hover:text-primary transition-colors">Navigation Map</Link></li>
+              <li><Link href="/sitemap.xml" className="hover:text-primary transition-colors">Navigation Map</Link></li>
             </ul>
           </div>
         </div>
