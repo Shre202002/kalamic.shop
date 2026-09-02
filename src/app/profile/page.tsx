@@ -438,7 +438,7 @@ export default function ProfilePage() {
                             <SelectTrigger className="h-14 rounded-2xl border-border bg-background text-lg font-medium px-6 focus:ring-primary">
                               <SelectValue placeholder="Select State" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-2xl max-h-[300px]">
+                            <SelectContent position="popper" sideOffset={6} className="z-[60] rounded-2xl max-h-[300px]">
                               {statesList.map((state) => (
                                 <SelectItem key={state.isoCode} value={state.name} className="rounded-xl py-3 px-4 focus:bg-primary/5">
                                   {state.name}
@@ -458,7 +458,7 @@ export default function ProfilePage() {
                             <SelectTrigger className="h-14 rounded-2xl border-border bg-background text-lg font-medium px-6 focus:ring-primary">
                               <SelectValue placeholder={!formData.state ? "Select State first" : "Select City"} />
                             </SelectTrigger>
-                            <SelectContent className="rounded-2xl max-h-[300px]">
+                            <SelectContent position="popper" sideOffset={6} className="z-[60] rounded-2xl max-h-[300px]">
                               {citiesList.map((city, idx) => (
                                 <SelectItem key={`${city.name}-${idx}`} value={city.name} className="rounded-xl py-3 px-4 focus:bg-primary/5">
                                   {city.name}
@@ -468,7 +468,7 @@ export default function ProfilePage() {
                           </Select>
                         </div>
                       </div>
-                      <div className="space-y-3 rounded-2xl border border-border bg-primary/[0.02] p-5">
+                      <div className="relative z-0 space-y-3 rounded-2xl border border-border bg-primary/[0.02] p-4 sm:p-5">
                         <div>
                           <h4 className="font-black text-primary">Precise delivery location *</h4>
                           <p className="text-xs text-muted-foreground">Save a pin to help delivery partners find you accurately. Your coordinates are stored with your profile and order.</p>
